@@ -24,13 +24,15 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True)
     parser.add_argument("--field-json", required=True)
-    parser.add_argument("--output", required=True)
+    parser.add_argument("--output", required=True, help="Garment-only GLB")
+    parser.add_argument("--review-output", default="", help="Optional combined body + garment GLB for interactive inspection")
     parser.add_argument("--body-object", default="")
     parser.add_argument("--source-material", default="Skin_Anatomy")
     parser.add_argument("--material-name", default="GarmentShell")
     parser.add_argument("--offset-m", type=float, default=0.003)
     parser.add_argument("--hem-depth-m", type=float, default=0.0015)
-    parser.add_argument("--colour", nargs=4, type=float, default=(0.18, 0.12, 0.16, 1.0))
+    parser.add_argument("--colour", nargs=4, type=float, default=(0.008, 0.008, 0.010, 1.0), help="Linear RGBA fabric colour; defaults to near-black")
+    parser.add_argument("--fabric-profile", default="black_matte_moderate_stretch")
     return parser.parse_args(raw)
 
 
@@ -127,90 +129,39 @@ def copy_skinning(source, target, shell):
 
 
 def make_material(name, colour, source):
+    """Create a deliberately opaque, matte fabric material for fit review.
+
+    Stretch is a garment construction property, not a static glTF shader
+    parameter. It is recorded as profile metadata; the shell remains skinned
+    to the rig so its fit can be evaluated under character poses.
+    """
     material = bpy.data.materials.new(name)
     material.diffuse_color = tuple(colour)
     material.use_nodes = True
     shader = next((n for n in material.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
     if shader:
-        shader.inputs["Base Color"].default_value = tuple(colour)
-        shader.inputs["Roughness"].default_value = 0.72
-    if source and source.use_nodes:
-        source_shader = next((n for n in source.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
-        if source_shader and shader:
-            shader.inputs["Roughness"].default_value = source_shader.inputs["Roughness"].default_value
+        values = {
+            "Base Color": tuple(colour),
+            "Roughness": 0.86,
+            "Metallic": 0.0,
+            "Alpha": 1.0,
+            "Transmission Weight": 0.0,
+            "Sheen Weight": 0.18,
+            "Sheen Roughness": 0.72,
+            "Coat Weight": 0.0,
+        }
+        for socket, value in values.items():
+            target = shader.inputs.get(socket)
+            if target is not None:
+                target.default_value = value
+    # Explicitly disable material-level transparency where supported.
+    if hasattr(material, "surface_render_method"):
+        try:
+            material.surface_render_method = "DITHERED"
+        except (TypeError, ValueError):
+            pass
+    material["fabric_profile"] = "black_matte_moderate_stretch"
+    material["opacity"] = "opaque"
+    material["stretch"] = "moderate (construction intent; not simulated by static GLB)"
     return material
 
-
-def main():
-    args = parse_args()
-    input_path = Path(args.input)
-    field_path = Path(args.field_json)
-    output_path = Path(args.output)
-    if not input_path.is_file() or not field_path.is_file():
-        raise FileNotFoundError(input_path if not input_path.is_file() else field_path)
-
-    import_glb(input_path)
-    body = find_body(args.body_object)
-    mesh = body.data
-    field_doc = json.loads(field_path.read_text())
-    field_values = field_doc.get("field_values") if isinstance(field_doc, dict) else field_doc
-    if not isinstance(field_values, list):
-        raise ValueError("field JSON must be an array or an object containing field_values")
-    if len(field_values) != len(mesh.vertices):
-        raise ValueError(f"coverage field has {len(field_values)} values; body has {len(mesh.vertices)} vertices")
-
-    vertices = [tuple(v.co) for v in mesh.vertices]
-    normals = [tuple(v.normal) for v in mesh.vertices]
-    faces = [tuple(poly.vertices) for poly in mesh.polygons
-             if poly.material_index < len(mesh.materials)
-             and mesh.materials[poly.material_index]
-             and mesh.materials[poly.material_index].name == args.source_material]
-    if not faces:
-        raise RuntimeError(f"No body faces use source material {args.source_material!r}")
-    shell = build_shell(vertices, normals, faces, field_values, args.offset_m, args.hem_depth_m)
-
-    garment_mesh = bpy.data.meshes.new(args.material_name + "Mesh")
-    garment_mesh.from_pydata(shell.positions, [], shell.faces)
-    garment_mesh.update()
-    garment = bpy.data.objects.new(args.material_name, garment_mesh)
-    bpy.context.collection.objects.link(garment)
-    garment.parent = body.parent
-    garment.matrix_world = body.matrix_world.copy()
-    source_material = next((m for m in mesh.materials if m and "skin" in m.name.lower()), None)
-    garment_mesh.materials.append(make_material(args.material_name, args.colour, source_material))
-
-    copy_skinning(body, garment, shell)
-    copy_shape_keys(body, garment, shell)
-
-    # Keep the exported garment attached to the same armature, but omit the body.
-    armatures = [m.object for m in body.modifiers if m.type == "ARMATURE" and m.object]
-    bpy.ops.object.select_all(action="DESELECT")
-    garment.select_set(True)
-    for armature in armatures:
-        armature.select_set(True)
-    bpy.context.view_layer.objects.active = garment
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_scene.gltf(filepath=str(output_path), export_format="GLB",
-                              use_selection=True, export_apply=False,
-                              export_skins=True, export_morph=True)
-    report = {
-        "body_object": body.name,
-        "body_vertices": len(mesh.vertices),
-        "source_material": args.source_material,
-        "source_faces": len(faces),
-        "coverage_vertices": sum(1 for value in field_values if value >= 0),
-        "garment_vertices": len(shell.positions),
-        "surface_faces": shell.surface_face_count,
-        "rim_faces": shell.rim_face_count,
-        "boundary_edges": len(shell.boundary_edges),
-        "shape_keys": len(mesh.shape_keys.key_blocks) - 1 if mesh.shape_keys else 0,
-        "skin_groups": len(body.vertex_groups),
-        "output": str(output_path),
-    }
-    report_path = output_path.with_suffix(".report.json")
-    report_path.write_text(json.dumps(report, indent=2) + "\n")
-    print("BODY_DERIVED_GARMENT " + json.dumps(report), flush=True)
-
-
-if __name__ == "__main__":
-    main()
