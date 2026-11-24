@@ -30,13 +30,14 @@ func _test_warrens_source_layout() -> void:
 	}
 	for building_id in expected:
 		var building := _find_building(buildings, building_id)
+		var expected_entry: Dictionary = expected[building_id]
 		_check(not building.is_empty(), "The source Warrens should retain %s" % building_id)
 		if building.is_empty():
 			continue
 		_check(String(building.get("archetype", "")) == "hut", "%s should use the ramshackle hut exterior, not a prosperous cottage" % building_id)
-		_check(_read_hex(building.get("center")) == expected[building_id].centre, "%s should retain its source position" % building_id)
-		_check(_read_hex(building.get("door")) == expected[building_id].door, "%s should retain its source entrance" % building_id)
-		_check(String(building.get("door_side", "")) == expected[building_id].side, "%s should retain its source-facing door" % building_id)
+		_check(_read_hex(building.get("center")) == expected_entry.get("centre", Vector2i.ZERO), "%s should retain its source position" % building_id)
+		_check(_read_hex(building.get("door")) == expected_entry.get("door", Vector2i.ZERO), "%s should retain its source entrance" % building_id)
+		_check(String(building.get("door_side", "")) == expected_entry.get("side", ""), "%s should retain its source-facing door" % building_id)
 
 func _test_warrens_streamed_hut_presentation() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
