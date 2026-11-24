@@ -255,6 +255,7 @@ func assign_activity(character_id: String, activity: String, player_instruction:
 func advance_real_time(real_delta: float) -> float:
 	if phase == "inactive" or phase == "resolved" or real_delta <= 0.0:
 		return 0.0
+	_advance_companion_fatigue(real_delta * EXPLORATION_SECONDS_PER_REAL_SECOND)
 	for character_id in assignments.keys():
 		var assignment: Dictionary = assignments[character_id]
 		if not bool(assignment.get("player_override", false)):
@@ -275,6 +276,35 @@ func advance_real_time(real_delta: float) -> float:
 		routine_stage += 1
 		_advance_evening_routines(routine_stage)
 	return 0.0
+
+
+func _advance_companion_fatigue(world_delta: float) -> void:
+	for character_id_value in party_ids:
+		var character_id := String(character_id_value)
+		var condition := condition_for(character_id)
+		if condition.is_empty():
+			continue
+		var activity := String(assignments.get(character_id, {}).get("activity", "socialise"))
+		var fatigue_rate := 0.0
+		match activity:
+			"gather_wood":
+				fatigue_rate = 0.035
+			"set_up_tents":
+				fatigue_rate = 0.025
+			"fetch_water":
+				fatigue_rate = 0.020
+			"train":
+				fatigue_rate = 0.040
+			"repair_gear":
+				fatigue_rate = 0.008
+			"cook":
+				fatigue_rate = 0.006
+			"study_map":
+				fatigue_rate = 0.002
+			"socialise":
+				fatigue_rate = 0.001
+		condition["fatigue"] = clampf(float(condition.get("fatigue", 40.0)) + fatigue_rate * world_delta, 0.0, 100.0)
+		conditions[character_id] = condition
 
 
 func _advance_evening_routines(stage: int) -> void:
