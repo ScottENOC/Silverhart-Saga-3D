@@ -31,6 +31,7 @@ const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
+const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -121,6 +122,11 @@ var wilderness_steps_since_spawn: int = 0
 var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
+var camp_presentation: CampWorldPresentation
+var camp_selection_mode: bool = false
+var camp_button: Button
+var camp_sleep_button: Button
+var camp_status_label: Label
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
@@ -144,6 +150,7 @@ func _ready() -> void:
 	_create_reyna_shelter()
 	_capture_initial_character_baselines()
 	_create_camera()
+	_create_camp_presentation()
 	_create_hud()
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
@@ -615,6 +622,95 @@ func _create_camera() -> void:
 	add_child(camera_rig)
 	camera_rig.follow_target = actor_by_id["player"]
 
+func _create_camp_presentation() -> void:
+	camp_presentation = CAMP_WORLD_PRESENTATION_SCRIPT.new() as CampWorldPresentation
+	camp_presentation.name = "CampWorldPresentation"
+	camp_presentation.configure(Callable(self, "_hex_world_position"))
+	add_child(camp_presentation)
+
+
+func _toggle_camp_site_selection() -> void:
+	if simulation == null or simulation.is_in_combat or simulation.has_pending_reaction():
+		return
+	if simulation.camp_simulation.phase == "evening" or simulation.camp_simulation.phase == "night":
+		if camp_status_label != null:
+			camp_status_label.text = "Your camp is already established. Finish the evening or sleep until morning."
+		return
+	camp_selection_mode = not camp_selection_mode
+	if camp_status_label != null:
+		camp_status_label.text = "Choose a clear, walkable ground hex for camp." if camp_selection_mode else "Camp placement cancelled."
+	if camp_button != null:
+		camp_button.text = "Cancel [B]" if camp_selection_mode else "Camp [B]"
+
+
+func _select_camp_site(hex: Vector2i) -> void:
+	camp_selection_mode = false
+	if camp_button != null:
+		camp_button.text = "Camp [B]"
+	if _is_upper_floor_hex(hex) or not simulation.map_data.has_cell(hex) or not simulation.map_data.is_walkable(hex):
+		camp_status_label.text = "That ground is unsuitable for a campsite."
+		return
+	if simulation.is_hex_occupied(hex):
+		camp_status_label.text = "Choose an unoccupied patch of ground."
+		return
+	var nearby_trees := false
+	var water_nearby := false
+	for candidate in simulation.map_data.cells:
+		var candidate_hex: Vector2i = candidate
+		if HexGrid.distance(hex, candidate_hex) > 4:
+			continue
+		var terrain := simulation.map_data.terrain_id_at(candidate_hex)
+		if terrain == "forest":
+			nearby_trees = true
+		elif terrain == "water":
+			water_nearby = true
+		if nearby_trees and water_nearby:
+			break
+	var site := {
+		"hex": hex,
+		"position": _hex_world_position(hex),
+		"walkable": true,
+		"occupied": false,
+		"terrain_id": simulation.map_data.terrain_id_at(hex)
+	}
+	var environment := {
+		"trees_nearby": nearby_trees,
+		"water_nearby": water_nearby,
+		"night_temperature_c": 8.0,
+		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
+	}
+	var result := simulation.begin_camp(site, environment, {})
+	if not bool(result.get("ok", false)):
+		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
+		return
+	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements)
+	camp_status_label.text = "Camp established. The party can continue exploring and working while evening activities unfold."
+	if camp_sleep_button != null:
+		camp_sleep_button.visible = true
+		camp_sleep_button.text = "Sleep until morning"
+
+
+func _sleep_or_pack_camp() -> void:
+	if simulation == null:
+		return
+	if simulation.camp_simulation.phase == "evening":
+		var result := simulation.skip_camp_to_morning()
+		if not bool(result.get("ok", false)):
+			camp_status_label.text = "Could not begin the night: %s" % String(result.get("reason", "unknown"))
+			return
+		var summary: Dictionary = result.get("summary", {})
+		camp_status_label.text = "Morning. Camp comfort: %d/100 · estimated overnight ambush risk: %d%%." % [
+			roundi(float(summary.get("average_comfort", 0.0))),
+			roundi(float(summary.get("ambush_chance", 0.0)) * 100.0)
+		]
+		camp_sleep_button.text = "Pack camp"
+	elif simulation.camp_simulation.phase == "resolved":
+		camp_presentation.clear_camp()
+		camp_sleep_button.visible = false
+		camp_status_label.text = "Camp packed. Ready to continue travelling."
+		simulation.camp_simulation.phase = "inactive"
+
+
 func _create_hud() -> void:
 	var layer := CanvasLayer.new()
 	location_label = Label.new()
@@ -699,6 +795,28 @@ func _create_hud() -> void:
 	world_map_button.custom_minimum_size = Vector2(140.0, 42.0)
 	world_map_button.pressed.connect(_toggle_world_map)
 	layer.add_child(world_map_button)
+
+	camp_button = Button.new()
+	camp_button.text = "Camp [B]"
+	camp_button.position = Vector2(990.0, 18.0)
+	camp_button.custom_minimum_size = Vector2(125.0, 42.0)
+	camp_button.pressed.connect(_toggle_camp_site_selection)
+	layer.add_child(camp_button)
+
+	camp_sleep_button = Button.new()
+	camp_sleep_button.text = "Sleep until morning"
+	camp_sleep_button.position = Vector2(990.0, 66.0)
+	camp_sleep_button.custom_minimum_size = Vector2(190.0, 40.0)
+	camp_sleep_button.visible = false
+	camp_sleep_button.pressed.connect(_sleep_or_pack_camp)
+	layer.add_child(camp_sleep_button)
+
+	camp_status_label = Label.new()
+	camp_status_label.position = Vector2(990.0, 112.0)
+	camp_status_label.custom_minimum_size = Vector2(300.0, 72.0)
+	camp_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	camp_status_label.add_theme_color_override("font_color", Color("#f0dfbd"))
+	layer.add_child(camp_status_label)
 
 	combat_hud = CampaignCombatHud.new()
 	combat_hud.name = "CampaignCombatHud"
@@ -2262,12 +2380,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
 			var clicked_hex: Vector2i = _screen_position_to_hex(mouse_event.position)
 			if clicked_hex != INVALID_HEX:
-				_set_move_destination(clicked_hex)
+				if camp_selection_mode:
+					_select_camp_site(clicked_hex)
+				else:
+					_set_move_destination(clicked_hex)
 				get_viewport().set_input_as_handled()
 			return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key_event := event as InputEventKey
+		if key_event.keycode == KEY_B:
+			_toggle_camp_site_selection()
+			get_viewport().set_input_as_handled()
+			return
 		if key_event.keycode == KEY_F5:
 			_quick_save()
 			get_viewport().set_input_as_handled()
