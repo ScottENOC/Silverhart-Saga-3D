@@ -188,6 +188,29 @@ func _test_mask_contract(asset_path: String) -> void:
     assert(is_equal_approx(float(submitted_forces.get(overlap_id, 0.0)), 16.25),
         "Contact force did not preserve the overlapping region membership")
 
+    # Clothing may be in light contact without compressing the body. Its
+    # transient damping must still be mapped across the same overlapping regions.
+    var garment_damping_regions := BodyPressureContact.submit_surface_contact(
+        pressure_controller,
+        regions,
+        mask.mesh_node_path,
+        target_surface,
+        triangle_vertices,
+        vertex_barycentric,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        100.0,
+        0.10,
+        120.0
+    )
+    assert(garment_damping_regions.has(region_id) and garment_damping_regions.has(overlap_id),
+        "Garment-only damping must reach all overlapping registered anatomy regions")
+    assert(is_equal_approx(float(garment_damping_regions[region_id]), 0.0)
+        and is_equal_approx(float(garment_damping_regions[overlap_id]), 0.0),
+        "Damping-only garment contact must not add compression force")
+
     var invalid_regions := CharacterSurfaceRegions.new()
     assert(not invalid_regions.configure(actor_root, body_root, [stale_signature], asset_path),
         "Runtime accepted stale fine mask for " + asset_path)
