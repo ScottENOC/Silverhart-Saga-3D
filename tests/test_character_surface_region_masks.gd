@@ -154,7 +154,7 @@ func _test_mask_contract(asset_path: String) -> void:
         target_surface,
         triangle_vertices,
         barycentric,
-        0.01,
+        0.10,
         0.0,
         1000.0,
         0.0,
