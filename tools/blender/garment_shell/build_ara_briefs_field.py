@@ -65,12 +65,19 @@ def main():
         raise RuntimeError("Ara rig is missing required landmarks: " + ", ".join(missing))
 
     to_body = body.matrix_world.inverted() @ armature.matrix_world
-    hips_y = (to_body @ bones["LeftUpLeg"].head_local).y
-    hips_y += (to_body @ bones["RightUpLeg"].head_local).y
-    hips_y *= 0.5
-    neck_y = (to_body @ bones["Neck"].head_local).y
-    if neck_y <= hips_y:
-        raise RuntimeError(f"Expected Ara body-local Y-up coordinates; neck_y={neck_y:.5f}, hips_y={hips_y:.5f}")
+    # Blender imports glTF into its native Z-up object space. Do not use Y here:
+    # the exported glTF world-space preview is Y-up, but mesh vertices and the
+    # armature rest pose are both expressed in Blender object-local Z-up space.
+    hips_z = (to_body @ bones["LeftUpLeg"].head_local).z
+    hips_z += (to_body @ bones["RightUpLeg"].head_local).z
+    hips_z *= 0.5
+    neck_z = (to_body @ bones["Neck"].head_local).z
+    torso_height = neck_z - hips_z
+    if torso_height < 0.25:
+        raise RuntimeError(
+            f"Invalid Ara torso landmark span in Blender Z-up body space: "
+            f"neck_z={neck_z:.5f}, hips_z={hips_z:.5f}, height={torso_height:.5f}m"
+        )
 
     leg_axes = {}
     for side, bone_name in (("left", "LeftUpLeg"), ("right", "RightUpLeg")):
@@ -103,7 +110,7 @@ def main():
         point = vertex.co
 
         if trunk_weight >= leg_weight and trunk_weight >= options.minimum_region_weight:
-            trunk_t = (point.y - hips_y) / (neck_y - hips_y)
+            trunk_t = (point.z - hips_z) / torso_height
             field.append(options.trunk_limit - trunk_t)
             classifications["trunk"] += 1
         elif leg_weight >= options.minimum_region_weight:
@@ -126,8 +133,9 @@ def main():
         "preset": "ara_standard_briefs",
         "body_object": body.name,
         "body_vertices": len(body.data.vertices),
-        "hip_y_m": hips_y,
-        "neck_y_m": neck_y,
+        "hip_z_m": hips_z,
+        "neck_z_m": neck_z,
+        "torso_height_m": torso_height,
         "trunk_limit": options.trunk_limit,
         "upperleg_limit": options.upperleg_limit,
         "minimum_region_weight": options.minimum_region_weight,
