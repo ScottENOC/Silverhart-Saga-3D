@@ -94,7 +94,7 @@ func _plan_initial_activities() -> void:
 	var available := party_ids.duplicate()
 	if resources.wood <= 0 and bool(environment.get("trees_nearby", false)):
 		_assign_from_pool(available, "gather_wood", 1)
-	var outdoor_sleepers := maxi(0, party_ids.size() - int(lodging_profile.get("sleeping_capacity", 0)))
+	var outdoor_sleepers := maxi(0, party_ids.size() - _indoor_sleeping_capacity())
 	if resources.tents > 0 and outdoor_sleepers > 0:
 		_assign_from_pool(available, "set_up_tents", mini(resources.tents, 1))
 	if bool(environment.get("water_nearby", false)) and resources.water < party_ids.size():
@@ -334,7 +334,7 @@ func _routine_activity_for(character_id: String, stage: int) -> String:
 	var fatigue := maxf(float(profile.get("fatigue", 0.0)), float(condition.get("fatigue", 0.0)))
 	var injured := bool(profile.get("injured", false))
 	var personality := String(profile.get("personality", "")).to_lower()
-	var has_dwelling := int(lodging_profile.get("sleeping_capacity", 0)) > 0
+	var has_dwelling := bool(lodging_profile.get("is_sheltered", true))
 	var severe_weather := _weather_is_severe()
 	if int(resources.water) < party_ids.size() and bool(environment.get("water_nearby", false)):
 		return "fetch_water"
@@ -391,18 +391,56 @@ func _weather_is_severe() -> bool:
 	)
 
 
+func _indoor_sleeping_capacity() -> int:
+	if not bool(lodging_profile.get("is_sheltered", true)):
+		return 0
+	return maxi(0, int(lodging_profile.get("sleeping_capacity", 0))) + _indoor_floor_capacity()
+
+
+func _indoor_floor_capacity() -> int:
+	if not bool(lodging_profile.get("is_sheltered", true)):
+		return 0
+	if lodging_profile.has("indoor_floor_capacity"):
+		return maxi(0, int(lodging_profile.get("indoor_floor_capacity", 0)))
+	var floor_size: Variant = lodging_profile.get("floor_size", Vector2.ZERO)
+	if not floor_size is Vector2:
+		return 0
+	var floor_count := maxi(1, int(lodging_profile.get("floor_count", 1)))
+	var floor_area := floor_size.x * floor_size.y * float(floor_count)
+	# Allow one person per 8 m² of gross floor area, leaving room for
+	# circulation, stairs and existing non-sleeping furniture.
+	return maxi(0, floori(floor_area / 8.0))
+
+
 func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = null) -> Array[Dictionary]:
 	sleeping_arrangements.clear()
 	var remaining := party_ids.duplicate()
-	var indoor_capacity := mini(maxi(0, int(lodging_profile.get("sleeping_capacity", 0))), remaining.size())
-	for _index in range(indoor_capacity):
-		var indoor_id := String(remaining.pop_front())
+	var beds_available := mini(maxi(0, int(lodging_profile.get("sleeping_capacity", 0))), remaining.size())
+	if not bool(lodging_profile.get("is_sheltered", true)):
+		beds_available = 0
+	var bags_remaining := int(resources.sleeping_bags)
+	for _index in range(beds_available):
+		var bed_user := String(remaining.pop_front())
 		sleeping_arrangements.append({
-			"tent_index": -2, "shelter_type": "dwelling", "dwelling_id": String(lodging_profile.get("dwelling_id", "")),
-			"character_ids": [indoor_id], "sleeping_bag_character_ids": [], "comfort_penalty": 0
+			"tent_index": -2, "shelter_type": "dwelling", "sleeping_surface": "bed",
+			"dwelling_id": String(lodging_profile.get("dwelling_id", "")),
+			"character_ids": [bed_user], "sleeping_bag_character_ids": [],
+			"comfort_penalty": 0
+		})
+	var floor_sleepers := mini(_indoor_floor_capacity(), remaining.size())
+	for _index in range(floor_sleepers):
+		var floor_user := String(remaining.pop_front())
+		var has_floor_bag := bags_remaining > 0
+		if has_floor_bag:
+			bags_remaining -= 1
+		sleeping_arrangements.append({
+			"tent_index": -2, "shelter_type": "dwelling", "sleeping_surface": "floor",
+			"dwelling_id": String(lodging_profile.get("dwelling_id", "")),
+			"character_ids": [floor_user],
+			"sleeping_bag_character_ids": [floor_user] if has_floor_bag else [],
+			"comfort_penalty": 8 if not has_floor_bag else 3
 		})
 	var tent_limit := mini(maxi(0, tent_count), ceili(float(remaining.size()) / float(TENT_COMFORTABLE_CAPACITY)))
-	var bags_remaining := int(resources.sleeping_bags)
 	while tent_limit > 0 and not remaining.is_empty():
 		var group: Array[String] = [String(remaining.pop_front())]
 		var target_size := mini(TENT_MAX_CAPACITY, maxi(TENT_COMFORTABLE_CAPACITY, remaining.size() + 1 - (tent_limit - 1) * TENT_COMFORTABLE_CAPACITY))
@@ -417,6 +455,7 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 			bags_remaining -= 1
 		sleeping_arrangements.append({
 			"tent_index": sleeping_arrangements.size(), "shelter_type": "tent",
+			"sleeping_surface": "ground",
 			"character_ids": group,
 			"sleeping_bag_character_ids": bag_users,
 			"comfort_penalty": maxi(0, group.size() - TENT_COMFORTABLE_CAPACITY) * 10
@@ -427,12 +466,12 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 		if has_bag:
 			bags_remaining -= 1
 		sleeping_arrangements.append({
-			"tent_index": -1, "shelter_type": "open_air", "character_ids": [character_id],
+			"tent_index": -1, "shelter_type": "open_air", "sleeping_surface": "ground",
+			"character_ids": [character_id],
 			"sleeping_bag_character_ids": [character_id] if has_bag else [],
 			"comfort_penalty": 0
 		})
 	return sleeping_arrangements.duplicate(true)
-
 
 func _best_sleeping_candidate(candidates: Array, group: Array[String], bonds: CompanionBondState) -> int:
 	if candidates.size() <= 1 or bonds == null:
@@ -521,7 +560,20 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	var has_water := int(resources.water) >= party_size
 	var watchers := _count_watchers()
 	var danger := clampf(float(environment.get("danger", 0.25)), 0.0, 1.0)
-	var ambush_chance := clampf(danger * 0.45 - float(watchers) * 0.07, 0.0, 0.45)
+	var base_ambush_chance := clampf(danger * 0.45 - float(watchers) * 0.07, 0.0, 0.45)
+	var exposure_total := 0.0
+	for arrangement in sleeping_arrangements:
+		var exposure := 1.0
+		match String(arrangement.get("shelter_type", "open_air")):
+			"dwelling":
+				exposure = 0.0
+			"tent":
+				exposure = 0.65
+		exposure_total += exposure * (arrangement.get("character_ids", []) as Array).size()
+	var exposure_ratio := exposure_total / float(maxi(1, party_size))
+	# A solid dwelling substantially reduces exposure; tents provide partial cover.
+	var shelter_multiplier := 0.35 + 0.65 * exposure_ratio
+	var ambush_chance := base_ambush_chance * shelter_multiplier
 	var starting_temperature := float(environment.get("night_temperature_c", 10.0))
 	var temperature_change := float(environment.get("temperature_change_per_hour", -0.4))
 	var temperature := starting_temperature + temperature_change * night_hours
@@ -539,10 +591,12 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var in_tent := false
 		var in_dwelling := false
 		var tent_penalty := 0.0
+		var sleeping_surface := "ground"
 		for arrangement in sleeping_arrangements:
 			if (arrangement.get("character_ids", []) as Array).has(character_id):
 				in_tent = int(arrangement.get("tent_index", -1)) >= 0
 				in_dwelling = String(arrangement.get("shelter_type", "")) == "dwelling"
+				sleeping_surface = String(arrangement.get("sleeping_surface", "ground"))
 				tent_penalty = float(arrangement.get("comfort_penalty", 0))
 				break
 		var has_sleeping_bag := bool(bagged_characters.get(character_id, false))
@@ -558,7 +612,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		condition["social_satisfaction"] = maxf(0.0, float(condition.get("social_satisfaction", 0.0)) - 5.0)
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
 		var dwelling_comfort := float(lodging_profile.get("comfort_bonus", 0.0)) if in_dwelling else 0.0
-		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10) + dwelling_comfort, 0.0, 100.0)
+		var surface_comfort := 10.0 if sleeping_surface == "bed" else (3.0 if has_sleeping_bag else 0.0)
+		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10) + dwelling_comfort + surface_comfort, 0.0, 100.0)
 		var watch_penalty := 10.0 if String(assignments.get(character_id, {}).get("activity", "")) == "watch" else 0.0
 		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, 20.0 + comfort * 0.35 - watch_penalty))
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
@@ -571,12 +626,15 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		results[character_id] = {
 			"comfort": comfort, "warmth": warmth, "nutrition": nutrition,
 			"hydration": hydration, "security": security, "social": social,
-			"fatigue_recovered": fatigue_recovered
+			"fatigue_recovered": fatigue_recovered,
+			"sleeping_surface": sleeping_surface,
+			"shelter_type": "dwelling" if in_dwelling else ("tent" if in_tent else "open_air")
 		}
 	phase = "resolved"
 	var summary := {
 		"hours": night_hours, "party_size": party_size, "watchers": watchers,
-		"ambush_chance": ambush_chance,
+		"ambush_chance": ambush_chance, "base_ambush_chance": base_ambush_chance,
+		"exposure_ratio": exposure_ratio, "shelter_multiplier": shelter_multiplier,
 		"average_comfort": total_comfort / float(maxi(1, party_size)),
 		"characters": results,
 		"resources_remaining": resources.duplicate(true)
