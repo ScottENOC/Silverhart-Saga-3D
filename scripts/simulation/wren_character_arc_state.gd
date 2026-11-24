@@ -124,6 +124,100 @@ func _axes(source: Dictionary, include_security: bool) -> Dictionary:
 func snapshot() -> Dictionary:
 	return {"player": _axes(player, false), "wren": _axes(wren, true), "stance": stance(), "attachment": attachment_state(), "history": history.duplicate(true)}
 
+const WHY_STAY_CHOICE_IDS := ["people_do_not_give_up", "loyalty_has_limits", "look_after_our_own", "you_do_not_owe_me"]
+const PARENTS_REFLECTION_CHOICE_IDS := ["truth_even_when_it_hurts", "hurt_ours_no_second_chance", "do_not_become_them", "power_keeps_us_safe"]
+const DIALOGUE_LABELS := {
+	"people_do_not_give_up": "“People shouldn’t give up on each other just because things get hard.”",
+	"loyalty_has_limits": "“Loyalty has limits. If I’m wrong, I need you to tell me.”",
+	"look_after_our_own": "“You look after your own. Everyone else comes second.”",
+	"you_do_not_owe_me": "“You don’t owe me staying. If you stay, I want it to be because you choose to.”",
+	"truth_even_when_it_hurts": "“The truth matters, even when it hurts people we care about.”",
+	"hurt_ours_no_second_chance": "“People who hurt ours don’t automatically deserve a second chance.”",
+	"do_not_become_them": "“Don’t let cruel people decide who you become.”",
+	"power_keeps_us_safe": "“What happened proves why we need enough power that nobody can do that to ours again.”"
+}
+const DIALOGUE_RESPONSES := {
+	"people_do_not_give_up": "“Yeah. That’s more or less the rule I’ve been living by.”",
+	"loyalty_has_limits": "Wren studies you. “Careful. I might take that as permission.”",
+	"look_after_our_own": "“Our own,” Wren repeats. “Dangerous little phrase, that. I can see the appeal.”",
+	"you_do_not_owe_me": "For once Wren has no quick answer. “...All right. I’ll try to remember that.”",
+	"truth_even_when_it_hurts": "“Then I suppose I’d better get used to saying uncomfortable things.”",
+	"hurt_ours_no_second_chance": "Wren nods slowly. “No. Maybe they don’t.”",
+	"do_not_become_them": "“That sounds annoyingly sensible.” A pause. “I’ll think about it.”",
+	"power_keeps_us_safe": "“Power as insurance.” Wren frowns. “I hate that I understand the argument.”"
+}
+
+
+func why_stays_line(relationships: CompanionRelationshipState) -> String:
+	var rel: Dictionary = relationships.snapshot("wren_talbot") if relationships != null else {}
+	var trust := float(rel.get("trust", 0.0))
+	var security := float(wren.get("security", 0.0))
+	var loyalty := float(wren.get("personalLoyalty", 0.0))
+	var mercy := float(wren.get("mercy", 0.0))
+	if trust <= 10.0:
+		if loyalty >= 25.0:
+			return "“Because leaving someone when they’re at their worst is still leaving them. Don’t mistake that for me thinking you’re right.”"
+		return "“Because if everyone who remembers who you were walks away, who exactly is left to tell you when you’ve become a monster?”"
+	if security >= 35.0 and loyalty >= 20.0:
+		return "“I used to think staying was something I had to prove. It isn’t. I’m here because I choose you. There’s a difference.”"
+	if loyalty >= 40.0 and mercy <= -15.0:
+		return "“The world gets very generous with rules when it’s somebody else bleeding. I know who mine are. You’re one of them.”"
+	if loyalty <= -20.0:
+		return "“Staying doesn’t mean agreeing. Sometimes loyalty is being the one person who’ll stand close enough to tell you no.”"
+	if security <= -30.0:
+		return "Wren looks away. “People disappear. They promise they won’t, and then one day there’s just an empty chair. I suppose I decided a long time ago I wouldn’t be the empty chair.”"
+	return "“People leave. I don’t. Maybe that’s stubbornness, maybe it’s a character flaw. You’ve travelled with me long enough to know I’ve got both.”"
+
+
+func parents_reflection_line() -> String:
+	var loyalty := float(wren.get("personalLoyalty", 0.0))
+	var mercy := float(wren.get("mercy", 0.0))
+	var security := float(wren.get("security", 0.0))
+	if mercy >= 25.0 and security >= 20.0:
+		return "“Finding out what happened didn’t make me want revenge as much as I thought it would. Mostly I don’t want Venn to get to decide what sort of person I become.”"
+	if mercy <= -20.0 and loyalty >= 25.0:
+		return "“I keep thinking about how many people knew enough to be suspicious and chose quiet. I don’t think I have much patience left for people who hurt ours and ask for understanding after.”"
+	if loyalty <= -20.0:
+		return "“They deserved more than someone quietly caring about them. They deserved somebody willing to say what happened out loud, even when powerful people wanted silence.”"
+	return "“I thought knowing would settle something. It did, sort of. Mostly it left me deciding what I want the knowing to do to me.”"
+
+
+func dialogue_topics(relationships: CompanionRelationshipState, journal: CampaignJournal) -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	var rel: Dictionary = relationships.snapshot("wren_talbot") if relationships != null else {}
+	var why_stay_used := false
+	for choice_id in WHY_STAY_CHOICE_IDS:
+		if dialogue_choice_keys.has(choice_id):
+			why_stay_used = true
+			break
+	if float(rel.get("familiarity", 0.0)) >= 35.0 and not why_stay_used:
+		options.append({"id":"wren_arc_topic:why_stay","label":"Why do you always stay?"})
+	var parents_completed := journal != null and String(journal.quest_state("wren_parents").get("status", "")) == "completed"
+	var parents_reflection_used := false
+	for choice_id in PARENTS_REFLECTION_CHOICE_IDS:
+		if dialogue_choice_keys.has(choice_id):
+			parents_reflection_used = true
+			break
+	if parents_completed and not parents_reflection_used:
+		options.append({"id":"wren_arc_topic:parents_reflection","label":"What did finding your parents change for you?"})
+	return options
+
+
+func dialogue_options_for_topic(topic_id: String) -> Array[Dictionary]:
+	var ids: Array = WHY_STAY_CHOICE_IDS if topic_id == "why_stay" else PARENTS_REFLECTION_CHOICE_IDS
+	var options: Array[Dictionary] = []
+	for choice_id_value in ids:
+		var choice_id := String(choice_id_value)
+		if dialogue_choice_keys.has(choice_id):
+			continue
+		options.append({"id":"wren_arc_choice:" + choice_id,"label":String(DIALOGUE_LABELS.get(choice_id, choice_id))})
+	return options
+
+
+func dialogue_response_for(choice_id: String) -> String:
+	return String(DIALOGUE_RESPONSES.get(choice_id, "Wren considers your words for a moment."))
+
+
 func stance() -> String:
 	var loyal := float(wren.get("personalLoyalty", 0.0)) >= 25.0
 	var principled := float(wren.get("personalLoyalty", 0.0)) <= -20.0
