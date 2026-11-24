@@ -1589,6 +1589,14 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
     return camp_simulation.begin_camp(resolved_site, party_member_ids, environment_data, resource_data)
 
 
+## Relationship events are not gated by camp phase or a dedicated social activity.
+## Interaction systems call this only after the social/romantic outcome is resolved.
+func record_companion_interaction(from_id: String, to_id: String, interaction_kind: String, changes: Dictionary, event_key: String = "") -> Dictionary:
+	if not characters.has(from_id) or not characters.has(to_id):
+		return {"ok": false, "reason": "unknown_character"}
+	return companion_bonds.record_interaction(from_id, to_id, interaction_kind, changes, event_key)
+
+
 func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> Dictionary:
     var result := camp_simulation.skip_to_morning(hours)
     if not bool(result.get("ok", false)):
