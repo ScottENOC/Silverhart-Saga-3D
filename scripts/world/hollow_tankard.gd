@@ -128,10 +128,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
-	companion_quest_chains = CompanionQuestChainState.new()
-	companion_relationship_state = CompanionRelationshipState.new()
-	if simulation != null:
-		companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
+	_configure_companion_campaign_state()
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
 	movement_controller.name = "WorldPlayerMovementController"
@@ -155,6 +152,18 @@ func _ready() -> void:
 		if save_manager != null:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
+
+func _configure_companion_campaign_state() -> void:
+	if simulation == null:
+		return
+	var saved_chain: Variant = simulation.get_meta("companion_quest_chains", null)
+	var saved_relationships: Variant = simulation.get_meta("companion_relationship_state", null)
+	companion_quest_chains = saved_chain as CompanionQuestChainState if saved_chain is CompanionQuestChainState else CompanionQuestChainState.new()
+	companion_relationship_state = saved_relationships as CompanionRelationshipState if saved_relationships is CompanionRelationshipState else CompanionRelationshipState.new()
+	simulation.set_meta("companion_quest_chains", companion_quest_chains)
+	simulation.set_meta("companion_relationship_state", companion_relationship_state)
+	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
+
 
 func _create_materials() -> void:
 	grass_material = _material(Color(0.28, 0.38, 0.27))
@@ -974,6 +983,8 @@ func _apply_save_data(data: Dictionary) -> void:
 	var companion_relationship_data: Variant = data.get("companion_relationships", {})
 	if companion_relationship_data is Dictionary:
 		companion_relationship_state.load_dict(companion_relationship_data)
+	simulation.set_meta("companion_quest_chains", companion_quest_chains)
+	simulation.set_meta("companion_relationship_state", companion_relationship_state)
 	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
