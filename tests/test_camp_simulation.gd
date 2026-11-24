@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
+	_test_dwelling_layout_station_selection()
 	_test_ara_camp_animation_mapping()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
@@ -212,3 +213,36 @@ func _test_ara_camp_animation_mapping() -> void:
 	_check(watch_hints.has("look_around"), "Night watch should use Ara's looping look-around animation")
 	_check(sleep_hints.has("sleep"), "Sleep should use Ara's sleep animation")
 	_check(study_hints.has("use_press"), "Map study should use Ara's seated idle animation")
+
+
+func _test_dwelling_layout_station_selection() -> void:
+	var world := WorldSimulation.new()
+	for q in range(-5, 6):
+		for r in range(-5, 6):
+			var hex := Vector2i(q, r)
+			if HexGrid.distance(Vector2i.ZERO, hex) <= 5:
+				world.map_data.add_cell(hex, 0.0, true, "grass")
+	var player := CharacterState.new("player", "Player", Vector2i(-4, 0))
+	player.side = "player"
+	var companion := CharacterState.new("wren", "Wren", Vector2i(4, 0))
+	companion.side = "player"
+	world.register_character(player)
+	world.register_character(companion)
+	var director := CampPartyActivityDirector.new()
+	director.configure(world)
+	director.begin_camp({
+		"hex": Vector2i.ZERO, "walkable": true,
+		"dwelling_profile": {"layout_id": "cottage_one_room"}
+	})
+	var cottage_study := director._choose_station("study_map", {}, "wren")
+	_check(cottage_study == Vector2i(-1, 0), "A one-room cottage should use its shared common area when it has no separate study.")
+	director.begin_camp({
+		"hex": Vector2i.ZERO, "walkable": true,
+		"dwelling_profile": {"layout_id": "country_house_three_room"}
+	})
+	var country_study := director._choose_station("study_map", {}, "wren")
+	_check(country_study == Vector2i(-1, 1), "A larger house should route map study to its dedicated study station.")
+	var country_cooking := director._choose_station("cook", {}, "wren")
+	_check(country_cooking == Vector2i(1, 0), "Cooking should gather at the hearth rather than the study or common room.")
+	director.stop()
+	director.free()
