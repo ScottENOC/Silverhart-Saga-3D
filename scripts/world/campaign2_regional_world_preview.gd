@@ -633,17 +633,46 @@ func _interact_with_reddale_evidence(player_hex: Vector2i) -> bool:
 	return false
 
 
+func _toggle_regional_espionage_stealth() -> void:
+	if ecology_simulation == null:
+		return
+	var player := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player == null:
+		return
+	var journal := ecology_simulation.campaign_journal
+	for quest_id in ["spy_on_guild", "spy_on_baron"]:
+		var quest: Dictionary = journal.quest_state(quest_id)
+		if String(quest.get("status", "")) != "active":
+			continue
+		ecology_simulation.ensure_exploration_region(player.axial)
+		ecology_simulation.ensure_exploration_region(REDDALE_ESPIONAGE_SERVICE.QUESTS[quest_id].guard_hex)
+		var result: Dictionary = REDDALE_ESPIONAGE_SERVICE.toggle_stealth(journal, quest_id, player, ecology_simulation.map_data)
+		_show_regional_dialogue("Stealth", String(result.get("message", "You cannot hide here.")))
+		return
+	_show_regional_dialogue("Stealth", "You have no active Reddale infiltration to conceal yourself for.")
+
+
+func _on_regional_world_tick(_tick_index: int, _world_seconds: float) -> void:
+	_check_regional_espionage_detection()
+
+
 func _check_regional_espionage_detection() -> void:
 	if ecology_simulation == null:
 		return
 	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
 	if player_state == null:
 		return
+	ecology_simulation.ensure_exploration_region(player_state.axial)
 	for quest_id in ["spy_on_guild", "spy_on_baron"]:
+		var quest: Dictionary = ecology_simulation.campaign_journal.quest_state(quest_id)
+		if String(quest.get("status", "")) != "active":
+			continue
+		ecology_simulation.ensure_exploration_region(REDDALE_ESPIONAGE_SERVICE.QUESTS[quest_id].guard_hex)
 		var result: Dictionary = REDDALE_ESPIONAGE_SERVICE.check_guard_detection(
 			ecology_simulation.campaign_journal,
 			quest_id,
-			player_state.axial
+			player_state,
+			ecology_simulation.map_data
 		)
 		if bool(result.get("detected", false)):
 			_show_regional_dialogue("Caught!", String(result.get("message", "The mission is blown.")))
@@ -763,6 +792,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif key.keycode == KEY_F:
 				if _interact_with_regional_location() or _interact_with_nearest_regional_npc():
 					get_viewport().set_input_as_handled()
+			elif key.keycode == KEY_V:
+				_toggle_regional_espionage_stealth()
+				get_viewport().set_input_as_handled()
 			else:
 				var movement_key := key.keycode
 				match key.keycode:
