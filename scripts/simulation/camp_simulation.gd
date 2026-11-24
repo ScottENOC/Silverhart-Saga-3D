@@ -61,15 +61,15 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	assignments.clear()
 	_default_assignments.clear()
 	sleeping_arrangements.clear()
-	conditions.clear()
 	evening_activity_history.clear()
 	elapsed_world_seconds = 0.0
 	phase = "evening"
 	for character_id in party_ids:
-		conditions[character_id] = {
-			"fatigue": 40.0, "hunger": 30.0, "thirst": 25.0,
-			"warmth": 50.0, "comfort": 50.0
-		}
+		if not conditions.has(character_id):
+			conditions[character_id] = {
+				"fatigue": 40.0, "hunger": 30.0, "thirst": 25.0,
+				"warmth": 50.0, "comfort": 50.0
+			}
 	_plan_initial_activities()
 	plan_sleeping_arrangements(resources.tents)
 	camp_started.emit(site.duplicate(true))
@@ -123,6 +123,26 @@ func _set_assignment(character_id: String, activity: String) -> void:
 	assignments[character_id] = entry
 	_default_assignments[character_id] = entry.duplicate(true)
 	activity_assigned.emit(character_id, activity)
+
+
+func condition_for(character_id: String) -> Dictionary:
+	return (conditions.get(character_id, {}) as Dictionary).duplicate(true)
+
+
+func next_day_effects(character_id: String) -> Dictionary:
+	var condition := condition_for(character_id)
+	if condition.is_empty():
+		return {}
+	var fatigue := float(condition.get("fatigue", 0.0))
+	var hunger := float(condition.get("hunger", 0.0))
+	var thirst := float(condition.get("thirst", 0.0))
+	var comfort := float(condition.get("comfort", 50.0))
+	return {
+		"fatigue_band": "exhausted" if fatigue >= 75.0 else ("tired" if fatigue >= 50.0 else ("rested" if fatigue <= 15.0 else "normal")),
+		"nutrition_band": "starving" if hunger >= 80.0 else ("hungry" if hunger >= 50.0 else "sated"),
+		"hydration_band": "dehydrated" if thirst >= 75.0 else ("thirsty" if thirst >= 45.0 else "hydrated"),
+		"comfort_band": "poor" if comfort < 30.0 else ("good" if comfort >= 70.0 else "ordinary")
+	}
 
 
 func assign_activity(character_id: String, activity: String, player_instruction: bool = true) -> Dictionary:
@@ -357,7 +377,7 @@ func from_dict(data: Dictionary) -> bool:
 		if not ids.has(String(character_id)) or not saved_assignments[character_id] is Dictionary:
 			return false
 	for character_id in saved_conditions:
-		if not ids.has(String(character_id)) or not saved_conditions[character_id] is Dictionary:
+		if String(character_id).is_empty() or not saved_conditions[character_id] is Dictionary:
 			return false
 	phase = saved_phase
 	site = data.get("site", {}).duplicate(true)
