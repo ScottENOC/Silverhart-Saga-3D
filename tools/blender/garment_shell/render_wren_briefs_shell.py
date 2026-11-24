@@ -157,7 +157,11 @@ def main():
 
     report = {
         "body": body.name,
-        "garment": garment.name,\n        "source_mesh": source_garment.name,\n        "garment_material": garment_material.name,\n        "garment_bounds_world": [garment_lo[:], garment_hi[:]],\n        "review_scale": review_scale,
+        "garment": garment.name,
+        "source_mesh": source_garment.name,
+        "garment_material": garment_material.name,
+        "garment_bounds_world": [garment_lo[:], garment_hi[:]],
+        "review_scale": review_scale,
         "body_vertices": len(body.data.vertices),
         "garment_vertices": len(garment.data.vertices),
         "garment_faces": len(garment.data.polygons),
