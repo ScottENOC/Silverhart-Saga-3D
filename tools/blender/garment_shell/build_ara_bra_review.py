@@ -140,7 +140,7 @@ def main():
         "garment_output": str(args.garment_output), "review_output": str(args.review_output),
     }
     report_path = Path(args.garment_output).with_suffix(".report.json")
-    report_path.write_text(json.dumps(report, indent=2) + "\\n")
+    report_path.write_text(json.dumps(report, indent=2) + "\n")
     print("ARA_BRA_FIT " + json.dumps(report), flush=True)
 
 
