@@ -393,6 +393,10 @@ func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, jo
 	clue_order.append(clue_id)
 	quest_state["clue_order"] = clue_order
 	journal.quests[quest_id] = quest_state
+	for linked_clue_value in clue.get("also_add_clues", []):
+		var linked_clue_id := String(linked_clue_value)
+		if not clues.has(linked_clue_id):
+			add_prerequisite_clue(quest_id, linked_clue_id, source + " (linked evidence)", journal, world_seconds, capabilities)
 	return {"ok":true,"changed":true,"clue":clues[clue_id].duplicate(true),"can_resolve":can_resolve_prerequisite(quest_id, journal)}
 
 
