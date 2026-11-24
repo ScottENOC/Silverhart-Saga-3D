@@ -9,6 +9,7 @@ const FEATURE_COMPOSER = preload("res://scripts/world/world_settlement_feature_c
 const VEGETATION_GENERATOR = preload("res://scripts/world/world_vegetation_generator.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const CHARACTER_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_character_definition_registry.gd")
+const WORLD_STATE_SERVICE = preload("res://scripts/simulation/campaign_world_state_service.gd")
 
 var settlements: Array = []
 var character_registry: Campaign2CharacterDefinitionRegistry
@@ -84,7 +85,7 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 			var existing_state: CharacterState = simulation.get_character(character_id) if simulation != null else null
 			var presentation_hex := existing_state.axial if existing_state != null else world_hex
 			if _contains_chunk(presentation_hex, chunk_min, chunk_size):
-				_add_character(parent, character_id, world_hex)
+				_add_character(parent, character_id, world_hex, settlement_id)
 
 func _add_creatures_in_chunk(
 	parent: Node3D,
@@ -150,7 +151,7 @@ func _add_creatures_in_chunk(
 		actor.add_to_group("creature_actors")
 		parent.add_child(actor)
 
-func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -> void:
+func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i, settlement_id: String) -> void:
 	var character := character_registry.get_character(character_id)
 	if character.is_empty():
 		push_warning("Settlement placement references missing character definition: %s" % character_id)
@@ -185,6 +186,13 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 				continue
 			# A moving NPC can cross a chunk boundary while both chunks are
 			# resident. Transfer the one live actor to the newly owning chunk.
+			WORLD_STATE_SERVICE.apply_npc_actor_state(
+				existing_actor,
+				simulation.campaign_journal if simulation != null else null,
+				character_id,
+				settlement_id,
+				String(character.get("faction_id", ""))
+			)
 			if not bool(existing_actor.get_meta("campaign2_streamed_npc", false)):
 				# Location-owned actors keep their location controller as parent;
 				# the shared registry simply recognises them as the same NPC.
@@ -209,6 +217,13 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 	actor.set_meta("class_levels", character.get("class_levels", []))
 	actor.set_meta("skill_picks", character.get("skill_picks", []))
 	actor.set_meta("quest_hooks", character.get("quest_hooks", []))
+	WORLD_STATE_SERVICE.apply_npc_actor_state(
+		actor,
+		simulation.campaign_journal if simulation != null else null,
+		character_id,
+		settlement_id,
+		String(character.get("faction_id", ""))
+	)
 	actor.add_to_group("campaign2_npc")
 	parent.add_child(actor)
 
