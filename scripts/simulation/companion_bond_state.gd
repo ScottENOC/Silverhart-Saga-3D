@@ -67,6 +67,16 @@ func adjust(from_id: String, to_id: String, changes: Dictionary, event_key: Stri
 	return {"ok": true, "changed": true, "state": state.duplicate(true)}
 
 
+## Records the outcome of an interaction regardless of the current world or
+## camp activity. The caller supplies only relationship changes earned by the
+## resolved interaction; flirtation or intimacy never implies consent or success.
+func record_interaction(from_id: String, to_id: String, interaction_kind: String, changes: Dictionary, event_key: String = "") -> Dictionary:
+	var kind := interaction_kind.strip_edges().to_lower()
+	if kind.is_empty():
+		return {"ok": false, "reason": "missing_interaction_kind"}
+	return adjust(from_id, to_id, changes, event_key, "interaction:" + kind)
+
+
 func set_relationship(from_id: String, to_id: String, values: Dictionary) -> Dictionary:
 	if from_id.strip_edges().is_empty() or to_id.strip_edges().is_empty() or from_id == to_id:
 		return {"ok": false, "reason": "invalid_pair"}
