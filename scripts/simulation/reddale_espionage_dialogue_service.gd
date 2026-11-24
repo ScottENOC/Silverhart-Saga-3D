@@ -55,7 +55,11 @@ static func select_choice(journal: CampaignJournal, player: CharacterState, npc_
 		return {"ok":true, "accepted":choice_id == "double_cross_accept"}
 	if choice_id == "return_evidence":
 		var evidence_id := "guild_ledger_evidence" if quest_id == CONTENT.GUILD_QUEST else "baron_tariff_evidence"
-		var evidence_index := player.inventory.find(evidence_id)
+		var evidence_index := -1
+		for index in range(player.inventory.size()):
+			if String(player.inventory[index].get("id", "")) == evidence_id:
+				evidence_index = index
+				break
 		if evidence_index < 0:
 			return {"ok":false, "reason":"evidence_not_carried"}
 		var completed := CONTENT.complete(journal, quest_id, player)
