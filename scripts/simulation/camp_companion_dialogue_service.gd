@@ -8,6 +8,12 @@ const TOPICS: Array[String] = ["road", "work", "home", "danger"]
 
 
 const CAMPAIGN_RESOLUTION_STANCES := {
+	"fenn_living_boundary": {
+		"preserve_marsh": "managed_stewardship",
+		"drain_marsh": "pragmatism",
+		"compensate_preserve": "managed_stewardship",
+		"managed_spillway": "managed_stewardship"
+	},
 	"aldric_weight_of_command": {
 		"shared_command": "shared_responsibility",
 		"take_every_burden": "self_reliance",
@@ -57,7 +63,7 @@ const CAMPAIGN_RESOLUTION_STANCES := {
 
 const CHARACTER_STANCES := {
 	"ser_aldric_thorne": {"shared_responsibility": 2, "tradition": 1, "institutional_trust": 1, "self_reliance": -1, "restraint": 1},
-	"nix_sharpear": {"independence": 2, "self_reliance": 1, "pragmatism": 2, "institutional_trust": -2, "shared_responsibility": -1},
+	"nix_sharpear": {"independence": 2, "self_reliance": 1, "pragmatism": 2, "institutional_trust": -2, "shared_responsibility": -1, "managed_stewardship": -1},
 	"warlord_grukk_ironhide": {"self_reliance": 2, "tradition": 2, "shared_responsibility": -2, "institutional_trust": -2, "restraint": -1},
 	"reyna_fletcher": {"shared_responsibility": 2, "independence": 1, "institutional_trust": -1, "personal_dignity": 1, "restraint": 1},
 	"mirabel_quill": {"restraint": 2, "bold_inquiry": 1, "adaptation": 2, "tradition": -1, "institutional_trust": 0},
@@ -292,7 +298,10 @@ static func build_campaign_memory_exchange(
 	var first_key := canonical_id(first_id)
 	var second_key := canonical_id(second_id)
 	var latest: Dictionary = {}
-	for chapter_value in quest_chain.all_chapters():
+	var campaign_entries: Array[Dictionary] = quest_chain.all_chapters()
+	for prerequisite_value in quest_chain.all_prerequisite_quests():
+		campaign_entries.append(prerequisite_value)
+	for chapter_value in campaign_entries:
 		var chapter: Dictionary = chapter_value
 		var owner_id := String(chapter.get("companion_id", ""))
 		if owner_id != first_key and owner_id != second_key:
