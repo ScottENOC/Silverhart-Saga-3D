@@ -59,7 +59,8 @@ func _initialize_campaign_simulation(profile: Dictionary) -> void:
 	COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
 	HOLLOWMERE_CAMPAIGN_CONTENT.initialize_social_standings(
 		simulation.campaign_journal,
-		String(profile.get("race", "human"))
+		String(profile.get("race", "human")),
+		simulation.clock.world_seconds
 	)
 
 func _create_loading_overlay() -> void:
