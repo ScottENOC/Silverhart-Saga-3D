@@ -792,7 +792,7 @@ func play_camp_activity(activity: String) -> bool:
 			return true
 		if current == sleep.to_lower() and current_playing:
 			return true
-		clip = sleep if current == lie_down.to_lower() and not current_playing else lie_down
+		clip = sleep if lie_down.is_empty() or (current == lie_down.to_lower() and not current_playing) else lie_down
 	else:
 		clip = _find_animation_clip(preferred)
 	if clip.is_empty():
