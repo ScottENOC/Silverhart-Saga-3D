@@ -13,6 +13,8 @@ from pathlib import Path
 
 import bpy
 
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 from shell_core import axis_parameter
 
 
