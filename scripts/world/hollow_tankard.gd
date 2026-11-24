@@ -1064,6 +1064,47 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id == "companion_chain_start":
+		var chain_start: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.start_chapter(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("chapter_id", "")),
+			simulation.get_party_member_ids(),
+			simulation.clock.world_seconds
+		)
+		if bool(chain_start.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That companion chapter cannot begin yet: %s." % String(chain_start.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_chain_consult":
+		var chain_consult: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.consult_chapter(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			String(choice.get("chapter_id", "")),
+			_companion_prerequisite_actor_id(String(choice.get("actor_id", ""))),
+			simulation.clock.world_seconds
+		)
+		if bool(chain_consult.get("ok", false)):
+			_show_companion_dialogue("companion_" + String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That conversation could not be recorded: %s." % String(chain_consult.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_chain_resolve":
+		var chain_resolution: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.resolve_chapter(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("chapter_id", "")),
+			String(choice.get("resolution_id", "")),
+			simulation.clock.world_seconds
+		)
+		if bool(chain_resolution.get("ok", false)):
+			_show_dialogue(String(choice.get("companion_id", "Companion")), String(chain_resolution.get("line", "The decision is made.")), [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(chain_resolution.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
 	if choice_id == "companion_prerequisite_start":
 		var start_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.start_quest(
 			companion_quest_chains,
@@ -1324,7 +1365,8 @@ func _show_companion_dialogue(character_id: String, extra_text: String = "") -> 
 		simulation.campaign_journal,
 		character_id,
 		simulation.get_party_member_ids(),
-		player_state
+		player_state,
+		simulation.clock.world_seconds
 	)
 	if not prerequisite_conversation.is_empty():
 		var prerequisite_choices: Array[Dictionary] = []
@@ -1360,6 +1402,8 @@ func _companion_prerequisite_actor_id(character_id: String) -> String:
 	match character_id:
 		"old_mac":
 			return "old_mac_human_male"
+		"elder_nessa_wren_elf_female":
+			return "nessa_wren"
 		_:
 			return character_id
 
