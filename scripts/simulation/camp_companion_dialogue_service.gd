@@ -325,7 +325,7 @@ static func build_campaign_memory_exchange(
 	var partner_character_id := second_id if owner_character_id == first_id else first_id
 	var owner_name := first_name if owner_character_id == first_id else second_name
 	var partner_name := second_name if partner_character_id == second_id else first_name
-	var partner_key := canonical_id(partner_id)
+	var partner_key := canonical_id(partner_character_id)
 	var title := String(chapter.get("title", chapter_id))
 	var reason := String(outcome.get("reason", state.get("completion_reason", title)))
 	var opener_template := String(CAMPAIGN_MEMORY_OPENERS.get(owner_id, "I have been thinking about %s. %s."))
@@ -354,6 +354,7 @@ static func build_campaign_memory_exchange(
 	return {
 		"kind": "campaign_memory",
 		"topic": "campaign_memory",
+		"sequence": sequence,
 		"first_id": owner_character_id,
 		"second_id": partner_character_id,
 		"campaign_memory": {
@@ -370,8 +371,8 @@ static func build_campaign_memory_exchange(
 			"second_to_first": partner_to_owner
 		},
 		"lines": [
-			{"character_id": owner_id, "speaker": owner_name, "text": opener},
-			{"character_id": partner_id, "speaker": partner_name, "text": response}
+			{"character_id": owner_character_id, "speaker": owner_name, "text": opener},
+			{"character_id": partner_character_id, "speaker": partner_name, "text": response}
 		]
 	}
 
