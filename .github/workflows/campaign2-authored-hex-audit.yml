@@ -1,0 +1,43 @@
+name: Campaign 2 authored hex audit
+
+on:
+  pull_request:
+    paths:
+      - "data/world/campaign2_*.json"
+      - "tools/campaign2_authored_hex_audit.py"
+      - "tests/test_campaign2_authored_hex_audit.py"
+      - ".github/workflows/campaign2-authored-hex-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authored-hex-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Silverhart Saga
+        uses: actions/checkout@v4
+      - name: Check out original Hex-crpg source
+        uses: actions/checkout@v4
+        with:
+          repository: ScottENOC/Hex-crpg
+          ref: main
+          path: Hex-crpg
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test audit calculations
+        run: python -m unittest tests/test_campaign2_authored_hex_audit.py
+      - name: Generate authored-hex inventory
+        run: |
+          python tools/campaign2_authored_hex_audit.py \
+            --source-root Hex-crpg \
+            --json-out artifacts/campaign2_authored_hex_audit.json \
+            --markdown-out artifacts/campaign2_authored_hex_audit.md
+      - name: Upload inventory report
+        uses: actions/upload-artifact@v4
+        with:
+          name: campaign2-authored-hex-audit
+          path: artifacts/
