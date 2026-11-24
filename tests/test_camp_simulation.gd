@@ -1,6 +1,21 @@
 extends SceneTree
 
 var _failures := 0
+var _camp_actor_probes: Dictionary = {}
+
+
+class CampActivityProbe extends RefCounted:
+	var last_activity: String = ""
+	var activity_count: int = 0
+
+	func play_camp_activity(activity: String) -> bool:
+		last_activity = activity
+		activity_count += 1
+		return true
+
+
+func _camp_actor_for_id(character_id: String) -> Object:
+	return _camp_actor_probes.get(character_id)
 
 
 func _initialize() -> void:
@@ -156,18 +171,23 @@ func _test_companions_walk_to_camp_stations() -> void:
 	world.register_character(companion)
 	var started := world.begin_camp({"hex": Vector2i.ZERO}, {})
 	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
+	var probe := CampActivityProbe.new()
+	_camp_actor_probes["wren"] = probe
 	var director := CampPartyActivityDirector.new()
-	director.configure(world)
+	director.configure(world, Callable(self, "_camp_actor_for_id"))
 	director.begin_camp(world.camp_simulation.site)
 	_check(director.is_running(), "A companion away from camp should receive a visible approach route")
 	var initial_distance := HexGrid.distance(companion.axial, Vector2i.ZERO)
 	for _step in range(20):
 		director.process_activity_movement(0.7)
 	_check(HexGrid.distance(companion.axial, Vector2i.ZERO) < initial_distance, "Companion should physically move towards their camp station")
+	_check(probe.activity_count > 0, "A companion should start an Ara activity after reaching their station")
+	_check(probe.last_activity == "socialise", "The animation should match the companion's assigned camp routine")
 	_check(player.axial == Vector2i(-4, 0), "The player should remain under direct movement control")
 	director.stop()
 	_check(not director.is_running(), "Packing or sleeping should be able to stop autonomous camp movement")
 	director.free()
+	_camp_actor_probes.clear()
 
 
 func _test_ara_camp_animation_mapping() -> void:
