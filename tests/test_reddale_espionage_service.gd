@@ -84,13 +84,15 @@ func _test_guard_visibility_and_stealth() -> void:
 	var occluded := SERVICE.check_guard_detection(blocked_journal, "spy_on_guild", blocked_player, blocked_map, 1.0, 0.0)
 	_check(not bool(occluded.get("detected", false)), "A wall between guard and player blocks espionage detection")
 	var stealth_start := SERVICE.toggle_stealth(blocked_journal, "spy_on_guild", blocked_player, blocked_map)
-	_check(bool(stealth_start.get("ok", false)) and blocked_player.is_stealthed, "Player can enter stealth when the guard has no line of sight")
+	_check(bool(stealth_start.get("ok", false)) and bool(blocked_journal.quest_state("spy_on_guild").get("stealth_active", false)), "Player can enter stealth when the guard has no line of sight")
 
 	var stealth_journal := _journal()
 	SERVICE.choose(stealth_journal, "spy_on_guild", "accept")
 	var stealth_player := CharacterState.new("player", "Player", Vector2i(147, 34))
-	stealth_player.is_stealthed = true
-	stealth_player.stealth_score = 100
+	var stealth_state: Dictionary = stealth_journal.quests["spy_on_guild"]
+	stealth_state["stealth_active"] = true
+	stealth_state["stealth_score"] = 100
+	stealth_journal.quests["spy_on_guild"] = stealth_state
 	var clear_map := HexMapData.new()
 	clear_map.add_cell(Vector2i(145, 34))
 	clear_map.add_cell(Vector2i(146, 34))
