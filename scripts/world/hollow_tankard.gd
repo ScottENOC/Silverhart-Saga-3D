@@ -2216,7 +2216,7 @@ func _restore_abandoned_house_guardian_actors() -> void:
 		return
 	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
-		if guardian == null or not guardian.can_act() or actor_by_id.has(guardian_id):
+		if guardian == null or not guardian.alive or actor_by_id.has(guardian_id):
 			continue
 		_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
 
@@ -2247,7 +2247,7 @@ func _check_abandoned_house_proximity() -> void:
 		return
 	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
-		if guardian != null and guardian.can_act():
+		if guardian != null and guardian.alive:
 			_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
 
 
