@@ -138,10 +138,15 @@ func _test_world_simulation_integration() -> void:
 	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
 	var companion := CharacterState.new("wren", "Wren", Vector2i(1, 0))
 	companion.side = "player"
+	companion.tags.append("scholarly")
+	companion.health = 50
+	companion.hobbled_stacks = 1
 	world.register_character(player)
 	world.register_character(companion)
 	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
 	_check(bool(started.ok), "World simulation should start camp with the current party")
+	_check(String(world.camp_simulation.companion_profiles.wren.personality) == "scholarly", "Authored personality tags should flow into camp routine preferences.")
+	_check(bool(world.camp_simulation.companion_profiles.wren.injured), "Current health and hobbling should inform camp routine choices.")
 	var social_event := world.record_companion_interaction("wren", "player", "flirt", {"attraction": 2.0}, "camp_flirt:001")
 	_check(bool(social_event.get("changed", false)), "Flirting should be recordable during any camp activity")
 	_check(float(world.camp_simulation.condition_for("wren").get("social_satisfaction", 0.0)) > 0.0, "Social contact should contribute to later camp comfort without requiring a socialise assignment")
