@@ -64,8 +64,27 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
             ]
         }
         total, unique = floor_room_cells(data)
-        self.assertEqual(total, 18)
-        self.assertEqual(unique, 18)
+        self.assertEqual(total, 2)
+        self.assertEqual(unique, 2)
+
+    def test_room_cells_match_source_building_row_shift_and_interior_bounds(self):
+        data = {
+            "locations": [{
+                "id": "shifted",
+                "floors": [{
+                    "floor": 0,
+                    "rooms": [{
+                        "center": {"q": 0, "r": 0},
+                        "half_width": 2,
+                        "half_height": 2,
+                        "row_shift_mode": "source_building",
+                    }],
+                }],
+            }],
+        }
+        total, unique = floor_room_cells(data)
+        self.assertEqual(total, 9)
+        self.assertEqual(unique, 9)
 
 
 if __name__ == "__main__":
