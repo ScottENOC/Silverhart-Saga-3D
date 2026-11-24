@@ -36,12 +36,25 @@ def skinned_mesh_node(d, label='source'):
 
 def body_node(d):
     hits=[]
-    for n in d['nodes']:
+    skinned=[]
+    for n in d.get('nodes',[]):
         if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
-    return hits[0]
+        mesh=d['meshes'][n['mesh']]
+        names=[d.get('materials',[])[p['material']].get('name','')
+               for p in mesh.get('primitives',[]) if p.get('material') is not None]
+        skinned.append((n,names))
+        if any('skin' in name.casefold() for name in names):
+            hits.append(n)
+    if len(hits)==1:
+        return hits[0]
+    # The native Ara export has changed its material naming between versions.
+    # If there is exactly one skinned mesh node, it is unambiguously the body
+    # mesh even when its material is named Body/BodyMaterial rather than Skin.
+    if not hits and len(skinned)==1:
+        return skinned[0][0]
+    details=[{'node':n.get('name'), 'mesh':n.get('mesh'), 'materials':names}
+             for n,names in skinned]
+    raise ValueError(f'Expected one skinned body mesh; skin-material matches={len(hits)}, skinned nodes={details}')
 
 def append_bytes(target,buf,data,target_type=None):
     buf+=b'\0'*(-len(buf)%4); off=len(buf)
