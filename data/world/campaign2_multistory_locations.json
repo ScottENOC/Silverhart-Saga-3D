@@ -2780,6 +2780,25 @@
                 "q": -6,
                 "r": -495
               }
+            },
+            {
+              "id": "palace_secret_passage",
+              "type": "secret_passage",
+              "position": {
+                "q": -9,
+                "r": -492
+              },
+              "discovered": false,
+              "node_id": "palace"
+            },
+            {
+              "id": "guild_big_score_prize",
+              "type": "evidence",
+              "evidence_key": "guild_big_score_prize",
+              "position": {
+                "q": -3,
+                "r": -492
+              }
             }
           ],
           "actors": [
