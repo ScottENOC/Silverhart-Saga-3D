@@ -49,7 +49,7 @@ func _test_silverhart_city_composes_all_source_props() -> void:
 	var gate_arches := 0
 	# Cover the complete source layout, including the Warrens beyond the
 	# radius-60 wall. Each feature must be owned by exactly one 24-hex chunk.
-	for chunk_q in range(-3, 3):
+	for chunk_q in range(-4, 4):
 		for chunk_r in range(-24, -17):
 			var parent := Node3D.new()
 			var chunk_min := Vector2i(chunk_q, chunk_r) * 24
@@ -73,7 +73,7 @@ func _test_silverhart_city_composes_all_source_props() -> void:
 					gate_arches += 1
 			parent.free()
 	assert(buildings == 40, "All 40 source Silverhart buildings must be presented once across streamed chunks")
-	assert(props == 512, "All 512 remaining source Silverhart props must be presented once across streamed chunks")
+	assert(props == 513, "All 513 source Silverhart props must be presented once across streamed chunks")
 	assert(curtain_wall_segments == 138, "Palace curtain wall must present all 138 radius-23 palisade segments")
 	assert(city_wall_segments == 357, "Outer city wall must present all 357 segments around its three-cell gate")
 	assert(palace_towers == 7, "Palace curtain wall must present its seven source watchtowers")

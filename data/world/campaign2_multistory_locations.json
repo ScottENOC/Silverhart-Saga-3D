@@ -4492,6 +4492,14 @@
                 "q": 3,
                 "r": -466
               }
+            },
+            {
+              "id": "silverhart_elven_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 0,
+                "r": -466
+              }
             }
           ],
           "actors": [],
@@ -4532,6 +4540,14 @@
               "type": "door_open",
               "position": {
                 "q": 13,
+                "r": -470
+              }
+            },
+            {
+              "id": "silverhart_dwarven_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 16,
                 "r": -470
               }
             }
@@ -4576,6 +4592,14 @@
                 "q": 3,
                 "r": -460
               }
+            },
+            {
+              "id": "silverhart_aldenreach_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 0,
+                "r": -460
+              }
             }
           ],
           "actors": [],
@@ -4616,6 +4640,14 @@
               "type": "door_open",
               "position": {
                 "q": 13,
+                "r": -463
+              }
+            },
+            {
+              "id": "silverhart_corvane_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 16,
                 "r": -463
               }
             }
@@ -4746,6 +4778,30 @@
                 "q": 10,
                 "r": -451
               }
+            },
+            {
+              "id": "silverhart_grand_cathedral_altar",
+              "type": "throne",
+              "position": {
+                "q": 14,
+                "r": -453
+              }
+            },
+            {
+              "id": "silverhart_grand_cathedral_bench_west",
+              "type": "bench",
+              "position": {
+                "q": 12,
+                "r": -451
+              }
+            },
+            {
+              "id": "silverhart_grand_cathedral_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 16,
+                "r": -451
+              }
             }
           ],
           "actors": [],
@@ -4787,6 +4843,31 @@
               "position": {
                 "q": 8,
                 "r": -526
+              }
+            },
+            {
+              "id": "silverhart_commons_inn_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 8,
+                "r": -529
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "silverhart_commons_inn_bench_west",
+              "type": "bench",
+              "position": {
+                "q": 6,
+                "r": -529
+              }
+            },
+            {
+              "id": "silverhart_commons_inn_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 10,
+                "r": -529
               }
             }
           ],
@@ -5521,6 +5602,746 @@
               "position": {
                 "q": 20,
                 "r": -452
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_corstane_manor",
+      "name": "Corstane Family Manor",
+      "anchor": {
+        "q": 39,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Corstane Family Manor",
+          "terrain": "wood_floor",
+          "rooms": [],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_corstane_manor_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 36,
+                "r": -502
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": [],
+          "floor_hexes": [
+            {
+              "q": 36,
+              "r": -502
+            },
+            {
+              "q": 37,
+              "r": -503
+            },
+            {
+              "q": 37,
+              "r": -502
+            },
+            {
+              "q": 37,
+              "r": -501
+            },
+            {
+              "q": 37,
+              "r": -500
+            },
+            {
+              "q": 37,
+              "r": -499
+            },
+            {
+              "q": 38,
+              "r": -503
+            },
+            {
+              "q": 38,
+              "r": -502
+            },
+            {
+              "q": 38,
+              "r": -501
+            },
+            {
+              "q": 38,
+              "r": -500
+            },
+            {
+              "q": 38,
+              "r": -499
+            },
+            {
+              "q": 39,
+              "r": -504
+            },
+            {
+              "q": 39,
+              "r": -503
+            },
+            {
+              "q": 39,
+              "r": -502
+            },
+            {
+              "q": 39,
+              "r": -501
+            },
+            {
+              "q": 39,
+              "r": -500
+            },
+            {
+              "q": 40,
+              "r": -504
+            },
+            {
+              "q": 40,
+              "r": -503
+            },
+            {
+              "q": 40,
+              "r": -502
+            },
+            {
+              "q": 40,
+              "r": -501
+            },
+            {
+              "q": 40,
+              "r": -500
+            },
+            {
+              "q": 41,
+              "r": -505
+            },
+            {
+              "q": 41,
+              "r": -504
+            },
+            {
+              "q": 41,
+              "r": -503
+            },
+            {
+              "q": 41,
+              "r": -502
+            },
+            {
+              "q": 41,
+              "r": -501
+            },
+            {
+              "q": 42,
+              "r": -505
+            },
+            {
+              "q": 42,
+              "r": -504
+            },
+            {
+              "q": 42,
+              "r": -503
+            },
+            {
+              "q": 42,
+              "r": -502
+            },
+            {
+              "q": 42,
+              "r": -501
+            }
+          ],
+          "wall_hexes": [
+            {
+              "q": 36,
+              "r": -503
+            },
+            {
+              "q": 36,
+              "r": -501
+            },
+            {
+              "q": 36,
+              "r": -500
+            },
+            {
+              "q": 36,
+              "r": -499
+            },
+            {
+              "q": 36,
+              "r": -498
+            },
+            {
+              "q": 36,
+              "r": -497
+            },
+            {
+              "q": 37,
+              "r": -504
+            },
+            {
+              "q": 37,
+              "r": -498
+            },
+            {
+              "q": 38,
+              "r": -504
+            },
+            {
+              "q": 38,
+              "r": -498
+            },
+            {
+              "q": 39,
+              "r": -505
+            },
+            {
+              "q": 39,
+              "r": -499
+            },
+            {
+              "q": 40,
+              "r": -505
+            },
+            {
+              "q": 40,
+              "r": -499
+            },
+            {
+              "q": 41,
+              "r": -506
+            },
+            {
+              "q": 41,
+              "r": -500
+            },
+            {
+              "q": 42,
+              "r": -506
+            },
+            {
+              "q": 42,
+              "r": -500
+            },
+            {
+              "q": 43,
+              "r": -506
+            },
+            {
+              "q": 43,
+              "r": -505
+            },
+            {
+              "q": 43,
+              "r": -504
+            },
+            {
+              "q": 43,
+              "r": -503
+            },
+            {
+              "q": 43,
+              "r": -502
+            },
+            {
+              "q": 43,
+              "r": -501
+            }
+          ]
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_noble_neighbor_house",
+      "name": "Noble Quarter Neighbour House",
+      "anchor": {
+        "q": 45,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Noble Quarter Neighbour House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_noble_neighbor_house_room",
+              "center": {
+                "q": 45,
+                "r": -502
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_noble_neighbor_house_east_door",
+              "type": "door_open",
+              "position": {
+                "q": 48,
+                "r": -502
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_east",
+      "name": "Silverhart — Outlying Eastern House",
+      "anchor": {
+        "q": 63,
+        "r": -546
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Outlying Eastern House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_east_room",
+              "center": {
+                "q": 63,
+                "r": -546
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_east_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 63,
+                "r": -544
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_far_east",
+      "name": "Silverhart — Outlying Far-Eastern House",
+      "anchor": {
+        "q": 88,
+        "r": -546
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Outlying Far-Eastern House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_far_east_room",
+              "center": {
+                "q": 88,
+                "r": -546
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_far_east_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 88,
+                "r": -544
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_west",
+      "name": "Silverhart — Outlying Western House",
+      "anchor": {
+        "q": 20,
+        "r": -476
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Outlying Western House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_west_room",
+              "center": {
+                "q": 20,
+                "r": -476
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_west_east_door",
+              "type": "door_open",
+              "position": {
+                "q": 22,
+                "r": -476
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_builder_house",
+      "name": "Silverhart — Master Builder Hallis's House",
+      "anchor": {
+        "q": 38,
+        "r": -492
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace builderHouseCorners, builderHouseDoor and builderHouseSouthDoor; flood-filled polygon room",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Master Builder Hallis's House",
+          "terrain": "wood_floor",
+          "rooms": [],
+          "corridors": [],
+          "floor_hexes": [
+            {
+              "q": 34,
+              "r": -493
+            },
+            {
+              "q": 35,
+              "r": -494
+            },
+            {
+              "q": 35,
+              "r": -493
+            },
+            {
+              "q": 35,
+              "r": -492
+            },
+            {
+              "q": 35,
+              "r": -491
+            },
+            {
+              "q": 36,
+              "r": -494
+            },
+            {
+              "q": 36,
+              "r": -493
+            },
+            {
+              "q": 36,
+              "r": -492
+            },
+            {
+              "q": 36,
+              "r": -491
+            },
+            {
+              "q": 36,
+              "r": -490
+            },
+            {
+              "q": 37,
+              "r": -494
+            },
+            {
+              "q": 37,
+              "r": -493
+            },
+            {
+              "q": 37,
+              "r": -492
+            },
+            {
+              "q": 37,
+              "r": -491
+            },
+            {
+              "q": 37,
+              "r": -490
+            },
+            {
+              "q": 37,
+              "r": -489
+            },
+            {
+              "q": 38,
+              "r": -494
+            },
+            {
+              "q": 38,
+              "r": -493
+            },
+            {
+              "q": 38,
+              "r": -492
+            },
+            {
+              "q": 38,
+              "r": -491
+            },
+            {
+              "q": 38,
+              "r": -490
+            },
+            {
+              "q": 38,
+              "r": -489
+            },
+            {
+              "q": 38,
+              "r": -488
+            },
+            {
+              "q": 38,
+              "r": -486
+            },
+            {
+              "q": 39,
+              "r": -494
+            },
+            {
+              "q": 39,
+              "r": -493
+            },
+            {
+              "q": 39,
+              "r": -492
+            },
+            {
+              "q": 39,
+              "r": -491
+            },
+            {
+              "q": 39,
+              "r": -490
+            },
+            {
+              "q": 39,
+              "r": -489
+            },
+            {
+              "q": 39,
+              "r": -488
+            },
+            {
+              "q": 40,
+              "r": -494
+            },
+            {
+              "q": 40,
+              "r": -493
+            },
+            {
+              "q": 40,
+              "r": -492
+            },
+            {
+              "q": 40,
+              "r": -491
+            },
+            {
+              "q": 40,
+              "r": -490
+            },
+            {
+              "q": 41,
+              "r": -494
+            },
+            {
+              "q": 41,
+              "r": -493
+            },
+            {
+              "q": 41,
+              "r": -492
+            },
+            {
+              "q": 41,
+              "r": -491
+            }
+          ],
+          "wall_hexes": [
+            {
+              "q": 34,
+              "r": -495
+            },
+            {
+              "q": 34,
+              "r": -494
+            },
+            {
+              "q": 34,
+              "r": -492
+            },
+            {
+              "q": 34,
+              "r": -491
+            },
+            {
+              "q": 34,
+              "r": -490
+            },
+            {
+              "q": 35,
+              "r": -495
+            },
+            {
+              "q": 35,
+              "r": -490
+            },
+            {
+              "q": 35,
+              "r": -489
+            },
+            {
+              "q": 36,
+              "r": -495
+            },
+            {
+              "q": 36,
+              "r": -489
+            },
+            {
+              "q": 36,
+              "r": -488
+            },
+            {
+              "q": 37,
+              "r": -495
+            },
+            {
+              "q": 37,
+              "r": -488
+            },
+            {
+              "q": 37,
+              "r": -487
+            },
+            {
+              "q": 38,
+              "r": -495
+            },
+            {
+              "q": 38,
+              "r": -487
+            },
+            {
+              "q": 39,
+              "r": -495
+            },
+            {
+              "q": 39,
+              "r": -487
+            },
+            {
+              "q": 40,
+              "r": -495
+            },
+            {
+              "q": 40,
+              "r": -489
+            },
+            {
+              "q": 40,
+              "r": -488
+            },
+            {
+              "q": 41,
+              "r": -495
+            },
+            {
+              "q": 41,
+              "r": -490
+            },
+            {
+              "q": 42,
+              "r": -495
+            },
+            {
+              "q": 42,
+              "r": -494
+            },
+            {
+              "q": 42,
+              "r": -493
+            },
+            {
+              "q": 42,
+              "r": -492
+            },
+            {
+              "q": 42,
+              "r": -491
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "silverhart_builder_house_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 34,
+                "r": -493
+              }
+            },
+            {
+              "id": "silverhart_builder_house_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 38,
+                "r": -486
               }
             }
           ],
