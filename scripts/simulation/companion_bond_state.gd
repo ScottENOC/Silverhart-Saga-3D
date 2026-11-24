@@ -33,7 +33,8 @@ func _default_state() -> Dictionary:
 		"friendship": 0.0,
 		"romantic_bond": 0.0,
 		"attraction": 0.0,
-		"last_event_key": ""
+		"last_event_key": "",
+		"applied_event_keys": []
 	}
 
 
@@ -45,12 +46,17 @@ func adjust(from_id: String, to_id: String, changes: Dictionary, event_key: Stri
 			return {"ok": false, "reason": "invalid_relationship_change", "axis": String(axis)}
 	var key := _direction_key(from_id, to_id)
 	var state: Dictionary = _directions.get(key, _default_state()).duplicate(true)
-	if not event_key.is_empty() and String(state.get("last_event_key", "")) == event_key:
+	var applied_keys: Array = state.get("applied_event_keys", [])
+	if not event_key.is_empty() and applied_keys.has(event_key):
 		return {"ok": true, "changed": false, "state": state}
 	for axis in changes:
 		state[axis] = clampf(float(state.get(axis, 0.0)) + float(changes[axis]), MIN_VALUE, MAX_VALUE)
 	if not event_key.is_empty():
 		state["last_event_key"] = event_key
+		applied_keys.append(event_key)
+		while applied_keys.size() > 120:
+			applied_keys.pop_front()
+		state["applied_event_keys"] = applied_keys
 	_directions[key] = state
 	_history.append({
 		"from_id": from_id, "to_id": to_id, "event_key": event_key,
@@ -81,7 +87,8 @@ func compatibility_score(a_id: String, b_id: String) -> float:
 	var friendship := (float(a_to_b.friendship) + float(b_to_a.friendship)) * 0.5
 	var trust := (float(a_to_b.trust) + float(b_to_a.trust)) * 0.5
 	var familiarity := (float(a_to_b.familiarity) + float(b_to_a.familiarity)) * 0.5
-	return friendship * 0.5 + trust * 0.35 + familiarity * 0.15
+	var romance := (float(a_to_b.romantic_bond) + float(b_to_a.romantic_bond)) * 0.5
+	return friendship * 0.45 + trust * 0.30 + familiarity * 0.15 + romance * 0.10
 
 
 func to_dict() -> Dictionary:
@@ -106,6 +113,12 @@ func from_dict(data: Dictionary) -> bool:
 				return false
 			clean[axis] = clampf(float(value), MIN_VALUE, MAX_VALUE)
 		clean["last_event_key"] = String(state.get("last_event_key", ""))
+		var applied: Variant = state.get("applied_event_keys", [])
+		if not applied is Array:
+			return false
+		clean["applied_event_keys"] = applied.duplicate()
+		while clean["applied_event_keys"].size() > 120:
+			clean["applied_event_keys"].pop_front()
 		validated[key] = clean
 	_directions = validated
 	_history.clear()
