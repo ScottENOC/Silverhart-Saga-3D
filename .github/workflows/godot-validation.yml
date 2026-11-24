@@ -106,6 +106,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_skill_tree_panel.gd
       - name: Run split campaign content tests
         run: godot --headless --path . --script res://tests/test_campaign_content.gd
+      - name: Run campaign faction reputation and agenda tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_faction_system.gd
       - name: Run companion relationship state tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_relationship_state.gd
       - name: Run persistent NPC relationship state tests
