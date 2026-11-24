@@ -35,7 +35,13 @@ def import_actor(name, path, location, yaw):
     if not arms:
         raise RuntimeError("No armature imported for " + name)
     arm = max(arms, key=lambda o: len(o.data.bones))
-    meshes = [o for o in imported if o.type == "MESH"]
+    # Icosphere objects are rig/debug proxy volumes from the native character exports,
+    # not visible character surfaces. Including them corrupts bounds and exports
+    # giant opaque spheres that swallow the legs in ordinary GLB viewers.
+    meshes = [
+        o for o in imported
+        if o.type == "MESH" and not o.name.lower().startswith("icosphere")
+    ]
     return {"name": name, "root": root, "arm": arm, "meshes": meshes, "objects": imported}
 
 def bounds(actor):
@@ -222,12 +228,13 @@ def main():
     floor_mat = bpy.data.materials.new("ReviewFloor_Matte")
     floor_mat.diffuse_color = (0.055, 0.065, 0.075, 1.0)
     floor.data.materials.append(floor_mat)
-    bpy.ops.object.camera_add(location=(2.5, -3.8, 1.55))
+    bpy.ops.object.camera_add(location=(2.5, -5.8, 1.95))
     cam = bpy.context.object
     cam.name = "PoseReviewCamera"
-    direction = Vector((0.0, 0.0, 0.95)) - cam.location
+    direction = Vector((0.0, 0.0, max(ah, wh) * 0.50)) - cam.location
     cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
-    cam.data.lens = 55
+    cam.data.type = "ORTHO"
+    cam.data.ortho_scale = max(3.2, max(ah, wh) * 1.75)
     bpy.context.scene.camera = cam
     bpy.ops.object.light_add(type="AREA", location=(0.0, -2.5, 3.2))
     key = bpy.context.object
@@ -314,6 +321,11 @@ def main():
     report = {
         "scene": "Aldric and Wren height-aware paired kiss/contact pose",
         "character_height": {"aldric": round(ah,4), "wren": round(wh,4), "ratio": round(ah/wh,4)},
+        "rig_bones": {
+            "aldric": [b.name for b in aldric["arm"].data.bones],
+            "wren": [b.name for b in wren["arm"].data.bones]
+        },
+        "body_pose_bones": body_report,
         "height_handling": {
             "aldric_bends_at_hips_spine": bool(body_report.get("Aldric")),
             "wren_toe_pose_bones_found": [n for n in body_report.get("Wren",[]) if "Foot" in n or "Toe" in n],
