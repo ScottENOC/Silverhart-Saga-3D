@@ -6,6 +6,7 @@ extends RefCounted
 const QUEST_ID := "reddale_cut"
 const IRONBOND_ID := "ironbond_company"
 const KINGDOM_ID := "silverhart_kingdom"
+const WORLD_CONSEQUENCE_SERVICE = preload("res://scripts/simulation/campaign_world_consequence_service.gd")
 const DEFAULT_IRONBOND_INFLUENCE := 30.0
 const INFLUENCE_OFFER_THRESHOLD := 40.0
 const FACTION_DECISION_SERVICE := preload("res://scripts/simulation/campaign_faction_decision_service.gd")
@@ -68,7 +69,17 @@ static func choices() -> Array[Dictionary]:
 			"influence_delta": -15.0,
 			"kingdom_standing_delta": 20.0,
 			"kingdom_knowledge_delta": 20.0,
-			"gold_delta": 0
+			"gold_delta": 0,
+			"settlement_updates": [{
+				"settlement_id": "reddale",
+				"deltas": {"public_order": 10.0, "ironbond_presence": -20.0},
+				"flags": {"reeve_backed_resistance": true}
+			}],
+			"npc_updates": [{
+				"npc_id": "reeve_aldous_finch",
+				"deltas": {"trust": 15.0, "fear": -10.0},
+				"flags": {"will_openly_oppose_ironbond": true}
+			}]
 		},
 		{
 			"id": "broker_ironbond_deal",
@@ -78,7 +89,17 @@ static func choices() -> Array[Dictionary]:
 			"influence_delta": 15.0,
 			"kingdom_standing_delta": -10.0,
 			"kingdom_knowledge_delta": 15.0,
-			"gold_delta": 50
+			"gold_delta": 50,
+			"settlement_updates": [{
+				"settlement_id": "reddale",
+				"deltas": {"prosperity": 8.0, "ironbond_presence": 20.0},
+				"flags": {"ironbond_deal_brokered": true}
+			}],
+			"npc_updates": [{
+				"npc_id": "reeve_aldous_finch",
+				"deltas": {"trust": 5.0, "fear": 5.0},
+				"flags": {"will_openly_oppose_ironbond": false, "ironbond_deal_brokered": true}
+			}]
 		}
 	]
 
@@ -123,6 +144,15 @@ static func resolve_cut(journal: CampaignJournal, choice_id: String) -> Dictiona
 	)
 	if not bool(consequence.get("ok", false)):
 		return consequence
+	var world_consequences := WORLD_CONSEQUENCE_SERVICE.apply_decision_consequences(
+		journal,
+		QUEST_ID,
+		"reeve_response",
+		selected.get("settlement_updates", []),
+		selected.get("npc_updates", [])
+	)
+	if not bool(world_consequences.get("ok", false)):
+		return world_consequences
 	journal.set_objective_progress(QUEST_ID, "response", 1.0)
 	var completion := journal.complete_quest(QUEST_ID)
 	if not bool(completion.get("ok", false)):
