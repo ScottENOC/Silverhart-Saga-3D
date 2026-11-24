@@ -224,6 +224,9 @@ def main():
     bridged_positions = bridge_midline_concavities(
         shell.positions, shell.normals, sample_positions, sample_normals,
         tuple(hip), tuple(lateral_axis), tuple(vertical_axis), tuple(depth_axis),
+        min_height=-0.17, max_height=0.10, bridge_half_width=0.075,
+        sample_outer_width=0.14, vertical_band=0.025, strength=1.0,
+        max_bridge_distance=0.045, minimum_gap=0.001,
     )
     bridge_moved = sum(
         1 for before, after in zip(shell.positions, bridged_positions)
@@ -286,10 +289,11 @@ def main():
         "skin_groups": len(body.vertex_groups),
         "fabric_bridge": {
             "moved_vertices": bridge_moved,
-            "central_half_width_m": 0.055,
-            "max_displacement_m": 0.025,
-            "strength": 0.82,
-            "height_range_m_from_hip": [-0.14, 0.08],
+            "central_half_width_m": 0.075,
+            "sample_outer_width_m": 0.14,
+            "max_displacement_m": 0.045,
+            "strength": 1.0,
+            "height_range_m_from_hip": [-0.17, 0.10],
         },
         "output": str(output_path),
         "review_output": str(Path(args.review_output)) if args.review_output else None,
