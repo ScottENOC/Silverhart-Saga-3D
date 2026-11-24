@@ -158,6 +158,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # patch_layering.py edits the pinned generator's src/ tree; run it
+          # from that checkout rather than the Silverhart workspace.
+          cd /tmp/ara-3d-gen
           python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
           python - <<'PY'
           import json
