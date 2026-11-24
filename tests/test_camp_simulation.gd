@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_test_tent_capacity_and_relationship_matching()
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
+	_test_companions_walk_to_camp_stations()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
 		quit(1)
@@ -138,3 +139,31 @@ func _test_world_simulation_integration() -> void:
 	_check(bool(morning.ok), "The world simulation should resolve the camp night")
 	_check(is_equal_approx(restored.clock.world_seconds, 10.0 + 6.0 * WorldClock.SECONDS_PER_HOUR), "Sleeping should skip directly to morning and advance the authoritative clock by the sleep duration")
 	_check(restored.get_character("player").time_points >= 149.0, "Instant sleep should bulk-apply overnight time-point recovery without simulating every 0.4-second tick")
+
+
+func _test_companions_walk_to_camp_stations() -> void:
+	var world := WorldSimulation.new()
+	for q in range(-6, 7):
+		for r in range(-6, 7):
+			if HexGrid.distance(Vector2i.ZERO, Vector2i(q, r)) <= 6:
+				world.map_data.add_cell(Vector2i(q, r), 0.0, true, "grass")
+	var player := CharacterState.new("player", "Player", Vector2i(-4, 0))
+	player.side = "player"
+	var companion := CharacterState.new("wren", "Wren", Vector2i(4, 0))
+	companion.side = "player"
+	world.register_character(player)
+	world.register_character(companion)
+	var started := world.begin_camp({"hex": Vector2i.ZERO}, {})
+	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
+	var director := CampPartyActivityDirector.new()
+	director.configure(world)
+	director.begin_camp(world.camp_simulation.site)
+	_check(director.is_running(), "A companion away from camp should receive a visible approach route")
+	var initial_distance := HexGrid.distance(companion.axial, Vector2i.ZERO)
+	for _step in range(20):
+		director.process_activity_movement(0.7)
+	_check(HexGrid.distance(companion.axial, Vector2i.ZERO) < initial_distance, "Companion should physically move towards their camp station")
+	_check(player.axial == Vector2i(-4, 0), "The player should remain under direct movement control")
+	director.stop()
+	_check(not director.is_running(), "Packing or sleeping should be able to stop autonomous camp movement")
+	director.free()
