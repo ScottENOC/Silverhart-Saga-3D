@@ -70,7 +70,7 @@ def add_arm_ik(actor, side, target, pole_point, report):
     con.use_stretch=False
     pole=add_target("Wren_"+side+"_elbow_pole",pole_point)
     con.pole_target=pole
-    con.pole_angle=math.radians(0)
+    con.pole_angle=math.radians(180)
     report[side+"_ik"]={"created":True,"chain":names,"target_world":[round(v,4) for v in target.location]}
 
 def bounds(actor):
