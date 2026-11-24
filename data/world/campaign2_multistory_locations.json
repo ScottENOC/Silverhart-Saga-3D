@@ -4590,7 +4590,7 @@
       "name": "Silverhart — Corvane Embassy",
       "anchor": {
         "q": 16,
-        "r": -462
+        "r": -463
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart district interior",
       "floors": [
@@ -4603,7 +4603,7 @@
               "id": "silverhart_corvane_embassy_room",
               "center": {
                 "q": 16,
-                "r": -462
+                "r": -463
               },
               "half_width": 3,
               "half_height": 2
@@ -4616,7 +4616,7 @@
               "type": "door_open",
               "position": {
                 "q": 13,
-                "r": -462
+                "r": -463
               }
             }
           ],
