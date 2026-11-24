@@ -1332,6 +1332,17 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with("furniture_buy:"):
+		var item_id := choice_id.trim_prefix("furniture_buy:")
+		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
+		if bool(purchase.get("ok", false)):
+			var inspection := DWELLING_WORLD_SERVICE.furniture_shop_inspection(simulation.get_character(simulation.player_character_id))
+			_show_dialogue(String(inspection.get("speaker", "Furniture Shop")), "%s purchased. The piece is now in your furniture inventory.\n\n%s" % [String(CampaignFurnitureCatalog.definition(item_id).get("name", item_id)), String(inspection.get("text", ""))], inspection.get("choices", []))
+		else:
+			var reason := String(purchase.get("reason", "purchase_failed")).replace("_", " ")
+			var inspection := DWELLING_WORLD_SERVICE.furniture_shop_inspection(simulation.get_character(simulation.player_character_id))
+			_show_dialogue(String(inspection.get("speaker", "Furniture Shop")), "The purchase could not be completed: %s.\n\n%s" % [reason, String(inspection.get("text", ""))], inspection.get("choices", []))
+		return
 	if choice_id.begins_with("dwelling_action:"):
 		var parts := choice_id.split(":")
 		if parts.size() == 4:
