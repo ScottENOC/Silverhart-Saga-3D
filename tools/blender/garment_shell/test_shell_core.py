@@ -92,13 +92,13 @@ class ShellCoreTests(unittest.TestCase):
         from shell_core import bridge_midline_concavities
         positions = [(0.0, 0.0, 0.0), (0.07, 0.0, 0.0)]
         normals = [(0.0, 1.0, 0.0)] * 2
-        samples = [(-0.04, 0.02, 0.0), (0.04, 0.02, 0.0)]
+        samples = [(-0.04, 0.04, 0.0), (0.04, 0.04, 0.0)]
         sample_normals = [(0.0, 1.0, 0.0)] * 2
         result = bridge_midline_concavities(
             positions, normals, samples, sample_normals, (0, 0, 0),
             (1, 0, 0), (0, 0, 1), (0, 1, 0),
         )
-        self.assertAlmostEqual(result[0][1], 0.0164, places=4)
+        self.assertAlmostEqual(result[0][1], 0.04, places=4)
         self.assertEqual(result[1], positions[1])
 
     def test_midline_bridge_respects_front_and_rear_surface_normals(self):
@@ -106,11 +106,11 @@ class ShellCoreTests(unittest.TestCase):
         result = bridge_midline_concavities(
             [(0.0, 0.0, 0.0)],
             [(0.0, -1.0, 0.0)],
-            [(-0.04, -0.02, 0.0), (0.04, -0.02, 0.0)],
+            [(-0.04, -0.04, 0.0), (0.04, -0.04, 0.0)],
             [(0.0, -1.0, 0.0)] * 2,
             (0, 0, 0), (1, 0, 0), (0, 0, 1), (0, 1, 0),
         )
-        self.assertAlmostEqual(result[0][1], -0.0164, places=4)
+        self.assertAlmostEqual(result[0][1], -0.04, places=4)
 
     def test_midline_bridge_does_not_pull_surface_that_is_already_outward(self):
         from shell_core import bridge_midline_concavities
