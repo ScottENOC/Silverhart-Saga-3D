@@ -36,9 +36,9 @@ static func _present_cottage(parent: Node3D, state: CampaignDwellingState, radiu
 			_add_box(site, "PlotStake", offset, Vector3(0.12, 0.9, 0.12), materials.weathered_wood)
 		return
 	var country_house := String(state.upgrades.get("crossroads_cottage", "")) == "upgrade_country_house"
-	var width := 5.8 if country_house else 4.2
-	var depth := 4.5 if country_house else 3.3
-	_build_house(site, width, depth, 2.5 if country_house else 2.2, materials, false, true)
+	var width := 8.2 if country_house else 5.8
+	var depth := 6.4 if country_house else 4.8
+	_build_house(site, width, depth, 3.0 if country_house else 2.6, materials, false, true)
 	if country_house:
 		_add_box(site, "CountryHouseRearExtension", Vector3(0.0, 1.1, -depth * 0.42), Vector3(width * 0.72, 2.2, 1.25), materials.wood)
 		_add_box(site, "CountryHouseBenchPorch", Vector3(1.4, 0.32, depth * 0.58), Vector3(1.4, 0.28, 0.42), materials.wood)
@@ -50,7 +50,7 @@ static func _present_abandoned_house(parent: Node3D, state: CampaignDwellingStat
 	site.position = HexGrid.axial_to_world(Vector2i(14, -176), radius)
 	parent.add_child(site)
 	var restored := bool(state.owned.get("abandoned_house", false))
-	_build_house(site, 4.7, 3.6, 2.25, materials, not restored, restored)
+	_build_house(site, 7.2, 5.8, 2.8, materials, not restored, restored)
 
 
 static func _present_manor(parent: Node3D, state: CampaignDwellingState, radius: float, materials: Dictionary) -> void:
@@ -59,9 +59,9 @@ static func _present_manor(parent: Node3D, state: CampaignDwellingState, radius:
 	site.position = HexGrid.axial_to_world(Vector2i(39, -502), radius)
 	parent.add_child(site)
 	var fortified := String(state.upgrades.get("silverhart_manor", "")) == "fortify_silverhart_manor"
-	_build_house(site, 6.8, 5.4, 2.8, materials, not fortified, fortified)
+	_build_house(site, 10.0, 8.0, 3.2, materials, not fortified, fortified)
 	if fortified:
-		_add_box(site, "ManorChimney", Vector3(2.2, 3.45, -1.4), Vector3(0.48, 1.3, 0.48), materials.stone)
+		_add_box(site, "ManorChimney", Vector3(3.5, 3.9, -2.2), Vector3(0.55, 1.5, 0.55), materials.stone)
 
 
 static func _build_house(
