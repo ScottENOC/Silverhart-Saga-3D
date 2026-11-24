@@ -14,8 +14,6 @@ signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int,
 signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
-var companion_quest_chains: CompanionQuestChainState = CompanionQuestChainState.new()
-var companion_relationship_state: CompanionRelationshipState = CompanionRelationshipState.new()
 var map_data: HexMapData = HexMapData.new()
 var building_registry: BuildingRegistry = BuildingRegistry.new()
 var world_cell_loader: Campaign2WorldCellLoader = Campaign2WorldCellLoader.new()
@@ -41,7 +39,6 @@ func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
-    companion_quest_chains.register_quest_definitions(campaign_journal)
     building_registry.door_state_changed.connect(_on_door_state_changed)
 
 func _on_door_state_changed(door_id: String) -> void:
@@ -1747,8 +1744,6 @@ func to_dict() -> Dictionary:
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
         "buildings": building_registry.to_dict(),
-        "companion_quest_chains": companion_quest_chains.to_dict(),
-        "companion_relationships": companion_relationship_state.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -1764,9 +1759,6 @@ func load_dict(data: Dictionary) -> void:
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
-    companion_quest_chains.from_dict(data.get("companion_quest_chains", {}))
-    companion_relationship_state.load_dict(data.get("companion_relationships", {}))
-    companion_quest_chains.register_quest_definitions(campaign_journal)
     for door_id_value in building_registry.doors.keys():
         sync_door_map_state(String(door_id_value))
     is_in_combat = bool(data.get("is_in_combat", false))
