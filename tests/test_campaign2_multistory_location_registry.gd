@@ -350,9 +350,9 @@ func _initialize() -> void:
 	}
 	for location_id in silverhart_districts:
 		var district: Dictionary = silverhart_districts[location_id]
-		var definition: Dictionary = registry.get_definition(location_id)
-		_check(not definition.is_empty(), "Silverhart district interior must be registered: " + location_id)
-		_check(_position_matches(definition.get("anchor", {}), district["centre"]), "Silverhart district anchor must match buildSilverhartPalace: " + location_id)
+		var district_definition: Dictionary = registry.get_definition(location_id)
+		_check(not district_definition.is_empty(), "Silverhart district interior must be registered: " + location_id)
+		_check(_position_matches(district_definition.get("anchor", {}), district["centre"]), "Silverhart district anchor must match buildSilverhartPalace: " + location_id)
 		var floor := registry.get_floor_definition(location_id, 0)
 		_check(floor.get("rooms", []).size() == 1, "Silverhart district must retain its source-authored room: " + location_id)
 		var room: Dictionary = floor.get("rooms", [])[0]
