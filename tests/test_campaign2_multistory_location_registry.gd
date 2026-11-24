@@ -419,8 +419,8 @@ func _initialize() -> void:
 	var manor_floor := registry.get_floor_definition("silverhart_corstane_manor", 0)
 	_check(manor_floor.get("floor_hexes", []).size() == 31, "Corstane manor must preserve the source-shrunk floor mask")
 	_check(manor_floor.get("wall_hexes", []).size() == 24, "Corstane manor must preserve the source-rebuilt wall mask")
-	_check(manor_floor.get("floor_hexes", []).has({"q": 36, "r": -502}), "Corstane manor's moved west door must remain floor")
-	_check(manor_floor.get("wall_hexes", []).has({"q": 36, "r": -501}), "Corstane manor's shifted west wall must be restored")
+	_check(_has_axial_position(manor_floor.get("floor_hexes", []), Vector2i(36, -502)), "Corstane manor's moved west door must remain floor")
+	_check(_has_axial_position(manor_floor.get("wall_hexes", []), Vector2i(36, -501)), "Corstane manor's shifted west wall must be restored")
 
 	var builder_house := registry.get_floor_definition("silverhart_builder_house", 0)
 	_check(_position_matches(registry.get_definition("silverhart_builder_house").get("anchor", {}), Vector2i(38, -492)), "Hallis's house anchor must match the source polygon centroid")
