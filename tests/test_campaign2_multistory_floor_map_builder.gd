@@ -180,6 +180,28 @@ func _initialize() -> void:
 		_check(not builder_house_map.is_walkable(Vector2i(42, -495)), "Hallis's polygon perimeter must remain a wall")
 		_check(_has_object(builder_house_result.get("tile_objects", []), "silverhart_builder_house_west_door"), "Hallis's west door must be presented")
 		_check(_has_object(builder_house_result.get("tile_objects", []), "silverhart_builder_house_south_door"), "Hallis's south door must be presented")
+
+	# Final source-coverage sweep: every Silverhart ground-floor interior
+	# region must build through the same floor-map builder. The two tunnel
+	# locations have surface anchor placeholders only; their real geometry
+	# lives on floor -9 and is tested by the tunnel/runtime suites.
+	for silverhart_id in registry.location_ids():
+		if not silverhart_id.begins_with("silverhart_"):
+			continue
+		var silverhart_definition: Dictionary = registry.get_definition(silverhart_id)
+		var silverhart_floor := registry.get_floor_definition(silverhart_id, 0)
+		if silverhart_floor.get("rooms", []).is_empty() and silverhart_floor.get("floor_hexes", []).is_empty():
+			continue
+		var silverhart_state = LOCATION_STATE.new()
+		_check(bool(silverhart_state.configure(silverhart_definition).get("ok", false)), "Every Silverhart source interior must configure: " + silverhart_id)
+		var silverhart_result: Dictionary = FLOOR_BUILDER.build_floor_map(silverhart_definition, 0, silverhart_state)
+		_check(bool(silverhart_result.get("ok", false)), "Every Silverhart source interior must build: " + silverhart_id)
+		if not bool(silverhart_result.get("ok", false)):
+			continue
+		var silverhart_map: HexMapData = silverhart_result.get("map_data") as HexMapData
+		for silverhart_object in silverhart_result.get("tile_objects", []):
+			var object_position: Dictionary = silverhart_object.get("position", {})
+			_check(silverhart_map.is_walkable(Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))), "Every Silverhart fixture must sit on walkable floor: " + String(silverhart_object.get("id", "")))
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
