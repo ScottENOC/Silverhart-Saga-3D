@@ -1,6 +1,6 @@
 {
-  "source": "Hex-crpg/fennLivingBoundary.js",
-  "source_build": "20260930-fenn-living-boundary-v1",
+  "source": "Hex-crpg/fennLivingBoundary.js; Hex-crpg/aldricBrokenVigil.js",
+  "source_build": "20260930-fenn-living-boundary-v1 + 20260930-aldric-broken-vigil-v2",
   "quests": [
     {
       "id": "fenn_living_boundary",
@@ -11,81 +11,339 @@
       "description": "Find out what the changed drainage from Emberwood Grove is doing to Old Mac’s pasture, and decide with Fenn where the new boundary between farm and wetland should lie.",
       "opening": "Fenn has been quiet since the road passed near Emberwood. “The spring is running differently. Storm brought an alder down across the old channel, and the water’s spread into the low ground south of the grove. Nessa calls it a marsh now.” He glances toward the farm road. “That low ground keeps going. Straight into Mac’s pasture. I grew up being told that when water finds a new course, you listen before you move it back. I’m starting to think listening includes the people standing in it.”",
       "opening_choices": [
-        {"id":"hear_both_sides","label":"“We should hear what both sides are losing.”"},
-        {"id":"nature_not_interference","label":"“A new marsh is still nature. Why interfere?”","response":"Fenn rubs a thumb over a leaf stem. “Maybe we shouldn’t. But Mac’s sheep are nature too, if we’re being honest, and so is the old man trying to keep them fed. I’d rather know the cost before pretending doing nothing has none.”"}
+        {
+          "id": "hear_both_sides",
+          "label": "“We should hear what both sides are losing.”"
+        },
+        {
+          "id": "nature_not_interference",
+          "label": "“A new marsh is still nature. Why interfere?”",
+          "response": "Fenn rubs a thumb over a leaf stem. “Maybe we shouldn’t. But Mac’s sheep are nature too, if we’re being honest, and so is the old man trying to keep them fed. I’d rather know the cost before pretending doing nothing has none.”"
+        }
       ],
       "clues": {
         "changed_flow": {
-          "label":"The grove spring has changed course",
-          "text":"Fenn has noticed that water leaving Emberwood Grove is spreading south instead of following its old narrow drainage line. A storm-felled alder appears to have changed the flow.",
-          "automatic":true
+          "label": "The grove spring has changed course",
+          "text": "Fenn has noticed that water leaving Emberwood Grove is spreading south instead of following its old narrow drainage line. A storm-felled alder appears to have changed the flow.",
+          "automatic": true
         },
         "flooded_pasture": {
-          "label":"Old Mac’s lower pasture is waterlogged",
-          "text":"The new flow has saturated Old Mac’s lower meadow. If it stays wet through the season, he will lose much of his hay crop and have less safe grazing for the sheep.",
-          "required":true,
-          "actor_id":"old_mac_human_male",
-          "speaker":"Old Mac",
-          "dialogue":"Mac points toward the lower meadow. Water gleams between the grass stems where the ground should be firm. “Pretty from a distance. Useless for hay. Another month and I’ll be buying winter feed I can’t afford, assuming the sheep don’t start rotting their feet first.” He squints toward the tree line. “I’m not asking to pave the grove. I’m asking for the ditch that kept my field dry for thirty years.”",
-          "response":"We’ll hear the grove out as well."
+          "label": "Old Mac’s lower pasture is waterlogged",
+          "text": "The new flow has saturated Old Mac’s lower meadow. If it stays wet through the season, he will lose much of his hay crop and have less safe grazing for the sheep.",
+          "required": true,
+          "actor_id": "old_mac_human_male",
+          "speaker": "Old Mac",
+          "dialogue": "Mac points toward the lower meadow. Water gleams between the grass stems where the ground should be firm. “Pretty from a distance. Useless for hay. Another month and I’ll be buying winter feed I can’t afford, assuming the sheep don’t start rotting their feet first.” He squints toward the tree line. “I’m not asking to pave the grove. I’m asking for the ditch that kept my field dry for thirty years.”",
+          "response": "We’ll hear the grove out as well."
         },
         "young_marsh": {
-          "label":"The blockage has created a young reed-marsh",
-          "text":"Elder Nessa explains that the new wet ground is already holding frogs, insects and medicinal plants, and slowing dirty runoff before it reaches the grove spring. Removing it completely would restore the old drainage but destroy an emerging habitat.",
-          "required":true,
-          "actor_id":"elder_nessa_wren_elf_female",
-          "speaker":"Elder Nessa Wren",
-          "dialogue":"Nessa does not pretend the marsh is ancient. “It is one season old. That does not make it imaginary.” She lists what has already appeared there: frogs, sedges, medicinal watermint, dragonflies, nesting reed birds. “The slow water is also catching farm runoff before it reaches our spring. Cut the alder out and scour the old ditch clean, and Mac gets his meadow back. We lose what has begun here.”",
-          "response":"So doing nothing has a cost, and undoing it has a cost."
+          "label": "The blockage has created a young reed-marsh",
+          "text": "Elder Nessa explains that the new wet ground is already holding frogs, insects and medicinal plants, and slowing dirty runoff before it reaches the grove spring. Removing it completely would restore the old drainage but destroy an emerging habitat.",
+          "required": true,
+          "actor_id": "elder_nessa_wren_elf_female",
+          "speaker": "Elder Nessa Wren",
+          "dialogue": "Nessa does not pretend the marsh is ancient. “It is one season old. That does not make it imaginary.” She lists what has already appeared there: frogs, sedges, medicinal watermint, dragonflies, nesting reed birds. “The slow water is also catching farm runoff before it reaches our spring. Cut the alder out and scour the old ditch clean, and Mac gets his meadow back. We lose what has begun here.”",
+          "response": "So doing nothing has a cost, and undoing it has a cost."
         },
         "old_channel": {
-          "label":"The old channel could carry a controlled spillway",
-          "text":"Careful reading of the banks shows the former drainage line still exists beneath the reeds. A narrow maintained spillway could lower the pasture water without draining the entire marsh, though both farm and grove would have to accept a changed boundary.",
-          "optional":true,
-          "skill_gate":"nature_or_perception",
-          "dialogue":"You and Fenn trace the bank until the reeds thin. The former channel is still there, shallow but continuous. Fenn crouches over it. “A narrow spillway could take the worst water off the pasture without emptying the whole marsh. Not free. Not untouched. But possible.”"
+          "label": "The old channel could carry a controlled spillway",
+          "text": "Careful reading of the banks shows the former drainage line still exists beneath the reeds. A narrow maintained spillway could lower the pasture water without draining the entire marsh, though both farm and grove would have to accept a changed boundary.",
+          "optional": true,
+          "skill_gate": "nature_or_perception",
+          "dialogue": "You and Fenn trace the bank until the reeds thin. The former channel is still there, shallow but continuous. Fenn crouches over it. “A narrow spillway could take the worst water off the pasture without emptying the whole marsh. Not free. Not untouched. But possible.”"
         }
       },
-      "required_clues": ["flooded_pasture", "young_marsh"],
+      "required_clues": [
+        "flooded_pasture",
+        "young_marsh"
+      ],
       "resolutions": {
         "preserve_marsh": {
-          "label":"Preserve the marsh. Mac will have to adapt.",
-          "relationship":{"approval":6,"trust":6,"familiarity":4},
-          "affinity":{"friendship":5,"romanticBond":1},
-          "arc":{"stewardship":-15,"independence":-4},
-          "line":"Fenn watches the reeds move in the breeze. “Nessa will say we listened. Mac will say we listened to everyone except him.” He exhales. “I think preserving something can still be the right choice. I just don’t want to call the cost nothing.”",
-          "npc_reputation":{"old_mac_human_male":{"standing":-10,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":10,"knowledge":8}},
-          "flags":{"pasture_protected":false,"marsh_preserved":true,"managed_flow":false,"compensated_farm":false}
+          "label": "Preserve the marsh. Mac will have to adapt.",
+          "relationship": {
+            "approval": 6,
+            "trust": 6,
+            "familiarity": 4
+          },
+          "affinity": {
+            "friendship": 5,
+            "romanticBond": 1
+          },
+          "arc": {
+            "stewardship": -15,
+            "independence": -4
+          },
+          "line": "Fenn watches the reeds move in the breeze. “Nessa will say we listened. Mac will say we listened to everyone except him.” He exhales. “I think preserving something can still be the right choice. I just don’t want to call the cost nothing.”",
+          "npc_reputation": {
+            "old_mac_human_male": {
+              "standing": -10,
+              "knowledge": 8
+            },
+            "elder_nessa_wren_elf_female": {
+              "standing": 10,
+              "knowledge": 8
+            }
+          },
+          "flags": {
+            "pasture_protected": false,
+            "marsh_preserved": true,
+            "managed_flow": false,
+            "compensated_farm": false
+          }
         },
         "drain_marsh": {
-          "label":"Restore the old drainage and give Mac his pasture back.",
-          "relationship":{"approval":-6,"trust":3,"familiarity":5},
-          "affinity":{"friendship":-2,"romanticBond":-1},
-          "arc":{"stewardship":18,"independence":10},
-          "line":"Fenn is unhappy, but not evasive. “I wouldn’t have chosen to lose the marsh. But Mac’s winter is real, and you heard Nessa before deciding.” He looks back at the water. “If I’m going to disagree with you, I’d rather disagree about an honest choice than a convenient one.”",
-          "npc_reputation":{"old_mac_human_male":{"standing":10,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":-12,"knowledge":8}},
-          "flags":{"pasture_protected":true,"marsh_preserved":false,"managed_flow":false,"compensated_farm":false}
+          "label": "Restore the old drainage and give Mac his pasture back.",
+          "relationship": {
+            "approval": -6,
+            "trust": 3,
+            "familiarity": 5
+          },
+          "affinity": {
+            "friendship": -2,
+            "romanticBond": -1
+          },
+          "arc": {
+            "stewardship": 18,
+            "independence": 10
+          },
+          "line": "Fenn is unhappy, but not evasive. “I wouldn’t have chosen to lose the marsh. But Mac’s winter is real, and you heard Nessa before deciding.” He looks back at the water. “If I’m going to disagree with you, I’d rather disagree about an honest choice than a convenient one.”",
+          "npc_reputation": {
+            "old_mac_human_male": {
+              "standing": 10,
+              "knowledge": 8
+            },
+            "elder_nessa_wren_elf_female": {
+              "standing": -12,
+              "knowledge": 8
+            }
+          },
+          "flags": {
+            "pasture_protected": true,
+            "marsh_preserved": false,
+            "managed_flow": false,
+            "compensated_farm": false
+          }
         },
         "compensate_preserve": {
-          "label":"Keep the marsh and spend 60 gold helping Mac protect higher ground.",
-          "cost_gold":60,
-          "relationship":{"approval":9,"trust":9,"familiarity":5},
-          "affinity":{"friendship":7,"romanticBond":2},
-          "arc":{"stewardship":-8,"independence":7},
-          "line":"Fenn smiles at last. “Keep the marsh, help Mac move the pressure somewhere else. Expensive answer.” He nudges your shoulder. “I’m learning you have a weakness for expensive answers that let two stubborn people both keep breathing.”",
-          "npc_reputation":{"old_mac_human_male":{"standing":10,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":8,"knowledge":8}},
-          "flags":{"pasture_protected":true,"marsh_preserved":true,"managed_flow":false,"compensated_farm":true}
+          "label": "Keep the marsh and spend 60 gold helping Mac protect higher ground.",
+          "cost_gold": 60,
+          "relationship": {
+            "approval": 9,
+            "trust": 9,
+            "familiarity": 5
+          },
+          "affinity": {
+            "friendship": 7,
+            "romanticBond": 2
+          },
+          "arc": {
+            "stewardship": -8,
+            "independence": 7
+          },
+          "line": "Fenn smiles at last. “Keep the marsh, help Mac move the pressure somewhere else. Expensive answer.” He nudges your shoulder. “I’m learning you have a weakness for expensive answers that let two stubborn people both keep breathing.”",
+          "npc_reputation": {
+            "old_mac_human_male": {
+              "standing": 10,
+              "knowledge": 8
+            },
+            "elder_nessa_wren_elf_female": {
+              "standing": 8,
+              "knowledge": 8
+            }
+          },
+          "flags": {
+            "pasture_protected": true,
+            "marsh_preserved": true,
+            "managed_flow": false,
+            "compensated_farm": true
+          }
         },
         "managed_spillway": {
-          "label":"Build a controlled spillway: preserve most of the marsh and protect the pasture.",
-          "relationship":{"approval":11,"trust":12,"familiarity":6},
-          "affinity":{"friendship":8,"romanticBond":3,"attraction":1},
-          "arc":{"stewardship":12,"independence":13},
-          "line":"Fenn watches the first controlled flow pull away from the pasture without emptying the marsh. “Messier than Nessa wanted. Less dry than Mac wanted.” A grin. “Which may be how you know nobody was simply ignored.”",
-          "line_with_channel":"Fenn looks over the narrow spillway, then the standing reeds beyond it. “Not restored. Not untouched. Managed.” He smiles, a little surprised by the word. “The grove taught me change isn’t the same thing as damage. I suppose that applies when people are part of the change too.”",
-          "channel_relationship_bonus":{"trust":2},
-          "npc_reputation":{"old_mac_human_male":{"standing":6,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":6,"knowledge":8}},
-          "flags":{"pasture_protected":true,"marsh_preserved":true,"managed_flow":true,"compensated_farm":false}
+          "label": "Build a controlled spillway: preserve most of the marsh and protect the pasture.",
+          "relationship": {
+            "approval": 11,
+            "trust": 12,
+            "familiarity": 6
+          },
+          "affinity": {
+            "friendship": 8,
+            "romanticBond": 3,
+            "attraction": 1
+          },
+          "arc": {
+            "stewardship": 12,
+            "independence": 13
+          },
+          "line": "Fenn watches the first controlled flow pull away from the pasture without emptying the marsh. “Messier than Nessa wanted. Less dry than Mac wanted.” A grin. “Which may be how you know nobody was simply ignored.”",
+          "line_with_channel": "Fenn looks over the narrow spillway, then the standing reeds beyond it. “Not restored. Not untouched. Managed.” He smiles, a little surprised by the word. “The grove taught me change isn’t the same thing as damage. I suppose that applies when people are part of the change too.”",
+          "channel_relationship_bonus": {
+            "trust": 2
+          },
+          "npc_reputation": {
+            "old_mac_human_male": {
+              "standing": 6,
+              "knowledge": 8
+            },
+            "elder_nessa_wren_elf_female": {
+              "standing": 6,
+              "knowledge": 8
+            }
+          },
+          "flags": {
+            "pasture_protected": true,
+            "marsh_preserved": true,
+            "managed_flow": true,
+            "compensated_farm": false
+          }
+        }
+      }
+    },
+    {
+      "id": "aldric_broken_vigil",
+      "title": "The Broken Vigil",
+      "companion": "Ser Aldric Thorne",
+      "companion_id": "ser_aldric_thorne",
+      "chapter": 1,
+      "description": "Find out why the Ironbond patrol that promised to hold the west road withdrew and left Aldric alone when the Skarn-tooth goblins attacked.",
+      "opening": "“Ironbond,” Aldric says. “Six of their blades were contracted to hold the west road with me while Hollowmere cleared its outlying farms. They were there at dusk. By dawn they were gone, and the goblins came through the gap.”\n\nHe looks away. “I kept my vow and they tied me to a post for it. I always called those six cowards. Lately I’ve wondered whether I ever learned enough to judge them. If we reach Reddale, I want the duty books.”",
+      "opening_choices": [
+        {
+          "id": "find_truth",
+          "label": "“Then we find out who actually broke their word.”"
+        },
+        {
+          "id": "help_truth",
+          "label": "“I’ll help you get the truth.”"
+        }
+      ],
+      "clues": {
+        "company_roster": {
+          "label": "Ironbond withdrew the west-road patrol",
+          "text": "Ironbond’s old duty roster confirms that six Company blades were assigned to support Aldric on the west road, then recalled together shortly before the goblin attack.",
+          "actor_id": "guildmaster_petra_voss",
+          "speaker": "Guildmaster Petra Voss",
+          "dialogue": "Petra’s expression tightens, but she eventually produces a weathered duty book. Six names sit beside “West Road — support Paladin Thorne.” Every one is crossed through at the same hour with the same notation: “priority transfer — Reddale.”\n\n“They didn’t run,” Petra says. “Whatever else happened, someone recalled them.”",
+          "response": "Who gave the order?"
+        },
+        "baron_customs": {
+          "label": "The recall protected a valuable ore convoy",
+          "text": "The Baron’s customs ledger shows an Emberlode ore convoy was due through Reddale that same night. Ironbond reassigned the west-road patrol to protect the cargo after hearing goblins were active nearby.",
+          "actor_id": "baron_corwin_aldervale",
+          "speaker": "Baron Corwin Aldervale",
+          "dialogue": "The Baron has an old customs ledger brought out. The date is the same night Aldric was taken. An Emberlode ore convoy was due through Reddale before dawn; beside it, a clerk recorded six extra Ironbond guards “transferred from western watch by Company order.”\n\nCorwin taps the line. “They protected their cargo. Your paladin protected people. Only one of those promises was left uncovered.”",
+          "response": "That explains the recall."
+        },
+        "sealed_dispatch": {
+          "label": "The sealed dispatch proves the choice was deliberate",
+          "text": "The original Ironbond dispatch explicitly prioritises the ore convoy over the west-road watch and notes that “the paladin remains by his own vow.” The patrol did not desert; Company command knowingly left Aldric behind.",
+          "actor_id": "guildmaster_petra_voss",
+          "speaker": "Guildmaster Petra Voss",
+          "dialogue": "The original dispatch is unambiguous: protect the ore shipment, abandon the west-road support contract, and leave “the paladin” to his vow. The patrol did not choose to desert Aldric; Company command recalled them.",
+          "optional": true,
+          "capability_any": [
+            "persuasion",
+            "insight"
+          ],
+          "faction_standing_min": 20,
+          "requires_stealth": true
+        }
+      },
+      "required_clue_sets": [
+        [
+          "company_roster",
+          "baron_customs"
+        ],
+        [
+          "sealed_dispatch"
+        ]
+      ],
+      "resolutions": {
+        "public_accountability": {
+          "label": "“Put the order on the public record. The Company should answer for it.”",
+          "relationship": {
+            "approval": 8,
+            "trust": 10,
+            "familiarity": 4
+          },
+          "full_proof_relationship_bonus": {
+            "trust": 2
+          },
+          "affinity": {
+            "friendship": 6,
+            "romanticBond": 2
+          },
+          "reason": "helped Aldric put Ironbond’s broken promise on the public record",
+          "line": "Aldric nods. “Good. Not because I need vengeance. Because next time a contract says six people are holding a flank, someone should know what that promise costs.”",
+          "faction_reputation": {
+            "ironbond_company": {
+              "standing": -5,
+              "knowledge": 10
+            }
+          },
+          "surface_power_delta": -2
+        },
+        "spare_patrol": {
+          "label": "“Hold the people who gave the order responsible. Leave the patrol’s names out of it.”",
+          "relationship": {
+            "approval": 10,
+            "trust": 12,
+            "familiarity": 5
+          },
+          "full_proof_relationship_bonus": {
+            "trust": 2
+          },
+          "affinity": {
+            "friendship": 7,
+            "romanticBond": 3
+          },
+          "reason": "held Ironbond command accountable without blaming the patrol that obeyed it",
+          "line": "Aldric is quiet, then gives a small, rueful smile. “I spent a long time calling six strangers cowards because anger was simpler than doubt. You’re right. The order belongs to the people who gave it.”",
+          "faction_reputation": {
+            "ironbond_company": {
+              "standing": -3,
+              "knowledge": 8
+            }
+          },
+          "surface_power_delta": -1
+        },
+        "private_closure": {
+          "label": "“You know the truth now. You don’t have to keep living at that post.”",
+          "relationship": {
+            "approval": 4,
+            "trust": 7,
+            "familiarity": 5
+          },
+          "full_proof_relationship_bonus": {
+            "trust": 2
+          },
+          "affinity": {
+            "friendship": 4,
+            "romanticBond": 1
+          },
+          "reason": "helped Aldric learn the truth and choose not to let Ironbond define the rest of his life",
+          "line": "Aldric folds the copied record once and puts it away. “Knowing is enough for me, then. I won’t forgive the choice. But I won’t spend the next ten years still standing at that post, either.”"
+        },
+        "buried_for_money": {
+          "label": "“Ironbond will pay to keep this quiet. Take the settlement and close it.”",
+          "relationship": {
+            "approval": -18,
+            "trust": -15,
+            "familiarity": 4
+          },
+          "affinity": {
+            "friendship": -10,
+            "romanticBond": -6
+          },
+          "reason": "buried the truth about Aldric’s abandonment in exchange for Ironbond money",
+          "line": "Aldric stares at you for several seconds. “So that is what my vow was worth in the end. A line item.” His voice stays controlled. “Keep the coin. Don’t ask me to call this settled.”",
+          "gold_reward": 120,
+          "faction_reputation": {
+            "ironbond_company": {
+              "standing": 6,
+              "knowledge": 10
+            }
+          },
+          "surface_power_delta": 2
         }
       }
     }
