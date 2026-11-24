@@ -166,6 +166,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_spider_ruin_presentation.gd
       - name: Run Druid Grove presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_druid_grove_presentation.gd
+      - name: Run wild unicorn track presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_unicorn_track_presentation.gd
       - name: Run Vampire Grave presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_vampire_grave_presentation.gd
       - name: Run Silthandriel canopy settlement presentation tests

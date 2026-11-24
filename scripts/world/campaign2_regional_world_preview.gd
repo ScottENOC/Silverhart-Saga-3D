@@ -14,6 +14,7 @@ const DRAGON_LAIR_PRESENTATION = preload("res://scripts/world/world_dragon_lair_
 const SPIDER_RUIN_PRESENTATION = preload("res://scripts/world/world_spider_ruin_presentation.gd")
 const DRUID_GROVE_PRESENTATION = preload("res://scripts/world/world_druid_grove_presentation.gd")
 const VAMPIRE_GRAVE_PRESENTATION = preload("res://scripts/world/world_vampire_grave_presentation.gd")
+const UNICORN_TRACK_PRESENTATION = preload("res://scripts/world/world_unicorn_track_presentation.gd")
 const MULTISTORY_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 const CANOPY_PRESENTATION = preload("res://scripts/world/world_canopy_settlement_presentation.gd")
 const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
@@ -361,6 +362,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	if not bool(vampire_grave_presentation.get("ok", false)):
 		push_warning("Regional Vampire Grave presentation failed: %s" % vampire_grave_presentation)
 	var druid_grove_presentation: Dictionary = DRUID_GROVE_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	var unicorn_track_presentation: Dictionary = UNICORN_TRACK_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(unicorn_track_presentation.get("ok", false)):
+		push_warning("Regional unicorn track presentation failed: %s" % unicorn_track_presentation)
 	if not bool(druid_grove_presentation.get("ok", false)):
 		push_warning("Regional Druid Grove presentation failed: %s" % druid_grove_presentation)
 	var elven_capital: Dictionary = multistory_registry.get_definition("silthandriel")
