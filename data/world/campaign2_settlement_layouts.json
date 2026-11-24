@@ -3956,6 +3956,33 @@
           "source": "Hex-crpg/campaign2Content.js"
         },
         {
+          "id": "preceptor_garran_vey",
+          "name": "Preceptor Garran Vey",
+          "title": "Preceptor of the Silver Vigil",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "cleric",
+            "cleric"
+          ],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "preceptor_garran_vey",
+          "position": {
+            "q": 11,
+            "r": -452
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/aldricMeasureOfOath.js"
+        },
+        {
           "id": "high_cleric_adelram",
           "name": "High Cleric Adelram",
           "title": "High Cleric of the Grand Cathedral",
