@@ -134,6 +134,17 @@ func _test_autonomous_director_exchange() -> void:
 		120.0
 	)
 	_check(bool(resolution.get("ok", false)), "The authored chapter resolution should be recorded in the campaign journal")
+	var reyna_memory := SERVICE.build_campaign_memory_exchange(
+		aldric.id,
+		"companion_reyna_fletcher",
+		0,
+		world.companion_bonds,
+		quest_chain,
+		world.campaign_journal,
+		aldric.display_name,
+		"Reyna Fletcher"
+	)
+	_check(String(reyna_memory.get("campaign_memory", {}).get("agreement", "")) == "support", "Reyna's shared-watch outlook should support Aldric sharing command")
 
 	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
 	_check(bool(started.get("ok", false)), "The integration test should establish an in-world camp")
@@ -164,11 +175,16 @@ func _test_autonomous_director_exchange() -> void:
 	_check(nix_probe.last_activity == "socialise", "The second speaker should play the Ara conversation animation")
 	_check(float(world.companion_bonds.snapshot(aldric.id, nix.id).familiarity) > 0.0)
 	_check(float(world.companion_bonds.snapshot(nix.id, aldric.id).familiarity) > 0.0)
+	_check(float(world.companion_bonds.snapshot(aldric.id, nix.id).friendship) == 0.0, "Disagreement should not be converted into automatic friendship")
+	_check(float(world.companion_bonds.snapshot(nix.id, aldric.id).friendship) == 0.0, "Disagreement should not be converted into automatic friendship")
 	_check(float(world.camp_simulation.condition_for(aldric.id).social_satisfaction) > 0.0)
 	_check(float(world.camp_simulation.condition_for(nix.id).social_satisfaction) > 0.0)
 
 	director.process_activity_movement(0.5)
 	_check(aldric_probe.last_activity == "socialise" and nix_probe.last_activity == "socialise", "Station routines must not immediately overwrite the conversation animation")
+	director.process_activity_movement(22.1)
+	_check(_exchange_count == 2, "A campaign memory should be discussed only once by this pair")
+	_check(String(_last_exchange.get("kind", "")) != "campaign_memory", "The same completed decision should not be repeated in every camp exchange")
 	director.stop()
 	director.free()
 	_actor_probes.clear()
