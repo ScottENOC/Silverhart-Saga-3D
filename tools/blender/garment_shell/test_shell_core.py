@@ -1,9 +1,20 @@
 import unittest
 
-from shell_core import build_shell
+from shell_core import axis_parameter, build_shell
 
 
 class ShellCoreTests(unittest.TestCase):
+    def test_axis_parameter_is_independent_of_y_or_z_up(self):
+        self.assertAlmostEqual(axis_parameter((0, 0.5, 0), (0, 0, 0), (0, 1, 0)), 0.5)
+        self.assertAlmostEqual(axis_parameter((0, 0, 0.5), (0, 0, 0), (0, 0, 1)), 0.5)
+
+    def test_axis_parameter_handles_rotated_landmark_axis(self):
+        self.assertAlmostEqual(axis_parameter((1.5, 2.5, 3.5), (1, 2, 3), (2, 3, 4)), 0.5)
+
+    def test_axis_parameter_rejects_degenerate_landmarks(self):
+        with self.assertRaisesRegex(ValueError, "zero length"):
+            axis_parameter((0, 0, 0), (1, 1, 1), (1, 1, 1))
+
     def setUp(self):
         self.vertices = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
         self.normals = [(0, 0, 1)] * 4
