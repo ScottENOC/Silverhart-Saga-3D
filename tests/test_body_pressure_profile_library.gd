@@ -4,7 +4,7 @@ func _initialize() -> void:
 	var controller := BodyPressureController.new()
 	# Use the canonical resource's full vocabulary when this change is tested
 	# with the anatomy branch; on dev alone, exercise representative IDs.
-	var region_ids := BodyPressureProfileLibrary.get_anatomy_region_ids()
+	var region_ids: Array = BodyPressureProfileLibrary.get_anatomy_region_ids()
 	if region_ids.is_empty():
 		region_ids = [
 			&"breast_left", &"breast_right", &"underbust", &"areola_left",
