@@ -2600,6 +2600,64 @@
         "The source uses carveFlatRoom with half-width 4 and half-height 3, a Keep Wall ring, an east door at centre + (3,0), and a fireplace at the room centre.",
         "The inquisitor and two witch hunters are campaign actors and are intentionally excluded from this map-only definition."
       ]
+    },
+    {
+      "id": "abandoned_house",
+      "name": "Abandoned House",
+      "anchor": {
+        "q": 14,
+        "r": -176
+      },
+      "source": "Hex-crpg/campaign2World.js:buildAbandonedHouse; north-road step 200 + (6,0), source carveFlatRoom and journal/altar positions",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Abandoned House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "abandoned_house_room",
+              "center": {
+                "q": 14,
+                "r": -176
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "abandoned_house_journal",
+              "type": "journal",
+              "position": {
+                "q": 14,
+                "r": -176
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "phylactery_altar",
+              "type": "journal",
+              "position": {
+                "q": 15,
+                "r": -176
+              },
+              "read_id": "phylactery_altar",
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The abandoned-house waypoint is the 200th step of the north road from crossroads (8,24), at (8,-176). buildAbandonedHouse applies (+6,0), giving room centre (14,-176).",
+        "The source room uses carveFlatRoom with half-width 3 and half-height 2, a west entrance at (11,-176), and a short exterior path from the waypoint to that door.",
+        "The journal and phylactery altar are preserved as physical map objects; dormant skeleton placements and their activation/reputation behaviour remain campaign-owned."
+      ]
     }
   ]
 }
