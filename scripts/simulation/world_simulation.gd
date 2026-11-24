@@ -12,6 +12,7 @@ signal action_committed(event: SimulationEvent)
 signal reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, source_event_id: String)
 signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int, reason: String)
 signal movement_reaction_resolved(mover_id: String, halted: bool)
+signal weather_changed(conditions: Dictionary)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
@@ -23,6 +24,7 @@ var occupied_hexes: Dictionary = {}
 var player_character_id: String = "player"
 var party_member_ids: Array[String] = []
 var clock: WorldClock = WorldClock.new()
+var weather_state: WorldWeatherState = WorldWeatherState.new()
 var turn_scheduler: CombatTurnScheduler = CombatTurnScheduler.new()
 var is_in_combat: bool = false
 var pending_reaction: Dictionary = {}
@@ -1608,6 +1610,8 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
         resolved_site["terrain_id"] = map_data.terrain_id_at(camp_hex)
     resolved_site["in_combat"] = is_in_combat
     var resolved_environment := environment_data.duplicate(true)
+    var camp_terrain := String(resolved_site.get("terrain_id", ""))
+    resolved_environment.merge(weather_state.conditions_at(clock.world_seconds, camp_terrain), true)
     var companion_profiles: Dictionary = {}
     for character_id in party_member_ids:
         var character := get_character(String(character_id))
@@ -1700,6 +1704,12 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
                 state.health_regen_remainder = 0.0
 
     wilderness_resources.advance_time(world_seconds)
+    if weather_state.update_to(world_seconds):
+        var current_weather := weather_state.current_conditions.duplicate(true)
+        weather_changed.emit(current_weather)
+        if camp_simulation.phase == "evening":
+            var camp_terrain := String(camp_simulation.site.get("terrain_id", ""))
+            camp_simulation.update_weather(weather_state.conditions_at(world_seconds, camp_terrain))
     world_tick.emit(tick_index, world_seconds)
 
 ## Debug/prototype movement remains free so the M1 movement harness is usable.
@@ -1839,6 +1849,7 @@ func to_dict() -> Dictionary:
         character_data[character_id] = state.to_dict()
     return {
         "world_clock": clock.to_dict(),
+        "world_weather": weather_state.to_dict(),
         "is_in_combat": is_in_combat,
         "player_character_id": player_character_id,
         "party_member_ids": party_member_ids.duplicate(),
@@ -1861,6 +1872,12 @@ func load_dict(data: Dictionary) -> void:
     party_member_ids.clear()
     player_character_id = String(data.get("player_character_id", "player"))
     clock.load_dict(data.get("world_clock", {}))
+    weather_state = WorldWeatherState.new()
+    var saved_weather: Variant = data.get("world_weather", {})
+    if saved_weather is Dictionary and not saved_weather.is_empty():
+        if not weather_state.load_dict(saved_weather):
+            push_warning("Save contains invalid weather state; a new regional weather seed was generated.")
+    weather_state.update_to(clock.world_seconds)
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
     camp_simulation = CampSimulation.new()
