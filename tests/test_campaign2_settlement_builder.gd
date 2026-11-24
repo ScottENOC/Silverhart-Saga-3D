@@ -181,6 +181,28 @@ func _initialize() -> void:
 			quit(1)
 			return
 
+	# The Grand Cathedral is the shared in-world location for Aldric's
+	# Measure of an Oath investigation. Both supporting characters must be
+	# present in the same streamed settlement chunk with stable dialogue IDs.
+	var silverhart_cathedral_chunk := Node3D.new()
+	root.add_child(silverhart_cathedral_chunk)
+	builder.add_settlements_in_chunk(silverhart_cathedral_chunk, Vector2i(0, -456), 24)
+	for node_name in ["silverhart_grand_cathedral", "NPC_preceptor_garran_vey", "NPC_high_cleric_adelram"]:
+		if silverhart_cathedral_chunk.get_node_or_null(node_name) == null:
+			push_error("Grand Cathedral feature or supporting NPC was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var garran_actor := silverhart_cathedral_chunk.get_node("NPC_preceptor_garran_vey")
+	var adelram_actor := silverhart_cathedral_chunk.get_node("NPC_high_cleric_adelram")
+	if String(garran_actor.get_meta("dialogue_id", "")) != "preceptor_garran_vey":
+		push_error("Preceptor Garran Vey must retain his chapter-specific dialogue identity.")
+		quit(1)
+		return
+	if String(adelram_actor.get_meta("dialogue_id", "")) != "high_cleric":
+		push_error("High Cleric Adelram must retain his source dialogue identity.")
+		quit(1)
+		return
+
 	var silverhart_warrens_chunk := Node3D.new()
 	root.add_child(silverhart_warrens_chunk)
 	builder.add_settlements_in_chunk(silverhart_warrens_chunk, Vector2i(0, -432), 24)
