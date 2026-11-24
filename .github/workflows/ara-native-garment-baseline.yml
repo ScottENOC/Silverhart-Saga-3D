@@ -5,6 +5,7 @@ on:
     branches: [diagnostic/ara-native-garment-baseline-20261125]
     paths:
       - ".github/workflows/ara-native-garment-baseline.yml"
+      - "tools/blender/garment_shell/render_wren_briefs_shell.py"
   workflow_dispatch:
 
 permissions:
