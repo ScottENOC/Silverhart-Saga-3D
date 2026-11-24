@@ -57,6 +57,10 @@ func apply_body_contact(
 func get_body_pressure_m(region_id: StringName) -> float:
 	return body_pressure_controller.get_compression_m(region_id)
 
+## Canonical IDs come from CharacterSurfaceRegionMask, not a parallel pressure taxonomy.
+func get_body_pressure_region_ids() -> Array[StringName]:
+	return body_pressure_controller.get_region_ids()
+
 func configure(glb_path: String) -> bool:
 	if model_root != null and is_instance_valid(model_root):
 		remove_child(model_root)
@@ -130,7 +134,7 @@ func configure(glb_path: String) -> bool:
 	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
 	add_child(model_root)
 	loaded_asset_path = glb_path
-	BodyPressureProfileLibrary.register_missing_regions(body_pressure_controller)
+	BodyPressureProfileLibrary.register_anatomy_regions(body_pressure_controller)
 	body_pressure_controller.bind_model(model_root)
 	if portrait_renderer == null:
 		portrait_renderer = CharacterPortraitRenderer.new()
