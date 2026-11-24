@@ -308,7 +308,7 @@ def bridge_midline_concavities(
         last_bucket = int((height + vertical_band) // vertical_band)
         left_samples: list[tuple[float, float]] = []
         right_samples: list[tuple[float, float]] = []
-        required_lateral = abs(lateral) + 0.012
+        required_lateral = abs(lateral) + 0.006
         for bucket in range(first_bucket, last_bucket + 1):
             for sample_height, sample_lateral, sample_depth in buckets.get((side, bucket), ()):
                 if abs(sample_height - height) > vertical_band:
