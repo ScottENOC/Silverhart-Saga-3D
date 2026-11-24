@@ -383,7 +383,7 @@ func _initialize() -> void:
 		_check(int(room.get("half_width", 0)) == int(house["half_width"]) and int(room.get("half_height", 0)) == int(house["half_height"]), "Silverhart house dimensions must match carveFlatRoom: " + location_id)
 		_check(_has_record(floor.get("tile_objects", []), location_id + ("_north_door" if location_id == "silverhart_warrens_shack_centre" or location_id == "silverhart_middle_ring_house_north" else "_west_door" if location_id == "silverhart_middle_ring_house_west" or location_id == "silverhart_middle_ring_house_southwest" or location_id == "silverhart_middle_ring_house_southeast" else "_south_door" if location_id.begins_with("silverhart_warrens") else "_east_door")), "Silverhart house must retain its source entrance: " + location_id)
 	var southwest_floor := registry.get_floor_definition("silverhart_middle_ring_house_southwest", 0)
-	_check(southwest_floor.get("floor_hexes", []).has({"q": -32, "r": -453}), "Southwest middle-ring house must retain the source wall-notch floor repair")
+	_check(_has_axial_position(southwest_floor.get("floor_hexes", []), Vector2i(-32, -453)), "Southwest middle-ring house must retain the source wall-notch floor repair")
 
 
 	# Source buildSilverhartPalace contains 40 ground-floor interior regions.
@@ -438,8 +438,8 @@ func _initialize() -> void:
 	_check(_has_record(commons_objects, "silverhart_commons_inn_fireplace"), "Silverhart Commons inn must retain its source fireplace")
 	_check(_has_record(commons_objects, "silverhart_commons_inn_bench_west") and _has_record(commons_objects, "silverhart_commons_inn_bench_east"), "Silverhart Commons inn must retain both source benches")
 	var ironbond_floor := registry.get_floor_definition("silverhart_ironbond_office", 0)
-	_check(ironbond_floor.get("floor_hexes", []).has({"q": 4, "r": -457}), "Ironbond office must retain its source-opened corner")
-	_check(ironbond_floor.get("wall_hexes", []).has({"q": 5, "r": -458}), "Ironbond office must retain its source-restored outer corner")
+	_check(_has_axial_position(ironbond_floor.get("floor_hexes", []), Vector2i(4, -457)), "Ironbond office must retain its source-opened corner")
+	_check(_has_axial_position(ironbond_floor.get("wall_hexes", []), Vector2i(5, -458)), "Ironbond office must retain its source-restored outer corner")
 	_check(_has_record(ironbond_floor.get("tile_objects", []), "silverhart_ironbond_office_table"), "Ironbond office must retain its source table")
 	_check(_has_record(ironbond_floor.get("tile_objects", []), "silverhart_ironbond_office_bench"), "Ironbond office must retain its source bench")
 	for location_id in silverhart_districts:
@@ -488,6 +488,12 @@ func _check(condition: bool, message: String) -> void:
 	failures += 1
 	push_error(message)
 
+
+func _has_axial_position(records: Array, expected: Vector2i) -> bool:
+	for record in records:
+		if record is Dictionary and _position_matches(record, expected):
+			return true
+	return false
 
 func _position_matches(value: Variant, expected: Vector2i) -> bool:
 	if value is Vector2i:
