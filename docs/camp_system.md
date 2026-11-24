@@ -108,3 +108,6 @@ The dwelling distinction is functional rather than merely cosmetic: a livable ho
 
 
 The routine-stage thresholds are measured in world seconds: 120 seconds (24 seconds of ordinary real-time exploration) begins the main evening, and 360 seconds (72 seconds of ordinary real-time exploration) begins the wind-down. Indoor sleeping capacity is considered before tent setup, so a manor with enough beds is not treated like a wilderness camp with redundant tents.
+
+
+Physical evening duties now add fatigue over elapsed world time: training, gathering wood, pitching tents and fetching water are more tiring than cooking, repair, map study or conversation. This feeds back into the next routine decision, while the existing overnight recovery remains authoritative. A player override also updates the hidden autonomous fallback at each stage, so it resumes the current routine when the override expires rather than reverting to an obsolete setup chore.
