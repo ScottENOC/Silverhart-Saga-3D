@@ -95,6 +95,7 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(float(result.summary.ambush_chance) >= 0.0 and float(result.summary.ambush_chance) <= 0.45)
 	_check(float(result.summary.characters.player.comfort) > 0.0)
 	_check(String(restored.phase) == "resolved")
+	_check(int(restored.resources.water) == 0, "Drinking water should be consumed once for the whole party, not once per character")
 	_check(not bool(restored.resolve_night().ok), "A resolved camp cannot resolve twice")
 
 
