@@ -136,13 +136,13 @@ static func character_visual_profile(character: Variant, appearance: Dictionary 
 			colours.append_array(item_colours)
 			var material := String(item.get("material", "")).to_lower()
 			var item_type := String(item.get("type", "")).to_lower()
-			var metal := material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false))
+			var item_id := String(item.get("id", "")).to_lower()
+			var metal := material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false)) or item_id.contains("iron") or item_id.contains("steel") or item_id.contains("chainmail") or item_id.contains("plate")
 			if metal:
 				reflectivity = maxf(reflectivity, float(item.get("reflectivity", 0.72)))
 			equipment_noise += float(item.get("noise", item.get("noise_rating", 0.22 if metal else 0.0)))
 			if String(item.get("weight_class", "")).to_lower() == "heavy":
 				equipment_noise += 0.12
-			var item_id := String(item.get("id", "")).to_lower()
 			if bool(item.get("is_light_source", false)) or item_type == "torch" or item_id.contains("torch") or item_id.contains("lantern"):
 				light_emission = maxf(light_emission, float(item.get("light_emission", 0.85)))
 			if item.has("cover"):
@@ -211,12 +211,13 @@ static func _visual_profile(target: Dictionary) -> Dictionary:
 		if item.has("color"):
 			colours.append(item.color)
 		var material := String(item.get("material", "")).to_lower()
-		if material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false)):
+		var item_id := String(item.get("id", "")).to_lower()
+		var metal := material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false)) or item_id.contains("iron") or item_id.contains("steel") or item_id.contains("chainmail") or item_id.contains("plate")
+		if metal:
 			reflectivity = maxf(reflectivity, float(item.get("reflectivity", 0.72)))
-		equipment_noise += float(item.get("noise", item.get("noise_rating", 0.22 if material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false)) else 0.0)))
+		equipment_noise += float(item.get("noise", item.get("noise_rating", 0.22 if metal else 0.0)))
 		if String(item.get("weight_class", "")).to_lower() == "heavy":
 			equipment_noise += 0.12
-		var item_id := String(item.get("id", "")).to_lower()
 		if bool(item.get("is_light_source", false)) or item_id.contains("torch") or item_id.contains("lantern"):
 			light_emission = maxf(light_emission, float(item.get("light_emission", 0.85)))
 	result["colours"] = colours
