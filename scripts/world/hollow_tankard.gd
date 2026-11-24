@@ -1078,6 +1078,7 @@ func _build_save_snapshot() -> Dictionary:
 		"buildings": simulation.building_registry.to_dict(),
 		"camp_simulation": simulation.camp_simulation.to_dict(),
 		"companion_bonds": simulation.companion_bonds.to_dict(),
+		"campaign_dwellings": simulation.campaign_dwellings.to_dict(),
 		"world_flags": {
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
@@ -1157,6 +1158,11 @@ func _apply_save_data(data: Dictionary) -> void:
 		if not simulation.camp_simulation.from_dict(saved_camp):
 			push_warning("Saved camp state was invalid and has been reset.")
 			simulation.camp_simulation = CampSimulation.new()
+	var saved_dwellings: Variant = data.get("campaign_dwellings", {})
+	if saved_dwellings is Dictionary and not saved_dwellings.is_empty():
+		if not simulation.campaign_dwellings.from_dict(saved_dwellings):
+			push_warning("Saved player dwelling ownership was invalid and has been reset.")
+			simulation.campaign_dwellings = CampaignDwellingState.new()
 	var saved_bonds: Variant = data.get("companion_bonds", {})
 	if saved_bonds is Dictionary and not saved_bonds.is_empty():
 		if not simulation.companion_bonds.from_dict(saved_bonds):
