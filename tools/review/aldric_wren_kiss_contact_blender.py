@@ -118,13 +118,13 @@ def apply_body_pose(aldric, wren, report):
     # Aldric bows from hips and spine to meet Wren's shorter stature.
     names = {}
     for aliases, axis, angle in [
-        (["Hips","Pelvis"], "X", math.radians(-5)),
-        (["Spine","Spine1","Spine2"], "X", math.radians(-9)),
-        (["Spine1","Spine2","Chest"], "X", math.radians(-11)),
+        (["Hips","Pelvis"], "X", math.radians(8)),
+        (["Spine","Spine1","Spine2"], "X", math.radians(18)),
+        (["Spine1","Spine2","Chest"], "X", math.radians(18)),
         (["Neck"], "X", math.radians(5)),
         (["Head"], "X", math.radians(3)),
-        (["LeftUpLeg","LeftThigh"], "X", math.radians(-4)),
-        (["RightUpLeg","RightThigh"], "X", math.radians(-4)),
+        (["LeftUpLeg","LeftThigh"], "X", math.radians(-2)),
+        (["RightUpLeg","RightThigh"], "X", math.radians(-2)),
     ]:
         n = rotate_pose(aldric, aliases, axis, angle)
         if n: names.setdefault("Aldric", []).append(n)
@@ -137,9 +137,9 @@ def apply_body_pose(aldric, wren, report):
         (["RightToeBase","RightToe"], "X", math.radians(12)),
         (["LeftUpLeg","LeftThigh"], "X", math.radians(3)),
         (["RightUpLeg","RightThigh"], "X", math.radians(3)),
-        (["Spine","Spine1"], "X", math.radians(-5)),
-        (["Neck"], "X", math.radians(-3)),
-        (["Head"], "X", math.radians(-2)),
+        (["Spine","Spine1"], "X", math.radians(12)),
+        (["Neck"], "X", math.radians(8)),
+        (["Head"], "X", math.radians(6)),
     ]:
         n = rotate_pose(wren, aliases, axis, angle)
         if n: names.setdefault("Wren", []).append(n)
@@ -290,7 +290,7 @@ def main():
     scene_max = Vector((max(amax.x, wmax.x), max(amax.y, wmax.y), max(amax.z, wmax.z)))
     frame_centre = (scene_min + scene_max) * 0.5
     frame_extent = scene_max - scene_min
-    bpy.ops.object.camera_add(location=frame_centre + Vector((2.5, -5.8, 0.8)))
+    bpy.ops.object.camera_add(location=frame_centre + Vector((3.2, -0.08, 0.55)))
     cam = bpy.context.object
     cam.name = "PoseReviewCamera"
     direction = frame_centre - cam.location
