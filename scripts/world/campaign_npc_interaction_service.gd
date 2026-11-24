@@ -39,6 +39,10 @@ static func nearby_entries(
 		var actor := actor_for(scene_tree, local_actor_by_id, actor_id)
 		var settlement_id := String(actor.get_meta("campaign2_settlement_id", "")) if actor != null else ""
 		var faction_id := String(actor.get_meta("faction_id", "")) if actor != null else ""
+		if actor != null:
+			WORLD_STATE_SERVICE.apply_npc_actor_state(
+				actor, simulation.campaign_journal, actor_id, settlement_id, faction_id
+			)
 		var campaign_context := WORLD_STATE_SERVICE.npc_context(
 			simulation.campaign_journal, actor_id, settlement_id, faction_id
 		)
