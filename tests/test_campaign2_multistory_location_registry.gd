@@ -287,11 +287,11 @@ func _initialize() -> void:
 	var cove_den := registry.get_floor_definition("thieves_cove", -1)
 	var cove_ledger := _find_record(cove_den.get("tile_objects", []), "sunken_cave_ledger")
 	_check(String(cove_ledger.get("type", "")) == "journal", "Smugglers' Den must retain the source ledger marker type")
-	_assert_axial(cove_ledger.get("position", {}), Vector2i(-274, 39), "Smugglers' Den source ledger position")
+	_check(_position_matches(cove_ledger.get("position", {}), Vector2i(-274, 39)), "Smugglers' Den ledger must retain source position (-274, 39)")
 	var cove_vault := registry.get_floor_definition("thieves_cove", -2)
 	var cache_evidence := _find_record(cove_vault.get("tile_objects", []), "guild_cache_evidence")
 	_check(String(cache_evidence.get("type", "")) == "evidence", "Hidden Vault must retain the source evidence marker type")
-	_assert_axial(cache_evidence.get("position", {}), Vector2i(-273, 40), "Hidden Vault source evidence position")
+	_check(_position_matches(cache_evidence.get("position", {}), Vector2i(-273, 40)), "Hidden Vault evidence must retain source position (-273, 40)")
 	var cove_junction := registry.get_floor_definition("thieves_cove", -9)
 	var tunnel_junction := _find_record(cove_junction.get("tile_objects", []), "wilderness_tunnel_junction")
 	_check(String(tunnel_junction.get("type", "")) == "tunnel_junction" and tunnel_junction.get("node_id", "") == "wilderness", "Wilderness stub must retain its source tunnel-junction marker")
@@ -350,3 +350,11 @@ func _check(condition: bool, message: String) -> void:
 		return
 	failures += 1
 	push_error(message)
+
+
+func _position_matches(value: Variant, expected: Vector2i) -> bool:
+	if value is Vector2i:
+		return value == expected
+	if value is Dictionary:
+		return int(value.get("q", 999999)) == expected.x and int(value.get("r", 999999)) == expected.y
+	return false
