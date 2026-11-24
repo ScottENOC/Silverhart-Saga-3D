@@ -3032,6 +3032,16 @@
                 "q": -24,
                 "r": -491
               }
+            },
+            {
+              "id": "city_secret_passage",
+              "type": "secret_passage",
+              "position": {
+                "q": -20,
+                "r": -489
+              },
+              "discovered": false,
+              "node_id": "city"
             }
           ],
           "actors": [],
@@ -3749,6 +3759,54 @@
       "source_notes": [
         "buildSilverhartPalace places a hidden secret_passage at (-9, -492) in the council chamber and carves a separate one-cell Cave Floor stub at floor -9.",
         "The source marks the underground endpoint as a tunnel_junction with nodeId 'palace'; travel-menu routing and passage discovery remain campaign-owned."
+      ]
+    },
+    {
+      "id": "silverhart_city_tunnel",
+      "name": "Silverhart — City Tunnel Junction",
+      "anchor": {
+        "q": -20,
+        "r": -489
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tunnelCityHex and tunnelCityBuilding",
+      "floor_generation": "Source-authored one-cell cave floor -9 stub for the city endpoint of the Thieves' Guild tunnel network",
+      "floors": [
+        {
+          "floor": -9,
+          "name": "City Tunnel Junction",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "city_tunnel_stub",
+              "center": {
+                "q": -20,
+                "r": -489
+              },
+              "half_width": 1,
+              "half_height": 1
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "city_tunnel_junction",
+              "type": "tunnel_junction",
+              "position": {
+                "q": -20,
+                "r": -489
+              },
+              "node_id": "city"
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildSilverhartPalace places a hidden secret_passage at (-20, -489) in the general goods store and carves a separate one-cell Cave Floor stub at floor -9.",
+        "The source marks the underground endpoint as a tunnel_junction with nodeId 'city'; travel-menu routing and passage discovery remain campaign-owned."
       ]
     }
   ]
