@@ -4,7 +4,7 @@
 
 The first layer is a reusable spring-damper solver for named body regions. A contact producer (hand, garment, self-contact, or another character) supplies compressive force in Newtons. The solver accumulates simultaneous contacts, advances a damped spring, and exposes compression in metres for a later mesh-deformation adapter.
 
-Each region has its own mechanical profile: stiffness (N/m), damping (N*s/m), effective mass (kg), and maximum compression (m). These are mechanical tuning parameters, not medical measurements. Initial values are provisional and need calibration against the model.
+Each region has its own mechanical profile: stiffness (N/m), damping (N*s/m), effective mass (kg), and maximum compression (m). `BodyPressureProfileLibrary` supplies provisional game-tuning presets for paired chest, shoulder, arm, hand, hip, thigh and calf regions plus abdomen, waist, pelvis, back, neck and head. Ara actors register missing presets during model setup while preserving any profiles registered earlier by gameplay code. These are not medical measurements and need calibration against the model.
 
 ## Runtime contract
 
