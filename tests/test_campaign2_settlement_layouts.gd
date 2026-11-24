@@ -300,7 +300,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	for ring_corner in [Vector2i(38, -496), Vector2i(38, -526), Vector2i(8, -526), Vector2i(-22, -496), Vector2i(-22, -466), Vector2i(8, -466)]:
 		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
 	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
-	_check(props.size() == 513, "Silverhart must include both palisade rings, nine watchtowers, two ladders, two gate arches, fountain and bounty board")
+	_check(props.size() == 512, "Silverhart must include both palisade rings, nine watchtowers, two ladders, two gate arches, one plaza fountain and bounty board")
 	var wall_cells := 0
 	var tower_ids: Array[String] = []
 	var ladder_ids: Array[String] = []

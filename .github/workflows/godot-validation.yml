@@ -255,6 +255,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
       - name: Run chunk-aware settlement feature composer tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
+      - name: Run Silverhart Diplomatic Quarter tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_diplomatic_quarter.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null

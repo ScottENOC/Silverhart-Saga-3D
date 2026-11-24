@@ -8186,55 +8186,6 @@
           ]
         },
         {
-          "id": "silverhart_diplomatic_fountain",
-          "feature_type": "landmark_props",
-          "anchor": {
-            "q": 8,
-            "r": -455
-          },
-          "parts": [
-            {
-              "name": "Basin",
-              "type": "cylinder",
-              "material": "timber",
-              "top_radius": 1.55,
-              "bottom_radius": 1.75,
-              "height": 0.45,
-              "position": {
-                "x": 0,
-                "y": 0.25,
-                "z": 0
-              }
-            },
-            {
-              "name": "Column",
-              "type": "cylinder",
-              "material": "timber",
-              "top_radius": 0.3,
-              "bottom_radius": 0.4,
-              "height": 1.25,
-              "position": {
-                "x": 0,
-                "y": 1,
-                "z": 0
-              }
-            },
-            {
-              "name": "TopBowl",
-              "type": "cylinder",
-              "material": "timber",
-              "top_radius": 0.75,
-              "bottom_radius": 0.9,
-              "height": 0.25,
-              "position": {
-                "x": 0,
-                "y": 1.65,
-                "z": 0
-              }
-            }
-          ]
-        },
-        {
           "id": "silverhart_commons_bounty_board",
           "feature_type": "landmark_props",
           "anchor": {
