@@ -276,6 +276,7 @@ func _test_evening_routine_progression() -> void:
 	_check(String(camp.assignments.scholar.activity) == "train" and bool(camp.assignments.scholar.player_override), "A player-directed activity should survive an autonomous routine transition.")
 	camp.advance_real_time(10.0)
 	_check(String(camp.assignments.scholar.activity) == "study_map", "When the player override expires, the companion should resume the current routine rather than the stale setup task.")
+	_check(float(camp.condition_for("scholar").fatigue) > 44.5, "Strenuous player-directed activity should accumulate fatigue during the evening.")
 	_check(String(camp.assignments.guardian.activity) == "socialise", "A fatigued companion should avoid strenuous evening duties.")
 	_check(String(camp.assignments.injured.activity) == "repair_gear", "An injured companion with a repair kit should favour gear maintenance over strenuous training.")
 	camp.advance_real_time(38.0)
