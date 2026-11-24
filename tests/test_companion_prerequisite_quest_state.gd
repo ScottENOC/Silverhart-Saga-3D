@@ -16,6 +16,7 @@ func _initialize() -> void:
 	_test_aldric_measure_of_oath_bounded_self_decision()
 	_test_prerequisite_dialogue_adapter_routes_npc_evidence()
 	_test_campaign_simulation_persists_companion_state()
+	_test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -367,3 +368,39 @@ func _test_campaign_simulation_persists_companion_state() -> void:
 	_check(is_equal_approx(float(arc.get("stewardship", 0.0)), 17.0), "Companion arc state survives a save round-trip")
 	_check(is_equal_approx(float(relationship.get("trust", 0.0)), 17.0), "Companion trust survives a save round-trip")
 	_check(is_equal_approx(float(relationship.get("friendship", 0.0)), 20.0), "Companion friendship survives a save round-trip")
+
+
+
+func _test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter() -> void:
+	var setup := _prepare_aldric_measure("public_accountability")
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var measure_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_quest(chains, journal, relationships, "aldric_measure_of_oath", party_ids, 3000.0)
+	_check(bool(measure_start.get("ok", false)))
+	chains.apply_prerequisite_choice("aldric_measure_of_oath", "agency", journal, relationships)
+	_add_aldric_measure_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var measure_result: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve(chains, journal, relationships, "aldric_measure_of_oath", "aldric_decides", 3400.0, player)
+	_check(bool(measure_result.get("ok", false)))
+	var offered: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids, player, 50000.0)
+	_check(String(offered.get("quest_id", "")) == "aldric_weight_of_command", "The next Aldric chapter unlocks after The Measure of an Oath and its cooldown")
+	_check(String(offered.get("choices", [])[0].get("id", "")) == "companion_chain_start")
+	var started: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "aldric_weight_of_command", party_ids, 50000.0)
+	_check(bool(started.get("ok", false)))
+	var adelram_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "adelram")
+	_check(String(adelram_prompt.get("chapter_id", "")) == "aldric_weight_of_command", "Adelram is discoverable as the supporting NPC for the follow-on chapter")
+	_check(String(adelram_prompt.get("body", "")).contains("Red Ford"), "The NPC interaction presents the authored command briefing")
+	var consultation: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "aldric_weight_of_command", "adelram", 51000.0)
+	_check(bool(consultation.get("ok", false)))
+	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids, player, 51000.0)
+	_check(String(reckoning.get("body", "")).contains("I am less certain"), "Aldric's reckoning appears only after the supporting NPC consultation")
+	_check(reckoning.get("choices", []).size() == 4, "All three authored outcomes and companion self-decision are offered")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "aldric_weight_of_command", "shared_command", 52000.0)
+	_check(bool(resolution.get("ok", false)))
+	_check(int(resolution.get("xp_reward", 0)) == 350)
+	_check(String(journal.quest_state("aldric_weight_of_command").get("status", "")) == "completed")
+	_check(float(resolution.get("arc_state", {}).get("sharedBurden", -999.0)) > float(chains.arc_states.get("ser_aldric_thorne", {}).get("sharedBurden", -999.0)) - 0.001, "The chapter applies its authored shared-burden development")
