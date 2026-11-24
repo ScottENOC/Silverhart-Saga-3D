@@ -198,6 +198,17 @@ func _initialize() -> void:
 	_check(guild_den_map.is_walkable(Vector2i(-12, -6)), "Guild Den south entrance must be walkable")
 	_check(_has_object(guild_den_result.get("tile_objects", []), "hollowmere_guild_den_door"), "Guild Den entrance must be presented as a door")
 
+	var millbrook_registry := REGISTRY.new()
+	var millbrook_definition: Dictionary = millbrook_registry.get_definition("millbrook_house")
+	var millbrook_state = LOCATION_STATE.new()
+	_check(bool(millbrook_state.configure(millbrook_definition).get("ok", false)), "Millbrook house traversal state must configure")
+	var millbrook_result: Dictionary = FLOOR_BUILDER.build_floor_map(millbrook_definition, 0, millbrook_state)
+	_check(bool(millbrook_result.get("ok", false)), "Millbrook house floor must build")
+	var millbrook_map: HexMapData = millbrook_result.get("map_data") as HexMapData
+	_check(millbrook_map != null and not millbrook_map.cells.is_empty(), "Millbrook house must produce a walkable source floor")
+	_check(millbrook_map.is_walkable(Vector2i(4, -366)), "Millbrook house east entrance must be walkable")
+	_check(_has_object(millbrook_result.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house fireplace must be presented")
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
