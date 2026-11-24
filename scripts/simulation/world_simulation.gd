@@ -1614,7 +1614,14 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
     var result := camp_simulation.skip_to_morning(hours)
     if not bool(result.get("ok", false)):
         return result
-    clock.advance_world_seconds(float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR)
+    var skipped_seconds := float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR
+    var skipped_ticks := clock.skip_world_seconds(skipped_seconds)
+    for state_variant in characters.values():
+        var state := state_variant as CharacterState
+        if state == null or not state.alive:
+            continue
+        var recovery_multiplier := camp_simulation.time_point_regeneration_multiplier(state.id)
+        state.time_points = minf(150.0, state.time_points + float(skipped_ticks) * state.time_points_per_tick * recovery_multiplier)
     return result
 
 
