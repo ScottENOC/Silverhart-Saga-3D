@@ -12,6 +12,7 @@ var faction_knowledge: Dictionary = {}
 var npc_standings: Dictionary = {}
 var npc_knowledge: Dictionary = {}
 var merchant_influence: Dictionary = {}
+var faction_agenda_last_world_seconds: float = -1.0
 
 
 func register_quest_definition(definition: Dictionary) -> Dictionary:
@@ -281,7 +282,8 @@ func to_dict() -> Dictionary:
         "npc_standings": npc_standings.duplicate(true),
         "faction_knowledge": faction_knowledge.duplicate(true),
         "npc_knowledge": npc_knowledge.duplicate(true),
-        "merchant_influence": merchant_influence.duplicate(true)
+        "merchant_influence": merchant_influence.duplicate(true),
+        "faction_agenda_last_world_seconds": faction_agenda_last_world_seconds
     }
 
 
@@ -292,6 +294,9 @@ func load_dict(data: Dictionary) -> void:
     faction_knowledge.clear()
     npc_knowledge.clear()
     merchant_influence.clear()
+    faction_agenda_last_world_seconds = float(data.get("faction_agenda_last_world_seconds", -1.0))
+    if not is_finite(faction_agenda_last_world_seconds) or faction_agenda_last_world_seconds < -1.0:
+        faction_agenda_last_world_seconds = -1.0
     var saved_quests: Variant = data.get("quests", {})
     if saved_quests is Dictionary:
         for quest_id_value in saved_quests.keys():
