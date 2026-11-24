@@ -58,11 +58,9 @@ jobs:
           assert report["validation"]["posed_glb_exported"]
           assert report["validation"]["pressure_shapes_authored"], report.get("authored_pressure_shapes", [])
           assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})
-          for side in ("left","right"):
-            search=report["pose_search"].get(side+"_pose_search", {})
-            assert search.get("performed"), (side, search)
-            assert search.get("candidates_tested", 0) == 945, (side, search)
-            assert side in report["palm_target_errors"], report.get("palm_target_errors")
+          assert report["contact_target_surface_anchors"]["target_clearance_m"] == 0.035
+          assert all(report["contact_target_surface_anchors"][side] for side in ("left_breast","right_hip"))
+          assert all(report["palm_target_errors"].get(side) is not None for side in ("left","right"))
           print("Wren-only pose and localized pressure-shape package passed structural checks.")
           print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
           print("Pressure shape authoring is a mesh-level prototype; Godot runtime binding is a separate integration check.")
