@@ -18,6 +18,19 @@ Face = tuple[int, ...]
 SourceRef = tuple
 
 
+def axis_parameter(point: Vec3, start: Vec3, end: Vec3) -> float:
+    """Return the signed fraction along a 3D landmark axis, independent of world-up.
+
+    0 is start, 1 is end. All three points must be expressed in the same
+    coordinate space (the garment adapter uses body-local mesh coordinates).
+    """
+    axis = _sub(end, start)
+    length_sq = sum(component * component for component in axis)
+    if length_sq <= 1e-12:
+        raise ValueError("landmark axis has zero length")
+    return sum((point[i] - start[i]) * axis[i] for i in range(3)) / length_sq
+
+
 @dataclass(frozen=True)
 class ShellMesh:
     positions: tuple[Vec3, ...]
