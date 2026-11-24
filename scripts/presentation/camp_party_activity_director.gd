@@ -6,6 +6,7 @@ extends Node
 
 const STEP_INTERVAL := 0.62
 const MAX_STATION_RADIUS := 5
+const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var simulation: WorldSimulation
 var _camp_hex: Vector2i = Vector2i.ZERO
@@ -91,7 +92,7 @@ func _build_companion_destinations() -> void:
 		var assignment: Dictionary = camp.assignments.get(character_id, {})
 		var activity := String(assignment.get("activity", "socialise"))
 		var target := _choose_station(activity, reserved)
-		if target == state.axial:
+		if target == INVALID_HEX or target == state.axial:
 			continue
 		reserved[target] = true
 		_active_character_ids.append(character_id)
@@ -125,13 +126,21 @@ func _choose_station(activity: String, reserved: Dictionary) -> Vector2i:
 		return a.y < b.y
 	)
 	if candidates.is_empty():
-		return _camp_hex
+		return INVALID_HEX
 	if activity == "gather_wood":
 		for candidate in candidates:
 			if simulation.map_data.terrain_id_at(candidate).to_lower() == "forest":
 				return candidate
 	elif activity == "fetch_water":
 		for candidate in candidates:
-			if simulation.map_data.terrain_id_at(candidate).to_lower() == "water":
+			if _adjacent_to_terrain(candidate, "water"):
 				return candidate
 	return candidates[0]
+
+
+func _adjacent_to_terrain(hex: Vector2i, terrain_id: String) -> bool:
+	for direction in HexGrid.DIRECTIONS:
+		var neighbour := hex + direction
+		if simulation.map_data.has_cell(neighbour) and simulation.map_data.terrain_id_at(neighbour).to_lower() == terrain_id:
+			return true
+	return false
