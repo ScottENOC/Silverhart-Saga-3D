@@ -13,7 +13,7 @@ The original feature branch also contains a Hollowmere fog renderer and profilin
 The following gameplay remains future work, not completed functionality:
 
 - Stealth checks and concealment from sight.
-- Light-source propagation and the source's detailed low-light model.
+- Light-source propagation into the scene, renderer integration, and the source's detailed low-light model.
 - Hearing, movement/casting noise, and suspicion accumulation.
 - Per-character knowledge and memory, including last-known positions and timestamps.
 - Enemy investigation, search, pursuit, loss of contact, and shared sightings.
@@ -36,6 +36,13 @@ Combat targeting, exploration, stealth, and AI should consume shared query/contr
 ## Source behaviour to preserve
 
 The original `Hex-crpg` behaviour includes vision modifiers, hex-ray LOS, terrain/elevation obstruction, stealth scoring, lighting, hearing, remembered opponents, shared sightings, and movement/casting effects on stealth. Port those behaviours deliberately, documenting any 3D design deviations rather than silently simplifying them.
+
+## Distant-light observation rule (implemented, integration pending)
+
+- `VisionRules.can_notice_distant_light` allows a vague light cue beyond normal vision only at nightfall and only for a source that emits light.
+- The caller supplies the maximum light-notice range; this rule does not invent a universal radius or scan the map itself.
+- The helper returns only a boolean and accepts no actor reference, so it cannot identify the source or expose an exact target position.
+- This is a simulation rule foundation. World light-source discovery, occlusion, rendering, and AI response still need integration.
 
 ## Known limitations of the current query
 
