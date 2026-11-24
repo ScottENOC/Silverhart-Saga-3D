@@ -2,6 +2,7 @@ class_name WorldSimulation
 extends Node
 
 var _spell_effect_rules = load("res://scripts/simulation/spell_effect_rules.gd").new()
+var stealth_perception: StealthPerceptionSystem = StealthPerceptionSystem.new()
 
 signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i)
 signal world_tick(tick_index: int, world_seconds: float)
@@ -1808,3 +1809,45 @@ func load_dict(data: Dictionary) -> void:
     for value in characters.values():
         _attach_character_lifecycle(value as CharacterState)
     turn_scheduler.clear()
+
+
+## Shared campaign perception entry point. Every faction uses the same sight rules;
+## callers receive a confidence level rather than a binary visibility result.
+func assess_character_perception(observer_id: String, target_id: String, environment: Dictionary = {}, target_appearance: Dictionary = {}) -> Dictionary:
+	var observer := get_character(observer_id)
+	var target := get_character(target_id)
+	if observer == null or target == null or not observer.alive or not target.alive:
+		return {"visual_level": StealthPerceptionSystem.VISUAL_NONE, "visual_label": "unseen", "reason": "character_unavailable"}
+	var target_profile := StealthPerceptionSystem.character_visual_profile(target, target_appearance)
+	var target_equipment: Array[Dictionary] = []
+	for item_value in target.equipped_item_data.values():
+		if item_value is Dictionary:
+			target_equipment.append(item_value.duplicate(true))
+	var observer_profile := {
+		"hex": observer.axial,
+		"eye_height": float(observer.tags.has("small_creature")) * 0.5 + 1.6
+	}
+	var target_profile_data := {
+		"hex": target.axial,
+		"visual_height": float(target.tags.has("small_creature")) * 0.8 + 1.6,
+		"appearance": target_profile,
+		"equipment": target_equipment,
+		"movement_exposure": 0.25 if target.tags.has("running") else 0.0
+	}
+	return stealth_perception.assess(observer_profile, target_profile_data, map_data.cells, environment)
+
+
+## Convert a character action into an acoustic event. The source location remains
+## internal to simulation; assess_sound_event never returns an exact source hex.
+func make_character_sound_event(character_id: String, kind: String, loudness: float, movement_noise: float = 0.0) -> Dictionary:
+	var character := get_character(character_id)
+	if character == null:
+		return {}
+	return StealthPerceptionSystem.make_character_sound_event(character, kind, loudness, movement_noise)
+
+
+func assess_sound_event(observer_id: String, sound_event: Dictionary, environment: Dictionary = {}) -> Dictionary:
+	var observer := get_character(observer_id)
+	if observer == null or not observer.alive:
+		return {"sound_level": StealthPerceptionSystem.SOUND_UNHEARD, "heard": false, "reason": "observer_unavailable"}
+	return stealth_perception.assess_sound(observer.axial, sound_event, map_data.cells, environment)
