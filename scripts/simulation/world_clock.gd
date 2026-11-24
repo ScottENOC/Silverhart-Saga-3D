@@ -55,6 +55,20 @@ func advance_world_seconds(delta_seconds: float) -> int:
         time_advanced.emit(world_seconds)
     return ticks_processed
 
+## Fast-forward sleep/rest time without emitting tens of thousands of fixed-step
+## gameplay ticks. The caller performs bulk recovery and time-based system updates.
+func skip_world_seconds(delta_seconds: float) -> int:
+	if delta_seconds <= 0.0:
+		return 0
+	var accumulated := accumulator + delta_seconds
+	var ticks := floori(accumulated / SIMULATION_STEP_SECONDS)
+	accumulator = fposmod(accumulated, SIMULATION_STEP_SECONDS)
+	world_seconds += delta_seconds
+	tick_index += ticks
+	time_advanced.emit(world_seconds)
+	return ticks
+
+
 func set_world_seconds(value: float) -> void:
     world_seconds = maxf(0.0, value)
     accumulator = 0.0
