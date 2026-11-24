@@ -33,7 +33,7 @@ jobs:
       - name: Install Blender and numerical dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri aria2
       - name: Download latest successful native Ara Wren build from dev
         env:
           GH_TOKEN: ${{ github.token }}
@@ -131,13 +131,26 @@ jobs:
           path: |
             /tmp/ara-3d-gen/vendor/mh
             /tmp/ara-3d-gen/vendor/sys
-          key: ara-makehuman-assets-b60b5bece6d383d2cbb7067fd50e7c8e68b5a395-v2
+            /tmp/ara-3d-gen/vendor/dl
+            /tmp/ara-3d-gen/vendor/mocap/cmu
+            /tmp/ara-3d-gen/public/assets
+          key: ara-makehuman-assets-b60b5bece6d383d2cbb7067fd50e7c8e68b5a395-v3
       - name: Download MakeHuman assets (cache miss only)
         if: steps.makehuman-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           cd /tmp/ara-3d-gen
           sed -i 's#https://files.makehumancommunity.org/asset_packs/#https://files2.makehumancommunity.org/asset_packs/#' scripts/setup-assets.ts
+          # Fetch the large system-asset archive with parallel connections. Keep it at
+          # the path setup-assets.ts expects so its own size check reuses the file.
+          mkdir -p vendor/dl
+          if [ ! -s vendor/dl/sys.zip ]; then
+            aria2c --continue=true --allow-overwrite=true --auto-file-renaming=false \
+              --file-allocation=none --max-connection-per-server=16 --split=16 \
+              --min-split-size=1M --summary-interval=30 \
+              --dir vendor/dl --out sys.zip \
+              https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip
+          fi
           npm run setup-assets
           test -d vendor/mh
           test -d vendor/sys
