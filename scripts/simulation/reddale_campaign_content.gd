@@ -4,7 +4,6 @@ extends RefCounted
 ## The Reeve's offer is gated by Ironbond's merchant influence in Silverhart.
 
 const QUEST_ID := "reddale_cut"
-const REEVE_ID := "reeve_aldous_finch"
 const IRONBOND_ID := "ironbond_company"
 const KINGDOM_ID := "silverhart_kingdom"
 const DEFAULT_IRONBOND_INFLUENCE := 30.0
@@ -67,8 +66,8 @@ static func choices() -> Array[Dictionary]:
 			"ironbond_standing_delta": -15.0,
 			"ironbond_knowledge_delta": 15.0,
 			"influence_delta": -15.0,
-			"reeve_standing_delta": 20.0,
-			"reeve_knowledge_delta": 20.0,
+			"kingdom_standing_delta": 20.0,
+			"kingdom_knowledge_delta": 20.0,
 			"gold_delta": 0
 		},
 		{
@@ -77,8 +76,8 @@ static func choices() -> Array[Dictionary]:
 			"ironbond_standing_delta": 20.0,
 			"ironbond_knowledge_delta": 15.0,
 			"influence_delta": 15.0,
-			"reeve_standing_delta": -10.0,
-			"reeve_knowledge_delta": 15.0,
+			"kingdom_standing_delta": -10.0,
+			"kingdom_knowledge_delta": 15.0,
 			"gold_delta": 50
 		}
 	]
@@ -96,11 +95,18 @@ static func resolve_cut(journal: CampaignJournal, choice_id: String) -> Dictiona
 	if selected.is_empty():
 		return {"ok": false, "reason": "choice_unavailable"}
 	var reason := "Reddale's Cut: " + choice_id
-	var faction_changes: Array[Dictionary] = [{
-		"faction_id": IRONBOND_ID,
-		"standing_delta": float(selected["ironbond_standing_delta"]),
-		"knowledge_delta": float(selected["ironbond_knowledge_delta"])
-	}]
+	var faction_changes: Array[Dictionary] = [
+		{
+			"faction_id": IRONBOND_ID,
+			"standing_delta": float(selected["ironbond_standing_delta"]),
+			"knowledge_delta": float(selected["ironbond_knowledge_delta"])
+		},
+		{
+			"faction_id": KINGDOM_ID,
+			"standing_delta": float(selected["kingdom_standing_delta"]),
+			"knowledge_delta": float(selected["kingdom_knowledge_delta"])
+		}
+	]
 	var influence_changes: Array[Dictionary] = [{
 		"faction_id": IRONBOND_ID,
 		"kingdom_id": KINGDOM_ID,
@@ -118,19 +124,12 @@ static func resolve_cut(journal: CampaignJournal, choice_id: String) -> Dictiona
 	if not bool(consequence.get("ok", false)):
 		return consequence
 	journal.set_objective_progress(QUEST_ID, "response", 1.0)
-	var reeve_result := journal.adjust_npc_reputation(
-		REEVE_ID,
-		float(selected["reeve_standing_delta"]),
-		float(selected["reeve_knowledge_delta"]),
-		reason
-	)
 	var completion := journal.complete_quest(QUEST_ID)
 	if not bool(completion.get("ok", false)):
 		return completion
 	return {
 		"ok": true,
 		"choice": selected.duplicate(true),
-		"reeve_reputation": reeve_result,
 		"gold_delta": int(selected["gold_delta"]),
 		"ironbond_influence": ironbond_influence(journal)
 	}
