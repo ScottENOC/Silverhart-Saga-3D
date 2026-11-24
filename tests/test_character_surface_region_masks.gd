@@ -144,6 +144,28 @@ func _test_mask_contract(asset_path: String) -> void:
     )
     assert(invalid_triangle.is_empty(), "Invalid source triangle indices must be rejected")
 
+    var pressure_controller := BodyPressureController.new()
+    pressure_controller.register_region(StringName(region_id), BodyRegionProfile.new())
+    pressure_controller.register_region(StringName(overlap_id), BodyRegionProfile.new())
+    var submitted_forces := BodyPressureContact.submit_surface_contact(
+        pressure_controller,
+        regions,
+        mask.mesh_node_path,
+        target_surface,
+        triangle_vertices,
+        barycentric,
+        0.01,
+        0.0,
+        1000.0,
+        0.0,
+        100.0,
+        0.10
+    )
+    assert(is_equal_approx(float(submitted_forces.get(region_id, 0.0)), 25.0),
+        "Contact force was not weighted by the first interpolated region membership")
+    assert(is_equal_approx(float(submitted_forces.get(overlap_id, 0.0)), 16.25),
+        "Contact force did not preserve the overlapping region membership")
+
     var invalid_regions := CharacterSurfaceRegions.new()
     assert(not invalid_regions.configure(actor_root, body_root, [stale_signature], asset_path),
         "Runtime accepted stale fine mask for " + asset_path)
