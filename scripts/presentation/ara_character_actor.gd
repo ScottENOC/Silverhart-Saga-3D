@@ -743,28 +743,27 @@ func refresh_portrait() -> void:
 static func camp_activity_animation_hints(activity: String) -> PackedStringArray:
 	match activity:
 		"gather_wood":
-			return PackedStringArray(["pick up (ground)", "pick up"])
+			return PackedStringArray(["pick_up", "carry_idle"])
 		"set_up_tents":
-			return PackedStringArray(["pick up (ground)", "pick up"])
+			return PackedStringArray(["pick_up", "use_press"])
 		"fetch_water":
-			return PackedStringArray(["head-load idle", "carry idle", "pick up (ground)"])
+			return PackedStringArray(["head_load_idle", "carry_idle", "pick_up"])
 		"cook":
-			return PackedStringArray(["use / press", "use"])
+			return PackedStringArray(["use_press"])
 		"repair_gear":
-			return PackedStringArray(["use / press", "use"])
+			return PackedStringArray(["use_press"])
 		"study_map":
-			return PackedStringArray(["sit idle", "sit"])
+			return PackedStringArray(["sit_idle"])
 		"train":
-			return PackedStringArray(["squat-loop", "squat", "push-ups-loop", "push-ups"])
+			return PackedStringArray(["squat", "push_up"])
 		"socialise":
-			return PackedStringArray(["talk with gestures-loop", "talk with gestures", "talk"])
+			return PackedStringArray(["talk_gestures", "talk"])
 		"watch":
-			return PackedStringArray(["look around-loop", "look around", "idle"])
+			return PackedStringArray(["look_around", "idle"])
 		"sleep":
-			return PackedStringArray(["sleep", "lie down"])
+			return PackedStringArray(["sleep", "lie_down"])
 		_:
 			return PackedStringArray(["idle"])
-
 
 func play_camp_activity(activity: String) -> bool:
 	if animation_player == null or not is_instance_valid(animation_player):
