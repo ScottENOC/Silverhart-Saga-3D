@@ -41,6 +41,9 @@ const windowState = {
   interiorRegions: [],
   multiStoryBuildings: [],
   campaign2Npcs: [],
+  campaign2ArcherCompanion: { name: "Audit Archer", color: "#999999", race: "human", gender: "female", title: "Companion", dialogueId: "audit_archer" },
+  campaign2WizardCompanion: { name: "Audit Wizard", color: "#999999", race: "human", gender: "female", title: "Companion", dialogueId: "audit_wizard" },
+  campaign2DruidCompanion: { name: "Audit Druid", color: "#999999", race: "human", gender: "female", title: "Companion", dialogueId: "audit_druid" },
   campaign2BackgroundPatrons: [],
   campaign2FortSoldiers: [],
   regionalNPCs: {},
@@ -128,7 +131,6 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 const captureCode = [
-  "buildSideQuestContent = () => {};",
   "setupVillageScene(true);",
   "JSON.stringify({",
   "terrain: window.overrideTerrain,",
