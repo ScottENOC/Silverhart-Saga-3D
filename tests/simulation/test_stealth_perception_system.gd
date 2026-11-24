@@ -68,6 +68,9 @@ func _run() -> void:
 	var service := StealthPerceptionService.new(world)
 	world.clock.set_world_seconds(12.0 * 3600.0)
 	var daylight_result := service.assess_character(observer_state.id, target_state.id)
+	target_state.skills["stealth"] = 5
+	var skilled_result := service.assess_character(observer_state.id, target_state.id)
+	_check(float(skilled_result.visual_confidence) < float(daylight_result.visual_confidence), "stealth skill should reduce visual detection")
 	world.clock.set_world_seconds(0.0)
 	var midnight_result := service.assess_character(observer_state.id, target_state.id)
 	_check(float(daylight_result.visual_confidence) > float(midnight_result.visual_confidence), "campaign time should change ambient visibility")
