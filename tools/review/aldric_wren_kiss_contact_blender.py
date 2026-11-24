@@ -176,22 +176,9 @@ def apply_arm_ik_joint_limits(actor, report):
     report[actor["name"] + "_arm_joint_limits"] = limits
 
 def apply_body_pose(aldric, wren, report):
-    # Aldric bows from hips and spine to meet Wren's shorter stature.
-    names = {}
-    for aliases, axis, angle in [
-        (["Hips","Pelvis"], "X", math.radians(8)),
-        (["Spine","Spine1","Spine2"], "X", math.radians(18)),
-        (["Spine1","Spine2","Chest"], "X", math.radians(18)),
-        # Head/neck counter-tilt down towards Wren after the torso bow.
-        (["Neck"], "X", math.radians(-8)),
-        (["Head"], "X", math.radians(-14)),
-        (["LeftUpLeg","LeftThigh"], "X", math.radians(-2)),
-        (["RightUpLeg","RightThigh"], "X", math.radians(-2)),
-    ]:
-        n = rotate_pose(aldric, aliases, axis, angle)
-        if n: names.setdefault("Aldric", []).append(n)
-    # Wren extends through ankles/feet and rises onto her toes; slight knee bend
-    # keeps the lifted heel pose readable instead of simply translating her.
+    # Wren's upright/looking-up pose is retained. Aldric starts neutral;
+    # his bend is solved from the evaluated mouth-height error.
+    names = {"Aldric": [], "Wren": []}
     for aliases, axis, angle in [
         (["LeftFoot","Foot_L"], "X", math.radians(-22)),
         (["RightFoot","Foot_R"], "X", math.radians(-22)),
@@ -199,12 +186,11 @@ def apply_body_pose(aldric, wren, report):
         (["RightToeBase","RightToe"], "X", math.radians(12)),
         (["LeftUpLeg","LeftThigh"], "X", math.radians(3)),
         (["RightUpLeg","RightThigh"], "X", math.radians(3)),
-        # Keep Wren's torso upright and counter-tilt her head back.
         (["Neck"], "X", math.radians(-12)),
         (["Head"], "X", math.radians(-18)),
     ]:
         n = rotate_pose(wren, aliases, axis, angle)
-        if n: names.setdefault("Wren", []).append(n)
+        if n: names["Wren"].append(n)
     report["body_pose_bones"] = names
 
 def world_bone_landmarks(actor):
@@ -245,28 +231,72 @@ def estimated_lip_landmark(actor):
     facing.normalize()
     return centre + facing * 0.075 + Vector((0.0, 0.0, -0.035)), facing
 
+def solve_aldric_bend_to_lip_height(aldric, wren, report):
+    """Search the rig response and stop when evaluated mouth heights coincide."""
+    spine_names = []
+    for aliases in (["Spine"], ["Spine1"]):
+        name = find_bone(aldric, aliases)
+        if name and name not in spine_names: spine_names.append(name)
+    if not spine_names: raise RuntimeError("Aldric has no usable spine hinge")
+    bones = [aldric["arm"].pose.bones[n] for n in spine_names]
+    for pb in bones: pb.rotation_mode = "XYZ"
+    def evaluate(total_pitch):
+        for pb in bones: pb.rotation_euler.x = total_pitch / len(bones)
+        bpy.context.view_layer.update()
+        a_lip, _ = estimated_lip_landmark(aldric)
+        w_lip, _ = estimated_lip_landmark(wren)
+        return a_lip.z - w_lip.z
+    zero_error = evaluate(0.0)
+    samples = [(0.0, zero_error)]
+    for degrees in (-50, -35, -20, 20, 35, 50):
+        angle = math.radians(degrees)
+        samples.append((angle, evaluate(angle)))
+    samples.sort(key=lambda item: item[0])
+    brackets = [(a,b) for a,b in zip(samples,samples[1:]) if a[1] == 0 or b[1] == 0 or a[1]*b[1] < 0]
+    if brackets:
+        (lo,flo),(hi,fhi) = min(brackets,key=lambda pair:abs(pair[0][1])+abs(pair[1][1]))
+        for _ in range(32):
+            mid=(lo+hi)*0.5; fm=evaluate(mid)
+            if abs(fm)<0.001: lo=hi=mid; break
+            if flo*fm<=0: hi,fhi=mid,fm
+            else: lo,flo=mid,fm
+        pitch=(lo+hi)*0.5
+        residual=evaluate(pitch)
+        method="bisection on measured mouth-height error"
+    else:
+        pitch,residual=min(samples,key=lambda item:abs(item[1]))
+        evaluate(pitch)
+        method="best measured sample; no crossing within safe pitch envelope"
+    report["aldric_height_solve"] = {
+        "hinge_bones": spine_names,
+        "solved_total_local_x_pitch_degrees": round(math.degrees(pitch),3),
+        "mouth_height_error_after_solve_m": round(residual,5),
+        "method": method,
+        "sampled_error_m": {str(round(math.degrees(a),1)):round(b,5) for a,b in samples},
+        "axis_basis": "World Z is up in this Blender scene, verified by mesh bounds/floor; pitch direction selected from measured response, not assumed from Godot Y/Z labels."
+    }
+
 def solve_root_separation_for_lips(aldric, wren, report):
-    """Move Wren along her measured approach vector to close mouth landmarks."""
+    """After height alignment, slide Aldric horizontally until mouth landmarks meet."""
     bpy.context.view_layer.update()
-    a_lip, a_facing = estimated_lip_landmark(aldric)
-    w_lip, w_facing = estimated_lip_landmark(wren)
-    axis = w_facing
-    signed_gap = (w_lip - a_lip).dot(axis)
-    # Move opposite the approach vector when the estimated mouths have crossed.
-    correction = -axis * signed_gap
-    wren["root"].location += correction
+    a_lip,_=estimated_lip_landmark(aldric)
+    w_lip,_=estimated_lip_landmark(wren)
+    delta=Vector((w_lip.x-a_lip.x,w_lip.y-a_lip.y,0.0))
+    distance=delta.length
+    direction=delta.normalized() if distance>1e-8 else Vector((0,0,0))
+    aldric["root"].location += direction*distance
     bpy.context.view_layer.update()
-    a_after, _ = estimated_lip_landmark(aldric)
-    w_after, _ = estimated_lip_landmark(wren)
-    delta = w_after - a_after
-    report["lip_separation_solver"] = {
-        "landmark_source": "evaluated Head bone midpoint plus root-facing offset; provisional, not an authored lip socket",
-        "pre_solve_signed_gap_m": round(signed_gap, 4),
-        "wren_root_translation_m": [round(v, 4) for v in correction],
-        "post_solve_lip_landmark_distance_m": round(delta.length, 4),
-        "post_solve_lip_delta_world_m": [round(v, 4) for v in delta],
-        "facing_dot_product": round(a_facing.dot(w_facing), 4),
-        "note": "Final visual QA must confirm actual lip contact and reject head/torso intersections."
+    a_after,_=estimated_lip_landmark(aldric)
+    w_after,_=estimated_lip_landmark(wren)
+    residual=w_after-a_after
+    report["lip_approach_solve"] = {
+        "moved_actor":"Aldric",
+        "horizontal_translation_world_m":[round(v,5) for v in direction*distance],
+        "pre_solve_horizontal_gap_m":round(distance,5),
+        "post_solve_horizontal_gap_m":round(math.hypot(residual.x,residual.y),5),
+        "post_solve_vertical_error_m":round(residual.z,5),
+        "post_solve_landmark_distance_m":round(residual.length,5),
+        "landmark_source":"evaluated Head bone midpoint plus facing offset; provisional until authored lip sockets are added"
     }
 
 def nearest_surface_gap(actor, point):
@@ -347,15 +377,19 @@ def main():
     t_butt = add_empty("Wren_right_hand__Aldric_left_glute", (acentre.x-aw*0.12, amin.y+ad*0.10, amin.z+(amax.z-amin.z)*0.42))
     t_shoulder = add_empty("Wren_left_hand__Aldric_right_shoulder", (acentre.x+aw*0.20, amin.y+ad*0.12, amin.z+(amax.z-amin.z)*0.79))
     ik_report = {}
+    body_report = {}
+    apply_body_pose(aldric, wren, body_report)
+    solve_aldric_bend_to_lip_height(aldric, wren, body_report)
+    solve_root_separation_for_lips(aldric, wren, body_report)
+
+    # Only now solve the four arm contacts. They cannot influence the torso
+    # height or lip-spacing stages.
     apply_arm_ik_joint_limits(aldric, ik_report)
     apply_arm_ik_joint_limits(wren, ik_report)
     add_ik(aldric, "left", t_breast, (amin.x-aw*0.45, acentre.y, amin.z+ah*0.72), ik_report)
     add_ik(aldric, "right", t_cheek, (amax.x+aw*0.45, acentre.y, amin.z+ah*0.82), ik_report)
     add_ik(wren, "right", t_butt, (wmin.x-ww*0.45, wcentre.y, wmin.z+wh*0.72), ik_report)
     add_ik(wren, "left", t_shoulder, (wmax.x+ww*0.45, wcentre.y, wmin.z+wh*0.82), ik_report)
-    body_report = {}
-    apply_body_pose(aldric, wren, body_report)
-    solve_root_separation_for_lips(aldric, wren, body_report)
 
     # Aldric's base must be behind Wren, not underneath her. Keep both feet
     # substantially back from his chest, with a long fore/aft split and a
