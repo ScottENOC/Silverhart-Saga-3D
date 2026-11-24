@@ -2,8 +2,8 @@ extends SceneTree
 
 func _initialize() -> void:
 	var mesh := ArrayMesh.new()
-	mesh.add_blend_shape("Pressure_LeftChest")
-	mesh.add_blend_shape("Pressure_RightChest")
+	mesh.add_blend_shape("Pressure_breast_left")
+	mesh.add_blend_shape("Pressure_breast_right")
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([
@@ -38,25 +38,25 @@ func _initialize() -> void:
 	left_profile.damping_ns_per_m = 24.0
 	left_profile.effective_mass_kg = 0.18
 	left_profile.max_compression_m = 0.04
-	controller.register_region(&"left_chest", left_profile)
+	controller.register_region(&"breast_left", left_profile)
 	var right_profile := BodyRegionProfile.new()
 	right_profile.stiffness_n_per_m = 1400.0
 	right_profile.damping_ns_per_m = 24.0
 	right_profile.effective_mass_kg = 0.18
 	right_profile.max_compression_m = 0.04
-	controller.register_region(&"right_chest", right_profile)
+	controller.register_region(&"breast_right", right_profile)
 	controller.bind_model(mesh_instance)
 
-	if controller.get_bound_target_count(&"left_chest") != 1:
+	if controller.get_bound_target_count(&"breast_left") != 1:
 		_fail("Left chest pressure shape was not discovered.")
 		return
-	if controller.get_bound_target_count(&"right_chest") != 1:
+	if controller.get_bound_target_count(&"breast_right") != 1:
 		_fail("Right chest pressure shape was not discovered.")
 		return
 
 	# A contact producer submits force on every physics tick while contact persists.
 	for _frame in range(30):
-		controller.apply_pressure(&"left_chest", 35.0)
+		controller.apply_pressure(&"breast_left", 35.0)
 		controller.step(1.0 / 60.0)
 	var left_value := mesh_instance.get_blend_shape_value(0)
 	var right_value := mesh_instance.get_blend_shape_value(1)
@@ -66,7 +66,7 @@ func _initialize() -> void:
 	if absf(right_value) > 0.0001:
 		_fail("Left-side pressure incorrectly changed the right-side blend shape.")
 		return
-	if controller.get_compression_m(&"left_chest") <= 0.0:
+	if controller.get_compression_m(&"breast_left") <= 0.0:
 		_fail("Left chest compression was not retained by the solver.")
 		return
 
