@@ -9,16 +9,19 @@ const MAX_STATION_RADIUS := 5
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var simulation: WorldSimulation
+var _actor_lookup: Callable
 var _camp_hex: Vector2i = Vector2i.ZERO
 var _active_character_ids: Array[String] = []
 var _destination_by_character: Dictionary = {}
+var _activity_by_character: Dictionary = {}
 var _step_accumulator: float = 0.0
 var _next_character_index: int = 0
 var _running: bool = false
 
 
-func configure(world_simulation: WorldSimulation) -> void:
+func configure(world_simulation: WorldSimulation, actor_lookup: Callable = Callable()) -> void:
 	simulation = world_simulation
+	_actor_lookup = actor_lookup
 
 
 func begin_camp(site: Dictionary) -> void:
@@ -37,6 +40,7 @@ func stop() -> void:
 	_running = false
 	_active_character_ids.clear()
 	_destination_by_character.clear()
+	_activity_by_character.clear()
 	_step_accumulator = 0.0
 	_next_character_index = 0
 
@@ -68,8 +72,7 @@ func process_activity_movement(delta: float) -> void:
 		return
 	var destination: Vector2i = _destination_by_character.get(character_id, state.axial)
 	if state.axial == destination:
-		_active_character_ids.erase(character_id)
-		_destination_by_character.erase(character_id)
+		_play_assigned_activity(character_id)
 		return
 	var path := simulation.find_path(character_id, destination)
 	if path.size() < 2:
@@ -92,11 +95,12 @@ func _build_companion_destinations() -> void:
 		var assignment: Dictionary = camp.assignments.get(character_id, {})
 		var activity := String(assignment.get("activity", "socialise"))
 		var target := _choose_station(activity, reserved)
-		if target == INVALID_HEX or target == state.axial:
+		if target == INVALID_HEX:
 			continue
 		reserved[target] = true
 		_active_character_ids.append(character_id)
 		_destination_by_character[character_id] = target
+		_activity_by_character[character_id] = activity
 
 
 func _choose_station(activity: String, reserved: Dictionary) -> Vector2i:
@@ -144,3 +148,12 @@ func _adjacent_to_terrain(hex: Vector2i, terrain_id: String) -> bool:
 		if simulation.map_data.has_cell(neighbour) and simulation.map_data.terrain_id_at(neighbour).to_lower() == terrain_id:
 			return true
 	return false
+
+
+func _play_assigned_activity(character_id: String) -> void:
+	if not _actor_lookup.is_valid():
+		return
+	var actor: Variant = _actor_lookup.call(character_id)
+	if actor == null or not is_instance_valid(actor) or not actor.has_method("play_camp_activity"):
+		return
+	actor.call("play_camp_activity", String(_activity_by_character.get(character_id, "socialise")))
