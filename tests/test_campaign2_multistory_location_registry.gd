@@ -348,6 +348,12 @@ func _initialize() -> void:
 		"silverhart_grand_cathedral": {"centre": Vector2i(14, -451), "half_width": 4, "half_height": 4, "door": Vector2i(10, -451)},
 		"silverhart_commons_inn": {"centre": Vector2i(8, -529), "half_width": 4, "half_height": 3, "door": Vector2i(8, -526)}
 	}
+
+	var ironbond_floor := registry.get_floor_definition("silverhart_ironbond_office", 0)
+	_check(ironbond_floor.get("floor_hexes", []).has({"q": 4, "r": -457}), "Ironbond office must retain its source-opened corner")
+	_check(ironbond_floor.get("wall_hexes", []).has({"q": 5, "r": -458}), "Ironbond office must retain its source-restored outer corner")
+	_check(_has_record(ironbond_floor.get("tile_objects", []), "silverhart_ironbond_office_table"), "Ironbond office must retain its source table")
+	_check(_has_record(ironbond_floor.get("tile_objects", []), "silverhart_ironbond_office_bench"), "Ironbond office must retain its source bench")
 	for location_id in silverhart_districts:
 		var district: Dictionary = silverhart_districts[location_id]
 		var district_definition: Dictionary = registry.get_definition(location_id)
