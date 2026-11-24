@@ -66,6 +66,40 @@ func apply_body_contact(
     )
 
 
+## Resolve a source-triangle contact through this actor's authored, overlapping
+## anatomy masks. Triangle indices and barycentric weights must refer to the exact
+## mesh surface identified by mesh_node_path and surface_index.
+func apply_body_surface_contact(
+    mesh_node_path: NodePath,
+    surface_index: int,
+    triangle_vertex_indices: PackedInt32Array,
+    barycentric_weights: PackedFloat32Array,
+    penetration_m: float,
+    closing_speed_m_per_s: float,
+    contact_stiffness_n_per_m: float = 1800.0,
+    contact_damping_ns_per_m: float = 35.0,
+    max_force_n: float = 120.0,
+    minimum_region_weight: float = 0.01
+) -> Dictionary:
+    var regions := get_surface_regions()
+    if regions == null:
+        return {}
+    return BodyPressureContact.submit_surface_contact(
+        body_pressure_controller,
+        regions,
+        mesh_node_path,
+        surface_index,
+        triangle_vertex_indices,
+        barycentric_weights,
+        penetration_m,
+        closing_speed_m_per_s,
+        contact_stiffness_n_per_m,
+        contact_damping_ns_per_m,
+        max_force_n,
+        minimum_region_weight
+    )
+
+
 func get_body_pressure_m(region_id: StringName) -> float:
     return body_pressure_controller.get_compression_m(region_id)
 
