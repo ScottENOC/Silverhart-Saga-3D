@@ -252,7 +252,8 @@ def solve_root_separation_for_lips(aldric, wren, report):
     w_lip, w_facing = estimated_lip_landmark(wren)
     axis = w_facing
     signed_gap = (w_lip - a_lip).dot(axis)
-    correction = axis * signed_gap
+    # Move opposite the approach vector when the estimated mouths have crossed.
+    correction = -axis * signed_gap
     wren["root"].location += correction
     bpy.context.view_layer.update()
     a_after, _ = estimated_lip_landmark(aldric)
