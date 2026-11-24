@@ -304,10 +304,11 @@ static func build_campaign_memory_exchange(
 	var outcome: Dictionary = resolutions.get(resolution_id, {})
 	if outcome.is_empty():
 		return {}
-	var owner_id := String(latest.owner_id)
-	var partner_id := second_id if owner_id == first_key else first_id
-	var owner_name := first_name if owner_id == first_id else second_name
-	var partner_name := second_name if partner_id == second_id else first_name
+	var owner_key := String(latest.owner_id)
+	var owner_character_id := first_id if first_key == owner_key else second_id
+	var partner_character_id := second_id if owner_character_id == first_id else first_id
+	var owner_name := first_name if owner_character_id == first_id else second_name
+	var partner_name := second_name if partner_character_id == second_id else first_name
 	var partner_key := canonical_id(partner_id)
 	var title := String(chapter.get("title", chapter_id))
 	var reason := String(outcome.get("reason", state.get("completion_reason", title)))
@@ -315,8 +316,8 @@ static func build_campaign_memory_exchange(
 	var opener := opener_template % [title, reason]
 	var stance := String(CAMPAIGN_RESOLUTION_STANCES.get(chapter_id, {}).get(resolution_id, ""))
 	var stance_score := float(CHARACTER_STANCES.get(partner_key, {}).get(stance, 0.0)) if not stance.is_empty() else 0.0
-	var owner_to_partner := bonds.snapshot(owner_id, partner_id) if bonds != null else {}
-	var partner_to_owner := bonds.snapshot(partner_id, owner_id) if bonds != null else {}
+	var owner_to_partner := bonds.snapshot(owner_character_id, partner_character_id) if bonds != null else {}
+	var partner_to_owner := bonds.snapshot(partner_character_id, owner_character_id) if bonds != null else {}
 	var trust := float(partner_to_owner.get("trust", 0.0))
 	var friendship := float(partner_to_owner.get("friendship", 0.0))
 	var reaction := ""
@@ -337,8 +338,8 @@ static func build_campaign_memory_exchange(
 	return {
 		"kind": "campaign_memory",
 		"topic": "campaign_memory",
-		"first_id": owner_id,
-		"second_id": partner_id,
+		"first_id": owner_character_id,
+		"second_id": partner_character_id,
 		"campaign_memory": {
 			"chapter_id": chapter_id,
 			"completed_at": float(latest.completed_at),
