@@ -7,7 +7,8 @@ var _failures: int = 0
 
 func _initialize() -> void:
 	_test_runtime_registration_and_save_restore()
-	_test_wren_gender_presentation_and_authored_events()\n\t_test_wren_character_development_and_persistence()
+	_test_wren_gender_presentation_and_authored_events()
+	_test_wren_character_development_and_persistence()
 	if _failures > 0:
 		push_error("%d companion campaign runtime assertion(s) failed." % _failures)
 		quit(1)
