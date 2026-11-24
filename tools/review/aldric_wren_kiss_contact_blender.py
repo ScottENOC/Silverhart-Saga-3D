@@ -3,6 +3,7 @@ import json
 import math
 import os
 from mathutils import Vector, Euler
+from mathutils.bvhtree import BVHTree
 
 OUT_DIR = bpy.path.abspath("//build/aldric-wren-kiss-contact")
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -144,6 +145,45 @@ def apply_body_pose(aldric, wren, report):
         if n: names.setdefault("Wren", []).append(n)
     report["body_pose_bones"] = names
 
+def world_bone_landmarks(actor):
+    deps = bpy.context.evaluated_depsgraph_get()
+    arm = actor["arm"].evaluated_get(deps)
+    aliases = {
+        "pelvis": ["Hips", "Pelvis"], "spine": ["Spine", "Spine1"],
+        "neck": ["Neck"], "head": ["Head"],
+        "left_shoulder": ["LeftShoulder"], "right_shoulder": ["RightShoulder"],
+        "left_elbow": ["LeftForeArm"], "right_elbow": ["RightForeArm"],
+        "left_hand": ["LeftHand"], "right_hand": ["RightHand"],
+        "left_ankle": ["LeftFoot"], "right_ankle": ["RightFoot"],
+        "left_toe": ["LeftToeBase"], "right_toe": ["RightToeBase"],
+    }
+    result = {}
+    for label, names in aliases.items():
+        name = find_bone(actor, names)
+        if name:
+            pb = arm.pose.bones[name]
+            result[label] = {"bone": name,
+                "head_world": [round(v, 4) for v in (arm.matrix_world @ pb.head)],
+                "tail_world": [round(v, 4) for v in (arm.matrix_world @ pb.tail)]}
+    return result
+
+def nearest_surface_gap(actor, point):
+    deps = bpy.context.evaluated_depsgraph_get()
+    best = None
+    for source in actor["meshes"]:
+        evaluated = source.evaluated_get(deps)
+        tree = BVHTree.FromObject(evaluated, deps)
+        if tree is None:
+            continue
+        hit = tree.find_nearest(evaluated.matrix_world.inverted() @ point)
+        if hit and hit[0] is not None:
+            world_hit = evaluated.matrix_world @ hit[0]
+            gap = (world_hit - point).length
+            if best is None or gap < best["gap_m"]:
+                best = {"gap_m": round(gap, 4), "mesh": source.name,
+                        "surface_point_world": [round(v, 4) for v in world_hit]}
+    return best
+
 def evaluated_hand_position(actor, side):
     deps = bpy.context.evaluated_depsgraph_get()
     arm = actor["arm"].evaluated_get(deps)
@@ -164,6 +204,7 @@ def main():
     amin, amax = bounds(aldric)
     wmin, wmax = bounds(wren)
     # Align soles to the same floor before posing; preserve their native height ratio.
+    initial_floor_min_z = {"aldric": round(amin.z, 4), "wren": round(wmin.z, 4)}
     aldric["root"].location.z -= amin.z
     wren["root"].location.z -= wmin.z
     bpy.context.view_layer.update()
@@ -174,10 +215,21 @@ def main():
     if ah <= 0 or wh <= 0: raise RuntimeError("Invalid character bounds")
     # Lift Wren's pelvis/root modestly; foot pose and leg chain will keep toes grounded.
     # This is deliberately smaller than the height gap: Aldric does the remaining work by bowing.
-    wren["root"].location.z += min(0.075, max(0.025, (ah-wh)*0.12))
+    wren_rise = min(0.075, max(0.025, (ah-wh)*0.12))
+    wren["root"].location.z += wren_rise
     bpy.context.view_layer.update()
     amin, amax = bounds(aldric)
     wmin, wmax = bounds(wren)
+    floor_audit = {
+        "initial_mesh_min_z": initial_floor_min_z,
+        "post_alignment_aldric_min_z": round(amin.z, 4),
+        "post_alignment_wren_min_z": round(wmin.z, 4),
+        "intentional_wren_rise_m": round(wren_rise, 4),
+        "final_aldric_min_z": round(amin.z, 4),
+        "final_wren_min_z": round(wmin.z, 4),
+        "aldric_root_world": [round(v, 4) for v in aldric["root"].matrix_world.translation],
+        "wren_root_world": [round(v, 4) for v in wren["root"].matrix_world.translation],
+    }
 
     # Contact points are derived from the actual imported mesh extents.
     aw = amax.x-amin.x; ad = amax.y-amin.y
@@ -205,11 +257,14 @@ def main():
         "Wren_right": t_butt, "Wren_left": t_shoulder
     }
     hand_errors = {}
+    surface_gaps = {}
     for key, target in target_map.items():
         actor_name, side = key.split("_")
         actor = aldric if actor_name=="Aldric" else wren
+        recipient = wren if actor_name=="Aldric" else aldric
         pos = evaluated_hand_position(actor, side.lower())
         hand_errors[key] = None if pos is None else round((pos-target.location).length, 4)
+        surface_gaps[key] = nearest_surface_gap(recipient, target.location)
 
     # Keep the live armatures and IK constraints intact through rendering.
     # The final review GLB is exported as evaluated static mesh geometry below;
@@ -228,13 +283,20 @@ def main():
     floor_mat = bpy.data.materials.new("ReviewFloor_Matte")
     floor_mat.diffuse_color = (0.055, 0.065, 0.075, 1.0)
     floor.data.materials.append(floor_mat)
-    bpy.ops.object.camera_add(location=(2.5, -5.8, 1.95))
+    # Frame actual world bounds rather than assuming imported roots sit at floor level.
+    amin, amax = bounds(aldric)
+    wmin, wmax = bounds(wren)
+    scene_min = Vector((min(amin.x, wmin.x), min(amin.y, wmin.y), min(amin.z, wmin.z)))
+    scene_max = Vector((max(amax.x, wmax.x), max(amax.y, wmax.y), max(amax.z, wmax.z)))
+    frame_centre = (scene_min + scene_max) * 0.5
+    frame_extent = scene_max - scene_min
+    bpy.ops.object.camera_add(location=frame_centre + Vector((2.5, -5.8, 0.8)))
     cam = bpy.context.object
     cam.name = "PoseReviewCamera"
-    direction = Vector((0.0, 0.0, max(ah, wh) * 0.50)) - cam.location
+    direction = frame_centre - cam.location
     cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
     cam.data.type = "ORTHO"
-    cam.data.ortho_scale = max(3.2, max(ah, wh) * 1.75)
+    cam.data.ortho_scale = max(3.2, frame_extent.length * 1.25)
     bpy.context.scene.camera = cam
     bpy.ops.object.light_add(type="AREA", location=(0.0, -2.5, 3.2))
     key = bpy.context.object
@@ -326,10 +388,24 @@ def main():
             "wren": [b.name for b in wren["arm"].data.bones]
         },
         "body_pose_bones": body_report,
+        "world_axis_audit": {
+            "blender_world_up": "Z; verified against mesh bounds and floor plane",
+            "forward_assumption": "Aldric +Y; Wren -Y; this is a world-space assumption to validate against landmarks",
+            "aldric_landmarks_world": world_bone_landmarks(aldric),
+            "wren_landmarks_world": world_bone_landmarks(wren),
+            "mesh_bounds_world": {
+                "aldric_min": [round(v, 4) for v in amin], "aldric_max": [round(v, 4) for v in amax],
+                "wren_min": [round(v, 4) for v in wmin], "wren_max": [round(v, 4) for v in wmax]},
+            "floor_and_root_audit": floor_audit,
+            "camera_frame_centre_world": [round(v, 4) for v in frame_centre],
+            "camera_frame_extent_world": [round(v, 4) for v in frame_extent],
+        },
+        "surface_gap_to_target_m": surface_gaps,
         "height_handling": {
-            "aldric_bends_at_hips_spine": bool(body_report.get("Aldric")),
-            "wren_toe_pose_bones_found": [n for n in body_report.get("Wren",[]) if "Foot" in n or "Toe" in n],
-            "wren_root_lift_m": round(wren["root"].location.z,4),
+            "aldric_bends_at_hips_spine": bool(body_report.get("body_pose_bones", {}).get("Aldric")),
+            "wren_toe_pose_bones_found": [n for n in body_report.get("body_pose_bones", {}).get("Wren",[]) if "Foot" in n or "Toe" in n],
+            "wren_root_world_z_m": round(wren["root"].matrix_world.translation.z, 4),
+            "wren_intentional_rise_m": round(wren_rise, 4),
             "note": "Height gap is addressed by a modest Wren rise and a forward bow through Aldric's torso/hips; verify the preview because bone naming and rig proportions vary."
         },
         "ik_chains": ik_report,
