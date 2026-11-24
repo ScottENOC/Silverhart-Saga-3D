@@ -250,7 +250,13 @@ func _process_social_exchanges(delta: float) -> void:
 		var second_bond := simulation.companion_bonds.snapshot(second_id, first_id)
 		var first_events: Array = first_bond.get("applied_event_keys", [])
 		var second_events: Array = second_bond.get("applied_event_keys", [])
-		if first_events.has(event_key) or second_events.has(event_key):
+		var already_recorded := (
+			first_events.has(event_key + ":first")
+			or first_events.has(event_key + ":second")
+			or second_events.has(event_key + ":first")
+			or second_events.has(event_key + ":second")
+		)
+		if already_recorded:
 			exchange = {}
 	if exchange.is_empty():
 		exchange = CAMP_DIALOGUE_SERVICE.build_exchange(
