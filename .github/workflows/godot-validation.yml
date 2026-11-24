@@ -131,6 +131,10 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_campaign_content.gd
       - name: Run Reddale campaign dialogue service tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_campaign_dialogue_service.gd
+      - name: Run Reddale espionage content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_espionage_content.gd
+      - name: Run Reddale espionage dialogue service tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_espionage_dialogue_service.gd
       - name: Run Skarn-tooth campaign content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_campaign_content.gd
       - name: Run Skarn-tooth follow-up content tests
