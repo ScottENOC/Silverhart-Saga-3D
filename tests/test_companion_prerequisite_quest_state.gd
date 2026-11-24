@@ -465,7 +465,7 @@ func _test_fenn_third_chapter_resolves_through_elder_nessa() -> void:
 	_check(bool(third_start.get("ok", false)))
 	var nessa_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "elder_nessa_wren_elf_female")
 	_check(String(nessa_prompt.get("chapter_id", "")) == "fenn_groves_answer", "Elder Nessa remains the supporting actor for Fenn's final chapter")
-	_check(String(nessa_prompt.get("body", "")).contains("recognised voices"), "Nessa presents the authored invitation to become a voice of the grove")
+	_check(String(nessa_prompt.get("body", "")).contains("Nessa offers no hidden oath") and String(nessa_prompt.get("body", "")).contains("Ask Nessa what becoming a voice of the grove would require"), "Nessa presents the authored supporting-character dialogue and invitation prompt")
 	var third_consult: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_groves_answer", "nessa_wren", 101000.0)
 	_check(bool(third_consult.get("ok", false)))
 	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 101000.0)
