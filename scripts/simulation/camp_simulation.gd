@@ -210,7 +210,7 @@ func advance_real_time(real_delta: float) -> float:
 func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = null) -> Array[Dictionary]:
 	sleeping_arrangements.clear()
 	var remaining := party_ids.duplicate()
-	var tent_limit := mini(maxi(0, tent_count), ceili(float(remaining.size()) / float(TENT_MAX_CAPACITY)))
+	var tent_limit := mini(maxi(0, tent_count), ceili(float(remaining.size()) / float(TENT_COMFORTABLE_CAPACITY)))
 	var bags_remaining := int(resources.sleeping_bags)
 	while tent_limit > 0 and not remaining.is_empty():
 		var group: Array[String] = [String(remaining.pop_front())]
