@@ -175,6 +175,16 @@ const PROFILES := {
 		},
 		"guarded_reply": "I appreciate the question. I am not ready to give you that answer yet.",
 		"warm_reply": "I don't say this often, but I am glad you're here. That is the whole answer."
+	},
+	"dagna": {
+		"openers": {
+			"road": "I still say the old travelling blessing before we set out. I don't know whether it changes the road. It settles my hands.",
+			"work": "Where I grew up, everyone had a place at the table. Keeping it that way took more work than the prayers ever mentioned.",
+			"home": "I miss the familiar voices at evening prayer. I don't miss being told there was only one proper way to understand every word.",
+			"danger": "I was taught to look for the good in people. I'm learning that doesn't mean ignoring what they do."
+		},
+		"guarded_reply": "I haven't stopped believing. I have stopped pretending every question has an answer I'm comfortable with.",
+		"warm_reply": "I can talk about it. I just need you to let me reach the end of a thought before deciding what it means."
 	}
 }
 
