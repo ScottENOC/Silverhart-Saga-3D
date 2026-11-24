@@ -39,6 +39,9 @@ func _add_item(player: CharacterState, item_id: String, quantity: int) -> void:
 
 func _test_furniture_purchase_crafting_and_placement() -> void:
 	var state := CampaignDwellingState.new()
+	_check(state.floor_count_for("crossroads_cottage") == 1, "The starter cottage should have one floor.")
+	_check(state.floor_count_for("silverhart_manor") == 2, "The manor should support furniture on two separate floors.")
+	_check(state.floor_size_for("silverhart_manor", 1) == Vector2(10.0, 8.0), "The manor's upper floor should have its own usable floor area.")
 	var journal := CampaignJournal.new()
 	var player := _player()
 	player.gold = 100
