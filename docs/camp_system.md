@@ -65,3 +65,24 @@ The responding companion has an authored outlook across a small set of decision 
 These memory conversations are recorded against the pair and chapter outcome, so the same completed decision is not repeated every time that pair talks at camp. Agreement and disagreement also have different relationship effects: support can deepen friendship, while disagreement can build familiarity and trust without automatically awarding friendship. The ordinary ambient topics continue after a campaign memory has been discussed.
 
 This pass uses the existing CompanionQuestChainState and CampaignJournal as the source of truth. It does not invent quest outcomes, infer a companion's decision from the player's choice, or make every companion agree with the player. Current authored decision stances cover the Fenn prerequisite quest and completed companion chapters for Aldric, Mirabel, Fenn, Reyna and Brother Alden; other companions continue to use their ordinary camp banter until their own authored quest outcomes are available.
+
+
+## Player-owned dwellings and sheltered camps
+
+The legacy housing routes remain distinct campaign actions rather than a generic property shop:
+
+| Action | Gate | Payment | Layout and camp capacity |
+| --- | --- | --- | --- |
+| Build crossroads cottage | Surveyed starting plot; no reputation or quest gate in the source | No charge in the original MVP | One-room cottage; one indoor sleeping place |
+| Expand to country house | Own the crossroads cottage | 6 wood + 6 stone, or 90 gold | Larger three-room layout; three indoor sleeping places |
+| Restore abandoned roadside house | Complete the abandoned-house clearing quest | 8 wood + 8 stone; no gold substitute | Restored roadside layout; two indoor sleeping places |
+| Claim Silverhart manor | Silverhart Kingdom standing of at least 60 | Royal grant; no purchase price | Ruined manor until fortified |
+| Fortify Silverhart manor | Own the royal grant | 10 wood + 10 stone; no gold substitute | Livable multi-room manor; eight indoor sleeping places |
+
+The manor's reputation threshold is a distinct high-standing reward, not a single-quest reward. The abandoned house requires its clearing quest before materials can be spent. The cottage expansion accepts either gathered materials or the original gold alternative. The adjoining-field purchase remains a separate homestead feature.
+
+Campaign dwelling state owns the action gates, payments, ownership and improvement state. It validates requirements before consuming inventory or gold and is included in world and location save snapshots. Each action also identifies its intended layout and sheltered-camp profile.
+
+When a camp is explicitly established at an owned, livable dwelling, indoor beds are assigned before tents or open-air sleeping. Indoor sleepers receive that property's warmth, security and comfort bonuses; companions beyond its indoor capacity still use ordinary tent and sleeping-bag rules. The camp site must supply its dwelling ID, so owning a house does not shelter a party camping elsewhere.
+
+This pass defines layout IDs and connects dwelling shelter to camp simulation. It does not yet build all four property interiors as explorable 3D locations, add a builder interaction UI, or port the abandoned-house clearing encounter. The required quest-state ID for that encounter is abandoned_house_cleared; until the quest port completes it, the restoration action correctly remains unavailable.
