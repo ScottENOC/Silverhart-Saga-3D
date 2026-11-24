@@ -65,6 +65,8 @@ func skip_world_seconds(delta_seconds: float) -> int:
 	accumulator = fposmod(accumulated, SIMULATION_STEP_SECONDS)
 	world_seconds += delta_seconds
 	tick_index += ticks
+	if ticks > 0:
+		ticked.emit(tick_index, world_seconds)
 	time_advanced.emit(world_seconds)
 	return ticks
 
