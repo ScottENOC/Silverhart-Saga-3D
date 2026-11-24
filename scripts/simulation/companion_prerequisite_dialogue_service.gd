@@ -10,13 +10,42 @@ static func dialogue_for_companion(
 	journal: CampaignJournal,
 	companion_id: String,
 	party_ids: Array[String],
-	player_state: CharacterState = null
+	player_state: CharacterState = null,
+	world_seconds: float = 0.0
 ) -> Dictionary:
 	if chain == null or journal == null:
 		return {}
-	var next := chain.next_prerequisite_for_companion(companion_id.trim_prefix("companion_"), journal, party_ids)
+	var normalized_companion_id := companion_id.trim_prefix("companion_")
+	var next := chain.next_prerequisite_for_companion(normalized_companion_id, journal, party_ids)
 	if next.is_empty():
-		return {}
+		var next_chapter := chain.next_chapter_for(normalized_companion_id, journal, party_ids, world_seconds)
+		if next_chapter.is_empty():
+			return {}
+		var chapter: Dictionary = next_chapter.get("chapter", {})
+		var chapter_state: Dictionary = next_chapter.get("quest_state", {})
+		var chapter_id := String(chapter.get("id", ""))
+		var chapter_body := String(chapter.get("intro", ""))
+		var chapter_choices: Array[Dictionary] = []
+		if chapter_state.is_empty():
+			chapter_choices.append({
+				"id":"companion_chain_start",
+				"chapter_id":chapter_id,
+				"label":"Let's take this on together."
+			})
+		elif bool(chapter_state.get("consulted", false)):
+			chapter_body = String(chapter.get("reckoning", chapter_body))
+			for option_value in chain.resolution_options(chapter_id):
+				var option: Dictionary = option_value
+				chapter_choices.append({
+					"id":"companion_chain_resolve",
+					"chapter_id":chapter_id,
+					"resolution_id":String(option.get("id", "")),
+					"label":String(option.get("label", "Choose"))
+				})
+		else:
+			chapter_body += "\\n\\n" + String(chapter_state.get("description", ""))
+			chapter_choices.append({"id":"continue","label":"Continue","text":""})
+		return {"quest_id":chapter_id,"body":chapter_body,"choices":chapter_choices,"quest_state":chapter_state.duplicate(true),"chapter":chapter.duplicate(true)}
 	var definition: Dictionary = next.get("quest", {})
 	var quest_state: Dictionary = next.get("quest_state", {})
 	var quest_id := String(definition.get("id", ""))
@@ -94,7 +123,29 @@ static func actor_prompt(
 		return {}
 	var active := chain.active_prerequisite_for_actor(actor_id, journal)
 	if active.is_empty():
-		return {}
+		var active_chapter := chain.active_chapter_for_actor(actor_id, journal)
+		if active_chapter.is_empty():
+			return {}
+		var chapter: Dictionary = active_chapter.get("chapter", {})
+		var chapter_id := String(chapter.get("id", ""))
+		var chapter_body := String(chapter.get("actorText", ""))
+		var actor_prompt_text := String(chapter.get("actorPrompt", ""))
+		if not actor_prompt_text.is_empty():
+			chapter_body += "\\n\\n" + actor_prompt_text
+		return {
+			"quest_id":chapter_id,
+			"chapter_id":chapter_id,
+			"title":String(chapter.get("title", chapter_id)),
+			"companion_id":String(chapter.get("companion_id", "")),
+			"actor_id":actor_id,
+			"body":chapter_body,
+			"choices":[{
+				"id":"companion_chain_consult",
+				"chapter_id":chapter_id,
+				"actor_id":actor_id,
+				"label":"Ask what this means for our companion."
+			}]
+		}
 	var accessible_clues: Array[Dictionary] = []
 	var dialogue_parts: Array[String] = []
 	for clue_value in active.get("clues", []):
@@ -173,6 +224,46 @@ static func resolve(
 	if chain == null:
 		return {"ok":false,"reason":"missing_quest_chain"}
 	return chain.resolve_prerequisite(quest_id, resolution_id, journal, relationships, world_seconds, player_state)
+
+
+
+
+static func start_chapter(
+	chain: CompanionQuestChainState,
+	journal: CampaignJournal,
+	relationships: CompanionRelationshipState,
+	chapter_id: String,
+	party_ids: Array[String],
+	world_seconds: float
+) -> Dictionary:
+	if chain == null:
+		return {"ok":false,"reason":"missing_quest_chain"}
+	return chain.start(chapter_id, journal, party_ids, relationships, world_seconds)
+
+
+static func consult_chapter(
+	chain: CompanionQuestChainState,
+	journal: CampaignJournal,
+	chapter_id: String,
+	actor_id: String,
+	world_seconds: float
+) -> Dictionary:
+	if chain == null:
+		return {"ok":false,"reason":"missing_quest_chain"}
+	return chain.consult(chapter_id, journal, actor_id, world_seconds)
+
+
+static func resolve_chapter(
+	chain: CompanionQuestChainState,
+	journal: CampaignJournal,
+	relationships: CompanionRelationshipState,
+	chapter_id: String,
+	resolution_id: String,
+	world_seconds: float
+) -> Dictionary:
+	if chain == null:
+		return {"ok":false,"reason":"missing_quest_chain"}
+	return chain.resolve(chapter_id, resolution_id, journal, relationships, world_seconds)
 
 
 static func _clue_accessible(clue: Dictionary, journal: CampaignJournal, capabilities: Array[String]) -> bool:
