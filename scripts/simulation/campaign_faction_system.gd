@@ -107,18 +107,12 @@ static func cascade_reputation(
 	return results
 
 
-static func advance_to_time(journal: CampaignJournal, world_seconds: float) -> Dictionary:
+static func advance_time(journal: CampaignJournal, elapsed_seconds: float) -> Dictionary:
 	if journal == null:
 		return {"ok":false,"reason":"missing_journal"}
-	if not is_finite(world_seconds) or world_seconds < 0.0:
-		return {"ok":false,"reason":"invalid_world_time"}
-	var previous := journal.faction_agenda_last_world_seconds
-	if previous < 0.0 or world_seconds < previous:
-		journal.faction_agenda_last_world_seconds = world_seconds
-		return {"ok":true,"advanced_seconds":0.0,"drift":0.0}
-	var elapsed := world_seconds - previous
-	journal.faction_agenda_last_world_seconds = world_seconds
-	if elapsed <= 0.0:
+	if not is_finite(elapsed_seconds) or elapsed_seconds < 0.0:
+		return {"ok":false,"reason":"invalid_elapsed_time"}
+	if elapsed_seconds <= 0.0:
 		return {"ok":true,"advanced_seconds":0.0,"drift":0.0}
 	var standing := journal.faction_standing("ironbond_company")
 	var drift_per_hour := 0.0
@@ -126,7 +120,7 @@ static func advance_to_time(journal: CampaignJournal, world_seconds: float) -> D
 		drift_per_hour = IRONBOND_AGENDA_DRIFT_PER_HOUR
 	elif standing < -10.0:
 		drift_per_hour = -IRONBOND_AGENDA_DRIFT_PER_HOUR
-	var drift := drift_per_hour * elapsed / 3600.0
+	var drift := drift_per_hour * elapsed_seconds / 3600.0
 	if not is_zero_approx(drift):
 		journal.adjust_merchant_influence(
 			"ironbond_company",
@@ -134,4 +128,4 @@ static func advance_to_time(journal: CampaignJournal, world_seconds: float) -> D
 			drift,
 			"autonomous Ironbond commercial agenda"
 		)
-	return {"ok":true,"advanced_seconds":elapsed,"drift":drift}
+	return {"ok":true,"advanced_seconds":elapsed_seconds,"drift":drift}
