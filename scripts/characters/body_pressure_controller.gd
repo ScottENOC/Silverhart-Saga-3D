@@ -2,7 +2,6 @@ extends RefCounted
 class_name BodyPressureController
 ## Connects the spring solver to explicitly authored, localised pressure blend shapes.
 ## Shape names use the convention Pressure_<RegionName>, e.g. Pressure_LeftChest.
-## The blend shape itself must be authored in the compressed direction.
 
 var _solver := BodyPressureSolver.new()
 var _bound_meshes: Array[MeshInstance3D] = []
@@ -22,8 +21,16 @@ func has_region(region_id: StringName) -> bool:
 func apply_pressure(region_id: StringName, force_n: float) -> void:
 	_solver.apply_pressure(region_id, force_n)
 
+## Adds transient damping for the next physics step; contact producers must
+## resubmit it while the garment or other contact remains present.
+func apply_contact_damping(region_id: StringName, damping_ns_per_m: float) -> void:
+	_solver.apply_contact_damping(region_id, damping_ns_per_m)
+
 func get_compression_m(region_id: StringName) -> float:
 	return _solver.get_compression_m(region_id)
+
+func get_velocity_m_per_s(region_id: StringName) -> float:
+	return _solver.get_velocity_m_per_s(region_id)
 
 func get_max_compression_m(region_id: StringName) -> float:
 	return _solver.get_max_compression_m(region_id)
