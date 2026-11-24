@@ -193,31 +193,36 @@ func _add_target(target_name: String, world_position: Vector3, colour: Color) ->
 
 func _configure_arm_ik(actor: Dictionary, side: String, target: Node3D) -> void:
     var skeleton: Skeleton3D = actor["skeleton"]
-    var upper_key := "upper_arm_" + side
-    var forearm_key := "forearm_" + side
-    var hand_key := "hand_" + side
-    var root_index := _resolve_bone(skeleton, upper_key)
-    var tip_index := _resolve_bone(skeleton, hand_key)
-    var forearm_index := _resolve_bone(skeleton, forearm_key)
-    var result := {"root": root_index, "elbow": forearm_index, "tip": tip_index, "ik_created": false}
-    if root_index < 0 or tip_index < 0:
+    var root_index := _resolve_bone(skeleton, "upper_arm_" + side)
+    var middle_index := _resolve_bone(skeleton, "forearm_" + side)
+    var end_index := _resolve_bone(skeleton, "hand_" + side)
+    var result := {"root": root_index, "middle": middle_index, "tip": end_index, "ik_created": false, "ik_type": "TwoBoneIK3D"}
+    if root_index < 0 or middle_index < 0 or end_index < 0:
         report["rigs"][actor["id"] + "_" + side + "_arm"] = result
-        push_warning("Could not resolve " + actor["id"] + " " + side + " arm IK chain")
+        push_warning("Could not resolve complete " + actor["id"] + " " + side + " arm IK chain")
         return
-    var ik := SkeletonIK3D.new()
+
+    var pole := Node3D.new()
+    pole.name = actor["id"] + "_" + side + "_ElbowPole"
+    var actor_node: Node3D = actor["actor"]
+    var side_sign := 1.0 if side == "left" else -1.0
+    pole.global_position = actor_node.global_position + actor_node.global_basis.x * side_sign * 0.24 + actor_node.global_basis.z * 0.28 + Vector3.UP * 0.92
+    stage.add_child(pole)
+
+    var ik := TwoBoneIK3D.new()
     ik.name = actor["id"] + "_" + side + "_ArmIK"
-    ik.root_bone = skeleton.get_bone_name(root_index)
-    ik.tip_bone = skeleton.get_bone_name(tip_index)
-    ik.target_node = skeleton.get_path_to(target)
-    ik.override_tip_basis = false
-    ik.use_magnet = true
-    var actor_origin: Vector3 = (actor["actor"] as Node3D).global_position
-    ik.magnet = actor_origin + Vector3(0.0, 0.82, 0.12)
+    ik.setting_count = 1
+    ik.set_root_bone_name(0, skeleton.get_bone_name(root_index))
+    ik.set_middle_bone_name(0, skeleton.get_bone_name(middle_index))
+    ik.set_end_bone_name(0, skeleton.get_bone_name(end_index))
+    ik.set_target_node(0, skeleton.get_path_to(target))
+    ik.set_pole_node(0, skeleton.get_path_to(pole))
+    ik.active = true
     skeleton.add_child(ik)
-    ik.start()
     result["ik_created"] = true
     result["root_name"] = skeleton.get_bone_name(root_index)
-    result["tip_name"] = skeleton.get_bone_name(tip_index)
+    result["middle_name"] = skeleton.get_bone_name(middle_index)
+    result["tip_name"] = skeleton.get_bone_name(end_index)
     report["rigs"][actor["id"] + "_" + side + "_arm"] = result
 
 func _configure_head_pose(actor: Dictionary, tilt: float) -> void:
@@ -323,7 +328,7 @@ func _collect_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
         _collect_meshes(child, output)
 
 func _count_ik_nodes(node: Node) -> int:
-    var total := 1 if node is SkeletonIK3D else 0
+    var total := 1 if node is TwoBoneIK3D else 0
     for child in node.get_children():
         total += _count_ik_nodes(child)
     return total
