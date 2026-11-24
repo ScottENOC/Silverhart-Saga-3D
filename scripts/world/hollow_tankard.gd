@@ -161,6 +161,7 @@ func _ready() -> void:
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
+	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
@@ -1103,6 +1104,7 @@ func _build_save_snapshot() -> Dictionary:
 		"camp_simulation": simulation.camp_simulation.to_dict(),
 		"companion_bonds": simulation.companion_bonds.to_dict(),
 		"campaign_dwellings": simulation.campaign_dwellings.to_dict(),
+		"dynamic_campaign_characters": ABANDONED_HOUSE_QUEST_SCRIPT.dynamic_character_records(simulation),
 		"world_flags": {
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
@@ -1144,6 +1146,15 @@ func _apply_save_data(data: Dictionary) -> void:
 	if not simulation.restore_character_states(restored_states):
 		push_error("Saved character states could not be restored without invalid occupancy or mount links.")
 		return
+	var dynamic_records: Variant = data.get("dynamic_campaign_characters", {})
+	if dynamic_records is Dictionary:
+		for character_id_value in dynamic_records.keys():
+			var character_id := String(character_id_value)
+			if simulation.get_character(character_id) != null or not dynamic_records[character_id_value] is Dictionary:
+				continue
+			var dynamic_state := CharacterState.from_dict(dynamic_records[character_id_value])
+			if dynamic_state != null:
+				simulation.register_character(dynamic_state)
 	var appearance_diffs: Variant = data.get("appearance_diffs", {})
 	if appearance_diffs is Dictionary:
 		for actor_id_variant in appearance_diffs.keys():
