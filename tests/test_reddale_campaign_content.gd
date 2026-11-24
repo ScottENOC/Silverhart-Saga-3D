@@ -68,7 +68,7 @@ func _test_broker_ironbond_outcome() -> void:
 	_check(bool(result.get("ok", false)), "Broker path should resolve")
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), 30.0), "Brokered deal should improve Ironbond standing by 20")
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 60.0), "Brokered deal should increase Ironbond influence by 15")
-	_check(is_equal_approx(journal.npc_standing("reeve_aldous_finch"), -10.0), "Brokered deal should reduce Silverhart Kingdom standing by 10")
+	_check(is_equal_approx(journal.faction_standing("silverhart_kingdom"), -10.0), "Brokered deal should reduce Silverhart Kingdom standing by 10")
 	_check(int(result.get("gold_delta", 0)) == 50, "Brokered deal should return the 50 gold reward")
 	var restored := JOURNAL_SCRIPT.new()
 	restored.load_dict(journal.to_dict())
