@@ -4460,7 +4460,7 @@
       ]
     },
     {
-      "id": "silverhart_warrens_shack_west",
+      "id": "silverhart_warrens_shack_1",
       "name": "Silverhart Warrens — West Shack",
       "anchor": {
         "q": 2,
@@ -4474,7 +4474,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_warrens_shack_west_room",
+              "id": "silverhart_warrens_shack_1_room",
               "center": {
                 "q": 2,
                 "r": -433
@@ -4486,7 +4486,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_warrens_shack_west_south_door",
+              "id": "silverhart_warrens_shack_1_south_door",
               "type": "door_open",
               "position": {
                 "q": 2,
@@ -4504,7 +4504,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_warrens_shack_centre",
+      "id": "silverhart_warrens_shack_2",
       "name": "Silverhart Warrens — Centre Shack",
       "anchor": {
         "q": 5,
@@ -4518,7 +4518,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_warrens_shack_centre_room",
+              "id": "silverhart_warrens_shack_2_room",
               "center": {
                 "q": 5,
                 "r": -427
@@ -4530,7 +4530,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_warrens_shack_centre_north_door",
+              "id": "silverhart_warrens_shack_2_north_door",
               "type": "door_open",
               "position": {
                 "q": 5,
@@ -4548,7 +4548,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_warrens_shack_east",
+      "id": "silverhart_warrens_shack_3",
       "name": "Silverhart Warrens — East Shack",
       "anchor": {
         "q": 11,
@@ -4562,7 +4562,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_warrens_shack_east_room",
+              "id": "silverhart_warrens_shack_3_room",
               "center": {
                 "q": 11,
                 "r": -433
@@ -4574,7 +4574,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_warrens_shack_east_south_door",
+              "id": "silverhart_warrens_shack_3_south_door",
               "type": "door_open",
               "position": {
                 "q": 11,
@@ -4592,7 +4592,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_middle_ring_house_east",
+      "id": "silverhart_middle_ring_house_1",
       "name": "Silverhart — East Middle-Ring House",
       "anchor": {
         "q": 49,
@@ -4606,7 +4606,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_middle_ring_house_east_room",
+              "id": "silverhart_middle_ring_house_1_room",
               "center": {
                 "q": 49,
                 "r": -496
@@ -4618,7 +4618,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_middle_ring_house_east_east_door",
+              "id": "silverhart_middle_ring_house_1_east_door",
               "type": "door_open",
               "position": {
                 "q": 51,
@@ -4636,7 +4636,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_middle_ring_house_northeast",
+      "id": "silverhart_middle_ring_house_2",
       "name": "Silverhart — Northeast Middle-Ring House",
       "anchor": {
         "q": 49,
@@ -4650,7 +4650,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_middle_ring_house_northeast_room",
+              "id": "silverhart_middle_ring_house_2_room",
               "center": {
                 "q": 49,
                 "r": -536
@@ -4662,7 +4662,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_middle_ring_house_northeast_north_door",
+              "id": "silverhart_middle_ring_house_2_north_door",
               "type": "door_open",
               "position": {
                 "q": 49,
@@ -4680,7 +4680,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_middle_ring_house_northwest",
+      "id": "silverhart_middle_ring_house_3",
       "name": "Silverhart — Northwest Middle-Ring House",
       "anchor": {
         "q": 8,
@@ -4694,7 +4694,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_middle_ring_house_northwest_room",
+              "id": "silverhart_middle_ring_house_3_room",
               "center": {
                 "q": 8,
                 "r": -536
@@ -4706,7 +4706,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_middle_ring_house_northwest_north_door",
+              "id": "silverhart_middle_ring_house_3_north_door",
               "type": "door_open",
               "position": {
                 "q": 8,
@@ -4724,7 +4724,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_middle_ring_house_west",
+      "id": "silverhart_middle_ring_house_4",
       "name": "Silverhart — West Middle-Ring House",
       "anchor": {
         "q": -32,
@@ -4738,7 +4738,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_middle_ring_house_west_room",
+              "id": "silverhart_middle_ring_house_4_room",
               "center": {
                 "q": -32,
                 "r": -496
@@ -4750,7 +4750,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_middle_ring_house_west_west_door",
+              "id": "silverhart_middle_ring_house_4_west_door",
               "type": "door_open",
               "position": {
                 "q": -34,
@@ -4768,7 +4768,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_middle_ring_house_southwest",
+      "id": "silverhart_middle_ring_house_5",
       "name": "Silverhart — Southwest Middle-Ring House",
       "anchor": {
         "q": -32,
@@ -4782,7 +4782,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_middle_ring_house_southwest_room",
+              "id": "silverhart_middle_ring_house_5_room",
               "center": {
                 "q": -32,
                 "r": -455
@@ -4794,7 +4794,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_middle_ring_house_southwest_west_door",
+              "id": "silverhart_middle_ring_house_5_west_door",
               "type": "door_open",
               "position": {
                 "q": -34,
@@ -4820,7 +4820,7 @@
       ]
     },
     {
-      "id": "silverhart_middle_ring_house_southeast",
+      "id": "silverhart_middle_ring_house_6",
       "name": "Silverhart — Southeast Middle-Ring House",
       "anchor": {
         "q": 22,
@@ -4834,7 +4834,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_middle_ring_house_southeast_room",
+              "id": "silverhart_middle_ring_house_6_room",
               "center": {
                 "q": 22,
                 "r": -452
@@ -4846,7 +4846,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_middle_ring_house_southeast_west_door",
+              "id": "silverhart_middle_ring_house_6_west_door",
               "type": "door_open",
               "position": {
                 "q": 20,
