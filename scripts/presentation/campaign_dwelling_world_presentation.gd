@@ -41,7 +41,6 @@ static func _present_cottage(parent: Node3D, state: CampaignDwellingState, radiu
 	_build_house(site, width, depth, 3.0 if country_house else 2.6, materials, false, true)
 	if country_house:
 		_add_box(site, "CountryHouseRearExtension", Vector3(0.0, 1.1, -depth * 0.42), Vector3(width * 0.72, 2.2, 1.25), materials.wood)
-		_add_box(site, "CountryHouseBenchPorch", Vector3(1.4, 0.32, depth * 0.58), Vector3(1.4, 0.28, 0.42), materials.wood)
 
 
 static func _present_abandoned_house(parent: Node3D, state: CampaignDwellingState, radius: float, materials: Dictionary) -> void:
