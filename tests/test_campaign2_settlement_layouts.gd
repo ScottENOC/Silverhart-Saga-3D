@@ -217,6 +217,12 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		_assert_axial(middle_points[0], Vector2i(53, -496), "Middle ring east corner")
 		_assert_axial(middle_points[2], Vector2i(8, -541), "Middle ring north corner")
 		_assert_axial(middle_points[4], Vector2i(-37, -451), "Middle ring south-west corner")
+
+	var market_table := _find_record(props, "silverhart_commons_market_table")
+	_check(not market_table.is_empty(), "Silverhart Commons market square must retain the source table at (8,-521)")
+	if not market_table.is_empty():
+		_assert_axial(market_table.get("anchor", {}), Vector2i(8, -521), "Silverhart Commons market table")
+		_check(market_table.get("parts", []).size() == 5, "Market table must retain its tabletop and four legs")
 	var city_wall_cells := 0
 	var city_towers := 0
 	for prop in props:
