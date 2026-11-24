@@ -1,0 +1,69 @@
+name: Wren body pressure pose review
+
+on:
+  push:
+    branches: [feature/wren-single-character-pressure-pose]
+    paths:
+      - "tools/review/wren_body_pressure_pose_blender.py"
+      - ".github/workflows/wren-body-pressure-pose-review.yml"
+      - "character-preview/wren-ara.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wren-body-pressure-pose-review
+  cancel-in-progress: true
+
+jobs:
+  wren-contact-review:
+    name: Pose Wren and inspect body pressure targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build native Ara Wren
+        run: |
+          mkdir -p build/wren-native
+          npx --yes ara3d@latest export --params character-preview/wren-ara.json --detail high --no-animations --formats glb,zip --out build/wren-native
+          glb="$(find build/wren-native -maxdepth 1 -type f -name '*.glb' | head -n 1)"
+          test -n "$glb"
+          cp "$glb" build/wren-native/Wren.glb
+          test -s build/wren-native/Wren.glb
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy python3-pil xvfb libegl1 libgl1-mesa-dri
+      - name: Validate and render Wren-only contact pose
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          python -m py_compile tools/review/wren_body_pressure_pose_blender.py
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 --python tools/review/wren_body_pressure_pose_blender.py
+          test -s build/wren-body-pressure-pose/wren-body-pressure-preview.png
+          test -s build/wren-body-pressure-pose/wren-body-pressure-pose.glb
+          test -s build/wren-body-pressure-pose/wren-body-pressure-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("build/wren-body-pressure-pose/wren-body-pressure-report.json").read_text())
+          assert report["validation"]["wren_only"]
+          assert report["validation"]["both_arm_ik_created"], report["ik"]
+          assert report["validation"]["preview_rendered"]
+          assert report["validation"]["posed_glb_exported"]
+          print("Wren-only pose package passed structural checks.")
+          print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
+          print("Pressure deformation is not certified by this pose-only pass.")
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Upload Wren-only preview and diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-body-pressure-pose
+          path: build/wren-body-pressure-pose/
+          if-no-files-found: error
+          retention-days: 30
