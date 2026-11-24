@@ -94,7 +94,7 @@ func _build_companion_destinations() -> void:
 			continue
 		var assignment: Dictionary = camp.assignments.get(character_id, {})
 		var activity := String(assignment.get("activity", "socialise"))
-		var target := _choose_station(activity, reserved)
+		var target := _choose_station(activity, reserved, character_id)
 		if target == INVALID_HEX:
 			continue
 		reserved[target] = true
@@ -103,7 +103,7 @@ func _build_companion_destinations() -> void:
 		_activity_by_character[character_id] = activity
 
 
-func _choose_station(activity: String, reserved: Dictionary) -> Vector2i:
+func _choose_station(activity: String, reserved: Dictionary, character_id: String) -> Vector2i:
 	var candidates: Array[Vector2i] = []
 	for cell_value in simulation.map_data.cells:
 		if not cell_value is Vector2i:
@@ -114,7 +114,8 @@ func _choose_station(activity: String, reserved: Dictionary) -> Vector2i:
 			continue
 		if not simulation.map_data.is_walkable(candidate) or reserved.has(candidate):
 			continue
-		if simulation.is_hex_occupied(candidate):
+		var occupant_id := String(simulation.occupied_hexes.get(candidate, ""))
+		if not occupant_id.is_empty() and occupant_id != character_id:
 			continue
 		var terrain := simulation.map_data.terrain_id_at(candidate).to_lower()
 		if terrain == "water" and activity != "fetch_water":
