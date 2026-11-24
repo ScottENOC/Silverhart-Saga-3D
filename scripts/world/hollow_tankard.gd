@@ -1095,6 +1095,7 @@ func _build_save_snapshot() -> Dictionary:
 		"active_character_id": active_character_id,
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
+		"world_weather": simulation.weather_state.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
 		"persistent_character_relationships": PERSISTENT_RELATIONSHIP_STORE.to_dict(simulation),
 		"companion_campaign_runtime": COMPANION_RUNTIME_STORE.to_dict(simulation),
@@ -1188,6 +1189,11 @@ func _apply_save_data(data: Dictionary) -> void:
 	var clock_data: Variant = data.get("clock", {})
 	if clock_data is Dictionary:
 		simulation.clock.load_dict(clock_data)
+	var weather_data: Variant = data.get("world_weather", {})
+	if weather_data is Dictionary and not weather_data.is_empty():
+		if not simulation.weather_state.load_dict(weather_data):
+			push_warning("Saved world weather seed was invalid; a new weather sequence was generated.")
+	simulation.weather_state.update_to(simulation.clock.world_seconds)
 	var saved_camp: Variant = data.get("camp_simulation", {})
 	if saved_camp is Dictionary and not saved_camp.is_empty():
 		if not simulation.camp_simulation.from_dict(saved_camp):
