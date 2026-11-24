@@ -22,14 +22,6 @@ const SITES: Array[Dictionary] = [
 		"actions": ["restore_abandoned_house"]
 	},
 	{
-		"id": "silverhart_palace",
-		"name": "Silverhart Palace",
-		"hex": Vector2i(8, -496),
-		"dwelling_id": "silverhart_manor",
-		"description": "The royal palace stands at the heart of Silverhart. The Queen can grant the abandoned Corstane townhouse to someone who has earned the crown's trust.",
-		"actions": ["claim_silverhart_manor"]
-	},
-	{
 		"id": "silverhart_manor",
 		"name": "Corstane townhouse",
 		"hex": Vector2i(39, -502),
@@ -79,6 +71,9 @@ static func inspection_for_site(
 	var dwelling_id := String(site.get("dwelling_id", ""))
 	var profile := dwelling_state.camp_profile_for(dwelling_id)
 	var lines: PackedStringArray = [String(site.get("description", ""))]
+	if site_id == "silverhart_manor" and not bool(dwelling_state.owned.get("silverhart_manor", false)):
+		lines.append("Royal grant: request the Corstane townhouse from Queen Seraphine at Silverhart Palace.")
+		lines.append("Silverhart Kingdom reputation: %d / 60." % roundi(journal.faction_standing("silverhart_kingdom")))
 	if bool(dwelling_state.owned.get(dwelling_id, false)):
 		lines.append("Ownership: yours.")
 		if int(profile.get("sleeping_capacity", 0)) > 0:
