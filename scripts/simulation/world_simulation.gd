@@ -34,6 +34,7 @@ var multistory_location_states: Dictionary = {}
 var pending_multistory_location_saves: Dictionary = {}
 var camp_simulation: CampSimulation = CampSimulation.new()
 var companion_bonds: CompanionBondState = CompanionBondState.new()
+var campaign_dwellings: CampaignDwellingState = CampaignDwellingState.new()
 
 signal multistory_transition_unlocked(location_id: String, quest_id: String, transitions: Array[Dictionary])
 
@@ -1571,10 +1572,24 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
         state.spell_effects[index] = effect
 
 
+func claim_dwelling(action_id: String, payment: String = "materials") -> Dictionary:
+    return campaign_dwellings.complete_action(action_id, campaign_journal, get_character(player_character_id), payment)
+
+
+func dwelling_action_availability(action_id: String) -> Dictionary:
+    return campaign_dwellings.evaluate_action(action_id, campaign_journal, get_character(player_character_id))
+
+
 func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
     if is_in_combat:
         return {"ok": false, "reason": "cannot_camp_during_combat"}
     var resolved_site := site_data.duplicate(true)
+    if resolved_site.has("dwelling_id"):
+        var dwelling_id := String(resolved_site.get("dwelling_id", ""))
+        var dwelling_profile := campaign_dwellings.camp_profile_for(dwelling_id)
+        if dwelling_profile.is_empty():
+            return {"ok": false, "reason": "dwelling_not_owned_or_not_livable", "dwelling_id": dwelling_id}
+        resolved_site["dwelling_profile"] = dwelling_profile
     if site_data.has("hex"):
         var hex_value: Variant = site_data.get("hex")
         if not hex_value is Vector2i:
@@ -1807,6 +1822,7 @@ func to_dict() -> Dictionary:
         "buildings": building_registry.to_dict(),
         "camp_simulation": camp_simulation.to_dict(),
         "companion_bonds": companion_bonds.to_dict(),
+        "campaign_dwellings": campaign_dwellings.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -1828,6 +1844,12 @@ func load_dict(data: Dictionary) -> void:
         if not camp_simulation.from_dict(saved_camp):
             push_error("Save contains invalid camp simulation state; camp was reset.")
             camp_simulation = CampSimulation.new()
+    campaign_dwellings = CampaignDwellingState.new()
+    var saved_dwellings: Variant = data.get("campaign_dwellings", {})
+    if saved_dwellings is Dictionary and not saved_dwellings.is_empty():
+        if not campaign_dwellings.from_dict(saved_dwellings):
+            push_error("Save contains invalid campaign dwelling state; ownership was reset.")
+            campaign_dwellings = CampaignDwellingState.new()
     companion_bonds = CompanionBondState.new()
     var saved_bonds: Variant = data.get("companion_bonds", {})
     if saved_bonds is Dictionary and not saved_bonds.is_empty():
