@@ -123,7 +123,7 @@ def prop_anchor_cells(props: list[dict[str, Any]]) -> set[str]:
 
 
 def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
-    """Return total and unique room cells across separate floor maps."""
+    """Return total and unique walkable room cells using the Godot floor builder rules."""
     total = 0
     unique_by_floor: dict[str, set[str]] = defaultdict(set)
     for location in multistory.get("locations", []):
@@ -142,11 +142,16 @@ def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
                 q, r = int(centre.get("q", 0)), int(centre.get("r", 0))
                 half_q = int(room.get("half_width", 0))
                 half_r = int(room.get("half_height", 0))
-                room_set = {
-                    axial_key(cell_q, cell_r)
-                    for cell_q in range(q - half_q, q + half_q + 1)
-                    for cell_r in range(r - half_r, r + half_r + 1)
-                }
+                row_shift_mode = str(room.get("row_shift_mode", "flat"))
+                room_set: set[str] = set()
+                for delta_q in range(-half_q + 1, half_q):
+                    row_shift = (
+                        math.floor(delta_q / 2)
+                        if row_shift_mode == "source_building"
+                        else -math.floor(delta_q / 2)
+                    )
+                    for delta_r in range(-half_r + 1, half_r):
+                        room_set.add(axial_key(q + delta_q, r + delta_r + row_shift))
                 total += len(room_set)
                 unique_by_floor[floor_key].update(room_set)
     unique = sum(len(cells) for cells in unique_by_floor.values())
