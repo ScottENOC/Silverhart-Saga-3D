@@ -417,7 +417,10 @@ func _get_region_weights(surface: Dictionary, region_id: String) -> PackedFloat3
 func _get_authored_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
     var fine_weights: Dictionary = surface.get("fine_region_weights", {})
     if fine_weights.has(region_id):
-        return fine_weights[region_id] as PackedFloat32Array
+        # Use a typed assignment rather than `as` for this built-in packed array.
+        # This preserves the authored fine channel and avoids a failed built-in cast.
+        var authored_weights: PackedFloat32Array = fine_weights[region_id]
+        return authored_weights
     return PackedFloat32Array()
 
 
