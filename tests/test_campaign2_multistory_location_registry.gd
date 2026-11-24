@@ -36,7 +36,7 @@ func _initialize() -> void:
 		var expected_centre: Vector2i = emberlode_centres[location_id]
 		_check(int(emberlode_anchor.get("q", 0)) == expected_centre.x and int(emberlode_anchor.get("r", 0)) == expected_centre.y, "Emberlode building anchor must match buildEmberlode: " + location_id)
 		var emberlode_floor := registry.get_floor_definition(location_id, 0)
-		_check(emberlode_floor.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
+		_check(emberlode_outer_floor_definition.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
 		var emberlode_room: Dictionary = emberlode_floor.get("rooms", [])[0]
 		_check(int(emberlode_room.get("half_width", 0)) == 3 and int(emberlode_room.get("half_height", 0)) == 2, "Emberlode building footprint must match carveBuilding: " + location_id)
 		_check(String(emberlode_room.get("row_shift_mode", "")) == "source_building", "Emberlode building must preserve carveBuilding row shift: " + location_id)
@@ -352,18 +352,18 @@ func _initialize() -> void:
 		"silverhart_middle_ring_house_6": {"centre": Vector2i(22, -452), "door": Vector2i(20, -452), "door_id": "silverhart_middle_ring_house_6_west_door"}
 	}
 	for location_id in silverhart_outer_interiors:
-		var expected: Dictionary = silverhart_outer_interiors[location_id]
-		var location: Dictionary = registry.get_definition(location_id)
+		var outer_expected: Dictionary = silverhart_outer_interiors[location_id]
+		var outer_location_definition: Dictionary = registry.get_definition(location_id)
 		_check(not location.is_empty(), "Silverhart outer interior must be registered: " + location_id)
-		_check(_position_matches(location.get("anchor", {}), expected["centre"]), "Silverhart outer interior centre must match source: " + location_id)
-		var floor := registry.get_floor_definition(location_id, 0)
+		_check(_position_matches(outer_location_definition.get("anchor", {}), outer_expected["centre"]), "Silverhart outer interior centre must match source: " + location_id)
+		var outer_floor_definition := registry.get_floor_definition(location_id, 0)
 		_check(floor.get("rooms", []).size() == 1, "Silverhart outer interior must retain its source room: " + location_id)
 		if floor.get("rooms", []).size() == 1:
-			var room: Dictionary = floor.get("rooms", [])[0]
-			_check(_position_matches(room.get("center", {}), expected["centre"]), "Silverhart outer room centre must match source: " + location_id)
-			_check(int(room.get("half_width", 0)) == 2 and int(room.get("half_height", 0)) == 2, "Silverhart outer room must preserve carveFlatRoom dimensions: " + location_id)
-		_check(_has_record(floor.get("tile_objects", []), expected["door_id"]), "Silverhart outer room must preserve its source door: " + location_id)
-		_check(floor.get("actors", []).is_empty() and floor.get("creatures", []).is_empty(), "Silverhart outer map must not duplicate campaign-owned residents: " + location_id)
+			var outer_room: Dictionary = outer_floor_definition.get("rooms", [])[0]
+			_check(_position_matches(outer_room.get("center", {}), outer_expected["centre"]), "Silverhart outer room centre must match source: " + location_id)
+			_check(int(outer_room.get("half_width", 0)) == 2 and int(outer_room.get("half_height", 0)) == 2, "Silverhart outer room must preserve carveFlatRoom dimensions: " + location_id)
+		_check(_has_record(outer_floor_definition.get("tile_objects", []), outer_expected["door_id"]), "Silverhart outer room must preserve its source door: " + location_id)
+		_check(outer_floor_definition.get("actors", []).is_empty() and outer_floor_definition.get("creatures", []).is_empty(), "Silverhart outer map must not duplicate campaign-owned residents: " + location_id)
 	var southwest_floor := registry.get_floor_definition("silverhart_middle_ring_house_5", 0)
 	_check(_position_matches(southwest_floor.get("floor_hexes", [])[0], Vector2i(-32, -453)), "Southwest middle-ring house must preserve the source stray-wall-to-floor correction")
 
