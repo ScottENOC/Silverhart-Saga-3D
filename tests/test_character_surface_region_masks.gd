@@ -139,6 +139,10 @@ func _test_mask_contract(asset_path: String) -> void:
         "Fine region weight was not barycentrically interpolated")
     assert(is_equal_approx(float(triangle_memberships.get(overlap_id, 0.0)), 0.1625),
         "Overlapping fine region weight was not preserved during interpolation")
+    var pressure_controller := BodyPressureController.new()
+    pressure_controller.register_region(StringName(region_id), BodyRegionProfile.new())
+    pressure_controller.register_region(StringName(overlap_id), BodyRegionProfile.new())
+
     var vertex_barycentric := PackedFloat32Array([0.0, 0.0, 0.0])
     vertex_barycentric[target_corner] = 1.0
     var conserved_forces := BodyPressureContact.submit_surface_contact(
@@ -166,9 +170,6 @@ func _test_mask_contract(asset_path: String) -> void:
     )
     assert(invalid_triangle.is_empty(), "Invalid source triangle indices must be rejected")
 
-    var pressure_controller := BodyPressureController.new()
-    pressure_controller.register_region(StringName(region_id), BodyRegionProfile.new())
-    pressure_controller.register_region(StringName(overlap_id), BodyRegionProfile.new())
     var submitted_forces := BodyPressureContact.submit_surface_contact(
         pressure_controller,
         regions,
