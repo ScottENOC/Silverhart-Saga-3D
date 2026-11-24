@@ -4,6 +4,459 @@
   "source": "Hex-crpg/campaign2World.js:buildDwarvenKingdom, carveFloorRoom, paintFloorCorridor, revealSunkenDeepPassage; campaign2Content.js:campaign2DwarfKing/campaign2DwarfGuards/campaign2DwarfTrader/campaign2DwarfRunesmith/campaign2DwarfForeman/campaign2DeepholdsVermin; Hex-crpg/campaign2World.js:buildEmberlode, carveBuilding, carveFloorRoom",
   "locations": [
     {
+      "id": "abandoned_house",
+      "name": "Abandoned House",
+      "anchor": {
+        "q": 14,
+        "r": -176
+      },
+      "source": "Hex-crpg/campaign2World.js:buildAbandonedHouse; north-road step 200 + (6,0), source carveFlatRoom and journal/altar positions",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Abandoned House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "abandoned_house_room",
+              "center": {
+                "q": 14,
+                "r": -176
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "abandoned_house_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 11,
+                "r": -176
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "abandoned_house_journal",
+              "type": "journal",
+              "position": {
+                "q": 14,
+                "r": -176
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "phylactery_altar",
+              "type": "journal",
+              "position": {
+                "q": 15,
+                "r": -176
+              },
+              "read_id": "phylactery_altar",
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The abandoned-house waypoint is the 200th step of the north road from crossroads (8,24), at (8,-176). buildAbandonedHouse applies (+6,0), giving room centre (14,-176).",
+        "The source room uses carveFlatRoom with half-width 3 and half-height 2, a west entrance at (11,-176), and a short exterior path from the waypoint to that door.",
+        "The journal and phylactery altar are preserved as physical map objects; dormant skeleton placements and their activation/reputation behaviour remain campaign-owned."
+      ]
+    },
+    {
+      "id": "corvin_ashgrave_barrow",
+      "name": "Barrow of Corvin Ashgrave",
+      "anchor": {
+        "q": 63,
+        "r": -160
+      },
+      "source": "Hex-crpg/campaign2World.js:buildLichBarrow; source corridor q67..68; the 3D map extends it one cell west to open the source room wall ring and keep both rooms connected",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Antechamber and Lich Sanctum",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "lich_barrow_antechamber",
+              "center": {
+                "q": 63,
+                "r": -160
+              },
+              "half_width": 3,
+              "half_height": 3
+            },
+            {
+              "id": "corvin_lich_sanctum",
+              "center": {
+                "q": 72,
+                "r": -160
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "antechamber_to_sanctum",
+              "from": {
+                "q": 66,
+                "r": -160
+              },
+              "to": {
+                "q": 69,
+                "r": -160
+              },
+              "algorithm": "source_straight_q"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "barrow_entrance_door",
+              "type": "door_open",
+              "position": {
+                "q": 60,
+                "r": -160
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "lich_sanctum_door",
+              "type": "door_open",
+              "position": {
+                "q": 69,
+                "r": -160
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "id": "emberlode_bunkhouse",
+      "name": "Emberlode — Bunkhouse",
+      "anchor": {
+        "q": -252,
+        "r": 28
+      },
+      "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus bunkhouse offset (0,+6)",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Bunkhouse",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "emberlode_bunkhouse_room",
+              "center": {
+                "q": -252,
+                "r": 28
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "emberlode_bunkhouse_north_door",
+              "type": "door_open",
+              "position": {
+                "q": -252,
+                "r": 26
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildEmberlode places the bunkhouse at road-end offset (0,+6), uses carveBuilding half-width 3 and half-height 2, and places the north door at r-2.",
+        "The miner and guild contact are campaign actors and are excluded from this map-only floor definition."
+      ]
+    },
+    {
+      "id": "emberlode_foremans_hall",
+      "name": "Emberlode — Foreman's Hall",
+      "anchor": {
+        "q": -256,
+        "r": 22
+      },
+      "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus foreman's hall offset (-4,0)",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Foreman's Hall",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "emberlode_foremans_hall_room",
+              "center": {
+                "q": -256,
+                "r": 22
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "emberlode_foremans_hall_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -253,
+                "r": 22
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "emberlode_foremans_hall_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": -256,
+                "r": 22
+              },
+              "light_radius": 6
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildEmberlode places the foreman's hall at road-end offset (-4,0), uses carveBuilding half-width 3 and half-height 2, and places an east door and central fireplace.",
+        "The foreman is a campaign actor and is excluded from this map-only floor definition."
+      ]
+    },
+    {
+      "id": "emberlode_mine",
+      "name": "Emberlode Mine",
+      "anchor": {
+        "q": -252,
+        "r": 16
+      },
+      "floor_generation": "source-authored mine entrance, working vein and old seam",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Mine Entrance",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "mine_entrance",
+              "center": {
+                "q": -252,
+                "r": 16
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "mine_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -252,
+                "r": 18
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "emberlode_ledger",
+              "type": "journal",
+              "position": {
+                "q": -252,
+                "r": 16
+              },
+              "read_id": "emberlode_ledger"
+            },
+            {
+              "id": "mine_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -252,
+                "r": 15
+              },
+              "to_floor": -1
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -1,
+          "name": "Working Vein",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "working_vein",
+              "center": {
+                "q": -252,
+                "r": 16
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "working_vein_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -252,
+                "r": 15
+              },
+              "to_floor": 0
+            },
+            {
+              "id": "working_vein_gold",
+              "type": "ore_node",
+              "ore_type": "ore_gold",
+              "position": {
+                "q": -252,
+                "r": 16
+              },
+              "depleted": false
+            },
+            {
+              "id": "old_seam_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -252,
+                "r": 17
+              },
+              "to_floor": -2
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -2,
+          "name": "Old Seam",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "old_seam",
+              "center": {
+                "q": -252,
+                "r": 16
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "old_seam_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -252,
+                "r": 17
+              },
+              "to_floor": -1
+            },
+            {
+              "id": "old_seam_blue_gem",
+              "type": "ore_node",
+              "ore_type": "gem_blue",
+              "position": {
+                "q": -252,
+                "r": 16
+              },
+              "depleted": false
+            }
+          ],
+          "actors": [],
+          "creatures": [
+            {
+              "id": "emberlode_spider_01",
+              "name": "Cave Spider",
+              "kind": "spider",
+              "position": {
+                "q": -253,
+                "r": 16
+              }
+            },
+            {
+              "id": "emberlode_spider_02",
+              "name": "Cave Spider",
+              "kind": "spider",
+              "position": {
+                "q": -251,
+                "r": 16
+              }
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": -1,
+          "position": {
+            "q": -252,
+            "r": 15
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": 0,
+          "position": {
+            "q": -252,
+            "r": 15
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": -2,
+          "position": {
+            "q": -252,
+            "r": 17
+          }
+        },
+        {
+          "from_floor": -2,
+          "to_floor": -1,
+          "position": {
+            "q": -252,
+            "r": 17
+          }
+        }
+      ],
+      "source_notes": [
+        "The surface mine entrance is the source carveBuilding footprint at mineCenter (-252,16), with its south door at (-252,18), ledger at the centre and stair down at (-252,15).",
+        "The Working Vein at floor -1 contains the source gold ore node at mineCenter and connects back to the surface and down to the Old Seam.",
+        "The Old Seam at floor -2 contains the source blue-gem ore node and two source spider placements at q offsets -1 and +1; creature spawning and combat remain campaign-owned.",
+        "The source door at r+2 adjoins the source-building room floor at r+1; the surface stair at r-1 remains inside the same room footprint."
+      ]
+    },
+    {
       "id": "hollowmere_chapel",
       "name": "Hollowmere — Chapel",
       "anchor": {
@@ -31,14 +484,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_chapel_east_door",
-                "type": "door_open",
-                "position": {
-                  "q": -11,
-                  "r": 0
-                },
-                "light_radius": 0
-              }
+              "id": "hollowmere_chapel_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -11,
+                "r": 0
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -78,22 +531,22 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_general_store_north_door",
-                "type": "door_open",
-                "position": {
-                  "q": 0,
-                  "r": 15
-                },
-                "light_radius": 0
+              "id": "hollowmere_general_store_north_door",
+              "type": "door_open",
+              "position": {
+                "q": 0,
+                "r": 15
               },
+              "light_radius": 0
+            },
             {
-                "id": "hollowmere_general_store_counter",
-                "type": "table",
-                "position": {
-                  "q": 0,
-                  "r": 17
-                }
+              "id": "hollowmere_general_store_counter",
+              "type": "table",
+              "position": {
+                "q": 0,
+                "r": 17
               }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -103,288 +556,6 @@
       "quest_gates": [],
       "source_notes": [
         "The general store is centred at (0,18), uses carveFlatRoom half-width 4 and half-height 3, has a north door at (0,15), and a counter/table at (0,17).",
-        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
-      ]
-    },
-    {
-      "id": "hollowmere_house",
-      "name": "Hollowmere — House",
-      "anchor": {
-        "q": 0,
-        "r": -12
-      },
-      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "hollowmere_house_room",
-              "center": {
-                "q": 0,
-                "r": -12
-              },
-              "half_width": 3,
-              "half_height": 2,
-              "row_shift_mode": "source_building"
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-                "id": "hollowmere_house_south_door",
-                "type": "door_open",
-                "position": {
-                  "q": 0,
-                  "r": -10
-                },
-                "light_radius": 0
-              }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The house is centred at (0,-12), uses carveBuilding half-width 3 and half-height 2, and has a south entrance at (0,-10).",
-        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
-      ]
-    },
-    {
-      "id": "hollowmere_store",
-      "name": "Hollowmere — Store",
-      "anchor": {
-        "q": 14,
-        "r": 0
-      },
-      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Store",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "hollowmere_store_room",
-              "center": {
-                "q": 14,
-                "r": 0
-              },
-              "half_width": 4,
-              "half_height": 3,
-              "row_shift_mode": "source_building"
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-                "id": "hollowmere_store_west_door",
-                "type": "door_open",
-                "position": {
-                  "q": 10,
-                  "r": 0
-                },
-                "light_radius": 0
-              }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The store is centred at (14,0), uses carveBuilding half-width 4 and half-height 3, and has a west entrance at (10,0).",
-        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
-      ]
-    },
-    {
-      "id": "hollowmere_tavern",
-      "name": "Hollowmere — Tavern",
-      "anchor": {
-        "q": 0,
-        "r": 0
-      },
-      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Tavern",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "hollowmere_tavern_room",
-              "center": {
-                "q": 0,
-                "r": 0
-              },
-              "half_width": 6,
-              "half_height": 4,
-              "row_shift_mode": "source_building"
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-                "id": "hollowmere_tavern_south_door",
-                "type": "door_closed",
-                "position": {
-                  "q": 0,
-                  "r": 4
-                },
-                "light_radius": 0,
-                "locked": true
-              },
-            {
-                "id": "hollowmere_tavern_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": -4,
-                  "r": -2
-                },
-                "light_radius": 6
-              },
-            {
-                "id": "hollowmere_tavern_table_east",
-                "type": "table",
-                "position": {
-                  "q": 1,
-                  "r": 1
-                }
-              },
-            {
-                "id": "hollowmere_tavern_bench_east",
-                "type": "bench",
-                "position": {
-                  "q": 1,
-                  "r": 2
-                }
-              },
-            {
-                "id": "hollowmere_tavern_table_west",
-                "type": "table",
-                "position": {
-                  "q": -2,
-                  "r": 0
-                }
-              },
-            {
-                "id": "hollowmere_tavern_bench_west",
-                "type": "bench",
-                "position": {
-                  "q": -2,
-                  "r": 1
-                }
-              }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The tavern floor is the source row-shifted q=-5..5/r=-3..3 footprint, represented as a 6-by-4 half-size room with the same source_building row shift. Its south door at (0,4) begins closed and locked; the fireplace and four source furniture positions are preserved.",
-        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
-      ]
-    },
-    {
-      "id": "mira_house",
-      "name": "Hollowmere — Mira's House",
-      "anchor": {
-        "q": 12,
-        "r": 9
-      },
-      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Mira's House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "mira_house_room",
-              "center": {
-                "q": 12,
-                "r": 9
-              },
-              "half_width": 2,
-              "half_height": 2,
-              "row_shift_mode": "source_building"
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-                "id": "mira_house_west_door",
-                "type": "door_open",
-                "position": {
-                  "q": 10,
-                  "r": 9
-                },
-                "light_radius": 0
-              }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "Mira's house is centred at (12,9), uses carveBuilding half-width 2 and half-height 2, and has a west entrance at (10,9).",
-        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
-      ]
-    },
-    {
-      "id": "oskar_house",
-      "name": "Hollowmere — Oskar's House",
-      "anchor": {
-        "q": -6,
-        "r": 9
-      },
-      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Oskar's House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "oskar_house_room",
-              "center": {
-                "q": -6,
-                "r": 9
-              },
-              "half_width": 2,
-              "half_height": 2,
-              "row_shift_mode": "source_building"
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-                "id": "oskar_house_east_door",
-                "type": "door_open",
-                "position": {
-                  "q": -4,
-                  "r": 9
-                },
-                "light_radius": 0
-              }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "Oskar's house is centred at (-6,9), uses carveBuilding half-width 2 and half-height 2, and has an east entrance at (-4,9).",
         "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
       ]
     },
@@ -434,6 +605,192 @@
       "source_notes": [
         "buildHollowmereGuildDen fixes the room centre at (-12,-8), uses carveBuilding with half-width 2 and half-height 2, and places the south door at (-12,-6).",
         "The guild contact and recruitment/service interactions remain campaign-owned and are intentionally excluded from this map-only floor definition."
+      ]
+    },
+    {
+      "id": "hollowmere_house",
+      "name": "Hollowmere — House",
+      "anchor": {
+        "q": 0,
+        "r": -12
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_house_room",
+              "center": {
+                "q": 0,
+                "r": -12
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "hollowmere_house_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 0,
+                "r": -10
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The house is centred at (0,-12), uses carveBuilding half-width 3 and half-height 2, and has a south entrance at (0,-10).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "hollowmere_store",
+      "name": "Hollowmere — Store",
+      "anchor": {
+        "q": 14,
+        "r": 0
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Store",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_store_room",
+              "center": {
+                "q": 14,
+                "r": 0
+              },
+              "half_width": 4,
+              "half_height": 3,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "hollowmere_store_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 10,
+                "r": 0
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The store is centred at (14,0), uses carveBuilding half-width 4 and half-height 3, and has a west entrance at (10,0).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "hollowmere_tavern",
+      "name": "Hollowmere — Tavern",
+      "anchor": {
+        "q": 0,
+        "r": 0
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Tavern",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_tavern_room",
+              "center": {
+                "q": 0,
+                "r": 0
+              },
+              "half_width": 6,
+              "half_height": 4,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "hollowmere_tavern_south_door",
+              "type": "door_closed",
+              "position": {
+                "q": 0,
+                "r": 4
+              },
+              "light_radius": 0,
+              "locked": true
+            },
+            {
+              "id": "hollowmere_tavern_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": -4,
+                "r": -2
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "hollowmere_tavern_table_east",
+              "type": "table",
+              "position": {
+                "q": 1,
+                "r": 1
+              }
+            },
+            {
+              "id": "hollowmere_tavern_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 1,
+                "r": 2
+              }
+            },
+            {
+              "id": "hollowmere_tavern_table_west",
+              "type": "table",
+              "position": {
+                "q": -2,
+                "r": 0
+              }
+            },
+            {
+              "id": "hollowmere_tavern_bench_west",
+              "type": "bench",
+              "position": {
+                "q": -2,
+                "r": 1
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The tavern floor is the source row-shifted q=-5..5/r=-3..3 footprint, represented as a 6-by-4 half-size room with the same source_building row shift. Its south door at (0,4) begins closed and locked; the fireplace and four source furniture positions are preserved.",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
       ]
     },
     {
@@ -1031,95 +1388,46 @@
       ]
     },
     {
-      "id": "emberlode_bunkhouse",
-      "name": "Emberlode — Bunkhouse",
+      "id": "lich_chapterhouse",
+      "name": "Chapterhouse of the Silver Flame",
       "anchor": {
-        "q": -252,
-        "r": 28
+        "q": -39,
+        "r": -346
       },
-      "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus bunkhouse offset (0,+6)",
+      "source": "Hex-crpg/campaign2World.js:buildLichChapterhouse; Millbrook centre + (-40,+20), with the source east entrance and fireplace",
       "floors": [
         {
           "floor": 0,
-          "name": "Bunkhouse",
-          "terrain": "wood_floor",
+          "name": "Silver Flame Chapterhouse",
+          "terrain": "stone_floor",
           "rooms": [
             {
-              "id": "emberlode_bunkhouse_room",
+              "id": "silver_flame_chapterhouse",
               "center": {
-                "q": -252,
-                "r": 28
+                "q": -39,
+                "r": -346
               },
-              "half_width": 3,
-              "half_height": 2,
-              "row_shift_mode": "source_building"
+              "half_width": 4,
+              "half_height": 3
             }
           ],
           "corridors": [],
           "tile_objects": [
             {
-              "id": "emberlode_bunkhouse_north_door",
+              "id": "chapterhouse_east_door",
               "type": "door_open",
               "position": {
-                "q": -252,
-                "r": 26
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "buildEmberlode places the bunkhouse at road-end offset (0,+6), uses carveBuilding half-width 3 and half-height 2, and places the north door at r-2.",
-        "The miner and guild contact are campaign actors and are excluded from this map-only floor definition."
-      ]
-    },
-    {
-      "id": "emberlode_foremans_hall",
-      "name": "Emberlode — Foreman's Hall",
-      "anchor": {
-        "q": -256,
-        "r": 22
-      },
-      "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus foreman's hall offset (-4,0)",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Foreman's Hall",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "emberlode_foremans_hall_room",
-              "center": {
-                "q": -256,
-                "r": 22
-              },
-              "half_width": 3,
-              "half_height": 2,
-              "row_shift_mode": "source_building"
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "emberlode_foremans_hall_east_door",
-              "type": "door_open",
-              "position": {
-                "q": -253,
-                "r": 22
+                "q": -36,
+                "r": -346
               },
               "light_radius": 0
             },
             {
-              "id": "emberlode_foremans_hall_fireplace",
+              "id": "chapterhouse_fireplace",
               "type": "fireplace",
               "position": {
-                "q": -256,
-                "r": 22
+                "q": -39,
+                "r": -346
               },
               "light_radius": 6
             }
@@ -1131,31 +1439,89 @@
       "transitions": [],
       "quest_gates": [],
       "source_notes": [
-        "buildEmberlode places the foreman's hall at road-end offset (-4,0), uses carveBuilding half-width 3 and half-height 2, and places an east door and central fireplace.",
-        "The foreman is a campaign actor and is excluded from this map-only floor definition."
+        "The source Millbrook waypoint is the north road's 390th step from the crossroads. Applying buildMillbrook's (-6,0) offset gives Millbrook centre (1,-366); buildLichChapterhouse then applies (-40,+20), giving (-39,-346).",
+        "The source uses carveFlatRoom with half-width 4 and half-height 3, a Keep Wall ring, an east door at centre + (3,0), and a fireplace at the room centre.",
+        "The inquisitor and two witch hunters are campaign actors and are intentionally excluded from this map-only definition."
       ]
     },
     {
-      "id": "emberlode_mine",
-      "name": "Emberlode Mine",
+      "id": "millbrook_house",
+      "name": "Millbrook — House",
       "anchor": {
-        "q": -252,
-        "r": 16
+        "q": 1,
+        "r": -366
       },
-      "floor_generation": "source-authored mine entrance, working vein and old seam",
+      "source": "Hex-crpg/campaign2World.js:buildMillbrook; north-road waypoint (7,-366) plus source house offset (-6,0), carveFlatRoom and fireplace",
       "floors": [
         {
           "floor": 0,
-          "name": "Mine Entrance",
-          "terrain": "cave_floor",
+          "name": "Millbrook House",
+          "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "mine_entrance",
+              "id": "millbrook_house_room",
               "center": {
-                "q": -252,
-                "r": 16
+                "q": 1,
+                "r": -366
               },
               "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "millbrook_house_east_door",
+              "type": "door_open",
+              "position": {
+                "q": 4,
+                "r": -366
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "millbrook_house_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 1,
+                "r": -366
+              },
+              "light_radius": 6
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The north-road waypoint alias for Millbrook is (7,-366); buildMillbrook applies (-6,0), giving the house centre (1,-366).",
+        "The source uses carveFlatRoom with half-width 3 and half-height 3, an east entrance at (4,-366), and a fireplace at the room centre.",
+        "The villager and passing quartermaster are campaign actors and are intentionally excluded from this map-only floor definition."
+      ]
+    },
+    {
+      "id": "mira_house",
+      "name": "Hollowmere — Mira's House",
+      "anchor": {
+        "q": 12,
+        "r": 9
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Mira's House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "mira_house_room",
+              "center": {
+                "q": 12,
+                "r": 9
+              },
+              "half_width": 2,
               "half_height": 2,
               "row_shift_mode": "source_building"
             }
@@ -1163,184 +1529,24 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "mine_front_door",
+              "id": "mira_house_west_door",
               "type": "door_open",
               "position": {
-                "q": -252,
-                "r": 18
+                "q": 10,
+                "r": 9
               },
               "light_radius": 0
-            },
-            {
-              "id": "emberlode_ledger",
-              "type": "journal",
-              "position": {
-                "q": -252,
-                "r": 16
-              },
-              "read_id": "emberlode_ledger"
-            },
-            {
-              "id": "mine_stair_down",
-              "type": "stair_down",
-              "position": {
-                "q": -252,
-                "r": 15
-              },
-              "to_floor": -1
             }
           ],
           "actors": [],
           "creatures": []
-        },
-        {
-          "floor": -1,
-          "name": "Working Vein",
-          "terrain": "cave_floor",
-          "rooms": [
-            {
-              "id": "working_vein",
-              "center": {
-                "q": -252,
-                "r": 16
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "working_vein_stair_up",
-              "type": "stair_up",
-              "position": {
-                "q": -252,
-                "r": 15
-              },
-              "to_floor": 0
-            },
-            {
-              "id": "working_vein_gold",
-              "type": "ore_node",
-              "ore_type": "ore_gold",
-              "position": {
-                "q": -252,
-                "r": 16
-              },
-              "depleted": false
-            },
-            {
-              "id": "old_seam_stair_down",
-              "type": "stair_down",
-              "position": {
-                "q": -252,
-                "r": 17
-              },
-              "to_floor": -2
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        },
-        {
-          "floor": -2,
-          "name": "Old Seam",
-          "terrain": "cave_floor",
-          "rooms": [
-            {
-              "id": "old_seam",
-              "center": {
-                "q": -252,
-                "r": 16
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "old_seam_stair_up",
-              "type": "stair_up",
-              "position": {
-                "q": -252,
-                "r": 17
-              },
-              "to_floor": -1
-            },
-            {
-              "id": "old_seam_blue_gem",
-              "type": "ore_node",
-              "ore_type": "gem_blue",
-              "position": {
-                "q": -252,
-                "r": 16
-              },
-              "depleted": false
-            }
-          ],
-          "actors": [],
-          "creatures": [
-            {
-              "id": "emberlode_spider_01",
-              "name": "Cave Spider",
-              "kind": "spider",
-              "position": {
-                "q": -253,
-                "r": 16
-              }
-            },
-            {
-              "id": "emberlode_spider_02",
-              "name": "Cave Spider",
-              "kind": "spider",
-              "position": {
-                "q": -251,
-                "r": 16
-              }
-            }
-          ]
         }
       ],
-      "transitions": [
-        {
-          "from_floor": 0,
-          "to_floor": -1,
-          "position": {
-            "q": -252,
-            "r": 15
-          }
-        },
-        {
-          "from_floor": -1,
-          "to_floor": 0,
-          "position": {
-            "q": -252,
-            "r": 15
-          }
-        },
-        {
-          "from_floor": -1,
-          "to_floor": -2,
-          "position": {
-            "q": -252,
-            "r": 17
-          }
-        },
-        {
-          "from_floor": -2,
-          "to_floor": -1,
-          "position": {
-            "q": -252,
-            "r": 17
-          }
-        }
-      ],
+      "transitions": [],
+      "quest_gates": [],
       "source_notes": [
-        "The surface mine entrance is the source carveBuilding footprint at mineCenter (-252,16), with its south door at (-252,18), ledger at the centre and stair down at (-252,15).",
-        "The Working Vein at floor -1 contains the source gold ore node at mineCenter and connects back to the surface and down to the Old Seam.",
-        "The Old Seam at floor -2 contains the source blue-gem ore node and two source spider placements at q offsets -1 and +1; creature spawning and combat remain campaign-owned.",
-        "The source door at r+2 adjoins the source-building room floor at r+1; the surface stair at r-1 remains inside the same room footprint."
+        "Mira's house is centred at (12,9), uses carveBuilding half-width 2 and half-height 2, and has a west entrance at (10,9).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
       ]
     },
     {
@@ -1392,6 +1598,54 @@
       ]
     },
     {
+      "id": "oskar_house",
+      "name": "Hollowmere — Oskar's House",
+      "anchor": {
+        "q": -6,
+        "r": 9
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Oskar's House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "oskar_house_room",
+              "center": {
+                "q": -6,
+                "r": 9
+              },
+              "half_width": 2,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "oskar_house_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -4,
+                "r": 9
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "Oskar's house is centred at (-6,9), uses carveBuilding half-width 2 and half-height 2, and has an east entrance at (-4,9).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
       "id": "reddale_guardhouse",
       "name": "Reddale — Guardhouse",
       "anchor": {
@@ -1419,23 +1673,23 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_guardhouse_door",
-                "type": "door_open",
-                "position": {
-                  "q": 137,
-                  "r": 24
-                },
-                "light_radius": 0
+              "id": "reddale_guardhouse_door",
+              "type": "door_open",
+              "position": {
+                "q": 137,
+                "r": 24
               },
+              "light_radius": 0
+            },
             {
-                "id": "guardhouse_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 134,
-                  "r": 24
-                },
-                "light_radius": 6
-              }
+              "id": "guardhouse_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 134,
+                "r": 24
+              },
+              "light_radius": 6
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1476,39 +1730,39 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_guildhouse_door",
-                "type": "door_open",
-                "position": {
-                  "q": 143,
-                  "r": 34
-                },
-                "light_radius": 0
+              "id": "reddale_guildhouse_door",
+              "type": "door_open",
+              "position": {
+                "q": 143,
+                "r": 34
               },
+              "light_radius": 0
+            },
             {
-                "id": "guildhouse_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 146,
-                  "r": 34
-                },
-                "light_radius": 6
+              "id": "guildhouse_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 146,
+                "r": 34
               },
+              "light_radius": 6
+            },
             {
-                "id": "guildhouse_table",
-                "type": "table",
-                "position": {
-                  "q": 146,
-                  "r": 33
-                }
-              },
-            {
-                "id": "guildhouse_ledgers",
-                "type": "evidence",
-                "position": {
-                  "q": 147,
-                  "r": 33
-                }
+              "id": "guildhouse_table",
+              "type": "table",
+              "position": {
+                "q": 146,
+                "r": 33
               }
+            },
+            {
+              "id": "guildhouse_ledgers",
+              "type": "evidence",
+              "position": {
+                "q": 147,
+                "r": 33
+              }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1549,23 +1803,23 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_inn_door",
-                "type": "door_open",
-                "position": {
-                  "q": 138,
-                  "r": 28
-                },
-                "light_radius": 0
+              "id": "reddale_inn_door",
+              "type": "door_open",
+              "position": {
+                "q": 138,
+                "r": 28
               },
+              "light_radius": 0
+            },
             {
-                "id": "inn_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 138,
-                  "r": 30
-                },
-                "light_radius": 6
-              }
+              "id": "inn_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 138,
+                "r": 30
+              },
+              "light_radius": 6
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1606,39 +1860,39 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_manor_door",
-                "type": "door_open",
-                "position": {
-                  "q": 143,
-                  "r": 14
-                },
-                "light_radius": 0
+              "id": "reddale_manor_door",
+              "type": "door_open",
+              "position": {
+                "q": 143,
+                "r": 14
               },
+              "light_radius": 0
+            },
             {
-                "id": "manor_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 146,
-                  "r": 14
-                },
-                "light_radius": 6
+              "id": "manor_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 146,
+                "r": 14
               },
+              "light_radius": 6
+            },
             {
-                "id": "manor_table",
-                "type": "table",
-                "position": {
-                  "q": 146,
-                  "r": 13
-                }
-              },
-            {
-                "id": "baron_tariff_records",
-                "type": "evidence",
-                "position": {
-                  "q": 147,
-                  "r": 13
-                }
+              "id": "manor_table",
+              "type": "table",
+              "position": {
+                "q": 146,
+                "r": 13
               }
+            },
+            {
+              "id": "baron_tariff_records",
+              "type": "evidence",
+              "position": {
+                "q": 147,
+                "r": 13
+              }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1679,14 +1933,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_reeve_house_door",
-                "type": "door_open",
-                "position": {
-                  "q": 138,
-                  "r": 20
-                },
-                "light_radius": 0
-              }
+              "id": "reddale_reeve_house_door",
+              "type": "door_open",
+              "position": {
+                "q": 138,
+                "r": 20
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1727,31 +1981,31 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_smithy_door",
-                "type": "door_open",
-                "position": {
-                  "q": 137,
-                  "r": 32
-                },
-                "light_radius": 0
+              "id": "reddale_smithy_door",
+              "type": "door_open",
+              "position": {
+                "q": 137,
+                "r": 32
               },
+              "light_radius": 0
+            },
             {
-                "id": "smithy_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 134,
-                  "r": 32
-                },
-                "light_radius": 6
+              "id": "smithy_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 134,
+                "r": 32
               },
+              "light_radius": 6
+            },
             {
-                "id": "smithy_bed",
-                "type": "bed",
-                "position": {
-                  "q": 133,
-                  "r": 32
-                }
+              "id": "smithy_bed",
+              "type": "bed",
+              "position": {
+                "q": 133,
+                "r": 32
               }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -2063,6 +2317,173 @@
           }
         ]
       }
+    },
+    {
+      "id": "silverhart_clothier",
+      "name": "Silverhart — Clothier",
+      "anchor": {
+        "q": -29,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace clothierCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Clothier",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "clothier",
+              "center": {
+                "q": -29,
+                "r": -502
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "clothier_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -32,
+                "r": -502
+              }
+            },
+            {
+              "id": "clothier_counter",
+              "type": "table",
+              "position": {
+                "q": -29,
+                "r": -501
+              }
+            },
+            {
+              "id": "clothier_bed",
+              "type": "bed",
+              "position": {
+                "q": -29,
+                "r": -503
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_general_goods",
+      "name": "Silverhart — General Goods",
+      "anchor": {
+        "q": -22,
+        "r": -490
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace generalGoodsCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "General Goods",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "general_goods",
+              "center": {
+                "q": -22,
+                "r": -490
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "general_goods_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -19,
+                "r": -490
+              }
+            },
+            {
+              "id": "guild_initiation_prize",
+              "type": "evidence",
+              "evidence_key": "guild_initiation_prize",
+              "position": {
+                "q": -24,
+                "r": -491
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_magic_shop",
+      "name": "Silverhart — Magic Shop",
+      "anchor": {
+        "q": -29,
+        "r": -490
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace magicShopCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Magic Shop",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "magic_shop",
+              "center": {
+                "q": -29,
+                "r": -490
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "magic_shop_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -32,
+                "r": -490
+              }
+            },
+            {
+              "id": "magic_shop_counter",
+              "type": "table",
+              "position": {
+                "q": -29,
+                "r": -489
+              }
+            },
+            {
+              "id": "magic_shop_bed",
+              "type": "bed",
+              "position": {
+                "q": -29,
+                "r": -491
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
     },
     {
       "id": "silverhart_palace",
@@ -2516,6 +2937,142 @@
       "quest_gates": []
     },
     {
+      "id": "silverhart_palace_council_chamber",
+      "name": "Silverhart Palace — Council Chamber",
+      "anchor": {
+        "q": -6,
+        "r": -494
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace councilCenter, councilDoor and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Council Chamber",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "council_chamber",
+              "center": {
+                "q": -6,
+                "r": -494
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "council_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -2,
+                "r": -494
+              }
+            },
+            {
+              "id": "council_table",
+              "type": "table",
+              "position": {
+                "q": -6,
+                "r": -494
+              }
+            },
+            {
+              "id": "council_bench",
+              "type": "bench",
+              "position": {
+                "q": -6,
+                "r": -495
+              }
+            },
+            {
+              "id": "palace_secret_passage",
+              "type": "secret_passage",
+              "position": {
+                "q": -9,
+                "r": -492
+              },
+              "discovered": false,
+              "node_id": "palace"
+            },
+            {
+              "id": "guild_big_score_prize",
+              "type": "evidence",
+              "evidence_key": "guild_big_score_prize",
+              "position": {
+                "q": -3,
+                "r": -492
+              }
+            }
+          ],
+          "actors": [
+            {
+              "id": "chancellor_merric_vane",
+              "name": "Chancellor Merric Vane",
+              "role": "palace_chancellor",
+              "dialogue_id": "palace_chancellor",
+              "position": {
+                "q": -6,
+                "r": -495
+              }
+            }
+          ],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_palace_tunnel",
+      "name": "Silverhart Palace — Hidden Tunnel Junction",
+      "anchor": {
+        "q": -9,
+        "r": -492
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tunnelPalaceHex and tunnelPalaceBuilding",
+      "floor_generation": "Source-authored one-cell cave floor -9 stub for the palace endpoint of the Thieves' Guild tunnel network",
+      "floors": [
+        {
+          "floor": -9,
+          "name": "Palace Tunnel Junction",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "palace_tunnel_stub",
+              "center": {
+                "q": -9,
+                "r": -492
+              },
+              "half_width": 1,
+              "half_height": 1
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "palace_tunnel_junction",
+              "type": "tunnel_junction",
+              "position": {
+                "q": -9,
+                "r": -492
+              },
+              "node_id": "palace"
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildSilverhartPalace places a hidden secret_passage at (-9, -492) in the council chamber and carves a separate one-cell Cave Floor stub at floor -9.",
+        "The source marks the underground endpoint as a tunnel_junction with nodeId 'palace'; travel-menu routing and passage discovery remain campaign-owned."
+      ]
+    },
+    {
       "id": "silverhart_palace_wizard_tower",
       "name": "Silverhart Palace — Wizard's Tower",
       "anchor": {
@@ -2732,24 +3289,24 @@
       "quest_gates": []
     },
     {
-      "id": "silverhart_palace_council_chamber",
-      "name": "Silverhart Palace — Council Chamber",
+      "id": "silverhart_stables",
+      "name": "Silverhart — Royal Stables",
       "anchor": {
-        "q": -6,
-        "r": -494
+        "q": -23,
+        "r": -502
       },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace councilCenter, councilDoor and carveFlatRoom",
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace stableCenter and carveFlatRoom",
       "floors": [
         {
           "floor": 0,
-          "name": "Council Chamber",
+          "name": "Royal Stables",
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "council_chamber",
+              "id": "stables",
               "center": {
-                "q": -6,
-                "r": -494
+                "q": -23,
+                "r": -502
               },
               "half_width": 4,
               "half_height": 3
@@ -2758,42 +3315,23 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "council_front_door",
+              "id": "stables_front_door",
               "type": "door_open",
               "position": {
-                "q": -2,
-                "r": -494
+                "q": -19,
+                "r": -502
               }
             },
             {
-              "id": "council_table",
-              "type": "table",
+              "id": "stables_pen",
+              "type": "fence_h",
               "position": {
-                "q": -6,
-                "r": -494
-              }
-            },
-            {
-              "id": "council_bench",
-              "type": "bench",
-              "position": {
-                "q": -6,
-                "r": -495
+                "q": -23,
+                "r": -502
               }
             }
           ],
-          "actors": [
-            {
-              "id": "chancellor_merric_vane",
-              "name": "Chancellor Merric Vane",
-              "role": "palace_chancellor",
-              "dialogue_id": "palace_chancellor",
-              "position": {
-                "q": -6,
-                "r": -495
-              }
-            }
-          ],
+          "actors": [],
           "creatures": []
         }
       ],
@@ -2915,223 +3453,6 @@
               }
             }
           ],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": []
-    },
-    {
-      "id": "silverhart_stables",
-      "name": "Silverhart — Royal Stables",
-      "anchor": {
-        "q": -23,
-        "r": -502
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace stableCenter and carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Royal Stables",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "stables",
-              "center": {
-                "q": -23,
-                "r": -502
-              },
-              "half_width": 4,
-              "half_height": 3
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "stables_front_door",
-              "type": "door_open",
-              "position": {
-                "q": -19,
-                "r": -502
-              }
-            },
-            {
-              "id": "stables_pen",
-              "type": "fence_h",
-              "position": {
-                "q": -23,
-                "r": -502
-              }
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": []
-    },
-    {
-      "id": "silverhart_general_goods",
-      "name": "Silverhart — General Goods",
-      "anchor": {
-        "q": -22,
-        "r": -490
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace generalGoodsCenter and carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "General Goods",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "general_goods",
-              "center": {
-                "q": -22,
-                "r": -490
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "general_goods_front_door",
-              "type": "door_open",
-              "position": {
-                "q": -19,
-                "r": -490
-              }
-            },
-            {
-              "id": "guild_initiation_prize",
-              "type": "evidence",
-              "evidence_key": "guild_initiation_prize",
-              "position": {
-                "q": -24,
-                "r": -491
-              }
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": []
-    },
-    {
-      "id": "silverhart_clothier",
-      "name": "Silverhart — Clothier",
-      "anchor": {
-        "q": -29,
-        "r": -502
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace clothierCenter and carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Clothier",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "clothier",
-              "center": {
-                "q": -29,
-                "r": -502
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "clothier_front_door",
-              "type": "door_open",
-              "position": {
-                "q": -32,
-                "r": -502
-              }
-            },
-            {
-              "id": "clothier_counter",
-              "type": "table",
-              "position": {
-                "q": -29,
-                "r": -501
-              }
-            },
-            {
-              "id": "clothier_bed",
-              "type": "bed",
-              "position": {
-                "q": -29,
-                "r": -503
-              }
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": []
-    },
-    {
-      "id": "silverhart_magic_shop",
-      "name": "Silverhart — Magic Shop",
-      "anchor": {
-        "q": -29,
-        "r": -490
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace magicShopCenter and carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Magic Shop",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "magic_shop",
-              "center": {
-                "q": -29,
-                "r": -490
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "magic_shop_front_door",
-              "type": "door_open",
-              "position": {
-                "q": -32,
-                "r": -490
-              }
-            },
-            {
-              "id": "magic_shop_counter",
-              "type": "table",
-              "position": {
-                "q": -29,
-                "r": -489
-              }
-            },
-            {
-              "id": "magic_shop_bed",
-              "type": "bed",
-              "position": {
-                "q": -29,
-                "r": -491
-              }
-            }
-          ],
-          "actors": [],
           "creatures": []
         }
       ],
@@ -3298,79 +3619,6 @@
       ]
     },
     {
-      "id": "corvin_ashgrave_barrow",
-      "name": "Barrow of Corvin Ashgrave",
-      "anchor": {
-        "q": 63,
-        "r": -160
-      },
-      "source": "Hex-crpg/campaign2World.js:buildLichBarrow; source corridor q67..68; the 3D map extends it one cell west to open the source room wall ring and keep both rooms connected",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Antechamber and Lich Sanctum",
-          "terrain": "cave_floor",
-          "rooms": [
-            {
-              "id": "lich_barrow_antechamber",
-              "center": {
-                "q": 63,
-                "r": -160
-              },
-              "half_width": 3,
-              "half_height": 3
-            },
-            {
-              "id": "corvin_lich_sanctum",
-              "center": {
-                "q": 72,
-                "r": -160
-              },
-              "half_width": 4,
-              "half_height": 3
-            }
-          ],
-          "corridors": [
-            {
-              "id": "antechamber_to_sanctum",
-              "from": {
-                "q": 66,
-                "r": -160
-              },
-              "to": {
-                "q": 69,
-                "r": -160
-              },
-              "algorithm": "source_straight_q"
-            }
-          ],
-          "tile_objects": [
-            {
-              "id": "barrow_entrance_door",
-              "type": "door_open",
-              "position": {
-                "q": 60,
-                "r": -160
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "lich_sanctum_door",
-              "type": "door_open",
-              "position": {
-                "q": 69,
-                "r": -160
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": []
-    },
-    {
       "id": "vessel_seekers_crypt",
       "name": "Vessel-Seeker's Crypt",
       "anchor": {
@@ -3502,187 +3750,6 @@
         }
       ],
       "transitions": []
-    },
-    {
-      "id": "millbrook_house",
-      "name": "Millbrook — House",
-      "anchor": {
-        "q": 1,
-        "r": -366
-      },
-      "source": "Hex-crpg/campaign2World.js:buildMillbrook; north-road waypoint (7,-366) plus source house offset (-6,0), carveFlatRoom and fireplace",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Millbrook House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "millbrook_house_room",
-              "center": {
-                "q": 1,
-                "r": -366
-              },
-              "half_width": 3,
-              "half_height": 3
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "millbrook_house_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 4,
-                "r": -366
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "millbrook_house_fireplace",
-              "type": "fireplace",
-              "position": {
-                "q": 1,
-                "r": -366
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The north-road waypoint alias for Millbrook is (7,-366); buildMillbrook applies (-6,0), giving the house centre (1,-366).",
-        "The source uses carveFlatRoom with half-width 3 and half-height 3, an east entrance at (4,-366), and a fireplace at the room centre.",
-        "The villager and passing quartermaster are campaign actors and are intentionally excluded from this map-only floor definition."
-      ]
-    },
-    {
-      "id": "lich_chapterhouse",
-      "name": "Chapterhouse of the Silver Flame",
-      "anchor": {
-        "q": -39,
-        "r": -346
-      },
-      "source": "Hex-crpg/campaign2World.js:buildLichChapterhouse; Millbrook centre + (-40,+20), with the source east entrance and fireplace",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silver Flame Chapterhouse",
-          "terrain": "stone_floor",
-          "rooms": [
-            {
-              "id": "silver_flame_chapterhouse",
-              "center": {
-                "q": -39,
-                "r": -346
-              },
-              "half_width": 4,
-              "half_height": 3
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "chapterhouse_east_door",
-              "type": "door_open",
-              "position": {
-                "q": -36,
-                "r": -346
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "chapterhouse_fireplace",
-              "type": "fireplace",
-              "position": {
-                "q": -39,
-                "r": -346
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The source Millbrook waypoint is the north road's 390th step from the crossroads. Applying buildMillbrook's (-6,0) offset gives Millbrook centre (1,-366); buildLichChapterhouse then applies (-40,+20), giving (-39,-346).",
-        "The source uses carveFlatRoom with half-width 4 and half-height 3, a Keep Wall ring, an east door at centre + (3,0), and a fireplace at the room centre.",
-        "The inquisitor and two witch hunters are campaign actors and are intentionally excluded from this map-only definition."
-      ]
-    },
-    {
-      "id": "abandoned_house",
-      "name": "Abandoned House",
-      "anchor": {
-        "q": 14,
-        "r": -176
-      },
-      "source": "Hex-crpg/campaign2World.js:buildAbandonedHouse; north-road step 200 + (6,0), source carveFlatRoom and journal/altar positions",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Abandoned House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "abandoned_house_room",
-              "center": {
-                "q": 14,
-                "r": -176
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "abandoned_house_west_door",
-              "type": "door_open",
-              "position": {
-                "q": 11,
-                "r": -176
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "abandoned_house_journal",
-              "type": "journal",
-              "position": {
-                "q": 14,
-                "r": -176
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "phylactery_altar",
-              "type": "journal",
-              "position": {
-                "q": 15,
-                "r": -176
-              },
-              "read_id": "phylactery_altar",
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The abandoned-house waypoint is the 200th step of the north road from crossroads (8,24), at (8,-176). buildAbandonedHouse applies (+6,0), giving room centre (14,-176).",
-        "The source room uses carveFlatRoom with half-width 3 and half-height 2, a west entrance at (11,-176), and a short exterior path from the waypoint to that door.",
-        "The journal and phylactery altar are preserved as physical map objects; dormant skeleton placements and their activation/reputation behaviour remain campaign-owned."
-      ]
     }
   ]
 }
