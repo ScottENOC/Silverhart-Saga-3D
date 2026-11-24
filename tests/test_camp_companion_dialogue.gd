@@ -49,6 +49,7 @@ func _initialize() -> void:
 			_check(not pair.is_empty(), "Every authored companion should have dialogue with every other companion")
 			_check((pair.get("lines", []) as Array).size() == 2)
 
+	_check(not SERVICE.build_exchange("companion_warlord_grukk", "companion_nix_sharpear", 3, bonds).is_empty(), "Grukk's actual campaign ID should resolve to his authored profile")
 	_check(SERVICE.build_exchange("player", "companion_ser_aldric_thorne", 0, bonds).is_empty())
 	_check(SERVICE.build_exchange("companion_ser_aldric_thorne", "companion_ser_aldric_thorne", 0, bonds).is_empty())
 
