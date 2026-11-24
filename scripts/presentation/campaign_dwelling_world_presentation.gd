@@ -8,7 +8,7 @@ static func present_all(parent: Node3D, state: CampaignDwellingState, hex_radius
 		return {"ok": false, "reason": "invalid_dwelling_presentation_input"}
 	var previous := parent.get_node_or_null("CampaignDwellingPresentation")
 	if previous != null:
-		previous.queue_free()
+		previous.free()
 	var root := Node3D.new()
 	root.name = "CampaignDwellingPresentation"
 	parent.add_child(root)
