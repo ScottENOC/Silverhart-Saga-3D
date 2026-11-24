@@ -51,7 +51,7 @@ static func submit_surface_contact(
     mesh_node_path: NodePath,
     surface_index: int,
     triangle_vertex_indices: PackedInt32Array,
-    barycentric_weights: Vector3,
+    barycentric_weights: PackedFloat32Array,
     penetration_m: float,
     closing_speed_m_per_s: float,
     contact_stiffness_n_per_m: float,
