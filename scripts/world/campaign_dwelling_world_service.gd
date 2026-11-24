@@ -102,6 +102,12 @@ static func inspection_for_site(
 				"label": "Enter the house · %d guardians remain" % remaining_guardians,
 				"text": ""
 			})
+		elif quest_status == "active" and remaining_guardians == 0:
+			choices.append({
+				"id": "abandoned_house_finalize",
+				"label": "Confirm the house is clear",
+				"text": ""
+			})
 
 	for action_id_value in site.get("actions", []):
 		var action_id := String(action_id_value)
