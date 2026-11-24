@@ -185,34 +185,25 @@ func parents_reflection_line() -> String:
 func dialogue_topics(relationships: CompanionRelationshipState, journal: CampaignJournal) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var rel: Dictionary = relationships.snapshot("wren_talbot") if relationships != null else {}
-	var why_stay_used := false
-	for choice_id in WHY_STAY_CHOICE_IDS:
-		if dialogue_choice_keys.has(choice_id):
-			why_stay_used = true
-			break
-	if float(rel.get("familiarity", 0.0)) >= 35.0 and not why_stay_used:
+	if float(rel.get("familiarity", 0.0)) >= 35.0:
 		options.append({"id":"wren_arc_topic:why_stay","label":"Why do you always stay?"})
 	var parents_completed := journal != null and String(journal.quest_state("wren_parents").get("status", "")) == "completed"
-	var parents_reflection_used := false
-	for choice_id in PARENTS_REFLECTION_CHOICE_IDS:
-		if dialogue_choice_keys.has(choice_id):
-			parents_reflection_used = true
-			break
-	if parents_completed and not parents_reflection_used:
+	if parents_completed:
 		options.append({"id":"wren_arc_topic:parents_reflection","label":"What did finding your parents change for you?"})
 	return options
 
 
 func dialogue_options_for_topic(topic_id: String) -> Array[Dictionary]:
 	var ids: Array = WHY_STAY_CHOICE_IDS if topic_id == "why_stay" else PARENTS_REFLECTION_CHOICE_IDS
+	for choice_id_value in ids:
+		if dialogue_choice_keys.has(String(choice_id_value)):
+			var follow_up_label := "I’m glad you’re here." if topic_id == "why_stay" else "Whatever comes next, we’ll face it."
+			return [{"id":"continue","label":follow_up_label,"text":""}]
 	var options: Array[Dictionary] = []
 	for choice_id_value in ids:
 		var choice_id := String(choice_id_value)
-		if dialogue_choice_keys.has(choice_id):
-			continue
 		options.append({"id":"wren_arc_choice:" + choice_id,"label":String(DIALOGUE_LABELS.get(choice_id, choice_id))})
 	return options
-
 
 func dialogue_response_for(choice_id: String) -> String:
 	return String(DIALOGUE_RESPONSES.get(choice_id, "Wren considers your words for a moment."))
