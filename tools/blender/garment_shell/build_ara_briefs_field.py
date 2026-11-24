@@ -12,7 +12,8 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
+
+from shell_core import axis_parameter
 
 
 def args():
