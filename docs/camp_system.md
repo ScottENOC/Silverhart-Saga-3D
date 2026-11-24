@@ -21,14 +21,14 @@ Current animation mapping:
 | --- | --- | --- |
 | Gather wood | `pick_up` → `carry_idle` | Generic ground pickup followed by a two-hand carry pose; no dedicated chopping clip is documented |
 | Set up tents | `pick_up` → `use_press` | Generic lifting and interaction gestures; tent assembly itself is not animated yet |
-| Fetch water | `head_load_idle`, `carry_idle`, `pick_up` | The basin prop must be exported/attached for a convincing head-load |
+| Fetch water | `pick_up` → `carry_idle` | Generic two-hand carry pose; no water container prop is attached yet |
 | Cook | `use_press` | Generic interaction gesture; no dedicated cooking clip is documented |
 | Repair gear | `use_press` | Generic interaction gesture |
-| Study map | `sit_idle` | No map prop/hand interaction yet |
+| Study map | `use_press` | Standing interaction gesture avoids sitting without a chair; no map prop is attached yet |
 | Train | `squat`, `push_up` | Fitness clips are loops |
 | Socialise | `talk_gestures` | Background conversational loop |
 | Watch | `look_around` | Background look-around loop |
-| Sleep | `sleep`, `lie_down` | Sleep is available; bedding alignment remains a separate task |
+| Sleep | `lie_down` → `sleep` | Uses the authored transition into the looping sleep pose; bedding alignment remains a separate task |
 
 The runtime uses Ara's canonical clip IDs (rather than display labels), tries preferences in order and falls back gracefully when an imported character asset does not contain a clip. Looping clips remain active; one-shot clips are replayed or chained into a carry/interaction pose while the character remains assigned.
 
