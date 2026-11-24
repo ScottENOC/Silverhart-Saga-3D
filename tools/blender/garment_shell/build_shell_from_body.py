@@ -9,6 +9,7 @@ The JSON file is {"field_values": [one signed value per body vertex]}.
 import argparse
 import json
 import sys
+import traceback
 from pathlib import Path
 
 import bpy
