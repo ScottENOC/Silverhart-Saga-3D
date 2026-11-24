@@ -116,6 +116,31 @@ func _initialize() -> void:
 	var cove_tunnel: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -9, cove_state)
 	_check(cove_tunnel.get("walkable_hexes", []).size() == 1, "Wilderness tunnel junction must remain a one-cell stub")
 
+	var crypt_definition: Dictionary = registry.get_definition("vessel_seekers_crypt")
+	var crypt_state = LOCATION_STATE.new()
+	_check(bool(crypt_state.configure(crypt_definition).get("ok", false)), "Vessel-Seeker crypt state must configure")
+	var crypt_result: Dictionary = FLOOR_BUILDER.build_floor_map(crypt_definition, 0, crypt_state)
+	_check(bool(crypt_result.get("ok", false)), "Vessel-Seeker crypt source floor must build")
+	if bool(crypt_result.get("ok", false)):
+		var crypt_map: HexMapData = crypt_result.get("map_data") as HexMapData
+		_check(_has_walkable_path(crypt_map, Vector2i(29, -154), Vector2i(49, -154)), "Crypt entrance, ossuary and ritual chambers must form one connected walkable layout")
+		_check(_has_object(crypt_result.get("tile_objects", []), "crypt_entrance_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ossuary_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ritual_door"), "Crypt must emit all three source door openings")
+		_check(crypt_result.get("actors", []).is_empty() and crypt_result.get("creatures", []).is_empty(), "Map-only crypt floor must leave encounters to campaign systems")
+	var barrow_definition: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
+	var barrow_state = LOCATION_STATE.new()
+	_check(bool(barrow_state.configure(barrow_definition).get("ok", false)), "Corvin Ashgrave barrow state must configure")
+	var barrow_result: Dictionary = FLOOR_BUILDER.build_floor_map(barrow_definition, 0, barrow_state)
+	_check(bool(barrow_result.get("ok", false)), "Corvin Ashgrave source floor must build")
+	if bool(barrow_result.get("ok", false)):
+		var barrow_map: HexMapData = barrow_result.get("map_data") as HexMapData
+		_check(_has_walkable_path(barrow_map, Vector2i(60, -160), Vector2i(72, -160)), "Barrow antechamber and sanctum must form one connected walkable layout")
+		_check(barrow_map.is_walkable(Vector2i(60, -160)), "Barrow entrance doorway must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(63, -160)), "Barrow antechamber centre must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(66, -160)) and barrow_map.is_walkable(Vector2i(67, -160)) and barrow_map.is_walkable(Vector2i(68, -160)) and barrow_map.is_walkable(Vector2i(69, -160)), "Source corridor must connect the antechamber to the sanctum doorway")
+		_check(barrow_map.is_walkable(Vector2i(72, -160)), "Lich sanctum centre must be walkable")
+		_check(_has_object(barrow_result.get("tile_objects", []), "barrow_entrance_door") and _has_object(barrow_result.get("tile_objects", []), "lich_sanctum_door"), "Both source door openings must be emitted")
+		_check(barrow_result.get("actors", []).is_empty() and barrow_result.get("creatures", []).is_empty(), "Map-only barrow floor must leave encounters to campaign systems")
+
 	var elven_definition: Dictionary = registry.get_definition("silthandriel")
 	var elven_state = LOCATION_STATE.new()
 	_check(bool(elven_state.configure(elven_definition).get("ok", false)), "Sil'thandriel traversal state must configure")
@@ -156,6 +181,22 @@ func _initialize() -> void:
 		return
 	print("Kragmoor source-authored floor maps validated.")
 	quit(0)
+
+func _has_walkable_path(map_data: HexMapData, start: Vector2i, goal: Vector2i) -> bool:
+	if map_data == null or not map_data.is_walkable(start) or not map_data.is_walkable(goal):
+		return false
+	var queue: Array[Vector2i] = [start]
+	var visited: Dictionary = {start: true}
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		if current == goal:
+			return true
+		for neighbour in HexGrid.neighbors(current):
+			if visited.has(neighbour) or not map_data.is_walkable(neighbour):
+				continue
+			visited[neighbour] = true
+			queue.append(neighbour)
+	return false
 
 func _has_object(objects: Array, object_id: String) -> bool:
 	for object in objects:

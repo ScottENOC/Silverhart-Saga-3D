@@ -191,14 +191,14 @@ static func _ensure_dungeon_surface_features() -> void:
 	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_ENTRANCE_CENTRE, 3, 2, CRYPT_ENTRANCE_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_entrance")
 	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_OSSUARY_CENTRE, 3, 3, CRYPT_OSSUARY_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_ossuary")
 	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_RITUAL_CENTRE, 4, 3, CRYPT_RITUAL_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_ritual")
-	_add_surface_corridor(_dungeon_surface_cells, Vector2i(36, -154), Vector2i(36, -154), "vessel_seeker_crypt_corridor")
-	_add_surface_corridor(_dungeon_surface_cells, Vector2i(44, -154), Vector2i(45, -154), "vessel_seeker_crypt_corridor")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(35, -155), Vector2i(36, -154), "vessel_seeker_crypt_corridor")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(43, -154), Vector2i(45, -154), "vessel_seeker_crypt_corridor")
 
 	# Barrow of Corvin Ashgrave: antechamber and sanctum, also joined by the
 	# source horizontal cave-floor passage.
 	_add_flat_surface_room(_dungeon_surface_cells, BARROW_ANTECHAMBER_CENTRE, 3, 3, BARROW_ANTECHAMBER_CENTRE + Vector2i(-3, 0), "cave_floor", "corvin_barrow_antechamber")
 	_add_flat_surface_room(_dungeon_surface_cells, BARROW_SANCTUM_CENTRE, 4, 3, BARROW_SANCTUM_CENTRE + Vector2i(-3, 0), "cave_floor", "corvin_barrow_sanctum")
-	_add_surface_corridor(_dungeon_surface_cells, Vector2i(67, -160), Vector2i(68, -160), "corvin_barrow_corridor")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(66, -160), Vector2i(68, -160), "corvin_barrow_corridor")
 
 	# Chapterhouse: source stone floor and keep-wall footprint.
 	_add_flat_surface_room(_dungeon_surface_cells, LICH_CHAPTERHOUSE_CENTRE, 4, 3, LICH_CHAPTERHOUSE_CENTRE + Vector2i(3, 0), "stone_floor", "lich_chapterhouse", "keep_wall")
