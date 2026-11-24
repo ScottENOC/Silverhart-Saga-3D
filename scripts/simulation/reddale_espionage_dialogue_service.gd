@@ -83,7 +83,11 @@ static func _quest_for_dialogue(journal: CampaignJournal, npc_id: String) -> Str
 		return ""
 	if journal.quests.has(employer_quest):
 		return employer_quest
-	return _active_quest_for_counterparty(journal, npc_id)
+	var counterparty_quest := _active_quest_for_counterparty(journal, npc_id)
+	if not counterparty_quest.is_empty():
+		return counterparty_quest
+	# Before a mission exists, the employer still needs to present its offer.
+	return employer_quest
 
 
 static func _active_quest_for_counterparty(journal: CampaignJournal, npc_id: String) -> String:
