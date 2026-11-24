@@ -27,6 +27,9 @@ static func npc_context(journal: CampaignJournal, npc_id: String, settlement_id:
 	var public_status := String(npc_flags.get("public_status", "")).strip_edges()
 	if public_status.is_empty() and bool(npc_flags.get("public_status_visible", false)):
 		public_status = "Changed by recent events"
+	var settlement_public_status := ""
+	if bool(npc_flags.get("show_settlement_status", false)):
+		settlement_public_status = String(settlement_flags.get("public_status", "")).strip_edges()
 	if public_status.is_empty() and faction_id == "ironbond_company":
 		var presence := float(settlement_state.get("ironbond_presence", 0.0))
 		if presence <= -1.0:
@@ -42,7 +45,8 @@ static func npc_context(journal: CampaignJournal, npc_id: String, settlement_id:
 		"settlement_flags": settlement_flags.duplicate(true),
 		"trust": float(npc_state.get("trust", 0.0)),
 		"fear": float(npc_state.get("fear", 0.0)),
-		"public_status": public_status
+		"public_status": public_status,
+		"settlement_public_status": settlement_public_status
 	}
 
 
@@ -60,7 +64,9 @@ static func apply_npc_actor_state(actor: Node3D, journal: CampaignJournal, npc_i
 	actor.set_meta("campaign_npc_flags", context.get("npc_flags", {}).duplicate(true))
 	actor.set_meta("campaign_settlement_flags", context.get("settlement_flags", {}).duplicate(true))
 	actor.set_meta("campaign_public_status", String(context.get("public_status", "")))
+	actor.set_meta("campaign_settlement_public_status", String(context.get("settlement_public_status", "")))
 	_update_public_status_label(actor, String(context.get("public_status", "")))
+	_update_settlement_status_label(actor, String(context.get("settlement_public_status", "")))
 	return {"ok": true, "context": context}
 
 
@@ -78,5 +84,23 @@ static func _update_public_status_label(actor: Node3D, status: String) -> void:
 		label.font_size = 18
 		label.outline_size = 4
 		label.modulate = Color(0.92, 0.82, 0.62)
+		actor.add_child(label)
+	label.text = status
+
+
+static func _update_settlement_status_label(actor: Node3D, status: String) -> void:
+	var label := actor.get_node_or_null("CampaignSettlementStatusLabel") as Label3D
+	if status.is_empty():
+		if label != null:
+			label.queue_free()
+		return
+	if label == null:
+		label = Label3D.new()
+		label.name = "CampaignSettlementStatusLabel"
+		label.position.y = 2.62
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.font_size = 16
+		label.outline_size = 4
+		label.modulate = Color(0.82, 0.88, 0.76)
 		actor.add_child(label)
 	label.text = status
