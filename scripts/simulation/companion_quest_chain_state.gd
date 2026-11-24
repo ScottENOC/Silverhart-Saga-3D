@@ -258,6 +258,11 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 	quest_state["resolution"] = ""
 	quest_state["description"] = String(definition.get("description", ""))
 	journal.quests[quest_id] = quest_state
+	if quest_id == "aldric_broken_vigil":
+		var aldric_state: Dictionary = companion_relationships.ensure(companion_id)
+		var aldric_history: Array = aldric_state.get("history", [])
+		if aldric_history.is_empty() and is_equal_approx(float(aldric_state.get("familiarity", 10.0)), 10.0) and is_equal_approx(float(aldric_state.get("trust", 10.0)), 10.0):
+			companion_relationships.adjust(companion_id, {"familiarity":8.0,"trust":20.0,"approval":10.0}, "authored_start:aldric_rescued_companion")
 	companion_relationships.note_conversation(companion_id, quest_id + ":opened", 3.0)
 	for clue_id_value in definition.get("clues", {}).keys():
 		var clue_id := String(clue_id_value)
@@ -456,9 +461,14 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 	quest_state["completed_at"] = world_seconds
 	quest_state["completion_reason"] = reason
 	quest_state["outcome_flags"] = flags
+	var world_effects := {"surface_power_delta":float(effect.get("surface_power_delta", 0.0))}
+	quest_state["world_effects"] = world_effects.duplicate(true)
 	quest_state["description"] = String(effect.get("description", definition.get("description", "")))
 	journal.quests[quest_id] = quest_state
 	var result_line := String(effect.get("line", "The decision is made."))
+	var xp_reward := int(definition.get("xp", 0))
+	if has_sealed_dispatch:
+		xp_reward += int(definition.get("full_proof_xp_bonus", 0))
 	if resolution_id == "managed_spillway" and has_old_channel:
 		result_line = String(effect.get("line_with_channel", result_line))
 	return {
@@ -466,7 +476,7 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		"quest_id":quest_id,
 		"resolution":resolution_id,
 		"line":result_line,
-		"xp_reward":int(definition.get("xp", 0)),
+		"xp_reward":xp_reward,
 		"relationship":relationship_delta,
 		"affinity":affinity_delta.duplicate(true),
 		"arc_state":arc_state.duplicate(true),
@@ -474,7 +484,7 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		"gold_spent":gold_cost,
 		"gold_awarded":gold_reward,
 		"full_proof":has_sealed_dispatch,
-		"world_effects":{"surface_power_delta":float(effect.get("surface_power_delta", 0.0))}
+		"world_effects":world_effects.duplicate(true)
 	}
 
 
