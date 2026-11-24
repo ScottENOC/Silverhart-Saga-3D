@@ -356,11 +356,17 @@ func apply_npc_campaign_state(npc_id: String, numeric_deltas: Dictionary, flags:
 
 
 func settlement_campaign_state(settlement_id: String) -> Dictionary:
-    return (settlement_campaign_states.get(settlement_id, {}) as Dictionary).duplicate(true)
+    var state: Variant = settlement_campaign_states.get(settlement_id, {})
+    if not state is Dictionary:
+        return {}
+    return state.duplicate(true)
 
 
 func npc_campaign_state(npc_id: String) -> Dictionary:
-    return (npc_campaign_states.get(npc_id, {}) as Dictionary).duplicate(true)
+    var state: Variant = npc_campaign_states.get(npc_id, {})
+    if not state is Dictionary:
+        return {}
+    return state.duplicate(true)
 
 
 func quest_state(quest_id: String) -> Dictionary:
