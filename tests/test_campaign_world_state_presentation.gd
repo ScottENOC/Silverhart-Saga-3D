@@ -32,7 +32,7 @@ func _test_actor_presentation_and_interaction_context() -> void:
 	var settlements: Array[Dictionary] = [{
 		"settlement_id":"reddale",
 		"deltas":{"public_order":10.0, "ironbond_presence":-20.0},
-		"flags":{"reeve_backed_resistance":true}
+		"flags":{"reeve_backed_resistance":true, "public_status":"Public order restored"}
 	}]
 	var npcs: Array[Dictionary] = [{
 		"npc_id":"reeve_aldous_finch",
@@ -40,7 +40,8 @@ func _test_actor_presentation_and_interaction_context() -> void:
 		"flags":{
 			"will_openly_oppose_ironbond":true,
 			"public_status_visible":true,
-			"public_status":"Openly opposes Ironbond"
+			"public_status":"Openly opposes Ironbond",
+			"show_settlement_status":true
 		}
 	}]
 	var applied := WORLD_CONSEQUENCE_SERVICE.apply_decision_consequences(
@@ -64,6 +65,8 @@ func _test_actor_presentation_and_interaction_context() -> void:
 	_check(actor.get_meta("campaign_public_status", "") == "Openly opposes Ironbond", "The actor should expose its authored public status")
 	var status_label := actor.get_node_or_null("CampaignStatusLabel") as Label3D
 	_check(status_label != null and status_label.text == "Openly opposes Ironbond", "The Reeve's changed stance should be visible above the actor")
+	var settlement_label := actor.get_node_or_null("CampaignSettlementStatusLabel") as Label3D
+	_check(settlement_label != null and settlement_label.text == "Public order restored", "The Reeve should visibly communicate the settlement-wide outcome")
 
 	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
 	player.side = "player"
@@ -81,6 +84,7 @@ func _test_actor_presentation_and_interaction_context() -> void:
 	_check(nearby.size() == 1, "The changed Reeve should remain available to nearby interaction")
 	if nearby.size() == 1:
 		_check(String(nearby[0].get("public_status", "")) == "Openly opposes Ironbond", "Nearby interaction should expose the Reeve's changed public stance")
+		_check(String(nearby[0].get("campaign_context", {}).get("settlement_public_status", "")) == "Public order restored", "Nearby interaction should expose the settlement-wide status")
 		_check(is_equal_approx(float(nearby[0].get("campaign_context", {}).get("trust", 0.0)), 15.0), "Nearby interaction should expose the Reeve's changed trust")
 
 	var settlement_context := WORLD_STATE_SERVICE.settlement_context(journal, "reddale")
