@@ -683,7 +683,7 @@ func _select_camp_site(hex: Vector2i) -> void:
 	if not bool(result.get("ok", false)):
 		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
 		return
-	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements)
+	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 	camp_status_label.text = "Camp established. The party can continue exploring and working while evening activities unfold."
 	if camp_sleep_button != null:
 		camp_sleep_button.visible = true
@@ -699,6 +699,7 @@ func _sleep_or_pack_camp() -> void:
 			camp_status_label.text = "Could not begin the night: %s" % String(result.get("reason", "unknown"))
 			return
 		var summary: Dictionary = result.get("summary", {})
+		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 		camp_status_label.text = "Morning. Camp comfort: %d/100 · estimated overnight ambush risk: %d%%." % [
 			roundi(float(summary.get("average_comfort", 0.0))),
 			roundi(float(summary.get("ambush_chance", 0.0)) * 100.0)
@@ -1035,6 +1036,8 @@ func _build_save_snapshot() -> Dictionary:
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
+		"camp_simulation": simulation.camp_simulation.to_dict(),
+		"companion_bonds": simulation.companion_bonds.to_dict(),
 		"world_flags": {
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
@@ -1109,6 +1112,16 @@ func _apply_save_data(data: Dictionary) -> void:
 	var clock_data: Variant = data.get("clock", {})
 	if clock_data is Dictionary:
 		simulation.clock.load_dict(clock_data)
+	var saved_camp: Variant = data.get("camp_simulation", {})
+	if saved_camp is Dictionary and not saved_camp.is_empty():
+		if not simulation.camp_simulation.from_dict(saved_camp):
+			push_warning("Saved camp state was invalid and has been reset.")
+			simulation.camp_simulation = CampSimulation.new()
+	var saved_bonds: Variant = data.get("companion_bonds", {})
+	if saved_bonds is Dictionary and not saved_bonds.is_empty():
+		if not simulation.companion_bonds.from_dict(saved_bonds):
+			push_warning("Saved companion-to-companion relationships were invalid and have been reset.")
+			simulation.companion_bonds = CompanionBondState.new()
 	var journal_data: Variant = data.get("campaign_journal", {})
 	if journal_data is Dictionary:
 		simulation.campaign_journal.load_dict(journal_data)
@@ -1163,6 +1176,10 @@ func _apply_save_data(data: Dictionary) -> void:
 		if is_instance_valid(defeated_wolf_actor):
 			defeated_wolf_actor.queue_free()
 		actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
+	if simulation.camp_simulation.phase in ["evening", "night", "resolved"]:
+		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		camp_sleep_button.visible = true
+		camp_sleep_button.text = "Sleep until morning" if simulation.camp_simulation.phase == "evening" else "Pack camp"
 	if camera_rig != null:
 		camera_rig.follow_target = actor_by_id.get(active_character_id, actor_by_id.get("player")) as Node3D
 		var camera_data: Dictionary = data.get("camera", {})
