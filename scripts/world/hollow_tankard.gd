@@ -655,7 +655,7 @@ func _on_camp_companion_exchange(exchange: Dictionary) -> void:
 		if speaker_id.is_empty() or text.is_empty():
 			continue
 		_show_speech_bubble(speaker_id, text)
-		await get_tree().create_timer(2.25).timeout
+		await get_tree().create_timer(_speech_bubble_duration(text)).timeout
 
 
 
@@ -1804,7 +1804,7 @@ func _move_shakedown_soldiers_inside() -> void:
 func _show_world_narration(text: String) -> void:
 	var bubble := Label3D.new()
 	bubble.name = "NarrationBubble"
-	bubble.text = text
+	bubble.text = _wrap_speech_bubble_text(text)
 	bubble.position = Vector3(0.0, 4.4, 0.0)
 	bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	bubble.font_size = 22
@@ -1814,7 +1814,7 @@ func _show_world_narration(text: String) -> void:
 	add_child(bubble)
 	var timer := Timer.new()
 	timer.one_shot = true
-	timer.wait_time = 2.15
+	timer.wait_time = _speech_bubble_duration(text)
 	add_child(timer)
 	timer.timeout.connect(func():
 		if is_instance_valid(bubble):
@@ -1850,6 +1850,29 @@ func _show_speech_bubble(character_id: String, text: String) -> void:
 			timer.queue_free()
 	)
 	timer.start()
+
+
+
+func _wrap_speech_bubble_text(value: String, max_characters: int = 34) -> String:
+	var wrapped_lines := PackedStringArray()
+	var current_line := ""
+	for word_value in value.split(" ", false):
+		var word := String(word_value)
+		if current_line.is_empty():
+			current_line = word
+		elif current_line.length() + 1 + word.length() > max_characters:
+			wrapped_lines.append(current_line)
+			current_line = word
+		else:
+			current_line += " " + word
+	if not current_line.is_empty():
+		wrapped_lines.append(current_line)
+	return "\n".join(wrapped_lines)
+
+
+func _speech_bubble_duration(value: String) -> float:
+	var line_count := _wrap_speech_bubble_text(value).split("\n", false).size()
+	return clampf(1.8 + float(line_count) * 0.85 + float(value.length()) * 0.008, 2.5, 6.5)
 
 
 func _ambient_role_for_id(character_id: String) -> String:
