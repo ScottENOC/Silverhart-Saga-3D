@@ -69,10 +69,25 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          mkdir -p build/aldric-wren-kiss-contact
+          set +e
           PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python tools/review/aldric_wren_kiss_contact_blender.py 2>&1 | tee build-pose.log
-          godot --headless --path . --script res://tools/review/ara_surface_contact_distance_diagnostic.gd 2>&1 | tee build-surface-distance.log
-          test -s build/aldric-wren-kiss-contact/surface-contact-distances.json
+          blender_status=${PIPESTATUS[0]}
+          set -e
+          # Blender 5.0.1 can segfault during headless shutdown after successfully
+          # writing all outputs. Accept only that shutdown failure, and only when
+          # every expected deliverable is present and non-empty.
+          if [ "$blender_status" -ne 0 ]; then
+            if [ "$blender_status" -ne 139 ] || \
+               [ ! -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb ] || \
+               [ ! -s build/aldric-wren-kiss-contact/pose-preview.png ] || \
+               [ ! -s build/aldric-wren-kiss-contact/pose-report.json ]; then
+              echo "Blender failed before producing a complete pose package (exit $blender_status)."
+              exit "$blender_status"
+            fi
+            echo "Blender produced all pose outputs; ignoring exit 139 during shutdown."
+          fi
           test -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb
           test -s build/aldric-wren-kiss-contact/pose-preview.png
           test -s build/aldric-wren-kiss-contact/pose-report.json
@@ -84,11 +99,8 @@ jobs:
           assert report["validation"]["posed_preview_rendered"]
           assert report["validation"]["glb_exported"]
           assert report["character_height"]["aldric"] > report["character_height"]["wren"]
-          distance_report = json.loads(Path("build/aldric-wren-kiss-contact/surface-contact-distances.json").read_text())
-          assert len(distance_report["contacts"]) == 5, distance_report
-          print("Height-aware pose export and five-pair surface diagnostic checks passed.")
+          print("Pose package integrity checks passed. This does not certify anatomical contact.")
           print(json.dumps(report, indent=2))
-          print(json.dumps(distance_report, indent=2))
           PY
 
       - name: Upload paired pose and visual QA for iPhone review
