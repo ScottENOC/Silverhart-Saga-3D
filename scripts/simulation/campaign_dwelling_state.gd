@@ -12,43 +12,55 @@ const SITE_RADII := {
 	"crossroads_plot": 2,
 	"abandoned_house": 2,
 	"silverhart_palace": 3,
-	"silverhart_manor": 2
+	"silverhart_manor": 3
 }
 
 const ACTIONS := {
 	"build_crossroads_cottage": {
 		"dwelling_id": "crossroads_cottage", "kind": "claim", "label": "Build the crossroads cottage", "required_site": "crossroads_plot",
 		"layout_id": "cottage_one_room",
-		"camp_profile": {"sleeping_capacity": 1, "warmth_bonus": 14.0, "security_bonus": 8.0, "comfort_bonus": 5.0}
+		"camp_profile": {"warmth_bonus": 14.0, "security_bonus": 8.0, "comfort_bonus": 5.0}
 	},
 	"upgrade_country_house": {
 		"dwelling_id": "crossroads_cottage", "kind": "upgrade", "label": "Expand the cottage into a country house",
 		"requires_owned": "crossroads_cottage", "required_site": "crossroads_plot", "materials": {"wood": 6, "stone": 6}, "gold_alternative": 90,
 		"layout_id": "country_house_three_room",
-		"camp_profile": {"sleeping_capacity": 3, "warmth_bonus": 18.0, "security_bonus": 12.0, "comfort_bonus": 12.0}
+		"camp_profile": {"warmth_bonus": 18.0, "security_bonus": 12.0, "comfort_bonus": 12.0}
 	},
 	"restore_abandoned_house": {
 		"dwelling_id": "abandoned_house", "kind": "claim", "label": "Restore the abandoned house",
 		"required_quest": "abandoned_house_cleared", "required_site": "abandoned_house", "materials": {"wood": 8, "stone": 8},
 		"layout_id": "restored_roadside_house",
-		"camp_profile": {"sleeping_capacity": 2, "warmth_bonus": 10.0, "security_bonus": 6.0, "comfort_bonus": 5.0}
+		"camp_profile": {"warmth_bonus": 10.0, "security_bonus": 6.0, "comfort_bonus": 5.0}
 	},
 	"claim_silverhart_manor": {
 		"dwelling_id": "silverhart_manor", "kind": "claim", "label": "Accept the Silverhart manor",
 		"required_faction": "silverhart_kingdom", "minimum_standing": 60.0, "required_site": "silverhart_palace",
 		"layout_id": "silverhart_manor_ruined",
-		"camp_profile": {"sleeping_capacity": 0, "warmth_bonus": 0.0, "security_bonus": 0.0, "comfort_bonus": 0.0}
+		"camp_profile": {"warmth_bonus": 0.0, "security_bonus": 0.0, "comfort_bonus": 0.0}
 	},
 	"fortify_silverhart_manor": {
 		"dwelling_id": "silverhart_manor", "kind": "upgrade", "label": "Fortify the Silverhart manor",
 		"requires_owned": "silverhart_manor", "required_site": "silverhart_manor", "materials": {"wood": 10, "stone": 10},
 		"layout_id": "silverhart_manor_livable",
-		"camp_profile": {"sleeping_capacity": 8, "warmth_bonus": 20.0, "security_bonus": 18.0, "comfort_bonus": 18.0}
+		"camp_profile": {"warmth_bonus": 20.0, "security_bonus": 18.0, "comfort_bonus": 18.0}
 	}
 }
 
 var owned: Dictionary = {}
 var upgrades: Dictionary = {}
+## Furniture is owned separately from the building and starts empty for every dwelling.
+var furniture_inventory: Dictionary = {}
+## Each placed entry stores a stable instance ID, catalogue ID, local floor position and rotation.
+var placed_furniture: Dictionary = {}
+var next_furniture_instance_id: int = 1
+
+const FLOOR_SIZES := {
+	"crossroads_cottage": Vector2(5.8, 4.8),
+	"country_house": Vector2(8.2, 6.4),
+	"abandoned_house": Vector2(7.2, 5.8),
+	"silverhart_manor": Vector2(10.0, 8.0)
+}
 
 
 func site_id_for_dwelling(dwelling_id: String) -> String:
@@ -188,8 +200,132 @@ func camp_profile_for(dwelling_id: String) -> Dictionary:
 	var profile: Dictionary = definition.get("camp_profile", {}).duplicate(true)
 	profile["dwelling_id"] = dwelling_id
 	profile["layout_id"] = String(definition.get("layout_id", ""))
-	profile["is_sheltered"] = int(profile.get("sleeping_capacity", 0)) > 0
+	profile["sleeping_capacity"] = sleeping_capacity_for(dwelling_id)
+	# A restored house shelters its occupants even before the player furnishes it.
+	profile["is_sheltered"] = not (dwelling_id == "silverhart_manor" and action_id == "claim_silverhart_manor")
+	profile["floor_size"] = floor_size_for(dwelling_id)
+	profile["placed_furniture"] = (placed_furniture.get(dwelling_id, []) as Array).duplicate(true)
 	return profile
+
+
+
+func floor_size_for(dwelling_id: String) -> Vector2:
+	var key := dwelling_id
+	if dwelling_id == "crossroads_cottage" and String(upgrades.get(dwelling_id, "")) == "upgrade_country_house":
+		key = "country_house"
+	return FLOOR_SIZES.get(key, Vector2.ZERO)
+
+
+func furniture_inventory_count(item_id: String) -> int:
+	return int(furniture_inventory.get(item_id, 0))
+
+
+func sleeping_capacity_for(dwelling_id: String) -> int:
+	var capacity := 0
+	for placed_value in placed_furniture.get(dwelling_id, []):
+		if not placed_value is Dictionary:
+			continue
+		var definition := CampaignFurnitureCatalog.definition(String(placed_value.get("item_id", "")))
+		capacity += int(definition.get("sleeping_capacity", 0))
+	return capacity
+
+
+func buy_furniture(item_id: String, player: CharacterState, shop_id: String, actor_hex: Vector2i, quantity: int = 1) -> Dictionary:
+	if player == null or quantity < 1:
+		return {"ok": false, "reason": "invalid_purchase"}
+	if shop_id != CampaignFurnitureCatalog.SHOP_ID or not is_at_site("silverhart_palace", actor_hex):
+		return {"ok": false, "reason": "not_at_furniture_shop"}
+	var definition := CampaignFurnitureCatalog.definition(item_id)
+	if definition.is_empty():
+		return {"ok": false, "reason": "unknown_furniture"}
+	var total_cost := int(definition.get("price", 0)) * quantity
+	if total_cost <= 0 or player.gold < total_cost:
+		return {"ok": false, "reason": "insufficient_gold", "required_gold": total_cost, "current_gold": player.gold}
+	player.gold -= total_cost
+	furniture_inventory[item_id] = furniture_inventory_count(item_id) + quantity
+	return {"ok": true, "item_id": item_id, "quantity": quantity, "gold_spent": total_cost}
+
+
+func craft_furniture(item_id: String, player: CharacterState, dwelling_id: String, actor_hex: Vector2i) -> Dictionary:
+	if player == null or not bool(owned.get(dwelling_id, false)):
+		return {"ok": false, "reason": "dwelling_not_owned"}
+	var site_id := site_id_for_dwelling(dwelling_id)
+	if site_id.is_empty() or not is_at_site(site_id, actor_hex):
+		return {"ok": false, "reason": "not_at_dwelling"}
+	var definition := CampaignFurnitureCatalog.definition(item_id)
+	if definition.is_empty():
+		return {"ok": false, "reason": "unknown_furniture"}
+	var recipe: Dictionary = definition.get("materials", {})
+	var missing := _missing_materials(player, recipe)
+	if not missing.is_empty():
+		return {"ok": false, "reason": "insufficient_materials", "missing_materials": missing}
+	_consume_materials(player, recipe)
+	furniture_inventory[item_id] = furniture_inventory_count(item_id) + 1
+	return {"ok": true, "item_id": item_id, "quantity": 1, "materials_spent": recipe.duplicate(true)}
+
+
+func place_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int, actor_hex: Vector2i) -> Dictionary:
+	if not bool(owned.get(dwelling_id, false)):
+		return {"ok": false, "reason": "dwelling_not_owned"}
+	var site_id := site_id_for_dwelling(dwelling_id)
+	if site_id.is_empty() or not is_at_site(site_id, actor_hex):
+		return {"ok": false, "reason": "not_at_dwelling"}
+	if furniture_inventory_count(item_id) <= 0:
+		return {"ok": false, "reason": "furniture_not_owned"}
+	var definition := CampaignFurnitureCatalog.definition(item_id)
+	if definition.is_empty():
+		return {"ok": false, "reason": "unknown_furniture"}
+	if not [0, 90, 180, 270].has(posmod(rotation_degrees, 360)):
+		return {"ok": false, "reason": "invalid_rotation"}
+	var position := Vector2(snappedf(local_position.x, 0.25), snappedf(local_position.y, 0.25))
+	var footprint: Vector2 = definition.get("footprint", Vector2.ONE)
+	if posmod(rotation_degrees, 180) == 90:
+		footprint = Vector2(footprint.y, footprint.x)
+	var candidate := Rect2(position - footprint * 0.5, footprint)
+	var floor_size := floor_size_for(dwelling_id)
+	var floor_bounds := Rect2(-floor_size * 0.5, floor_size)
+	if not floor_bounds.encloses(candidate):
+		return {"ok": false, "reason": "outside_floor_bounds", "floor_size": floor_size}
+	for existing_value in placed_furniture.get(dwelling_id, []):
+		if not existing_value is Dictionary:
+			continue
+		var existing_definition := CampaignFurnitureCatalog.definition(String(existing_value.get("item_id", "")))
+		var existing_footprint: Vector2 = existing_definition.get("footprint", Vector2.ONE)
+		if posmod(int(existing_value.get("rotation_degrees", 0)), 180) == 90:
+			existing_footprint = Vector2(existing_footprint.y, existing_footprint.x)
+		var existing_position: Vector2 = existing_value.get("position", Vector2.ZERO)
+		var existing_rect := Rect2(existing_position - existing_footprint * 0.5, existing_footprint)
+		if candidate.intersects(existing_rect, true):
+			return {"ok": false, "reason": "furniture_overlap", "blocking_instance_id": String(existing_value.get("instance_id", ""))}
+	var instance_id := "dwelling_furniture_%06d" % next_furniture_instance_id
+	next_furniture_instance_id += 1
+	var entry := {"instance_id": instance_id, "item_id": item_id, "position": position, "rotation_degrees": posmod(rotation_degrees, 360)}
+	var entries: Array = placed_furniture.get(dwelling_id, []).duplicate(true)
+	entries.append(entry)
+	placed_furniture[dwelling_id] = entries
+	furniture_inventory[item_id] = furniture_inventory_count(item_id) - 1
+	if furniture_inventory_count(item_id) <= 0:
+		furniture_inventory.erase(item_id)
+	return {"ok": true, "dwelling_id": dwelling_id, "furniture": entry.duplicate(true), "sleeping_capacity": sleeping_capacity_for(dwelling_id)}
+
+
+func remove_furniture(dwelling_id: String, instance_id: String, actor_hex: Vector2i) -> Dictionary:
+	if not bool(owned.get(dwelling_id, false)):
+		return {"ok": false, "reason": "dwelling_not_owned"}
+	var site_id := site_id_for_dwelling(dwelling_id)
+	if site_id.is_empty() or not is_at_site(site_id, actor_hex):
+		return {"ok": false, "reason": "not_at_dwelling"}
+	var entries: Array = placed_furniture.get(dwelling_id, []).duplicate(true)
+	for index in range(entries.size()):
+		var entry: Dictionary = entries[index]
+		if String(entry.get("instance_id", "")) != instance_id:
+			continue
+		var item_id := String(entry.get("item_id", ""))
+		entries.remove_at(index)
+		placed_furniture[dwelling_id] = entries
+		furniture_inventory[item_id] = furniture_inventory_count(item_id) + 1
+		return {"ok": true, "item_id": item_id, "sleeping_capacity": sleeping_capacity_for(dwelling_id)}
+	return {"ok": false, "reason": "furniture_instance_not_found"}
 
 
 func property_snapshot(journal: CampaignJournal, player: CharacterState) -> Array[Dictionary]:
@@ -263,13 +399,21 @@ func _consume_materials(player: CharacterState, costs: Dictionary) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"owned": owned.duplicate(true), "upgrades": upgrades.duplicate(true)}
+	return {
+		"owned": owned.duplicate(true),
+		"upgrades": upgrades.duplicate(true),
+		"furniture_inventory": furniture_inventory.duplicate(true),
+		"placed_furniture": placed_furniture.duplicate(true),
+		"next_furniture_instance_id": next_furniture_instance_id
+	}
 
 
 func from_dict(data: Dictionary) -> bool:
 	var saved_owned: Variant = data.get("owned", {})
 	var saved_upgrades: Variant = data.get("upgrades", {})
-	if not saved_owned is Dictionary or not saved_upgrades is Dictionary:
+	var saved_inventory: Variant = data.get("furniture_inventory", {})
+	var saved_placed: Variant = data.get("placed_furniture", {})
+	if not saved_owned is Dictionary or not saved_upgrades is Dictionary or not saved_inventory is Dictionary or not saved_placed is Dictionary:
 		return false
 	for dwelling_id_value in saved_owned.keys():
 		var known_dwelling := false
@@ -285,6 +429,36 @@ func from_dict(data: Dictionary) -> bool:
 		var definition := action_definition(action_id)
 		if definition.is_empty() or String(definition.get("dwelling_id", "")) != dwelling_id or String(definition.get("kind", "")) != "upgrade" or not bool(saved_owned.get(dwelling_id, false)):
 			return false
+	var validated_inventory: Dictionary = {}
+	for item_id_value in saved_inventory:
+		var item_id := String(item_id_value)
+		var quantity := int(saved_inventory[item_id_value])
+		if CampaignFurnitureCatalog.definition(item_id).is_empty() or quantity < 1:
+			return false
+		validated_inventory[item_id] = quantity
+	var validated_placed: Dictionary = {}
+	for dwelling_id_value in saved_placed:
+		var dwelling_id := String(dwelling_id_value)
+		if not bool(saved_owned.get(dwelling_id, false)) or not saved_placed[dwelling_id_value] is Array:
+			return false
+		var seen_instances: Dictionary = {}
+		var entries: Array = []
+		for entry_value in saved_placed[dwelling_id_value]:
+			if not entry_value is Dictionary:
+				return false
+			var entry: Dictionary = entry_value
+			var instance_id := String(entry.get("instance_id", ""))
+			var item_id := String(entry.get("item_id", ""))
+			if instance_id.is_empty() or seen_instances.has(instance_id) or CampaignFurnitureCatalog.definition(item_id).is_empty():
+				return false
+			if not entry.get("position", Vector2.ZERO) is Vector2:
+				return false
+			seen_instances[instance_id] = true
+			entries.append(entry.duplicate(true))
+		validated_placed[dwelling_id] = entries
 	owned = saved_owned.duplicate(true)
 	upgrades = saved_upgrades.duplicate(true)
+	furniture_inventory = validated_inventory
+	placed_furniture = validated_placed
+	next_furniture_instance_id = maxi(1, int(data.get("next_furniture_instance_id", 1)))
 	return true
