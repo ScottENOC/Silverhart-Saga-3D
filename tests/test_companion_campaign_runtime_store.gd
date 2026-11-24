@@ -140,6 +140,7 @@ func _test_companion_chapter_dialogue_flow() -> void:
 	_check(simulation.recruit_companion(companion.id).get("ok", false), "Aldric can be recruited for his next chapter")
 	var offer := DIALOGUE_SERVICE.chapter_dialogue_for_companion(simulation, companion.id)
 	_check(offer.get("choices", []).size() == 1 and String(offer.choices[0].get("id", "")) == "companion_chapter_start", "A companion conversation offers the eligible chapter")
+	_check(String(offer.choices[0].get("companion_id", "")) == companion.id, "Chapter dialogue preserves the party actor ID for returning to companion dialogue")
 	var started := DIALOGUE_SERVICE.start_chapter(simulation, "aldric_weight_of_command")
 	_check(bool(started.get("ok", false)), "The companion dialogue starts the chapter through its quest-chain rules")
 	var waiting := DIALOGUE_SERVICE.chapter_dialogue_for_companion(simulation, companion.id)
