@@ -53,7 +53,7 @@ static func assess(
 		0.0,
 		1.0
 	)
-	var contrast_penalty := camouflage * 0.58
+	var contrast_penalty := (1.0 - camouflage) * 0.58
 	var exposure_bonus := movement_exposure * 0.28 + reflective_exposure * 0.24
 	var cover := clampf(float(target_profile.get("cover", terrain_profile.get("cover", 0.0))), 0.0, 1.0)
 	var visual_signal := clampf(
@@ -73,7 +73,8 @@ static func assess(
 		"reflective_exposure": reflective_exposure,
 		"light_visibility": light_visibility,
 		"obstruction": obstruction,
-		"target_hex": target_hex if visual_level >= VISUAL_RECOGNISED else Vector2i.ZERO,
+		"target_hex": target_hex if visual_level >= VISUAL_RECOGNISED else null,
+		"hex_known": visual_level >= VISUAL_RECOGNISED,
 		"target_identified": visual_level >= VISUAL_IDENTIFIED
 	}
 	return result
@@ -240,7 +241,7 @@ static func _camouflage_score(target_profile: Dictionary, terrain_profile: Dicti
 			samples += 1
 	if samples == 0:
 		return clampf(float(target_profile.get("terrain_camouflage", 0.0)), 0.0, 1.0)
-	return clampf(total / float(samples), 0.0, 1.0)
+	return 1.0 - clampf(total / float(samples), 0.0, 1.0)
 
 
 static func _as_colour(value: Variant) -> Variant:
@@ -334,7 +335,9 @@ static func _visual_level(signal_strength: float, distance: int, emitted_light: 
 static func _bearing_sector(observer_hex: Vector2i, source_hex: Vector2i) -> int:
 	var dx := source_hex.x - observer_hex.x
 	var dy := source_hex.y - observer_hex.y
-	var angle := atan2(float(dy), float(dx))
+	var screen_x := float(dx) + float(dy) * 0.5
+	var screen_y := float(dy) * 0.8660254038
+	var angle := atan2(screen_y, screen_x)
 	return posmod(roundi(angle / (PI / 3.0)), 6)
 
 
