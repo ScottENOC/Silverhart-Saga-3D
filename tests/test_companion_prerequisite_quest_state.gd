@@ -170,6 +170,7 @@ func _test_aldric_sealed_dispatch_alternative_and_proof_bonus() -> void:
 	var capabilities: Array[String] = ["persuasion"]
 	var proof: Dictionary = chains.add_prerequisite_clue("aldric_broken_vigil", "sealed_dispatch", "Persuasion — Ironbond archive", journal, 2300.0, capabilities)
 	_check(bool(proof.get("changed", false)), "Persuasion independently unlocks the sealed dispatch")
+	_check(journal.quest_state("aldric_broken_vigil").get("clues", {}).has("company_roster"), "The sealed dispatch also records the associated duty roster")
 	_check(chains.can_resolve_prerequisite("aldric_broken_vigil", journal), "The signed dispatch is an alternative to the two ordinary clues")
 	var player := CharacterState.new("player", "Player")
 	var result: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", "spare_patrol", journal, relationships, 2400.0, player)
