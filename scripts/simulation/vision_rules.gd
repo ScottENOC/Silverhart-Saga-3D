@@ -43,6 +43,23 @@ static func vision_range(
     return maxi(0, result)
 
 
+## A distant light source is a special observation, not a visible target.
+## This deliberately returns only a vague light cue; callers must not resolve
+## the source actor or expose its position as an identified entity.
+static func can_notice_distant_light(
+    distance: int,
+    normal_vision_range: int,
+    max_light_notice_range: int,
+    is_nightfall: bool,
+    source_emits_light: bool
+) -> bool:
+    if not is_nightfall or not source_emits_light:
+        return false
+    if distance <= normal_vision_range:
+        return false
+    return distance <= max_light_notice_range
+
+
 static func exploration_range() -> int:
     return EXPLORATION_RANGE
 
