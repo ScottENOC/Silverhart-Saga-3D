@@ -361,7 +361,9 @@ func _initialize() -> void:
 		var outer_map: HexMapData = outer_result.get("map_data") as HexMapData
 		_check(outer_map.is_walkable(silverhart_outer_doors[location_id]), "Silverhart outer interior source entrance must be walkable: " + location_id)
 		_check(outer_result.get("actors", []).is_empty() and outer_result.get("creatures", []).is_empty(), "Silverhart outer interior must not duplicate campaign actors: " + location_id)
-	var southwest_house: Dictionary = FLOOR_BUILDER.build_floor_map(registry.get_definition("silverhart_middle_ring_house_southwest"), 0, LOCATION_STATE.new())
+	var southwest_state = LOCATION_STATE.new()
+	southwest_state.configure(registry.get_definition("silverhart_middle_ring_house_southwest"))
+	var southwest_house: Dictionary = FLOOR_BUILDER.build_floor_map(registry.get_definition("silverhart_middle_ring_house_southwest"), 0, southwest_state)
 	if bool(southwest_house.get("ok", false)):
 		var southwest_map: HexMapData = southwest_house.get("map_data") as HexMapData
 		_check(southwest_map.is_walkable(Vector2i(-32, -453)), "Southwest middle-ring house source wall correction must become walkable floor")
