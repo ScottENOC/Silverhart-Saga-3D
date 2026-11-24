@@ -3,7 +3,9 @@ import unittest
 from tools.campaign2_authored_hex_audit import (
     building_cells,
     floor_room_cells,
+    polygon_cells,
     rasterize_segment,
+    round_away_from_zero,
 )
 
 
@@ -23,6 +25,21 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(len(cells), 5)
         self.assertIn("0,0", cells)
         self.assertIn("4,-2", cells)
+
+    def test_half_values_match_godot_roundi(self):
+        self.assertEqual(round_away_from_zero(0.5), 1)
+        self.assertEqual(round_away_from_zero(-0.5), -1)
+
+    def test_axis_aligned_field_includes_boundary_hex_centres(self):
+        cells = polygon_cells([
+            {"q": -1, "r": 2},
+            {"q": 1, "r": 2},
+            {"q": 1, "r": 4},
+            {"q": -1, "r": 4},
+        ])
+        self.assertEqual(len(cells), 9)
+        self.assertIn("-1,2", cells)
+        self.assertIn("1,4", cells)
 
     def test_zero_length_segment_is_one_cell(self):
         cells = rasterize_segment({"q": -7, "r": 12}, {"q": -7, "r": 12})
