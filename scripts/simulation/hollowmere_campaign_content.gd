@@ -4,7 +4,6 @@ extends RefCounted
 ## Text is migrated from Hex-crpg campaign2Dialogue.js and ambientChatterExpansion.js.
 
 const QUEST_ID := "hollowmere_ironbond_shakedown"
-const CAMPAIGN_FACTION_SYSTEM = preload("res://scripts/simulation/campaign_faction_system.gd")
 
 static func shakedown_quest_definition() -> Dictionary:
     return {
@@ -55,10 +54,9 @@ static func shakedown_choices() -> Array[Dictionary]:
     ]
 
 
-static func initialize_social_standings(journal: CampaignJournal, player_race: String = "human", world_seconds: float = -1.0) -> void:
+static func initialize_social_standings(journal: CampaignJournal, player_race: String = "human") -> void:
     if journal == null:
         return
-    CAMPAIGN_FACTION_SYSTEM.initialize_social_standings(journal, player_race, world_seconds)
     var normalized_race := player_race.to_lower()
     var human_standing := 5.0 if normalized_race == "human" else 0.0
     if normalized_race == "goblin" or normalized_race == "orc":
@@ -68,6 +66,9 @@ static func initialize_social_standings(journal: CampaignJournal, player_race: S
     journal.seed_npc_reputation("oskar_vinn", human_standing, 0.0)
     journal.seed_npc_reputation("hollowmere_elder", human_standing, 0.0)
     journal.seed_npc_reputation("hollowmere_baron", human_standing, 0.0)
+    journal.seed_faction_reputation("ironbond_company", human_standing, 0.0)
+    journal.seed_faction_reputation("silverhart_kingdom", human_standing, 0.0)
+    journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 30.0)
 
 
 static func _cascade_reputation(journal: CampaignJournal, standing_delta: float, knowledge_delta: float, reason: String) -> void:
