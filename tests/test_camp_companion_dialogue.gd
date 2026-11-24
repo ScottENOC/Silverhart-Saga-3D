@@ -146,6 +146,26 @@ func _test_autonomous_director_exchange() -> void:
 	)
 	_check(String(reyna_memory.get("campaign_memory", {}).get("agreement", "")) == "support", "Reyna's shared-watch outlook should support Aldric sharing command")
 
+	# Companion prerequisite quests are campaign memories too, not just later
+	# personal chapters. This Fenn outcome is authored in the prerequisite data.
+	world.campaign_journal.quests["fenn_living_boundary"] = {
+		"status": "completed",
+		"completed_at": 130.0,
+		"resolution": "managed_spillway"
+	}
+	var fenn_memory := SERVICE.build_campaign_memory_exchange(
+		"companion_fenn_oakheart",
+		nix.id,
+		0,
+		world.companion_bonds,
+		quest_chain,
+		world.campaign_journal,
+		"Fenn Oakheart",
+		nix.display_name
+	)
+	_check(String(fenn_memory.get("campaign_memory", {}).get("chapter_id", "")) == "fenn_living_boundary", "Completed prerequisite quests should be remembered")
+	_check(String(fenn_memory.get("campaign_memory", {}).get("agreement", "")) == "disagree", "Nix should be able to disagree with Fenn's managed-spillway decision")
+
 	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
 	_check(bool(started.get("ok", false)), "The integration test should establish an in-world camp")
 
