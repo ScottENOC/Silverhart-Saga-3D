@@ -232,7 +232,7 @@ jobs:
       - name: Run Campaign 2 regional authored terrain feature tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_features.gd
       - name: Run player cottage plot map tests
-        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_features.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_player_cottage_plot.gd
       - name: Run Campaign 2 regional hydrology tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_hydrology.gd
       - name: Run Campaign 2 local terrain rule tests
