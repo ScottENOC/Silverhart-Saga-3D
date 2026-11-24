@@ -56,7 +56,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Vampire Grave | Grave site, vampire encounter and related content |
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
 | Old Mac's Wolf Den | Canonical encounter-site anchor at (-59,204) is registered and the live farm-wolf quest uses that source coordinate; den dressing, trigger and quest persistence remain |
-| Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
+| Unicorn Vale | Source-derived eight-waypoint patrol route and all 24 distinct hoofprint track markers are presented in streamed chunks with exact-once ownership tests | Unicorn actor, roaming patrol simulation, Knowledge: Nature track discovery and dialogue remain campaign-owned |
 | Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn coordinates are registered with the shared multi-story floor builder; exterior entry/exit wiring remains |
 
 ## Next map port order
