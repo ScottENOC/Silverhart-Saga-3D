@@ -198,11 +198,12 @@ static func toggle_stealth(
 ) -> Dictionary:
 	if journal == null or player == null or map_data == null or not QUESTS.has(quest_id):
 		return {"ok":false,"reason":"missing_stealth_context"}
-	if player.is_stealthed:
-		player.is_stealthed = false
-		player.stealth_score = 0
-		return {"ok":true,"stealthed":false,"message":"You stop moving stealthily."}
 	var quest: Dictionary = journal.quest_state(quest_id)
+	if bool(quest.get("stealth_active", false)):
+		quest["stealth_active"] = false
+		quest["stealth_score"] = 0
+		journal.quests[quest_id] = quest
+		return {"ok":true,"stealthed":false,"message":"You stop moving stealthily."}
 	if String(quest.get("status", "")) != "active":
 		return {"ok":false,"reason":"quest_not_active"}
 	var guard_hex: Vector2i = QUESTS[quest_id].guard_hex
@@ -226,8 +227,9 @@ static func toggle_stealth(
 		score -= 30
 	elif armour == "medium_armor":
 		score -= 15
-	player.is_stealthed = true
-	player.stealth_score = score
+	quest["stealth_active"] = true
+	quest["stealth_score"] = score
+	journal.quests[quest_id] = quest
 	return {"ok":true,"stealthed":true,"stealth_score":score,"message":"You move carefully, keeping to the shadows."}
 
 
@@ -248,12 +250,15 @@ static func check_guard_detection(
 	guard.side = "enemy"
 	if not VISION.can_see(map_data, guard, player, false, light_level < 0.8):
 		return {"ok":true,"detected":false,"visible":false}
-	var spotted := not player.is_stealthed
-	if player.is_stealthed:
+	var stealth_active := bool(state.get("stealth_active", false))
+	var stealth_score := int(state.get("stealth_score", 0))
+	var spotted := not stealth_active
+	var spot_chance := 100.0
+	if stealth_active:
 		var distance := HexGrid.distance(guard.axial, player.axial)
 		var distance_bonus := maxi(0, 15 - distance) * 5
 		var perception_bonus := VISION.stealth_detection_bonus(guard)
-		var spot_chance := maxf(5.0, 100.0 - float(player.stealth_score) + float(distance_bonus + perception_bonus))
+		spot_chance = maxf(5.0, 100.0 - float(stealth_score) + float(distance_bonus + perception_bonus))
 		var light_penalty := (1.0 - clampf(light_level, 0.0, 1.0)) * 50.0
 		spot_chance -= light_penalty
 		var roll := detection_roll
@@ -263,9 +268,10 @@ static func check_guard_detection(
 			roll = rng.randf_range(0.0, 100.0)
 		spotted = roll < spot_chance
 	if not spotted:
-		return {"ok":true,"detected":false,"visible":true,"spot_chance":maxf(0.0, 100.0 - float(player.stealth_score) + float(maxi(0, 15 - HexGrid.distance(guard.axial, player.axial)) * 5))}
-	player.is_stealthed = false
-	player.stealth_score = 0
+		return {"ok":true,"detected":false,"visible":true,"spot_chance":spot_chance}
+	state["stealth_active"] = false
+	state["stealth_score"] = 0
+	journal.quests[quest_id] = state
 	journal.fail_quest(quest_id, "guard_detected")
 	FACTIONS.adjust_reputation(journal, String(QUESTS[quest_id].target_faction), FAILURE_STANDING_HIT, KNOWLEDGE_DELTA, "Caught during Reddale espionage")
 	return {"ok":true,"detected":true,"visible":true,"message":"Caught! %s The mission is blown." % String(QUESTS[quest_id].failure_text)}
