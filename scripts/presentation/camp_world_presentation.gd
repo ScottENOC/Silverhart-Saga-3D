@@ -27,7 +27,7 @@ func present_camp(site: Dictionary, sleeping_arrangements: Array[Dictionary], en
 	add_child(_camp_root)
 	var dwelling_profile: Dictionary = site.get("dwelling_profile", {})
 	var layout_id := String(dwelling_profile.get("layout_id", site.get("layout_id", "")))
-	var is_livable_dwelling := int(dwelling_profile.get("sleeping_capacity", 0)) > 0
+	var is_livable_dwelling := bool(dwelling_profile.get("is_sheltered", false)) and not layout_id.is_empty()
 	if is_livable_dwelling and not layout_id.is_empty():
 		_create_dwelling_stations(site, dwelling_profile, environment, position)
 	else:
@@ -57,7 +57,8 @@ func _create_dwelling_stations(site: Dictionary, profile: Dictionary, environmen
 		else:
 			station.position = Vector3(float(offset.x) * 1.7, 0.0, float(offset.y) * 1.7)
 		station_root.add_child(station)
-		_build_dwelling_station_prop(station, role, bool(environment.get("fire_lit", false)))
+		# These are invisible routine anchors only. Actual furniture is owned and
+		# placed by the player; do not furnish a newly acquired dwelling for free.
 
 
 func _build_dwelling_station_prop(parent: Node3D, role: String, fire_lit: bool) -> void:
