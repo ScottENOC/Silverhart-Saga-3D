@@ -107,6 +107,12 @@ func _collect_samples(actor_name: String, region_ids: Array, authored_only: bool
             world_sample["position"] = actor.global_transform * Vector3(sample["position"])
             world_sample["actor"] = actor_name
             result.append(world_sample)
+    if result.size() > SAMPLE_LIMIT:
+        var reduced: Array[Dictionary] = []
+        var stride := int(ceil(float(result.size()) / float(SAMPLE_LIMIT)))
+        for index in range(0, result.size(), stride):
+            reduced.append(result[index])
+        return reduced
     return result
 
 func _measure_contact(contact: Dictionary) -> Dictionary:
