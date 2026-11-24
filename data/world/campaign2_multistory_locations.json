@@ -4492,6 +4492,14 @@
                 "q": 3,
                 "r": -466
               }
+            },
+            {
+              "id": "silverhart_elven_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 0,
+                "r": -466
+              }
             }
           ],
           "actors": [],
@@ -4532,6 +4540,14 @@
               "type": "door_open",
               "position": {
                 "q": 13,
+                "r": -470
+              }
+            },
+            {
+              "id": "silverhart_dwarven_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 16,
                 "r": -470
               }
             }
@@ -4576,6 +4592,14 @@
                 "q": 3,
                 "r": -460
               }
+            },
+            {
+              "id": "silverhart_aldenreach_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 0,
+                "r": -460
+              }
             }
           ],
           "actors": [],
@@ -4616,6 +4640,14 @@
               "type": "door_open",
               "position": {
                 "q": 13,
+                "r": -463
+              }
+            },
+            {
+              "id": "silverhart_corvane_embassy_table",
+              "type": "table",
+              "position": {
+                "q": 16,
                 "r": -463
               }
             }
@@ -4746,6 +4778,30 @@
                 "q": 10,
                 "r": -451
               }
+            },
+            {
+              "id": "silverhart_grand_cathedral_altar",
+              "type": "throne",
+              "position": {
+                "q": 14,
+                "r": -453
+              }
+            },
+            {
+              "id": "silverhart_grand_cathedral_bench_west",
+              "type": "bench",
+              "position": {
+                "q": 12,
+                "r": -451
+              }
+            },
+            {
+              "id": "silverhart_grand_cathedral_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 16,
+                "r": -451
+              }
             }
           ],
           "actors": [],
@@ -4787,6 +4843,31 @@
               "position": {
                 "q": 8,
                 "r": -526
+              }
+            },
+            {
+              "id": "silverhart_commons_inn_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 8,
+                "r": -529
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "silverhart_commons_inn_bench_west",
+              "type": "bench",
+              "position": {
+                "q": 6,
+                "r": -529
+              }
+            },
+            {
+              "id": "silverhart_commons_inn_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 10,
+                "r": -529
               }
             }
           ],
