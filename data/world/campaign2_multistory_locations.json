@@ -646,6 +646,111 @@
       ]
     },
     {
+      "id": "emberlode_bunkhouse",
+      "name": "Emberlode — Bunkhouse",
+      "anchor": {
+        "q": -252,
+        "r": 28
+      },
+      "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus bunkhouse offset (0,+6)",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Bunkhouse",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "emberlode_bunkhouse_room",
+              "center": {
+                "q": -252,
+                "r": 28
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "emberlode_bunkhouse_north_door",
+              "type": "door_open",
+              "position": {
+                "q": -252,
+                "r": 26
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildEmberlode places the bunkhouse at road-end offset (0,+6), uses carveBuilding half-width 3 and half-height 2, and places the north door at r-2.",
+        "The miner and guild contact are campaign actors and are excluded from this map-only floor definition."
+      ]
+    },
+    {
+      "id": "emberlode_foremans_hall",
+      "name": "Emberlode — Foreman's Hall",
+      "anchor": {
+        "q": -256,
+        "r": 22
+      },
+      "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus foreman's hall offset (-4,0)",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Foreman's Hall",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "emberlode_foremans_hall_room",
+              "center": {
+                "q": -256,
+                "r": 22
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "emberlode_foremans_hall_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -253,
+                "r": 22
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "emberlode_foremans_hall_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": -256,
+                "r": 22
+              },
+              "light_radius": 6
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildEmberlode places the foreman's hall at road-end offset (-4,0), uses carveBuilding half-width 3 and half-height 2, and places an east door and central fireplace.",
+        "The foreman is a campaign actor and is excluded from this map-only floor definition."
+      ]
+    },
+    {
       "id": "emberlode_mine",
       "name": "Emberlode Mine",
       "anchor": {
