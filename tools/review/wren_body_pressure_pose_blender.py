@@ -172,8 +172,8 @@ def main():
 
     # Imported native Ara Wren faces -Y in this Blender scene. Contact targets
     # are placed from her measured bounds, then checked against the evaluated mesh.
-    left_breast=Vector((centre.x-width*0.14,lo.y+depth*0.13,lo.z+height*0.665))
-    right_hip=Vector((centre.x+width*0.22,lo.y+depth*0.25,lo.z+height*0.475))
+    left_breast=Vector((centre.x+width*0.14,lo.y+depth*0.13,lo.z+height*0.665))
+    right_hip=Vector((centre.x-width*0.22,lo.y+depth*0.25,lo.z+height*0.475))
     left_target=add_target("Left_hand_contact_target_breast",left_breast)
     right_target=add_target("Right_hand_contact_target_hip",right_hip)
 
@@ -186,11 +186,11 @@ def main():
     # Left arm: upper arm reaches horizontally out from torso; pole is lateral
     # to keep the elbow bend fully folded toward the chest contact target.
     add_arm_ik(actor,"left",left_target,
-               Vector((centre.x-width*0.43,centre.y,lo.z+height*0.72)),report["ik"])
+               Vector((centre.x+width*0.43,centre.y,lo.z+height*0.79)),report["ik"])
     # Right arm: shoulder drops and abducts; elbow pole stays outside the hip
     # so the forearm folds inward to the palm-on-hip target.
     add_arm_ik(actor,"right",right_target,
-               Vector((centre.x+width*0.42,centre.y,lo.z+height*0.52)),report["ik"])
+               Vector((centre.x-width*0.42,centre.y,lo.z+height*0.52)),report["ik"])
 
     bpy.context.view_layer.update()
     for _ in range(5): bpy.context.view_layer.update()
