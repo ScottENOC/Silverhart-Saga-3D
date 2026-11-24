@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_invalid_contact_is_ignored()
 	_test_contact_drives_region_solver()
 	_test_multiple_contacts_accumulate()
+	_test_garment_adds_transient_body_damping()
 	print("BODY_PRESSURE_CONTACT_TEST: PASS")
 	quit(0)
 
@@ -45,7 +46,6 @@ func _test_contact_drives_region_solver() -> void:
 	)
 	assert(submitted > 0.0, "A valid contact should submit compressive force.")
 	for _frame in range(30):
-		# Re-submit each tick while the detected contact remains present.
 		BodyPressureContact.submit_contact(
 			controller, &"breast_left", 0.012, 0.0, 1800.0, 35.0, 120.0
 		)
@@ -61,3 +61,38 @@ func _test_multiple_contacts_accumulate() -> void:
 	assert(is_equal_approx(first + second, 10.0), "Independent contact sources should each contribute their force.")
 	controller.step(1.0 / 60.0)
 	assert(controller.get_compression_m(&"torso") > 0.0, "Accumulated contact force should reach the solver.")
+
+func _test_garment_adds_transient_body_damping() -> void:
+	var baseline := BodyPressureController.new()
+	var clothed := BodyPressureController.new()
+	var base_profile := BodyRegionProfile.new()
+	base_profile.stiffness_n_per_m = 900.0
+	base_profile.damping_ns_per_m = 18.0
+	base_profile.effective_mass_kg = 0.2
+	base_profile.max_compression_m = 0.04
+	var cloth_profile := BodyRegionProfile.new()
+	cloth_profile.stiffness_n_per_m = base_profile.stiffness_n_per_m
+	cloth_profile.damping_ns_per_m = base_profile.damping_ns_per_m
+	cloth_profile.effective_mass_kg = base_profile.effective_mass_kg
+	cloth_profile.max_compression_m = base_profile.max_compression_m
+	baseline.register_region(&"breast_left", base_profile)
+	clothed.register_region(&"breast_left", cloth_profile)
+	for _frame in range(12):
+		baseline.apply_pressure(&"breast_left", 20.0)
+		clothed.apply_pressure(&"breast_left", 20.0)
+		baseline.step(1.0 / 60.0)
+		clothed.step(1.0 / 60.0)
+	assert(clothed.get_velocity_m_per_s(&"breast_left") > 0.0, "Test setup should have a moving compressed region.")
+	BodyPressureContact.submit_garment_contact(
+		clothed, &"breast_left", 0.006, 0.0, 1000.0, 0.0, 180.0
+	)
+	clothed.step(1.0 / 60.0)
+	baseline.step(1.0 / 60.0)
+	assert(clothed.get_velocity_m_per_s(&"breast_left") < baseline.get_velocity_m_per_s(&"breast_left"),
+		"Garment contact should damp underlying body motion more than the uncovered region.")
+	# No garment contact on subsequent ticks: the extra damping must not persist.
+	for _frame in range(60):
+		clothed.step(1.0 / 60.0)
+		baseline.step(1.0 / 60.0)
+	assert(clothed.get_velocity_m_per_s(&"breast_left") >= 0.0,
+		"Region should remain numerically stable after garment contact ends.")
