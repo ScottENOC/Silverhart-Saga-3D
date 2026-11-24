@@ -80,12 +80,18 @@ static func submit_surface_contact(
     )
     if contact_force <= 0.0:
         return submitted
+    var total_membership := 0.0
+    for membership_variant in memberships.values():
+        total_membership += clampf(float(membership_variant), 0.0, 1.0)
+    # Overlapping channels remain independent, but their combined force cannot
+    # exceed the physical contact force when their weights sum above one.
+    var membership_scale := maxf(1.0, total_membership)
     for region_variant in memberships:
         var region_id := StringName(str(region_variant))
         if not controller.has_region(region_id):
             continue
         var membership := clampf(float(memberships[region_variant]), 0.0, 1.0)
-        var weighted_force := contact_force * membership
+        var weighted_force := contact_force * membership / membership_scale
         if weighted_force <= 0.0:
             continue
         controller.apply_pressure(region_id, weighted_force)
