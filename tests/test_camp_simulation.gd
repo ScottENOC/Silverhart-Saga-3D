@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_test_site_validation()
 	_test_activity_planning_and_player_override()
 	_test_tent_capacity_and_relationship_matching()
+	_test_indoor_floor_sleeping_and_security()
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
@@ -104,6 +105,47 @@ func _test_tent_capacity_and_relationship_matching() -> void:
 	_check(comfortable_groups.size() == 4)
 	for group in comfortable_groups:
 		_check((group.character_ids as Array).size() <= 3, "Available tents should be used to avoid unnecessary crowding")
+
+
+func _test_indoor_floor_sleeping_and_security() -> void:
+	var dwelling := CampSimulation.new()
+	dwelling.begin_camp(
+		{"walkable": true, "dwelling_profile": {
+			"dwelling_id": "country_house", "is_sheltered": true,
+			"sleeping_capacity": 1, "indoor_floor_capacity": 4,
+			"warmth_bonus": 15.0, "security_bonus": 15.0
+		}},
+		["a", "b", "c", "d"], {"danger": 0.6, "night_temperature_c": 2.0},
+		{"tents": 2, "sleeping_bags": 3}
+	)
+	var arrangements := dwelling.plan_sleeping_arrangements(2)
+	_check(arrangements.size() == 4, "A party that fits inside should not pitch tents or sleep outdoors")
+	_check(String(arrangements[0].sleeping_surface) == "bed", "A placed bed should be allocated before floor space")
+	_check(String(arrangements[1].sleeping_surface) == "floor", "Additional occupants should sleep on the indoor floor")
+	_check(String(arrangements[1].shelter_type) == "dwelling", "Indoor floor sleepers should remain sheltered")
+	_check((arrangements[1].sleeping_bag_character_ids as Array).size() == 1, "Available bedrolls should improve indoor floor sleeping")
+	for arrangement in arrangements:
+		_check(String(arrangement.shelter_type) == "dwelling", "Indoor capacity should take priority over outdoor tents")
+	var indoor_result := dwelling.skip_to_morning()
+	_check(float(indoor_result.summary.exposure_ratio) == 0.0, "A fully indoor party should have no outdoor exposure")
+	_check(float(indoor_result.summary.ambush_chance) < float(indoor_result.summary.base_ambush_chance), "A secure dwelling should reduce ambush risk")
+	_check(String(indoor_result.summary.characters.a.sleeping_surface) == "bed", "Night results should report the allocated sleeping surface")
+	_check(String(indoor_result.summary.characters.b.sleeping_surface) == "floor", "Night results should distinguish floor sleeping from a bed")
+
+	var outdoor := CampSimulation.new()
+	outdoor.begin_camp({"walkable": true}, ["a", "b", "c", "d"], {"danger": 0.6}, {})
+	var outdoor_result := outdoor.skip_to_morning()
+	_check(float(indoor_result.summary.ambush_chance) < float(outdoor_result.summary.ambush_chance), "Sleeping inside should be safer than sleeping exposed outdoors")
+
+	var uninhabitable := CampSimulation.new()
+	uninhabitable.begin_camp(
+		{"walkable": true, "dwelling_profile": {
+			"is_sheltered": false, "sleeping_capacity": 8, "indoor_floor_capacity": 20
+		}},
+		["a"], {}, {}
+	)
+	var unsafe_arrangement := uninhabitable.plan_sleeping_arrangements(0)
+	_check(String(unsafe_arrangement[0].shelter_type) == "open_air", "A structurally uninhabitable dwelling must not provide indoor sleeping space")
 
 
 func _test_night_resolution_and_save_load() -> void:
