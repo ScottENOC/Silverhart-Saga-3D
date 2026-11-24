@@ -130,7 +130,8 @@ func _ready() -> void:
 	_configure_location_simulation()
 	companion_quest_chains = CompanionQuestChainState.new()
 	companion_relationship_state = CompanionRelationshipState.new()
-	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
+	if simulation != null:
+		companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
 	movement_controller.name = "WorldPlayerMovementController"
