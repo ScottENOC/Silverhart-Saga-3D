@@ -136,6 +136,7 @@ func _test_world_consequence_persistence_and_idempotency() -> void:
 	_check(not bool(conflict.get("ok", false)), "A consequence ID must not be reused for conflicting state")
 	_check(journal.world_consequence("reddale_ironbond_pressure").get("value", {}) == consequence, "Recorded world consequence should be queryable")
 	var restored := JOURNAL_SCRIPT.new()
+	restored.register_quest_definition({"id": "faction_decision_test", "objectives": []})
 	restored.load_dict(journal.to_dict())
 	_check(restored.world_consequence("reddale_ironbond_pressure").get("value", {}) == consequence, "World consequence must survive save/load")
 	var replay_after_load := restored.record_world_consequence(
