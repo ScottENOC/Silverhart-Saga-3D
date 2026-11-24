@@ -50,6 +50,8 @@ const ROOM_HALF_WIDTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_WIDTH
 const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 
 var simulation: WorldSimulation
+var companion_quest_chains: CompanionQuestChainState
+var companion_relationship_state: CompanionRelationshipState
 var world_cell_loader: Campaign2WorldCellLoader
 var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
@@ -126,6 +128,9 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
+	companion_quest_chains = CompanionQuestChainState.new()
+	companion_relationship_state = CompanionRelationshipState.new()
+	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
 	movement_controller.name = "WorldPlayerMovementController"
@@ -880,8 +885,8 @@ func _build_save_snapshot() -> Dictionary:
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
-		"companion_quest_chains": simulation.companion_quest_chains.to_dict(),
-		"companion_relationships": simulation.companion_relationship_state.to_dict(),
+		"companion_quest_chains": companion_quest_chains.to_dict(),
+		"companion_relationships": companion_relationship_state.to_dict(),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
@@ -964,11 +969,11 @@ func _apply_save_data(data: Dictionary) -> void:
 		simulation.campaign_journal.load_dict(journal_data)
 	var companion_chain_data: Variant = data.get("companion_quest_chains", {})
 	if companion_chain_data is Dictionary:
-		simulation.companion_quest_chains.from_dict(companion_chain_data)
+		companion_quest_chains.from_dict(companion_chain_data)
 	var companion_relationship_data: Variant = data.get("companion_relationships", {})
 	if companion_relationship_data is Dictionary:
-		simulation.companion_relationship_state.load_dict(companion_relationship_data)
-	simulation.companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
+		companion_relationship_state.load_dict(companion_relationship_data)
+	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
@@ -1043,9 +1048,9 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
 	if choice_id == "companion_prerequisite_start":
 		var start_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.start_quest(
-			simulation.companion_quest_chains,
+			companion_quest_chains,
 			simulation.campaign_journal,
-			simulation.companion_relationship_state,
+			companion_relationship_state,
 			String(choice.get("quest_id", "")),
 			simulation.get_party_member_ids(),
 			simulation.clock.world_seconds
@@ -1057,9 +1062,9 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		return
 	if choice_id == "companion_prerequisite_opening_choice":
 		var opening_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.apply_opening_choice(
-			simulation.companion_quest_chains,
+			companion_quest_chains,
 			simulation.campaign_journal,
-			simulation.companion_relationship_state,
+			companion_relationship_state,
 			String(choice.get("quest_id", "")),
 			String(choice.get("choice_id", ""))
 		)
@@ -1071,7 +1076,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "companion_prerequisite_record_clues":
 		var actor_id := _companion_prerequisite_actor_id(String(choice.get("actor_id", "")))
 		var clue_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.record_actor_clues(
-			simulation.companion_quest_chains,
+			companion_quest_chains,
 			simulation.campaign_journal,
 			actor_id,
 			simulation.clock.world_seconds,
@@ -1084,9 +1089,9 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		return
 	if choice_id == "companion_prerequisite_resolve":
 		var resolution_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.resolve(
-			simulation.companion_quest_chains,
+			companion_quest_chains,
 			simulation.campaign_journal,
-			simulation.companion_relationship_state,
+			companion_relationship_state,
 			String(choice.get("quest_id", "")),
 			String(choice.get("resolution_id", "")),
 			simulation.clock.world_seconds,
@@ -1208,7 +1213,7 @@ func _interact_with_character(character_id: String) -> void:
 		return
 	var prerequisite_actor_id := _companion_prerequisite_actor_id(character_id)
 	var prerequisite_prompt: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.actor_prompt(
-		simulation.companion_quest_chains,
+		companion_quest_chains,
 		simulation.campaign_journal,
 		prerequisite_actor_id,
 		_companion_prerequisite_capabilities(player_state)
@@ -1297,7 +1302,7 @@ func _show_companion_dialogue(character_id: String, extra_text: String = "") -> 
 	if player_state == null:
 		return
 	var prerequisite_conversation: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.dialogue_for_companion(
-		simulation.companion_quest_chains,
+		companion_quest_chains,
 		simulation.campaign_journal,
 		character_id,
 		simulation.get_party_member_ids(),
