@@ -7,7 +7,7 @@ signal camp_started(site: Dictionary)
 signal activity_assigned(character_id: String, activity: String)
 signal night_resolved(summary: Dictionary)
 
-const CAMP_SECONDS_PER_REAL_SECOND := 30.0
+const EXPLORATION_SECONDS_PER_REAL_SECOND := 5.0
 const DEFAULT_NIGHT_HOURS := 8.0
 const TENT_COMFORTABLE_CAPACITY := 3
 const TENT_MAX_CAPACITY := 5
@@ -186,8 +186,8 @@ func assign_activity(character_id: String, activity: String, player_instruction:
 	return {"ok": true, "assignment": assignments[character_id].duplicate(true)}
 
 
-## Advance the camp's accelerated evening clock. The world controller should
-## pass the returned world seconds to WorldClock.advance_world_seconds().
+## Camp activity uses the ordinary exploration clock. This method only expires
+## temporary player-directed activity overrides; it never advances world time.
 func advance_real_time(real_delta: float) -> float:
 	if phase == "inactive" or phase == "resolved" or real_delta <= 0.0:
 		return 0.0
@@ -202,9 +202,8 @@ func advance_real_time(real_delta: float) -> float:
 			activity_assigned.emit(String(character_id), String(fallback.get("activity", "socialise")))
 		else:
 			assignments[character_id] = assignment
-	var world_delta := real_delta * CAMP_SECONDS_PER_REAL_SECOND
-	elapsed_world_seconds += world_delta
-	return world_delta
+	elapsed_world_seconds += real_delta * EXPLORATION_SECONDS_PER_REAL_SECOND
+	return 0.0
 
 
 func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = null) -> Array[Dictionary]:
@@ -345,6 +344,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var nutrition := 90.0 if has_meal else (55.0 if int(resources.rations) > 0 else 35.0)
 		var hydration := 90.0 if has_water else 35.0
 		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0, 0.0, 100.0)
+		# Social interactions can happen during any activity. The old dedicated
+		# "socialise" assignment is merely idle behaviour, not a social-time gate.
 		var social := 65.0 if String(evening_activity_history.get(character_id, "")) == "socialise" else 50.0
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
 		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10), 0.0, 100.0)
