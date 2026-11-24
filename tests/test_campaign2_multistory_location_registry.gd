@@ -283,7 +283,6 @@ func _initialize() -> void:
 	_check(old_seam.get("creatures", []).size() == 2, "Old Seam must preserve both source spider placements as campaign-owned spawn data")
 	_check(emberlode_mine.get("transitions", []).size() == 4, "Emberlode Mine must retain reciprocal transitions between all three levels")
 
-	var thieves_cove: Dictionary = registry.get_definition("thieves_cove")
 	_check(int(thieves_cove.get("anchor", {}).get("q", 0)) == -274 and int(thieves_cove.get("anchor", {}).get("r", 0)) == 40, "Thieves' Cove must retain the source west-road offset")
 	var cove_den := registry.get_floor_definition("thieves_cove", -1)
 	var cove_ledger := _find_record(cove_den.get("tile_objects", []), "sunken_cave_ledger")
