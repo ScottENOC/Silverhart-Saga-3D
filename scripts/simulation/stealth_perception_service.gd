@@ -19,6 +19,15 @@ func assess_character(observer_id: String, target_id: String, environment: Dicti
 	if observer == null or target == null or not observer.alive or not target.alive:
 		return {"visual_level": StealthPerceptionSystem.VISUAL_NONE, "visual_label": "unseen", "reason": "character_unavailable"}
 	var target_profile := StealthPerceptionSystem.character_visual_profile(target, target_appearance)
+	var stealth_rank := maxi(0, int(target.skills.get("stealth", 0)))
+	target_profile["camouflage_skill_bonus"] = minf(float(stealth_rank) * 0.03, 0.24)
+	var movement_exposure := 0.0
+	if target.tags.has("running"):
+		movement_exposure = 0.55
+	elif target.tags.has("walking"):
+		movement_exposure = 0.18
+	if target.tags.has("crouching") or target.tags.has("sneaking"):
+		movement_exposure = minf(movement_exposure, 0.04)
 	var observer_profile := {
 		"hex": observer.axial,
 		"eye_height": 1.1 if observer.tags.has("small_creature") else 1.6
@@ -27,7 +36,7 @@ func assess_character(observer_id: String, target_id: String, environment: Dicti
 		"hex": target.axial,
 		"visual_height": 1.0 if target.tags.has("small_creature") else 1.6,
 		"appearance": target_profile,
-		"movement_exposure": 0.25 if target.tags.has("running") else 0.0
+		"movement_exposure": movement_exposure
 	}
 	return StealthPerceptionSystem.assess(observer_profile, target_profile_data, world_simulation.map_data.cells, _resolve_environment(environment))
 
