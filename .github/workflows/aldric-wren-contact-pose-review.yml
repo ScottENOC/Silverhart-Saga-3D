@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/review/aldric_wren_kiss_contact_scene.gd"
       - "tools/review/aldric_wren_kiss_contact_blender.py"
+      - "tools/review/ara_surface_contact_distance_diagnostic.gd"
       - ".github/workflows/aldric-wren-contact-pose-review.yml"
   pull_request:
     branches: [feature/anatomy-integrated-body-pressure]
@@ -54,12 +55,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy python3-pil xvfb libegl1 libgl1-mesa-dri
 
+      - name: Install Godot 4.7.2 and import native character surfaces
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import project resources for surface diagnostics
+        run: godot --headless --editor --path . --quit
+
       - name: Bake, render and export the paired pose
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
           PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python tools/review/aldric_wren_kiss_contact_blender.py 2>&1 | tee build-pose.log
+          godot --headless --path . --script res://tools/review/ara_surface_contact_distance_diagnostic.gd 2>&1 | tee build-surface-distance.log
+          test -s build/aldric-wren-kiss-contact/surface-contact-distances.json
           test -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb
           test -s build/aldric-wren-kiss-contact/pose-preview.png
           test -s build/aldric-wren-kiss-contact/pose-report.json
