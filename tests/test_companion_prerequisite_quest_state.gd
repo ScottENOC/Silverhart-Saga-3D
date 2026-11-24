@@ -254,7 +254,7 @@ func _test_aldric_measure_of_oath_prerequisite_and_literal_self_decision() -> vo
 	var preceptor_hook: Dictionary = chains.active_prerequisite_for_actor("preceptor_garran_vey", journal)
 	_check(preceptor_hook.get("clues", []).size() == 2, "Preceptor Garran exposes both linked summons clues in one NPC interaction")
 	var adelram_hook: Dictionary = chains.active_prerequisite_for_actor("adelram", journal)
-	_check(adelram_hook.get("clues", []).size() == 1, "High Cleric Adelram exposes the counsel clue")
+	_check(adelram_hook.is_empty(), "High Cleric Adelram's counsel remains gated until Aldric's obedience vow is established")
 	var seeded_arc: Dictionary = chains.arc_states.get("ser_aldric_thorne", {})
 	_check(float(seeded_arc.get("discernment", 0.0)) == -5.0, "Public accountability seeds Aldric's discernment from the previous chapter")
 	_check(float(seeded_arc.get("sharedBurden", 0.0)) == -15.0, "Public accountability seeds Aldric's shared-burden arc")
@@ -319,3 +319,25 @@ func _test_prerequisite_dialogue_adapter_routes_npc_evidence() -> void:
 	var player := CharacterState.new("player", "Player")
 	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve(chains, journal, relationships, "aldric_broken_vigil", "private_closure", 5200.0, player)
 	_check(bool(resolution.get("ok", false)), "The dialogue adapter routes the companion's resolution back to campaign state")
+
+	var measure_setup := _prepare_aldric_measure("public_accountability")
+	if measure_setup.is_empty():
+		return
+	var measure_chains: Variant = measure_setup.chains
+	var measure_journal: CampaignJournal = measure_setup.journal
+	var measure_relationships: CompanionRelationshipState = measure_setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var measure_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_quest(measure_chains, measure_journal, measure_relationships, "aldric_measure_of_oath", party_ids, 6000.0)
+	_check(bool(measure_start.get("ok", false)))
+	var garran_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "preceptor_garran_vey")
+	_check(garran_prompt.get("clues", []).size() == 2, "Garran initially exposes the summons and obedience-vow clues")
+	var adelram_before: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "adelram")
+	_check(adelram_before.is_empty(), "Adelram cannot be consulted before the obedience vow is established")
+	var garran_recorded: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(measure_chains, measure_journal, "preceptor_garran_vey", 6100.0)
+	_check(garran_recorded.get("recorded_clues", []).size() == 2)
+	var adelram_after: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "adelram")
+	_check(adelram_after.get("clues", []).size() == 1, "Adelram's counsel unlocks only after the summons conversation")
+	var adelram_recorded: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(measure_chains, measure_journal, "adelram", 6200.0)
+	_check(bool(adelram_recorded.get("ok", false)))
+	var garran_followup: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "preceptor_garran_vey")
+	_check(garran_followup.get("clues", []).size() == 1, "Garran's service-options clue unlocks after the initial summons and vow")
