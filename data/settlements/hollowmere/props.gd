@@ -46,9 +46,22 @@ const QUEST_PROPS := [
 			{"name": "BloodTrail_05", "type": "cylinder", "axial": Vector2i(-31, 72), "position": Vector3.ZERO, "top_radius": 0.075, "bottom_radius": 0.075, "height": 0.018, "radial_segments": 7, "material": "blood"},
 			{"name": "BloodTrail_06", "type": "cylinder", "axial": Vector2i(-38, 73), "position": Vector3.ZERO, "top_radius": 0.075, "bottom_radius": 0.075, "height": 0.018, "radial_segments": 7, "material": "blood"}
 		]
+	},
+	{
+		## The source building_plot marker at (13,27) is represented as a
+		## surveyed plot assembly; its access spur remains a separate route.
+		"id": "PlayerCottagePlotMarker", "anchor": Vector2i(13, 27),
+		"parts": [
+			{"name": "PlotSignPost", "type": "cylinder", "position": Vector3(0.0, 0.72, 0.0), "top_radius": 0.055, "bottom_radius": 0.075, "height": 1.44, "material": "timber"},
+			{"name": "PlotSignBoard", "type": "box", "position": Vector3(0.0, 1.38, -0.04), "size": Vector3(1.7, 0.48, 0.12), "material": "dark_wood"},
+			{"name": "PlotSignLabel", "type": "label3d", "text": "COTTAGE PLOT", "position": Vector3(0.0, 1.38, -0.11), "font_size": 20, "pixel_size": 0.004, "modulate": Color(0.91, 0.82, 0.63), "outline_size": 4},
+			{"name": "PlotStakeNorthwest", "type": "cylinder", "axial": Vector2i(-1, -1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"},
+			{"name": "PlotStakeNortheast", "type": "cylinder", "axial": Vector2i(1, -1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"},
+			{"name": "PlotStakeSouthwest", "type": "cylinder", "axial": Vector2i(-1, 1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"},
+			{"name": "PlotStakeSoutheast", "type": "cylinder", "axial": Vector2i(1, 1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"}
+		]
 	}
 ]
-
 const WAYFINDING_PROPS := [
 	{
 		"id": "CrossroadsSignpost", "anchor": CROSSROADS,
