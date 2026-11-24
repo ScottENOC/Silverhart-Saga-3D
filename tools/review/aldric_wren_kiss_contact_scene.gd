@@ -45,8 +45,8 @@ func _build() -> void:
     root.add_child(stage)
     _add_environment()
 
-    var aldric := _load_actor("Aldric", ALDRIC_GLB, Vector3(-0.02, 0.0, -0.39), 0.0)
-    var wren := _load_actor("Wren", WREN_GLB, Vector3(0.02, 0.0, 0.39), PI)
+    var aldric := _load_actor("Aldric", ALDRIC_GLB, Vector3(-0.02, 0.0, -0.16), 0.0)
+    var wren := _load_actor("Wren", WREN_GLB, Vector3(0.02, 0.0, 0.16), PI)
     if aldric.is_empty() or wren.is_empty():
         quit(1)
         return
@@ -148,12 +148,12 @@ func _create_targets(aldric: Dictionary, wren: Dictionary) -> Dictionary:
     # Wren faces -Z. Her anatomical right is her local -X before yaw.
     result["aldric_left_breast"] = _add_target(
         "AldricLeftHand_to_WrenRightBreast",
-        wactor.to_global(Vector3(-wsize.x * 0.105, wb.position.y + wsize.y * 0.665, -wsize.z * 0.46)),
+        wactor.to_global(Vector3(-wsize.x * 0.105, wb.position.y + wsize.y * 0.665, wsize.z * 0.46)),
         Color("#e6a04b")
     )
     result["aldric_right_cheek"] = _add_target(
         "AldricRightHand_to_WrenLeftCheek",
-        wactor.to_global(Vector3(wsize.x * 0.075, wb.position.y + wsize.y * 0.855, -wsize.z * 0.43)),
+        wactor.to_global(Vector3(wsize.x * 0.075, wb.position.y + wsize.y * 0.855, wsize.z * 0.43)),
         Color("#e6a04b")
     )
     # Aldric faces +Z; the rear of his body is -Z.
