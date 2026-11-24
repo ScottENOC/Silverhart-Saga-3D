@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_test_campaign_simulation_persists_companion_state()
 	_test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter()
 	_test_fenn_follow_on_chapter_routes_elder_nessa_alias()
+	_test_fenn_third_chapter_resolves_through_elder_nessa()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -435,3 +436,44 @@ func _test_fenn_follow_on_chapter_routes_elder_nessa_alias() -> void:
 	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_fire_in_understory", "mosaic_burn", 52000.0)
 	_check(bool(resolution.get("ok", false)))
 	_check(int(resolution.get("xp_reward", 0)) == 300)
+
+
+
+func _test_fenn_third_chapter_resolves_through_elder_nessa() -> void:
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
+	var journal := _new_fenn_journal(chains)
+	var relationships := CompanionRelationshipState.new()
+	_start_fenn(chains, journal, relationships)
+	_add_fenn_required_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var first_result: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "preserve_marsh", journal, relationships, 1400.0, player)
+	_check(bool(first_result.get("ok", false)))
+
+	var party_ids: Array[String] = ["fenn_oakheart"]
+	var second_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "fenn_fire_in_understory", party_ids, 50000.0)
+	_check(bool(second_start.get("ok", false)), "Fenn's second chapter can be started after The Living Boundary")
+	var second_consult: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_fire_in_understory", "nessa_wren", 51000.0)
+	_check(bool(second_consult.get("ok", false)))
+	var second_result: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_fire_in_understory", "mosaic_burn", 52000.0)
+	_check(bool(second_result.get("ok", false)))
+
+	var offered: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 100000.0)
+	_check(String(offered.get("quest_id", "")) == "fenn_groves_answer", "The Grove's Answer unlocks after Fire in the Understory and its chapter cooldown")
+	var third_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "fenn_groves_answer", party_ids, 100000.0)
+	_check(bool(third_start.get("ok", false)))
+	var nessa_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "elder_nessa_wren_elf_female")
+	_check(String(nessa_prompt.get("chapter_id", "")) == "fenn_groves_answer", "Elder Nessa remains the supporting actor for Fenn's final chapter")
+	_check(String(nessa_prompt.get("body", "")).contains("recognised voices"), "Nessa presents the authored invitation to become a voice of the grove")
+	var third_consult: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_groves_answer", "nessa_wren", 101000.0)
+	_check(bool(third_consult.get("ok", false)))
+	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 101000.0)
+	_check(String(reckoning.get("body", "")).contains("Going back would be easier now"), "Fenn's final reckoning is gated on Nessa's consultation")
+	_check(reckoning.get("choices", []).size() == 4, "The final chapter offers three authored outcomes and Fenn's own decision")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_groves_answer", "changed_charter", 102000.0)
+	_check(bool(resolution.get("ok", false)))
+	_check(int(resolution.get("xp_reward", 0)) == 350)
+	_check(String(resolution.get("effective_resolution", "")) == "changed_charter")
+	_check(float(resolution.get("arc_state", {}).get("independence", -999.0)) > 0.0, "The final chapter applies its authored independence arc consequence")
+	_check(String(journal.quest_state("fenn_groves_answer").get("status", "")) == "completed")
