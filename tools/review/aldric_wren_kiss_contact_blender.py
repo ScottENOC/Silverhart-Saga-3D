@@ -104,6 +104,33 @@ def add_ik(actor, side, target, pole_location, report):
         "target": [round(v,4) for v in target.location]
     }
 
+
+def add_foot_ik(actor, side, target_location, pole_location, report):
+    arm = actor["arm"]
+    aliases = ["LeftFoot", "Foot_L"] if side == "left" else ["RightFoot", "Foot_R"]
+    foot_name = find_bone(actor, aliases)
+    if not foot_name:
+        report[actor["name"] + "_" + side + "_leg"] = {
+            "created": False, "reason": "foot bone missing"
+        }
+        return
+    foot = arm.pose.bones[foot_name]
+    target = add_empty(actor["name"] + "_" + side + "_stance_foot_target", target_location)
+    con = foot.constraints.new("IK")
+    con.name = actor["name"] + "_" + side + "_stance_leg_IK"
+    con.target = target
+    con.chain_count = 3
+    con.use_stretch = False
+    pole = add_empty(actor["name"] + "_" + side + "_knee_pole", pole_location)
+    con.pole_target = pole
+    con.pole_angle = math.radians(90)
+    report[actor["name"] + "_" + side + "_leg"] = {
+        "created": True, "foot_bone": foot_name, "chain_count": 3,
+        "target_world": [round(v, 4) for v in target_location],
+        "pole_world": [round(v, 4) for v in pole_location]
+    }
+
+
 def rotate_pose(actor, aliases, axis, angle):
     pb = pose_bone(actor, aliases)
     if pb:
@@ -249,6 +276,30 @@ def main():
     add_ik(wren, "left", t_shoulder, (wmax.x+ww*0.45, wcentre.y, wmin.z+wh*0.82), ik_report)
     body_report = {}
     apply_body_pose(aldric, wren, body_report)
+
+    # Aldric's forward bow currently leaves his feet almost level in depth,
+    # putting his centre of mass beyond a narrow base. Plant a deliberately
+    # staggered stance: rear foot behind, lead foot towards Wren, both grounded.
+    # Three-bone leg IK bends the knees while preserving the torso bow.
+    aldric_root = aldric["root"].matrix_world.translation
+    stance_x = aldric_root.x
+    rear_foot = Vector((stance_x - 0.22, aldric_root.y - 0.31, 0.055))
+    lead_foot = Vector((stance_x + 0.22, aldric_root.y + 0.27, 0.055))
+    add_foot_ik(
+        aldric, "left", rear_foot,
+        (rear_foot.x - 0.10, rear_foot.y + 0.28, 0.58), ik_report
+    )
+    add_foot_ik(
+        aldric, "right", lead_foot,
+        (lead_foot.x + 0.10, lead_foot.y + 0.28, 0.58), ik_report
+    )
+    body_report["Aldric_stance"] = {
+        "rear_foot_world": [round(v, 4) for v in rear_foot],
+        "lead_foot_world": [round(v, 4) for v in lead_foot],
+        "fore_aft_separation_m": round(lead_foot.y - rear_foot.y, 4),
+        "lateral_separation_m": round(lead_foot.x - rear_foot.x, 4),
+        "purpose": "widen support polygon and bend knees under forward torso lean"
+    }
     bpy.context.view_layer.update()
     # Let depsgraph solve constraints before baking.
     for _ in range(3): bpy.context.view_layer.update()
