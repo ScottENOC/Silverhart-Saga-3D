@@ -137,6 +137,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_items_and_equipment.gd
       - name: Run split world and movement tests
         run: godot --headless --path . --script res://tests/test_world_movement.gd
+      - name: Run stealth perception system tests
+        run: godot --headless --path . --script res://tests/simulation/test_stealth_perception_system.gd
       - name: Run shared player movement controller tests
         run: godot --headless --path . --script res://tests/test_world_player_movement_controller.gd
       - name: Run continuous character movement and animation tests
