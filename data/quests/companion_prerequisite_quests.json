@@ -479,7 +479,8 @@
           "line": "Aldric accepts the summons as written. He intends to take permanent wardenship of Saint Orra’s Hospice when the present border crisis is concluded.",
           "flags": {
             "future_wardenship": true
-          }
+          },
+          "description": "Aldric reaffirmed the original obedience vow. When the present border crisis is concluded, he intends to take permanent wardenship of Saint Orra’s Hospice."
         },
         "bounded_service": {
           "label": "“Keep the duty, not necessarily the original shape. Take a rotation and train people who can carry it with you.”",
@@ -500,7 +501,8 @@
           "line": "The Silver Vigil accepts an amended service: Aldric will serve a fixed hospice rotation and train local healers and guards, sharing the burden instead of treating permanent self-sacrifice as the only faithful answer.",
           "flags": {
             "vow_amended": true
-          }
+          },
+          "description": "The Silver Vigil accepted an amended service: Aldric will serve a fixed hospice rotation and train local healers and guards, sharing the burden instead of treating permanent self-sacrifice as the only faithful answer."
         },
         "formal_release": {
           "label": "“Your life has changed. Ask openly to be released from the assignment clause, and keep the vows that still belong to you.”",
@@ -521,7 +523,8 @@
           "line": "Aldric openly petitions release from the Vigil’s assignment-obedience clause. The Order releases him while his broader vows of faith and service remain his own.",
           "flags": {
             "formally_released": true
-          }
+          },
+          "description": "Aldric openly petitioned release from the Vigil’s assignment-obedience clause. The Order released him while his broader vows of faith and service remain his own."
         },
         "aldric_decides": {
           "label": "“It is your vow. You decide what keeping it means, and I will not make the choice for you.”",
@@ -547,7 +550,8 @@
             ],
             "if_true": "bounded_service",
             "if_false": "literal_return"
-          }
+          },
+          "description": "Aldric decided what his own vow required, without letting the player or the Order make the choice for him."
         },
         "walk_away": {
           "label": "“Just refuse. You owe the Order nothing after everything you’ve been through.”",
@@ -568,7 +572,8 @@
           "line": "Aldric refuses the summons without asking release or amendment. He remains with the party, but the unresolved promise sits badly with him.",
           "flags": {
             "unresolved_breach": true
-          }
+          },
+          "description": "Aldric refused the summons without asking release or amendment. He remains with the party, but the unresolved promise sits badly with him."
         }
       }
     }
