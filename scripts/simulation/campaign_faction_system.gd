@@ -37,8 +37,7 @@ static func seed_standing(faction_race: String, player_race: String) -> float:
 
 static func initialize_social_standings(
 	journal: CampaignJournal,
-	player_race: String,
-	world_seconds: float = -1.0
+	player_race: String
 ) -> void:
 	if journal == null:
 		return
@@ -50,8 +49,6 @@ static func initialize_social_standings(
 			0.0
 		)
 	journal.seed_merchant_influence("ironbond_company", IRONBOND_INFLUENCE_KINGDOM, IRONBOND_INITIAL_INFLUENCE)
-	if world_seconds >= 0.0 and journal.faction_agenda_last_world_seconds < 0.0:
-		journal.faction_agenda_last_world_seconds = world_seconds
 
 
 static func adjust_reputation(
