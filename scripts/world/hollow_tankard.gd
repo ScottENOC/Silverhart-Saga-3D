@@ -1377,7 +1377,7 @@ func _refresh_nearby_interactions() -> void:
 				already_listed = true
 				break
 		if not already_listed:
-			nearby.append({"id":party_id,"name":party_state.display_name,"hostile":false})
+			nearby.push_front({"id":party_id,"name":party_state.display_name,"hostile":false})
 	if nearby.is_empty():
 		nearby_interaction_panel.visible = false
 		return
