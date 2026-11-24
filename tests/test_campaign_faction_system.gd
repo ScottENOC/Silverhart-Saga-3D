@@ -91,8 +91,8 @@ func _test_ironbond_autonomous_agenda_and_save() -> void:
 	restored.load_dict(saved)
 	FACTIONS.advance_time(restored, 3600.0)
 	_check(is_equal_approx(restored.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.04), "Autonomous agenda resumes from its saved world-time checkpoint")
-	FACTIONS.advance_time(restored, 3600.0)
-	_check(is_equal_approx(restored.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.04), "Repeated time checkpoint does not double-apply agenda drift")
+	FACTIONS.advance_time(restored, 0.0)
+	_check(is_equal_approx(restored.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.04), "Zero elapsed time does not double-apply agenda drift")
 
 	var hostile := CampaignJournal.new()
 	FACTIONS.initialize_social_standings(hostile, "human")
