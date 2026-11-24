@@ -2466,7 +2466,7 @@
         {
           "id": "silverhart_warrens_shack_1",
           "kind": "house",
-          "archetype": "cottage",
+          "archetype": "hut",
           "center": {
             "q": 2,
             "r": -433
@@ -2487,7 +2487,7 @@
         {
           "id": "silverhart_warrens_shack_2",
           "kind": "house",
-          "archetype": "cottage",
+          "archetype": "hut",
           "center": {
             "q": 5,
             "r": -427
@@ -2508,7 +2508,7 @@
         {
           "id": "silverhart_warrens_shack_3",
           "kind": "house",
-          "archetype": "cottage",
+          "archetype": "hut",
           "center": {
             "q": 11,
             "r": -433
