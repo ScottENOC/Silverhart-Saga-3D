@@ -30,7 +30,7 @@ static func chapter_dialogue_for_companion(simulation: WorldSimulation, companio
 			"choices":[{
 				"id":"companion_chapter_start",
 				"chapter_id":chapter_id,
-				"companion_id":canonical_id,
+				"companion_id":companion_id,
 				"label":"Let's take this on together."
 			}]
 		}
