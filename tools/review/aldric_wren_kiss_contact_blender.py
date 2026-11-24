@@ -148,8 +148,9 @@ def apply_body_pose(aldric, wren, report):
         (["Hips","Pelvis"], "X", math.radians(8)),
         (["Spine","Spine1","Spine2"], "X", math.radians(18)),
         (["Spine1","Spine2","Chest"], "X", math.radians(18)),
-        (["Neck"], "X", math.radians(5)),
-        (["Head"], "X", math.radians(3)),
+        # Head/neck counter-tilt down towards Wren after the torso bow.
+        (["Neck"], "X", math.radians(-8)),
+        (["Head"], "X", math.radians(-14)),
         (["LeftUpLeg","LeftThigh"], "X", math.radians(-2)),
         (["RightUpLeg","RightThigh"], "X", math.radians(-2)),
     ]:
@@ -165,8 +166,9 @@ def apply_body_pose(aldric, wren, report):
         (["LeftUpLeg","LeftThigh"], "X", math.radians(3)),
         (["RightUpLeg","RightThigh"], "X", math.radians(3)),
         (["Spine","Spine1"], "X", math.radians(12)),
-        (["Neck"], "X", math.radians(8)),
-        (["Head"], "X", math.radians(6)),
+        # Wren actively looks up; opposite head/neck pitch to Aldric.
+        (["Neck"], "X", math.radians(12)),
+        (["Head"], "X", math.radians(18)),
     ]:
         n = rotate_pose(wren, aliases, axis, angle)
         if n: names.setdefault("Wren", []).append(n)
@@ -223,10 +225,12 @@ def evaluated_hand_position(actor, side):
 def main():
     if not os.path.exists(WREN_GLB) or not os.path.exists(ALDRIC_GLB):
         raise RuntimeError("Native character GLBs missing")
-    # Blender local forward is -Y after glTF import. Face Aldric +Y toward Wren,
-    # and Wren -Y toward Aldric. Keep the pair close enough to embrace.
-    aldric = import_actor("Aldric", ALDRIC_GLB, (-0.025, -0.18, 0.0), math.pi)
-    wren = import_actor("Wren", WREN_GLB, (0.025, 0.18, 0.0), 0.0)
+    # Start with deliberate torso clearance. The previous 0.36 m root spacing
+    # placed Wren's head inside Aldric's chest before the bow was even solved.
+    # Imported Blender scene axes are audited from the actual rig landmarks below;
+    # the Y offsets here are only the initial separation along the facing axis.
+    aldric = import_actor("Aldric", ALDRIC_GLB, (-0.025, -0.38, 0.0), math.pi)
+    wren = import_actor("Wren", WREN_GLB, (0.025, 0.38, 0.0), 0.0)
     bpy.context.view_layer.update()
     amin, amax = bounds(aldric)
     wmin, wmax = bounds(wren)
@@ -277,28 +281,29 @@ def main():
     body_report = {}
     apply_body_pose(aldric, wren, body_report)
 
-    # Aldric's forward bow currently leaves his feet almost level in depth,
-    # putting his centre of mass beyond a narrow base. Plant a deliberately
-    # staggered stance: rear foot behind, lead foot towards Wren, both grounded.
-    # Three-bone leg IK bends the knees while preserving the torso bow.
+    # Aldric's base must be behind Wren, not underneath her. Keep both feet
+    # substantially back from his chest, with a long fore/aft split and a
+    # lead foot advancing only part-way towards Wren. This gives the bow room
+    # without driving his ribcage through her head.
     aldric_root = aldric["root"].matrix_world.translation
     stance_x = aldric_root.x
-    rear_foot = Vector((stance_x - 0.22, aldric_root.y - 0.31, 0.055))
-    lead_foot = Vector((stance_x + 0.22, aldric_root.y + 0.27, 0.055))
+    rear_foot = Vector((stance_x - 0.25, aldric_root.y - 0.48, 0.055))
+    lead_foot = Vector((stance_x + 0.25, aldric_root.y + 0.28, 0.055))
     add_foot_ik(
         aldric, "left", rear_foot,
-        (rear_foot.x - 0.10, rear_foot.y + 0.28, 0.58), ik_report
+        (rear_foot.x - 0.12, rear_foot.y + 0.32, 0.58), ik_report
     )
     add_foot_ik(
         aldric, "right", lead_foot,
-        (lead_foot.x + 0.10, lead_foot.y + 0.28, 0.58), ik_report
+        (lead_foot.x + 0.12, lead_foot.y + 0.32, 0.58), ik_report
     )
     body_report["Aldric_stance"] = {
         "rear_foot_world": [round(v, 4) for v in rear_foot],
         "lead_foot_world": [round(v, 4) for v in lead_foot],
         "fore_aft_separation_m": round(lead_foot.y - rear_foot.y, 4),
         "lateral_separation_m": round(lead_foot.x - rear_foot.x, 4),
-        "purpose": "widen support polygon and bend knees under forward torso lean"
+        "root_to_wren_y_clearance_m": round(wren["root"].matrix_world.translation.y - aldric_root.y, 4),
+        "purpose": "keep Aldric's pelvis and feet behind Wren while the upper body bows forward"
     }
     bpy.context.view_layer.update()
     # Let depsgraph solve constraints before baking.
@@ -460,7 +465,7 @@ def main():
         "body_pose_bones": body_report,
         "world_axis_audit": {
             "blender_world_up": "Z; verified against mesh bounds and floor plane",
-            "forward_assumption": "Aldric +Y; Wren -Y; this is a world-space assumption to validate against landmarks",
+            "forward_axis_note": "Blender world Z is up in this imported scene; facing is verified by root yaw and head/neck landmarks, not by interpreting raw source Y/Z values as Godot axes.",
             "aldric_landmarks_world": world_bone_landmarks(aldric),
             "wren_landmarks_world": world_bone_landmarks(wren),
             "mesh_bounds_world": {
@@ -476,7 +481,7 @@ def main():
             "wren_toe_pose_bones_found": [n for n in body_report.get("body_pose_bones", {}).get("Wren",[]) if "Foot" in n or "Toe" in n],
             "wren_root_world_z_m": round(wren["root"].matrix_world.translation.z, 4),
             "wren_intentional_rise_m": round(wren_rise, 4),
-            "note": "Height gap is addressed by a modest Wren rise and a forward bow through Aldric's torso/hips; verify the preview because bone naming and rig proportions vary."
+            "note": "Aldric is positioned behind Wren with a long staggered stance; his neck/head pitch down while Wren's pitch up. Confirm actual lip contact and torso clearance in the rendered review."
         },
         "baked_mesh_bounds": baked_bounds,
         "ik_chains": ik_report,
