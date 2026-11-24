@@ -40,6 +40,8 @@ const KRAGMOOR_GATE_HALL_CENTRE := Vector2i(908, -608)
 const KRAGMOOR_GATE_DOOR := Vector2i(908, -605)
 const KRAGMOOR_APPROACH_TIP := Vector2i(908, -593)
 const CAMPAIGN2_CROSSROADS := Vector2i(8, 24)
+## Source buildPlayerCottagePlot places the plot five east and three north of the crossroads.
+const PLAYER_COTTAGE_PLOT := Vector2i(13, 27)
 
 ## Border forts use the source six-point star geometry (core radius 6,
 ## twelve-hex points, four-hex lateral spread). Coordinates are the canonical
@@ -81,9 +83,13 @@ static var _northwatch_cells: Dictionary = {}
 static var _ridgehold_cells: Dictionary = {}
 static var _border_forts_ready := false
 static var _dungeon_surface_cells: Dictionary = {}
+static var _player_cottage_approach_cells: Dictionary = {}
+static var _player_cottage_approach_ready := false
 static var _dungeon_surface_ready := false
 
 static func terrain_override_at(hex: Vector2i) -> Dictionary:
+	if is_player_cottage_plot_path(hex):
+		return {"terrain": "path", "feature_id": "player_cottage_plot_approach"}
 	var dungeon_override := _dungeon_surface_override(hex)
 	if not dungeon_override.is_empty():
 		return dungeon_override
@@ -151,6 +157,19 @@ static func terrain_override_at(hex: Vector2i) -> Dictionary:
 			"distance": canopy_distance
 		}
 	return {}
+
+static func is_player_cottage_plot_path(hex: Vector2i) -> bool:
+	_ensure_player_cottage_approach()
+	return _player_cottage_approach_cells.has(_hex_key(hex))
+
+static func _ensure_player_cottage_approach() -> void:
+	if _player_cottage_approach_ready:
+		return
+	for q in range(CAMPAIGN2_CROSSROADS.x + 1, PLAYER_COTTAGE_PLOT.x + 1):
+		_player_cottage_approach_cells[_hex_key(Vector2i(q, CAMPAIGN2_CROSSROADS.y))] = true
+	for r in range(CAMPAIGN2_CROSSROADS.y + 1, PLAYER_COTTAGE_PLOT.y + 1):
+		_player_cottage_approach_cells[_hex_key(Vector2i(PLAYER_COTTAGE_PLOT.x, r))] = true
+	_player_cottage_approach_ready = true
 
 static func is_herb_patch(hex: Vector2i) -> bool:
 	return hex in HERB_PATCH_HEXES
@@ -407,6 +426,10 @@ static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i)
 		target[_hex_key(Vector2i(rx, rz))] = true
 
 static func feature_id_at(hex: Vector2i) -> String:
+	if hex == PLAYER_COTTAGE_PLOT:
+		return "player_cottage_plot"
+	if is_player_cottage_plot_path(hex):
+		return "player_cottage_plot_approach"
 	var dungeon_override := _dungeon_surface_override(hex)
 	if not dungeon_override.is_empty():
 		return String(dungeon_override.get("feature_id", ""))
