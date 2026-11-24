@@ -2,6 +2,7 @@ extends SceneTree
 
 const JOURNAL_SCRIPT = preload("res://scripts/simulation/campaign_journal.gd")
 const CONSEQUENCE_SERVICE = preload("res://scripts/simulation/campaign_faction_decision_service.gd")
+const HOLLOWMERE_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 
 var _failures: int = 0
 
@@ -9,6 +10,7 @@ var _failures: int = 0
 func _initialize() -> void:
 	_test_reputation_and_influence_apply_once()
 	_test_invalid_outcome_has_no_side_effects()
+	_test_hollowmere_source_outcomes()
 	if _failures > 0:
 		push_error("%d campaign faction decision assertion(s) failed." % _failures)
 		quit(1)
@@ -82,3 +84,28 @@ func _test_invalid_outcome_has_no_side_effects() -> void:
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), 10.0), "Invalid outcomes must not mutate reputation")
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.0), "Invalid outcomes must not mutate influence")
 	_check(not journal.quests["faction_decision_test"]["decisions"].has("response"), "Invalid outcomes must not record a decision")
+
+func _test_hollowmere_source_outcomes() -> void:
+	var expected := {
+		"stay_out": {"reputation": 10.0, "influence": 31.0},
+		"encourage_pay": {"reputation": 20.0, "influence": 32.0},
+		"fight": {"reputation": -30.0, "influence": 28.0}
+	}
+	for choice_id_value in expected.keys():
+		var choice_id := String(choice_id_value)
+		var journal := JOURNAL_SCRIPT.new()
+		journal.register_quest_definition(HOLLOWMERE_CONTENT.shakedown_quest_definition())
+		journal.start_quest(HOLLOWMERE_CONTENT.QUEST_ID)
+		HOLLOWMERE_CONTENT.initialize_social_standings(journal, "human")
+		var result := HOLLOWMERE_CONTENT.apply_shakedown_choice(journal, choice_id)
+		_check(bool(result.get("ok", false)), "Hollowmere choice should resolve: " + choice_id)
+		_check(is_equal_approx(
+			journal.faction_standing("ironbond_company"),
+			float(expected[choice_id]["reputation"])
+		), "Hollowmere should preserve source-authored Ironbond reputation: " + choice_id)
+		_check(is_equal_approx(
+			journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+			float(expected[choice_id]["influence"])
+		), "Hollowmere should preserve source-authored merchant influence: " + choice_id)
+		var repeated := HOLLOWMERE_CONTENT.apply_shakedown_choice(journal, choice_id)
+		_check(not bool(repeated.get("ok", false)), "Hollowmere choice should remain one-shot: " + choice_id)
