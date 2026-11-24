@@ -1115,7 +1115,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			var chain_line := String(chain_resolution.get("line", "The decision is made."))
 			var chain_xp := _award_companion_quest_experience(chain_resolution)
 			if chain_xp > 0:
-				chain_line += "\\n\\n+%d XP" % chain_xp
+				chain_line += "\n\n+%d XP" % chain_xp
 			_show_dialogue(String(choice.get("companion_id", "Companion")), chain_line, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(chain_resolution.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
@@ -1175,7 +1175,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			var outcome_line := String(resolution_result.get("line", resolution_result.get("text", "You and your companion have reached a decision.")))
 			var prerequisite_xp := _award_companion_quest_experience(resolution_result)
 			if prerequisite_xp > 0:
-				outcome_line += "\\n\\n+%d XP" % prerequisite_xp
+				outcome_line += "\n\n+%d XP" % prerequisite_xp
 			_show_dialogue(String(choice.get("companion_id", "Companion")), outcome_line, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
