@@ -333,7 +333,7 @@ func to_dict() -> Dictionary:
 
 func from_dict(data: Dictionary) -> bool:
 	var saved_phase := String(data.get("phase", "inactive"))
-	if not ["inactive", "evening", "resolved"].has(saved_phase):
+	if not ["inactive", "evening", "night", "resolved"].has(saved_phase):
 		return false
 	var saved_party: Variant = data.get("party_ids", [])
 	var saved_conditions: Variant = data.get("conditions", {})
