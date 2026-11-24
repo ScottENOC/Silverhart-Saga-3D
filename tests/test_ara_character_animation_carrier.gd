@@ -123,9 +123,9 @@ func _run() -> void:
 		{"activity": "watch", "expected": "look_around"},
 		{"activity": "sleep", "expected": "lie_down"}
 	]
-	for case in activity_cases:
-		var activity := String(case.activity)
-		var expected := String(case.expected)
+	for activity_case in activity_cases:
+		var activity := String(activity_case.activity)
+		var expected := String(activity_case.expected)
 		var played: bool = actor.play_camp_activity(activity)
 		_check(played, "Ara actor accepts camp activity " + activity)
 		if played:
