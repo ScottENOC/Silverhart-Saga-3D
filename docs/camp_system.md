@@ -32,6 +32,16 @@ Current animation mapping:
 
 The runtime uses Ara's canonical clip IDs (rather than display labels), tries preferences in order and falls back gracefully when an imported character asset does not contain a clip. Looping clips remain active; one-shot clips are replayed or chained into a carry/interaction pose while the character remains assigned.
 
+### Dwelling-aware routine staging
+
+The camp activity director now reads the active dwelling layout ID from the camp lodging profile. It uses layout-specific station anchors around the dwelling's world hex when routing companions: hearth for cooking, workshop for repairs, study for map work, common room for socialising, threshold for watch, and yard for outdoor tasks. A one-room cottage routes study to its shared common area; a three-room country house has a separate study and workshop; the restored roadside house and fortified manor use their own distinct anchor patterns.
+
+These are currently hex-map staging positions, not navigable indoor room interiors. If a preferred station hex is absent, blocked or occupied, the director chooses the nearest available walkable hex to that station's intended position, then falls back to the ordinary camp radius. It still reserves one destination per companion and uses normal pathfinding and movement. Wilderness camps retain the terrain-based station selection.
+
+When the ambient topic is home, the conversation service also receives the active dwelling layout and adds a short observation appropriate to that property. This is deliberately limited to the home topic; it does not pretend that the companions have access to rooms or facilities that are not yet represented in the world.
+
+Regression tests cover the different study/cooking station placements and cottage-versus-manor home dialogue. The next presentation step is to build actual property geometry and usable room stations, then let routine schedules react to weather, danger, injuries and party needs.
+
 ## Ara export requirements
 
 Ara documents 259 animation clips and exports each selected clip into the rigged GLB. The gameplay animation carrier must therefore be exported with the camp clips included; a rigged-only export is not sufficient. Mark looping clips in their names so Godot imports them with the `-loop` suffix. Keep root motion disabled for these stationary camp actions because world locomotion is already controlled by the hex movement system. Retain the shared 65-bone game rig and matching bind pose used by the existing animation carrier.
