@@ -36,7 +36,7 @@ func _test_runtime_autoload_integration() -> void:
 	_check(is_equal_approx(simulation.campaign_journal.faction_standing("goblin_tribe"), 5.0), "Runtime seeds faction standings from the live player race")
 	_check(is_equal_approx(simulation.campaign_journal.faction_standing("silverhart_kingdom"), -15.0), "Runtime seeds hostile kingdom standing for a greenskin player")
 	simulation.campaign_journal.adjust_faction_reputation("ironbond_company", 20.0, 0.0, "Runtime regression")
-	runtime.call("_on_world_tick", 9000, 3600.0, simulation.get_instance_id())
+	simulation.clock.advance_world_seconds(3600.0)
 	_check(is_equal_approx(simulation.campaign_journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.02), "Runtime advances autonomous agendas from WorldSimulation clock ticks")
 	simulation.queue_free()
 
