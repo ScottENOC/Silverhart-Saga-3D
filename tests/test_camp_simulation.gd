@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
 	_test_dwelling_layout_station_selection()
+	_test_evening_routine_progression()
 	_test_ara_camp_animation_mapping()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
@@ -246,3 +247,33 @@ func _test_dwelling_layout_station_selection() -> void:
 	_check(country_cooking == Vector2i(1, 0), "Cooking should gather at the hearth rather than the study or common room.")
 	director.stop()
 	director.free()
+
+
+
+func _test_evening_routine_progression() -> void:
+	var camp := CampSimulation.new()
+	camp.begin_camp(
+		{"walkable": true},
+		["scholar", "guardian", "injured"],
+		{"companion_profiles": {
+			"scholar": {"personality": "scholarly", "role": "mage", "fatigue": 10.0},
+			"guardian": {"personality": "guardian", "role": "fighter", "fatigue": 85.0},
+			"injured": {"personality": "practical", "role": "fighter", "injured": true, "fatigue": 20.0}
+		}, "night_temperature_c": 8.0},
+		{"wood": 2, "rations": 3, "water": 3, "repair_kits": 1}
+	)
+	var initial_assignments := camp.assignments.duplicate(true)
+	camp.advance_real_time(24.0)
+	_check(camp.routine_stage == 1, "The camp should move from setup into the main evening routine after 120 world seconds.")
+	_check(String(camp.assignments.scholar.activity) == "study_map", "A scholarly companion should favour map study during the main evening.")
+	_check(String(camp.assignments.guardian.activity) == "socialise", "A fatigued companion should avoid strenuous evening duties.")
+	_check(String(camp.assignments.injured.activity) == "repair_gear", "An injured companion with a repair kit should choose a seated, non-strenuous task.")
+	camp.advance_real_time(48.0)
+	_check(camp.routine_stage == 2, "The camp should enter its late-evening wind-down after 360 world seconds.")
+	_check(String(camp.assignments.guardian.activity) == "socialise", "The late routine should retain quiet activities for exhausted companions.")
+	var saved := camp.to_dict()
+	var restored := CampSimulation.new()
+	_check(restored.from_dict(saved), "Routine stage and companion profiles should restore from a save.")
+	_check(restored.routine_stage == 2, "A loaded camp should resume at its saved evening stage.")
+	_check(restored.companion_profiles == camp.companion_profiles, "Companion routine preferences should persist.")
+	_check(initial_assignments.size() == camp.party_ids.size(), "Every companion should receive an initial setup assignment.")
