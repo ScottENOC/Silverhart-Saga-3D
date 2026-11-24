@@ -2385,6 +2385,7 @@ func _check_encounter_resolution() -> void:
 	if not encounter_active:
 		return
 	if active_combat_kind == "abandoned_house":
+		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
 		if ABANDONED_HOUSE_QUEST_SCRIPT.party_defeated(simulation, active_party_ids):
 			simulation.end_combat()
 			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
