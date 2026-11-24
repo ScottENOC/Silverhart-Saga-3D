@@ -46,6 +46,7 @@ on:
       - "tools/garment_guide_curve_editor.tscn"
       - "tools/review/capture_garment_guide_editor.gd"
       - "tools/review/ara_contact_path_review.gd"
+      - "tools/review/aldric_wren_kiss_contact_scene.gd"
       - ".github/workflows/ara-contact-path-visual-review.yml"
       - ".github/workflows/godot-validation.yml"
   workflow_dispatch:
