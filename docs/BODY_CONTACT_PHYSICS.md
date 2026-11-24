@@ -14,7 +14,7 @@ Each region has its own mechanical profile: stiffness (N/m), damping (N*s/m), ef
 4. Read get_compression_m(region_id) and feed it to a model-specific deformation adapter.
 5. Stop submitting force when contact ends; the spring returns to rest.
 
-Multiple contact sources can contribute in the same tick. The solver does not perform collision detection, infer contact forces, move bones, or deform a mesh. Those responsibilities stay separate so the same physics works for clothing, self-contact and character-to-character contact.
+Multiple contact sources can contribute in the same tick. `BodyPressureContact.calculate_force_n()` converts a detected contact's penetration depth and closing speed into a capped compressive force using contact stiffness and damping. `BodyPressureContact.submit_contact()` sends that force to a registered region. `AraCharacterActor.apply_body_contact()` exposes the same bridge to gameplay code. Call it once per physics tick while a hand, garment, or other actor remains in contact; stop calling it when contact ends. Positive closing speed means motion into the body; negative speed is treated as separation and never creates tensile force. The caller still owns collision detection and region selection.
 
 ## Runtime deformation adapter
 
@@ -24,6 +24,7 @@ The current Ara body exports have not yet been given these pressure-specific ble
 
 ## Remaining integration stages
 
+- Add actual collision probes and region-selection data for hands, garments and character-to-character contact.
 - Author and visually inspect localised pressure blend shapes for the target Ara body regions.
 - Map hand, clothing and character collision proxies to region IDs and calculate contact forces.
 - Add a debug test scene with adjustable contact force, region profile and recovery.
