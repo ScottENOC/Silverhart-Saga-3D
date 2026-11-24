@@ -76,5 +76,52 @@ class ShellCoreTests(unittest.TestCase):
         self.assertEqual(shell.faces[1], (1, 0, 4, 5))
 
 
+    def test_waistband_rises_smoothly_towards_outer_hips(self):
+        from shell_core import curved_trunk_limit
+        self.assertAlmostEqual(curved_trunk_limit(0.0, 0.2), 0.12)
+        self.assertAlmostEqual(curved_trunk_limit(0.2, 0.2), 0.138)
+        self.assertGreater(curved_trunk_limit(0.1, 0.2), 0.12)
+        self.assertLess(curved_trunk_limit(0.1, 0.2), 0.138)
+
+    def test_leg_opening_is_higher_outside_and_lower_inside(self):
+        from shell_core import curved_leg_limit
+        self.assertAlmostEqual(curved_leg_limit(1.0), 0.075)
+        self.assertAlmostEqual(curved_leg_limit(-1.0), 0.125)
+
+    def test_midline_bridge_pulls_inward_valley_towards_side_surfaces(self):
+        from shell_core import bridge_midline_concavities
+        positions = [(0.0, 0.0, 0.0), (0.07, 0.0, 0.0)]
+        normals = [(0.0, 1.0, 0.0)] * 2
+        samples = [(-0.04, 0.02, 0.0), (0.04, 0.02, 0.0)]
+        sample_normals = [(0.0, 1.0, 0.0)] * 2
+        result = bridge_midline_concavities(
+            positions, normals, samples, sample_normals, (0, 0, 0),
+            (1, 0, 0), (0, 0, 1), (0, 1, 0),
+        )
+        self.assertAlmostEqual(result[0][1], 0.0164, places=4)
+        self.assertEqual(result[1], positions[1])
+
+    def test_midline_bridge_respects_front_and_rear_surface_normals(self):
+        from shell_core import bridge_midline_concavities
+        result = bridge_midline_concavities(
+            [(0.0, 0.0, 0.0)],
+            [(0.0, -1.0, 0.0)],
+            [(-0.04, -0.02, 0.0), (0.04, -0.02, 0.0)],
+            [(0.0, -1.0, 0.0)] * 2,
+            (0, 0, 0), (1, 0, 0), (0, 0, 1), (0, 1, 0),
+        )
+        self.assertAlmostEqual(result[0][1], -0.0164, places=4)
+
+    def test_midline_bridge_does_not_pull_surface_that_is_already_outward(self):
+        from shell_core import bridge_midline_concavities
+        result = bridge_midline_concavities(
+            [(0.0, 0.03, 0.0)], [(0.0, 1.0, 0.0)],
+            [(-0.04, 0.02, 0.0), (0.04, 0.02, 0.0)],
+            [(0.0, 1.0, 0.0)] * 2, (0, 0, 0),
+            (1, 0, 0), (0, 0, 1), (0, 1, 0),
+        )
+        self.assertEqual(result[0], (0.0, 0.03, 0.0))
+
+
 if __name__ == "__main__":
     unittest.main()
