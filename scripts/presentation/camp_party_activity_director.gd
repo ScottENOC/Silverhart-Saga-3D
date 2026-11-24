@@ -313,7 +313,8 @@ func _process_social_exchanges(delta: float) -> void:
 			_exchange_index,
 			simulation.companion_bonds,
 			first_state.display_name,
-			second_state.display_name
+			second_state.display_name,
+			{"layout_id": _layout_id, "dwelling_id": String(simulation.camp_simulation.lodging_profile.get("dwelling_id", ""))}
 		)
 		event_key = "camp_banter:%s:%d:%d" % [
 			String(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
