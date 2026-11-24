@@ -57,7 +57,7 @@ jobs:
           with zipfile.ZipFile(archive) as zf:
               zf.extractall(destination)
           PY
-          find "$HOME/.config/blender/4.2/scripts/addons/mpfb/data" -name '*.mhclo' -o -name '*.mhmat' | head -30
+          find "$HOME/.config/blender/4.2/scripts/addons/mpfb/data" \\( -name '*.mhclo' -o -name '*.mhmat' \\) -print | sed -n '1,30p'
 
       - name: Run the upstream garment fitting smoke test
         run: |
