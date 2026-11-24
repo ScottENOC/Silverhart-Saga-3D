@@ -39,7 +39,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 
 | Location | Source content still to port |
 |---|---|
-| Silverhart | Palace core and radius-23 curtain wall with seven watchtowers/two ladders; radius-30 and radius-45 ring roads; Merchant/Noble street grids; four embassies, Ironbond office, Grand Cathedral and diplomatic plaza; commons inn, market board, three outlying homes, six middle-ring houses, radius-60 outer city wall with three-cell gate/two watchtowers, three Warrens shacks, Thieves' Guild and hidden vault. 40 buildings, 33 routes, 513 props and 38 source-named NPC placements are registered for streamed presentation. The source Grand Hall/gallery, barracks/loft and three-level wizard tower are registered as playable runtime floor stacks with tested stair transitions and source prop/actor placement data. | Verify 3D rendering, actor spawn and outer-wall traversal in Godot; complete remaining palace rooms/floors, building entry/exit wiring, doors/reputation gates, NPC interactions, Thieves' Guild quest-state and hidden-vault interactions, schedules and kingdom/faction interactions |
+| Silverhart | Palace core and radius-23 curtain wall with seven watchtowers/two ladders; radius-30 and radius-45 ring roads; Merchant/Noble street grids; four embassies, Ironbond office, Grand Cathedral and diplomatic plaza; commons inn, market board, three outlying homes, six middle-ring houses, radius-60 outer city wall with three-cell gate/two watchtowers, three Warrens shacks, Thieves' Guild and hidden vault. 40 buildings, 33 routes, 512 props and 38 source-named NPC placements are registered for streamed presentation. The source Grand Hall/gallery, barracks/loft and three-level wizard tower are registered as playable runtime floor stacks with tested stair transitions and source prop/actor placement data. | Verify 3D rendering, actor spawn and outer-wall traversal in Godot; complete remaining palace rooms/floors, building entry/exit wiring, doors/reputation gates, NPC interactions, Thieves' Guild quest-state and hidden-vault interactions, schedules and kingdom/faction interactions |
 | Skarn-tooth Camp | Source-authored exterior structures, road endpoint and campfire are ported; map presentation is complete pending in-engine visual review |
 | Northwatch Fort | Star fort, keep, gate, source moat/waterway, siege engine, distant catapult, oil barrels, six ladder props and keep hearth are ported; visual review remains |
 | Ridgehold Fort | Fort walls, keep, downstream waterway and keep hearth are ported; visual review remains |
@@ -71,7 +71,7 @@ This is an inventory of **explicit geometry currently represented in the 3D proj
 | Strategic roads | 1,633 unique local hexes |
 | Settlement building footprints | 2,013 unique local hexes |
 | Settlement paths | 717 unique local hexes |
-| Map prop anchors | 508 unique local hexes (521 prop records) |
+| Map prop anchors | 508 unique local hexes (520 prop records) |
 | Field footprints | 63 unique local hexes |
 | Fence lines | 22 unique local hexes |
 | Crop rows | 0 currently registered |
