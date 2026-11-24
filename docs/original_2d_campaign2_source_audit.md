@@ -1,5 +1,7 @@
 # Original 2D source audit — Campaign 2 world port
 
+> **Historical source audit.** The target branch name and implementation state recorded below are out of date. The current source-runtime inventory and implementation status are maintained in `docs/campaign2_world_port_status.md`; use this document for source-system background only.
+
 Source: https://github.com/ScottENOC/Hex-crpg (default branch: main)
 Target: https://github.com/ScottENOC/Silverhart-Saga-3D
 Target working branch: feature/full-world-port-foundation
