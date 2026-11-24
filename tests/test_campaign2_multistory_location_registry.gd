@@ -409,8 +409,8 @@ func _initialize() -> void:
 	}
 	for location_id in silverhart_noble_homes:
 		var home: Dictionary = silverhart_noble_homes[location_id]
-		var definition: Dictionary = registry.get_definition(location_id)
-		_check(_position_matches(definition.get("anchor", {}), home["centre"]), "Noble/outlying house anchor must match source: " + location_id)
+		var noble_home_definition: Dictionary = registry.get_definition(location_id)
+		_check(_position_matches(noble_home_definition.get("anchor", {}), home["centre"]), "Noble/outlying house anchor must match source: " + location_id)
 		var floor := registry.get_floor_definition(location_id, 0)
 		var room: Dictionary = floor.get("rooms", [])[0]
 		_check(_position_matches(room.get("center", {}), home["centre"]), "Noble/outlying room centre must match source: " + location_id)
