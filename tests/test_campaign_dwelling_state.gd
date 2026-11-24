@@ -46,6 +46,13 @@ func _test_furniture_purchase_crafting_and_placement() -> void:
 	var player := _player()
 	player.gold = 100
 	player.axial = Vector2i(8, -496)
+	var world := WorldSimulation.new()
+	var world_player := CharacterState.new("player", "Player", Vector2i(8, -496))
+	world_player.gold = 30
+	world.register_character(world_player)
+	var world_purchase := world.buy_dwelling_furniture("bed_single")
+	_check(bool(world_purchase.get("ok", false)), "The world simulation should expose the capital furniture shop transaction.")
+	_check(world_player.gold == 4, "World-level furniture purchase should debit the player's gold.")
 	var wrong_shop := state.buy_furniture("bed_double", player, "general_store", player.axial)
 	_check(not bool(wrong_shop.get("ok", false)), "Furniture purchases must use the dedicated capital furniture shop.")
 	var purchase := state.buy_furniture("bed_double", player, CampaignFurnitureCatalog.SHOP_ID, player.axial)
@@ -298,6 +305,16 @@ func _test_dwelling_world_sites_and_inspection() -> void:
 	_check(state.is_at_site("crossroads_plot", Vector2i(13, 27)), "The cottage site should use the source crossroads-relative location.")
 	_check(not state.is_at_site("crossroads_plot", Vector2i.ZERO), "A distant player must not pass the cottage location gate.")
 	_check(state.is_at_site("silverhart_palace", Vector2i(8, -496)), "The manor grant should be tied to the royal palace.")
+	var shop_site := CampaignDwellingWorldService.site_definition(CampaignFurnitureCatalog.SHOP_ID)
+	_check(shop_site.get("hex", Vector2i.ZERO) == Vector2i(8, -496), "The furniture shop should be anchored in the Silverhart capital.")
+	var shop_inspection := CampaignDwellingWorldService.inspection_for_site(state, journal, player, CampaignFurnitureCatalog.SHOP_ID)
+	_check(bool(shop_inspection.get("ok", false)), "The capital furniture shop should expose an inspection and stock list.")
+	var shop_choices: Array = shop_inspection.get("choices", [])
+	var offers_double_bed := false
+	for choice in shop_choices:
+		if String(choice.get("id", "")) == "furniture_buy:bed_double":
+			offers_double_bed = true
+	_check(offers_double_bed, "The shop should offer a purchasable double bed.")
 	var house_site := CampaignDwellingWorldService.site_definition("abandoned_house")
 	_check(house_site.get("hex", Vector2i.ZERO) == Vector2i(14, -176), "The abandoned house should retain its source north-road location.")
 	var nearby := CampaignDwellingWorldService.nearby_sites(Vector2i(14, -176), 2)
