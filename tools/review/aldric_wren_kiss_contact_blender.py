@@ -104,6 +104,7 @@ def apply_body_pose(aldric, wren, report):
     # Aldric bows from hips and spine to meet Wren's shorter stature.
     names = {}
     for aliases, axis, angle in [
+        (["Hips","Pelvis"], "X", math.radians(-5)),
         (["Spine","Spine1","Spine2"], "X", math.radians(-9)),
         (["Spine1","Spine2","Chest"], "X", math.radians(-11)),
         (["Neck"], "X", math.radians(5)),
@@ -206,6 +207,9 @@ def main():
         bpy.ops.object.mode_set(mode="POSE")
         bpy.ops.pose.select_all(action="SELECT")
         bpy.ops.pose.armature_apply(selected=False)
+        for pb in actor["arm"].pose.bones:
+            for constraint in list(pb.constraints):
+                pb.constraints.remove(constraint)
         bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.update()
 
@@ -214,7 +218,13 @@ def main():
         if obj.type == "EMPTY":
             obj.hide_render = True
             obj.hide_viewport = True
-    # Set a clean render camera and studio lighting for a visual QA image.
+    # Set a clean render camera, studio lighting and floor for a visual QA image.
+    bpy.ops.mesh.primitive_plane_add(size=5, location=(0, 0, -0.01))
+    floor = bpy.context.object
+    floor.name = "ReviewFloor"
+    floor_mat = bpy.data.materials.new("ReviewFloor_Matte")
+    floor_mat.diffuse_color = (0.055, 0.065, 0.075, 1.0)
+    floor.data.materials.append(floor_mat)
     bpy.ops.object.camera_add(location=(2.5, -3.8, 1.55))
     cam = bpy.context.object
     cam.name = "PoseReviewCamera"
