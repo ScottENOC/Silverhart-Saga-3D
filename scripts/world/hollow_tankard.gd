@@ -1402,8 +1402,6 @@ func _companion_prerequisite_actor_id(character_id: String) -> String:
 	match character_id:
 		"old_mac":
 			return "old_mac_human_male"
-		"elder_nessa_wren_elf_female":
-			return "nessa_wren"
 		_:
 			return character_id
 
