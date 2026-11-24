@@ -164,6 +164,22 @@ func _initialize() -> void:
 		if bool(home_result.get("ok", false)):
 			var home_map: HexMapData = home_result.get("map_data") as HexMapData
 			_check(home_map.is_walkable(silverhart_noble_doors[home_id]), "Noble/outlying house entrance must be walkable: " + home_id)
+
+	# Hallis's house is a six-corner polygon, not a rectangular room. Its two
+	# source door cells must be walkable while the reinforced perimeter stays
+	# solid after the explicit floor/wall masks are converted to HexMapData.
+	var builder_house_definition: Dictionary = registry.get_definition("silverhart_builder_house")
+	var builder_house_state = LOCATION_STATE.new()
+	_check(bool(builder_house_state.configure(builder_house_definition).get("ok", false)), "Hallis polygon house state must configure")
+	var builder_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(builder_house_definition, 0, builder_house_state)
+	_check(bool(builder_house_result.get("ok", false)), "Hallis polygon house floor must build")
+	if bool(builder_house_result.get("ok", false)):
+		var builder_house_map: HexMapData = builder_house_result.get("map_data") as HexMapData
+		_check(builder_house_map.is_walkable(Vector2i(34, -493)), "Hallis's west door must be walkable")
+		_check(builder_house_map.is_walkable(Vector2i(38, -486)), "Hallis's south door must be walkable")
+		_check(not builder_house_map.is_walkable(Vector2i(42, -495)), "Hallis's polygon perimeter must remain a wall")
+		_check(_has_object(builder_house_result.get("tile_objects", []), "silverhart_builder_house_west_door"), "Hallis's west door must be presented")
+		_check(_has_object(builder_house_result.get("tile_objects", []), "silverhart_builder_house_south_door"), "Hallis's south door must be presented")
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
