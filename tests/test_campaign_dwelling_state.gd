@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_abandoned_house_quest_gate()
 	_test_manor_reputation_and_fortification()
 	_test_dwelling_camp_lodging()
+	_test_world_integration_and_persistence()
 	_test_save_restore()
 	if _failures > 0:
 		push_error("%d dwelling assertion(s) failed." % _failures)
@@ -106,3 +107,25 @@ func _test_dwelling_camp_lodging() -> void:
 	var outdoor := result.summary.characters.companion
 	_check(float(indoor.warmth) > float(outdoor.warmth), "Dwelling shelter should improve warmth for its occupant.")
 	_check(float(indoor.comfort) > float(outdoor.comfort), "Dwelling shelter should improve overall overnight comfort for its occupant.")
+
+
+func _test_world_integration_and_persistence() -> void:
+	var world := WorldSimulation.new()
+	var player := CharacterState.new("player", "Player")
+	var companion := CharacterState.new("companion", "Companion", Vector2i(1, 0))
+	player.side = "player"
+	companion.side = "player"
+	world.register_character(player)
+	world.register_character(companion)
+	world.restore_party_members(["player", "companion"])
+	var blocked := world.begin_camp({"walkable": true, "dwelling_id": "crossroads_cottage"}, {}, {"tents": 0})
+	_check(not bool(blocked.get("ok", false)), "An unowned dwelling must not be used as a sheltered camp.")
+	_check(bool(world.claim_dwelling("build_crossroads_cottage").get("ok", false)), "World simulation should expose the dwelling claim action.")
+	var started := world.begin_camp({"walkable": true, "dwelling_id": "crossroads_cottage"}, {}, {"tents": 0})
+	_check(bool(started.get("ok", false)), "An owned cottage should be accepted as a camp site.")
+	_check(String(world.camp_simulation.sleeping_arrangements[0].get("shelter_type", "")) == "dwelling", "World simulation should pass the owned dwelling's lodging profile into camp.")
+	var saved := world.to_dict()
+	var restored := WorldSimulation.new()
+	restored.load_dict(saved)
+	_check(bool(restored.campaign_dwellings.owned.get("crossroads_cottage", false)), "World save/load should preserve dwelling ownership.")
+	_check(String(restored.camp_simulation.lodging_profile.get("layout_id", "")) == "cottage_one_room", "World save/load should preserve the active dwelling camp layout.")
