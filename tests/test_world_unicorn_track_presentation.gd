@@ -17,12 +17,14 @@ func _initialize() -> void:
 	assert(PRESENTATION.TRACKS.size() == 24, "Wild Unicorn trail must retain all 24 source track markers")
 	assert(PRESENTATION.VALE_CENTER == Vector2i(-286, 24), "Wild Unicorn Vale must retain the source-derived centre")
 	assert(PRESENTATION.PATROL_RADIUS == 12.0, "Wild Unicorn Vale must retain the source patrol radius")
-	assert(PRESENTATION.PATROL_WAYPOINTS == [
+	var expected_waypoints: Array[Vector2i] = [
 		Vector2i(-274, 24), Vector2i(-277, 32), Vector2i(-286, 36), Vector2i(-294, 32),
 		Vector2i(-298, 24), Vector2i(-295, 16), Vector2i(-286, 12), Vector2i(-278, 16)
-	], "All eight source hex-rounded patrol waypoints must be preserved")
-	for waypoint_index in range(PRESENTATION.PATROL_WAYPOINTS.size()):
-		assert(PRESENTATION.TRACKS[waypoint_index * 3]["hex"] == PRESENTATION.PATROL_WAYPOINTS[waypoint_index], "Each three-marker trail segment must begin at its source patrol waypoint")
+	]
+	assert(PRESENTATION.PATROL_WAYPOINTS.size() == expected_waypoints.size(), "Wild Unicorn patrol must retain all eight source waypoints")
+	for waypoint_index in range(expected_waypoints.size()):
+		assert(PRESENTATION.PATROL_WAYPOINTS[waypoint_index] == expected_waypoints[waypoint_index], "Wild Unicorn patrol waypoint must match the source hex rounding")
+		assert(PRESENTATION.TRACKS[waypoint_index * 3]["hex"] == expected_waypoints[waypoint_index], "Each three-marker trail segment must begin at its source patrol waypoint")
 	assert(total == 24, "All 24 source track markers must be presented exactly once across the four streamed chunks")
 	assert(PRESENTATION.TRACKS[0]["hex"] == Vector2i(-274, 24), "Trail must start at the source patrol's first rounded waypoint")
 	assert(PRESENTATION.TRACKS[23]["hex"] == Vector2i(-275, 21), "Trail must retain the source patrol's final track marker")
