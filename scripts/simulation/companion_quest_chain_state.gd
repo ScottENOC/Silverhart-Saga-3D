@@ -307,6 +307,8 @@ func apply_prerequisite_choice(quest_id: String, choice_id: String, journal: Cam
 	var choice_keys: Array = quest_state.get("opening_choice_keys", [])
 	if choice_keys.has(choice_id):
 		return {"ok":true,"changed":false}
+	if not choice_keys.is_empty():
+		return {"ok":false,"reason":"opening_choice_already_recorded"}
 	choice_keys.append(choice_id)
 	quest_state["opening_choice_keys"] = choice_keys
 	journal.quests[quest_id] = quest_state
