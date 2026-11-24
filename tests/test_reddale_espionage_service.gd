@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_test_baron_quest_and_clean_hand_in()
 	_test_mirrored_petra_quest_and_double_cross()
 	_test_double_cross_decline_and_guard_failure()
+	_test_guard_visibility_and_stealth()
 	if _failures > 0:
 		push_error("%d Reddale espionage assertion(s) failed." % _failures)
 		quit(1)
@@ -70,6 +71,36 @@ func _test_mirrored_petra_quest_and_double_cross() -> void:
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 35.0), "Secret Baron reward changes merchant influence")
 
 
+func _test_guard_visibility_and_stealth() -> void:
+	var blocked_journal := _journal()
+	SERVICE.choose(blocked_journal, "spy_on_guild", "accept")
+	var blocked_player := CharacterState.new("player", "Player", Vector2i(147, 34))
+	var blocked_map := HexMapData.new()
+	blocked_map.add_cell(Vector2i(145, 34))
+	blocked_map.add_cell(Vector2i(146, 34))
+	blocked_map.add_cell(Vector2i(147, 34))
+	blocked_map.cells[Vector2i(146, 34)]["blocks_vision"] = true
+	blocked_map.cells[Vector2i(146, 34)]["vision_block_height"] = 10.0
+	var occluded := SERVICE.check_guard_detection(blocked_journal, "spy_on_guild", blocked_player, blocked_map, 1.0, 0.0)
+	_check(not bool(occluded.get("detected", false)), "A wall between guard and player blocks espionage detection")
+	var stealth_start := SERVICE.toggle_stealth(blocked_journal, "spy_on_guild", blocked_player, blocked_map)
+	_check(bool(stealth_start.get("ok", false)) and blocked_player.is_stealthed, "Player can enter stealth when the guard has no line of sight")
+
+	var stealth_journal := _journal()
+	SERVICE.choose(stealth_journal, "spy_on_guild", "accept")
+	var stealth_player := CharacterState.new("player", "Player", Vector2i(147, 34))
+	stealth_player.is_stealthed = true
+	stealth_player.stealth_score = 100
+	var clear_map := HexMapData.new()
+	clear_map.add_cell(Vector2i(145, 34))
+	clear_map.add_cell(Vector2i(146, 34))
+	clear_map.add_cell(Vector2i(147, 34))
+	var hidden := SERVICE.check_guard_detection(stealth_journal, "spy_on_guild", stealth_player, clear_map, 1.0, 99.0)
+	_check(not bool(hidden.get("detected", false)), "A successful stealth roll avoids detection despite geometric visibility")
+	var spotted := SERVICE.check_guard_detection(stealth_journal, "spy_on_guild", stealth_player, clear_map, 1.0, 0.0)
+	_check(bool(spotted.get("detected", false)), "A failed stealth roll triggers the guard's detection")
+
+
 func _test_double_cross_decline_and_guard_failure() -> void:
 	var journal := _journal()
 	SERVICE.choose(journal, "spy_on_guild", "accept")
@@ -77,8 +108,12 @@ func _test_double_cross_decline_and_guard_failure() -> void:
 	_check(petra_prompt.get("choices", []).size() == 2, "Petra confronts the player about the Baron's active mission")
 	var declined := SERVICE.choose(journal, "spy_on_guild", "decline_double_agent")
 	_check(bool(declined.get("ok", false)), "Player can decline Petra's double-agent offer")
-	var detected := SERVICE.check_guard_detection(journal, "spy_on_guild", Vector2i(146, 34))
-	_check(bool(detected.get("detected", false)), "Entering the guard's adjacent hex triggers mission failure")
+	var player := CharacterState.new("player", "Player", Vector2i(146, 34))
+	var map_data := HexMapData.new()
+	map_data.add_cell(Vector2i(145, 34))
+	map_data.add_cell(Vector2i(146, 34))
+	var detected := SERVICE.check_guard_detection(journal, "spy_on_guild", player, map_data, 1.0, 0.0)
+	_check(bool(detected.get("detected", false)), "A visible guard detects an unconcealed player")
 	_check(String(journal.quest_state("spy_on_guild").get("status", "")) == "failed", "Caught mission is marked failed")
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), -27.9), "Declining the double-agent offer then being caught applies the knowledge-dampened failure penalty")
 	_check(is_equal_approx(float(journal.faction_knowledge.get("ironbond_company", 0.0)), 30.0), "Declining and detection each increase faction knowledge")
