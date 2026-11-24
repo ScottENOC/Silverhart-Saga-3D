@@ -9,7 +9,8 @@ static func dialogue_for_companion(
 	chain: CompanionQuestChainState,
 	journal: CampaignJournal,
 	companion_id: String,
-	party_ids: Array[String]
+	party_ids: Array[String],
+	player_state: CharacterState = null
 ) -> Dictionary:
 	if chain == null or journal == null:
 		return {}
@@ -41,7 +42,7 @@ static func dialogue_for_companion(
 		body += "\n\n" + String(quest_state.get("description", definition.get("description", "")))
 	if chain.can_resolve_prerequisite(quest_id, journal):
 		choices.clear()
-		for option_value in chain.prerequisite_resolution_options(quest_id):
+		for option_value in chain.prerequisite_resolution_options(quest_id, player_state):
 			var option: Dictionary = option_value
 			choices.append({
 				"id":"companion_prerequisite_resolve",
