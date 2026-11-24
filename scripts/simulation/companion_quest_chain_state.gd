@@ -397,6 +397,26 @@ func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, jo
 		var linked_clue_id := String(linked_clue_value)
 		if not clues.has(linked_clue_id):
 			add_prerequisite_clue(quest_id, linked_clue_id, source + " (linked evidence)", journal, world_seconds, capabilities)
+	quest_state = journal.quest_state(quest_id)
+	clues = quest_state.get("clues", {})
+	var stage_rules: Array = definition.get("stage_rules", [])
+	var stage_applied := false
+	for rule_value in stage_rules:
+		var rule: Dictionary = rule_value
+		var requirements_met := true
+		for required_clue_value in rule.get("required_clues", []):
+			if not clues.has(String(required_clue_value)):
+				requirements_met = false
+				break
+		if requirements_met:
+			quest_state["chapter_stage"] = String(rule.get("stage", "investigation"))
+			quest_state["description"] = String(rule.get("description", definition.get("description", "")))
+			stage_applied = true
+			break
+	if not stage_applied and can_resolve_prerequisite(quest_id, journal):
+		quest_state["chapter_stage"] = "reckoning"
+		quest_state["description"] = String(definition.get("ready_description", quest_state.get("description", "")))
+	journal.quests[quest_id] = quest_state
 	return {"ok":true,"changed":true,"clue":clues[clue_id].duplicate(true),"can_resolve":can_resolve_prerequisite(quest_id, journal)}
 
 
