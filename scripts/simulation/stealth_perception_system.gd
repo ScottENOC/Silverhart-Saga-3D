@@ -57,7 +57,7 @@ static func assess(
 	var exposure_bonus := movement_exposure * 0.28 + reflective_exposure * 0.24
 	var cover := clampf(float(target_profile.get("cover", terrain_profile.get("cover", 0.0))), 0.0, 1.0)
 	var visual_signal := clampf(
-		ambient_visibility * (0.72 - contrast_penalty - cover * 0.48 + exposure_bonus)
+		ambient_visibility * (0.92 - contrast_penalty - cover * 0.48 + exposure_bonus)
 		+ light_visibility * 0.9,
 		0.0,
 		1.0
@@ -139,8 +139,11 @@ static func character_visual_profile(character: Variant, appearance: Dictionary 
 			var metal := material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false))
 			if metal:
 				reflectivity = maxf(reflectivity, float(item.get("reflectivity", 0.72)))
-			equipment_noise += float(item.get("noise", item.get("noise_rating", 0.0)))
-			if bool(item.get("is_light_source", false)) or item_type == "torch":
+			equipment_noise += float(item.get("noise", item.get("noise_rating", 0.22 if metal else 0.0)))
+			if String(item.get("weight_class", "")).to_lower() == "heavy":
+				equipment_noise += 0.12
+			var item_id := String(item.get("id", "")).to_lower()
+			if bool(item.get("is_light_source", false)) or item_type == "torch" or item_id.contains("torch") or item_id.contains("lantern"):
 				light_emission = maxf(light_emission, float(item.get("light_emission", 0.85)))
 			if item.has("cover"):
 				cover = maxf(cover, float(item.cover))
@@ -179,7 +182,7 @@ static func make_character_sound_event(character: Variant, kind: String, loudnes
 		"source_id": state.id,
 		"hex": state.axial,
 		"kind": kind,
-		"loudness": clampf(loudness + movement_noise + float(profile.get("equipment_noise", 0.0)), 0.0, 1.0),
+		"loudness": clampf(loudness + movement_noise, 0.0, 1.0),
 		"equipment_noise": float(profile.get("equipment_noise", 0.0))
 	}
 
@@ -210,8 +213,11 @@ static func _visual_profile(target: Dictionary) -> Dictionary:
 		var material := String(item.get("material", "")).to_lower()
 		if material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false)):
 			reflectivity = maxf(reflectivity, float(item.get("reflectivity", 0.72)))
-		equipment_noise += float(item.get("noise", item.get("noise_rating", 0.0)))
-		if bool(item.get("is_light_source", false)):
+		equipment_noise += float(item.get("noise", item.get("noise_rating", 0.22 if material in ["iron", "steel", "silver", "mithril", "bronze", "metal"] or bool(item.get("metallic", false)) else 0.0)))
+		if String(item.get("weight_class", "")).to_lower() == "heavy":
+			equipment_noise += 0.12
+		var item_id := String(item.get("id", "")).to_lower()
+		if bool(item.get("is_light_source", false)) or item_id.contains("torch") or item_id.contains("lantern"):
 			light_emission = maxf(light_emission, float(item.get("light_emission", 0.85)))
 	result["colours"] = colours
 	result["reflectivity"] = clampf(reflectivity, 0.0, 1.0)
@@ -221,10 +227,10 @@ static func _visual_profile(target: Dictionary) -> Dictionary:
 
 
 static func _camouflage_score(target_profile: Dictionary, terrain_profile: Dictionary) -> float:
-	var target_colours: Array = target_profile.get("colours", [])
-	var terrain_colours: Array = terrain_profile.get("colours", terrain_profile.get("colors", []))
+	var target_colours: Array = target_profile.get("colours", target_profile.get("colors", target_profile.get("palette", [])))
+	var terrain_colours: Array = terrain_profile.get("colours", terrain_profile.get("colors", terrain_profile.get("palette", terrain_profile.get("colour_palette", terrain_profile.get("color_palette", [])))))
 	if target_colours.is_empty() or terrain_colours.is_empty():
-		return clampf(float(target_profile.get("terrain_camouflage", 0.0)), 0.0, 1.0)
+		return clampf(float(target_profile.get("terrain_camouflage", 0.5)), 0.0, 1.0)
 	var total := 0.0
 	var samples := 0
 	for target_colour_value in target_colours:
