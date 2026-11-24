@@ -445,7 +445,10 @@
           "actor_id": "adelram",
           "speaker": "High Cleric Adelram",
           "dialogue": "Adelram listens without interrupting. “A vow is not serious because it is impossible to change. Marriage vows can be released. Monastic vows can be dispensed. Offices can be resigned. What makes the promise serious is that you do not quietly declare yourself free the moment it becomes inconvenient.”\n\nAldric frowns. “So asking release is not breaking it?”\n\n“It is asking the other party whether the form of your duty still serves the thing you promised yourself to.” Adelram glances at you. “And asking others to share a burden is not the same as abandoning it.”",
-          "response": "That is clearer than I expected from a priest."
+          "response": "That is clearer than I expected from a priest.",
+          "requires_clues": [
+            "obedience_vow"
+          ]
         },
         "service_options": {
           "label": "The hospice needs continuity more than Aldric specifically",
@@ -453,7 +456,11 @@
           "actor_id": "preceptor_garran_vey",
           "speaker": "Preceptor Garran Vey",
           "dialogue": "Garran considers the question instead of taking offence. “A permanent warden is cleanest. It is not the only way. Aldric could serve a fixed rotation while training two local healers and a road sergeant. And if he believes his life has genuinely moved beyond ordinary assignment, he can petition release from that part of the vow. Openly. I may dislike the answer; I will not pretend our own rule does not allow it.”",
-          "response": "So this is a choice, not a trap."
+          "response": "So this is a choice, not a trap.",
+          "requires_clues": [
+            "hospice_need",
+            "obedience_vow"
+          ]
         }
       },
       "required_clues": [
