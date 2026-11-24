@@ -631,8 +631,15 @@ func _create_camp_presentation() -> void:
 	add_child(camp_presentation)
 	camp_activity_director = CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT.new() as CampPartyActivityDirector
 	camp_activity_director.name = "CampPartyActivityDirector"
-	camp_activity_director.configure(simulation)
+	camp_activity_director.configure(simulation, Callable(self, "_camp_actor_for_id"))
 	add_child(camp_activity_director)
+
+
+func _camp_actor_for_id(character_id: String) -> AraCharacterActor:
+	var actor := actor_by_id.get(character_id) as Node3D
+	if actor == null:
+		return null
+	return actor.get_node_or_null("CharacterModel") as AraCharacterActor
 
 
 func _toggle_camp_site_selection() -> void:
