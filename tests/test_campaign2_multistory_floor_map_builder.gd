@@ -157,6 +157,37 @@ func _initialize() -> void:
 	_check((upper_court.get("wall_hexes", []) as Array).is_empty(), "Open-air Court must not generate a wall ring")
 	_check(_has_object(upper_court.get("tile_objects", []), "court_throne"), "Upper Court throne must be presented")
 
+	# Northwatch's hexagonal keep and Ridgehold's flat keep are
+	# represented by exact source-authored floor/wall masks, not rectangles.
+	var northwatch_definition: Dictionary = registry.get_definition("northwatch_keep")
+	var northwatch_state = LOCATION_STATE.new()
+	_check(bool(northwatch_state.configure(northwatch_definition).get("ok", false)), "Northwatch keep state must configure")
+	var northwatch_result: Dictionary = FLOOR_BUILDER.build_floor_map(northwatch_definition, 0, northwatch_state)
+	_check(bool(northwatch_result.get("ok", false)), "Northwatch keep source floor must build")
+	if bool(northwatch_result.get("ok", false)):
+		var northwatch_map: HexMapData = northwatch_result.get("map_data") as HexMapData
+		_check(northwatch_result.get("walkable_hexes", []).size() == 67, "Northwatch keep must retain its 61-cell core and six open corner gaps")
+		_check(northwatch_result.get("wall_hexes", []).size() == 24, "Northwatch keep must retain its 24 closed wall-ring cells")
+		for gap in [Vector2i(273, -21), Vector2i(273, -26), Vector2i(268, -26), Vector2i(263, -21), Vector2i(263, -16), Vector2i(268, -16)]:
+			_check(northwatch_map.is_walkable(gap), "Every source keep corner gap must remain walkable: %s" % gap)
+		_check(not northwatch_map.is_walkable(Vector2i(273, -22)), "Northwatch keep wall ring must remain closed between its source gaps")
+		_check(_has_object(northwatch_result.get("tile_objects", []), "northwatch_keep_fireplace"), "Northwatch keep fireplace must be presented")
+		_check(_has_object(northwatch_result.get("tile_objects", []), "northwatch_keep_door"), "Northwatch keep primary source gap must be presented as an entrance")
+	var ridgehold_definition: Dictionary = registry.get_definition("ridgehold_keep")
+	var ridgehold_state = LOCATION_STATE.new()
+	_check(bool(ridgehold_state.configure(ridgehold_definition).get("ok", false)), "Ridgehold keep state must configure")
+	var ridgehold_result: Dictionary = FLOOR_BUILDER.build_floor_map(ridgehold_definition, 0, ridgehold_state)
+	_check(bool(ridgehold_result.get("ok", false)), "Ridgehold keep source floor must build")
+	if bool(ridgehold_result.get("ok", false)):
+		var ridgehold_map: HexMapData = ridgehold_result.get("map_data") as HexMapData
+		_check(ridgehold_result.get("walkable_hexes", []).size() == 16, "Ridgehold keep must retain its 15-cell room and open source doorway")
+		_check(ridgehold_result.get("wall_hexes", []).size() == 17, "Ridgehold keep must retain its source wall ring around the open door")
+		_check(ridgehold_map.is_walkable(Vector2i(426, 45)), "Ridgehold keep source east doorway must be walkable")
+		_check(ridgehold_map.is_walkable(Vector2i(426, 43)), "Ridgehold keep fireplace hex must be walkable")
+		_check(not ridgehold_map.is_walkable(Vector2i(425, 42)), "Ridgehold keep wall ring must remain solid")
+		_check(_has_object(ridgehold_result.get("tile_objects", []), "ridgehold_keep_fireplace"), "Ridgehold keep fireplace must be presented")
+		_check(_has_object(ridgehold_result.get("tile_objects", []), "ridgehold_keep_door"), "Ridgehold keep source door must be presented")
+
 	var gate_hall: Dictionary = FLOOR_BUILDER.build_floor_map(definition, 0, state)
 	var gate_map: HexMapData = gate_hall.get("map_data") as HexMapData
 	_check(gate_map.is_walkable(Vector2i(908, -605)), "The source Gate Hall entrance door must be walkable")
