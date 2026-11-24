@@ -161,11 +161,11 @@ static func record_exchange(
 		return {"ok": false, "reason": "invalid_pair"}
 	var first_result := bonds.record_interaction(
 		first_id, second_id, "camp_conversation",
-		{"familiarity": 1.0, "trust": 0.5}, event_key + ":first"
+		{"familiarity": 1.0, "trust": 0.5, "friendship": 0.5}, event_key + ":first"
 	)
 	var second_result := bonds.record_interaction(
 		second_id, first_id, "camp_conversation",
-		{"familiarity": 1.0, "friendship": 1.0}, event_key + ":second"
+		{"familiarity": 1.0, "trust": 0.5, "friendship": 1.0}, event_key + ":second"
 	)
 	var changed := bool(first_result.get("changed", false)) or bool(second_result.get("changed", false))
 	if changed:
