@@ -25,6 +25,9 @@ func apply_pressure(region_id: StringName, force_n: float) -> void:
 func get_compression_m(region_id: StringName) -> float:
 	return _solver.get_compression_m(region_id)
 
+func get_max_compression_m(region_id: StringName) -> float:
+	return _solver.get_max_compression_m(region_id)
+
 func bind_model(model_root: Node3D) -> void:
 	_bound_meshes.clear()
 	_targets.clear()
