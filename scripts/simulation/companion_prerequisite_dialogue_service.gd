@@ -123,7 +123,8 @@ static func actor_prompt(
 		return {}
 	var active := chain.active_prerequisite_for_actor(actor_id, journal)
 	if active.is_empty():
-		var active_chapter := chain.active_chapter_for_actor(actor_id, journal)
+		var chain_actor_id := "nessa_wren" if actor_id == "elder_nessa_wren_elf_female" else actor_id
+		var active_chapter := chain.active_chapter_for_actor(chain_actor_id, journal)
 		if active_chapter.is_empty():
 			return {}
 		var chapter: Dictionary = active_chapter.get("chapter", {})
@@ -137,7 +138,7 @@ static func actor_prompt(
 			"chapter_id":chapter_id,
 			"title":String(chapter.get("title", chapter_id)),
 			"companion_id":String(chapter.get("companion_id", "")),
-			"actor_id":actor_id,
+			"actor_id":chain_actor_id,
 			"body":chapter_body,
 			"choices":[{
 				"id":"companion_chain_consult",
