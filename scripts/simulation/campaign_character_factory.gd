@@ -35,7 +35,7 @@ static func create_npc_state(
     _apply_npc_clothing_loadout(state, npc_profile)
 
     var progression: Dictionary = npc_profile.get("progression", {})
-    if not progression.is_empty():
+    if not progression.is_empty() and not progression.get("class_levels", []).is_empty():
         var class_sequence: Array[String] = []
         for class_id in progression.get("class_levels", []):
             class_sequence.append(String(class_id))
