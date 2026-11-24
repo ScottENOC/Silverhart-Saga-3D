@@ -542,20 +542,22 @@ func get_authored_triangle_region_weights(
     mesh_node_path: NodePath,
     surface_index: int,
     triangle_vertex_indices: PackedInt32Array,
-    barycentric_weights: Vector3,
+    barycentric_weights: PackedFloat32Array,
     minimum_weight: float = 0.0
 ) -> Dictionary:
     var result: Dictionary = {}
     if not is_configured() or triangle_vertex_indices.size() != 3:
         return result
-    if not barycentric_weights.is_finite():
+    if barycentric_weights.size() != 3:
         return result
-    var barycentric_sum := barycentric_weights.x + barycentric_weights.y + barycentric_weights.z
+    var barycentric_sum := 0.0
+    for weight in barycentric_weights:
+        if not is_finite(weight) or weight < 0.0 or weight > 1.0:
+            return result
+        barycentric_sum += weight
     if absf(barycentric_sum - 1.0) > 0.001:
         return result
     for component in range(3):
-        if barycentric_weights[component] < -0.001 or barycentric_weights[component] > 1.001:
-            return result
 
     for surface in _surfaces:
         var mesh_instance: MeshInstance3D = surface["mesh_instance"]
@@ -576,9 +578,9 @@ func get_authored_triangle_region_weights(
             if values.size() != vertices.size():
                 continue
             var interpolated := (
-                values[triangle_vertex_indices[0]] * barycentric_weights.x
-                + values[triangle_vertex_indices[1]] * barycentric_weights.y
-                + values[triangle_vertex_indices[2]] * barycentric_weights.z
+                values[triangle_vertex_indices[0]] * barycentric_weights[0]
+                + values[triangle_vertex_indices[1]] * barycentric_weights[1]
+                + values[triangle_vertex_indices[2]] * barycentric_weights[2]
             )
             if interpolated > threshold:
                 result[region_id] = clampf(interpolated, 0.0, 1.0)
