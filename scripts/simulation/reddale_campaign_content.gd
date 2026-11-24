@@ -73,12 +73,12 @@ static func choices() -> Array[Dictionary]:
 			"settlement_updates": [{
 				"settlement_id": "reddale",
 				"deltas": {"public_order": 10.0, "ironbond_presence": -20.0},
-				"flags": {"reeve_backed_resistance": true}
+				"flags": {"reeve_backed_resistance": true, "public_status": "Public order restored"}
 			}],
 			"npc_updates": [{
 				"npc_id": "reeve_aldous_finch",
 				"deltas": {"trust": 15.0, "fear": -10.0},
-				"flags": {"will_openly_oppose_ironbond": true, "public_status_visible": true, "public_status": "Openly opposes Ironbond"}
+				"flags": {"will_openly_oppose_ironbond": true, "public_status_visible": true, "public_status": "Openly opposes Ironbond", "show_settlement_status": true}
 			}]
 		},
 		{
@@ -93,12 +93,12 @@ static func choices() -> Array[Dictionary]:
 			"settlement_updates": [{
 				"settlement_id": "reddale",
 				"deltas": {"prosperity": 8.0, "ironbond_presence": 20.0},
-				"flags": {"ironbond_deal_brokered": true, "public_status_visible": true, "public_status": "Brokered Ironbond deal"}
+				"flags": {"ironbond_deal_brokered": true, "public_status": "Ironbond trade deal established"}
 			}],
 			"npc_updates": [{
 				"npc_id": "reeve_aldous_finch",
 				"deltas": {"trust": 5.0, "fear": 5.0},
-				"flags": {"will_openly_oppose_ironbond": false, "ironbond_deal_brokered": true}
+				"flags": {"will_openly_oppose_ironbond": false, "ironbond_deal_brokered": true, "public_status_visible": true, "public_status": "Brokered Ironbond deal", "show_settlement_status": true}
 			}]
 		}
 	]
