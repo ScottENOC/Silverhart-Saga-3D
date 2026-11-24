@@ -1,6 +1,7 @@
 extends SceneTree
 
 const RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 
 var _failures: int = 0
 
@@ -9,6 +10,8 @@ func _initialize() -> void:
 	_test_runtime_registration_and_save_restore()
 	_test_wren_gender_presentation_and_authored_events()
 	_test_wren_character_development_and_persistence()
+	_test_wren_personal_conversation_topics()
+	_test_companion_chapter_dialogue_flow()
 	if _failures > 0:
 		push_error("%d companion campaign runtime assertion(s) failed." % _failures)
 		quit(1)
@@ -100,3 +103,52 @@ func _test_wren_character_development_and_persistence() -> void:
 	var restored_arc := RUNTIME_STORE.wren_arc_state_for(restored)
 	_check(restored_arc.to_dict() == arc.to_dict(), "Wren's axes, idempotency keys and development history survive save/load")
 	_check(restored_arc.stance() == arc.stance() and restored_arc.attachment_state() == arc.attachment_state(), "Derived Wren stance and attachment remain stable after restore")
+
+
+
+func _test_wren_personal_conversation_topics() -> void:
+	var simulation := WorldSimulation.new()
+	var relationships := RUNTIME_STORE.relationship_state_for(simulation)
+	var arc := RUNTIME_STORE.wren_arc_state_for(simulation)
+	var initial_topics := arc.dialogue_topics(relationships, simulation.campaign_journal)
+	_check(initial_topics.is_empty(), "Wren's personal topics remain private until sufficient familiarity")
+	relationships.adjust("wren_talbot", {"familiarity": 35.0})
+	var familiar_topics := arc.dialogue_topics(relationships, simulation.campaign_journal)
+	_check(familiar_topics.size() == 1 and String(familiar_topics[0].get("id", "")) == "wren_arc_topic:why_stay", "Why Wren stays becomes available at the authored familiarity threshold")
+	_check(not arc.why_stays_line(relationships).is_empty(), "Wren's reason for staying is responsive to relationship and character axes")
+
+	_check(simulation.campaign_journal.register_quest_definition({"id":"wren_parents","objectives":[{"id":"resolved","target":1.0}]}).get("ok", false), "Wren's parents quest can be registered for reflection gating")
+	_check(simulation.campaign_journal.start_quest("wren_parents").get("ok", false), "Wren's parents quest starts for reflection test")
+	simulation.campaign_journal.set_objective_progress("wren_parents", "resolved", 1.0)
+	simulation.campaign_journal.complete_quest("wren_parents")
+	var topics_after_parents := arc.dialogue_topics(relationships, simulation.campaign_journal)
+	_check(topics_after_parents.size() == 2 and String(topics_after_parents[1].get("id", "")) == "wren_arc_topic:parents_reflection", "Parents reflection appears only after that quest is completed")
+	var reflection_options := arc.dialogue_options_for_topic("parents_reflection")
+	_check(reflection_options.size() == 4, "The parents reflection offers the four authored dialogue responses")
+
+
+func _test_companion_chapter_dialogue_flow() -> void:
+	var simulation := WorldSimulation.new()
+	_check(RUNTIME_STORE.register_quest_definitions(simulation), "Companion chapter definitions register for dialogue flow")
+	var previous_id := "aldric_measure_of_oath"
+	_check(simulation.campaign_journal.register_quest_definition({"id":previous_id,"objectives":[{"id":"resolved","target":1.0}]}).get("ok", false), "Aldric's preceding chapter can be registered")
+	_check(simulation.campaign_journal.start_quest(previous_id).get("ok", false), "Aldric's preceding chapter starts")
+	simulation.campaign_journal.set_objective_progress(previous_id, "resolved", 1.0)
+	simulation.campaign_journal.complete_quest(previous_id)
+	var companion := CharacterState.new("companion_ser_aldric_thorne", "Ser Aldric Thorne")
+	simulation.register_character(companion)
+	_check(simulation.recruit_companion(companion.id).get("ok", false), "Aldric can be recruited for his next chapter")
+	var offer := DIALOGUE_SERVICE.chapter_dialogue_for_companion(simulation, companion.id)
+	_check(offer.get("choices", []).size() == 1 and String(offer.choices[0].get("id", "")) == "companion_chapter_start", "A companion conversation offers the eligible chapter")
+	var started := DIALOGUE_SERVICE.start_chapter(simulation, "aldric_weight_of_command")
+	_check(bool(started.get("ok", false)), "The companion dialogue starts the chapter through its quest-chain rules")
+	var waiting := DIALOGUE_SERVICE.chapter_dialogue_for_companion(simulation, companion.id)
+	_check(waiting.get("choices", []).is_empty() and String(waiting.get("body", "")).contains("High Cleric Adelram"), "The companion directs the player to the supporting character before deciding")
+	var consultation := DIALOGUE_SERVICE.consult_for_actor(simulation, "high_cleric_adelram", "High Cleric Adelram")
+	_check(bool(consultation.get("ok", false)) and bool(simulation.campaign_journal.quest_state("aldric_weight_of_command").get("consulted", false)), "Speaking with the supporting character advances the chapter to its reckoning")
+	var reckoning := DIALOGUE_SERVICE.chapter_dialogue_for_companion(simulation, companion.id)
+	_check(reckoning.get("choices", []).size() == 4, "The companion conversation exposes the four authored resolutions")
+	var resolved := DIALOGUE_SERVICE.resolve_chapter(simulation, "aldric_weight_of_command", "shared_command")
+	_check(bool(resolved.get("ok", false)), "A companion chapter resolution completes through the authored state machine")
+	_check(String(simulation.campaign_journal.quest_state("aldric_weight_of_command").get("status", "")) == "completed", "The chapter completion is recorded in the campaign journal")
+	_check(float(RUNTIME_STORE.relationship_state_for(simulation).snapshot("ser_aldric_thorne").get("trust", 0.0)) > 0.0, "The authored chapter resolution updates companion trust")
