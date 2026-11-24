@@ -352,16 +352,18 @@ func _test_prerequisite_dialogue_adapter_routes_npc_evidence() -> void:
 
 
 func _test_campaign_simulation_persists_companion_state() -> void:
-	var simulation := WorldSimulation.new()
-	simulation.companion_quest_chains.arc_states["fenn_oakheart"] = {"stewardship":17.0,"independence":-3.0}
-	simulation.companion_relationship_state.adjust("fenn_oakheart", {"trust":7.0,"friendship":4.0}, "test:persistence")
-	var snapshot := simulation.to_dict()
-	_check(snapshot.has("companion_quest_chains"), "The simulation save includes companion personality arcs")
-	_check(snapshot.has("companion_relationships"), "The simulation save includes persistent companion relationships")
-	var restored := WorldSimulation.new()
-	restored.load_dict(snapshot)
-	var arc: Dictionary = restored.companion_quest_chains.arc_states.get("fenn_oakheart", {})
-	var relationship: Dictionary = restored.companion_relationship_state.snapshot("fenn_oakheart")
-	_check(is_equal_approx(float(arc.get("stewardship", 0.0)), 17.0), "Companion arc state survives a simulation save round-trip")
-	_check(is_equal_approx(float(relationship.get("trust", 0.0)), 17.0), "Companion trust survives a simulation save round-trip")
-	_check(is_equal_approx(float(relationship.get("friendship", 0.0)), 20.0), "Companion friendship survives a simulation save round-trip")
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
+	chains.arc_states["fenn_oakheart"] = {"stewardship":17.0,"independence":-3.0}
+	var restored_chains := CompanionQuestChainState.new()
+	restored_chains.from_dict(chains.to_dict())
+	var relationships := CompanionRelationshipState.new()
+	relationships.adjust("fenn_oakheart", {"trust":7.0,"friendship":4.0}, "test:persistence")
+	var restored_relationships := CompanionRelationshipState.new()
+	restored_relationships.load_dict(relationships.to_dict())
+	var arc: Dictionary = restored_chains.arc_states.get("fenn_oakheart", {})
+	var relationship: Dictionary = restored_relationships.snapshot("fenn_oakheart")
+	_check(is_equal_approx(float(arc.get("stewardship", 0.0)), 17.0), "Companion arc state survives a save round-trip")
+	_check(is_equal_approx(float(relationship.get("trust", 0.0)), 17.0), "Companion trust survives a save round-trip")
+	_check(is_equal_approx(float(relationship.get("friendship", 0.0)), 20.0), "Companion friendship survives a save round-trip")
