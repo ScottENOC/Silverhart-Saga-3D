@@ -130,6 +130,7 @@ func configure(glb_path: String) -> bool:
 	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
 	add_child(model_root)
 	loaded_asset_path = glb_path
+	BodyPressureProfileLibrary.register_missing_regions(body_pressure_controller)
 	body_pressure_controller.bind_model(model_root)
 	if portrait_renderer == null:
 		portrait_renderer = CharacterPortraitRenderer.new()
