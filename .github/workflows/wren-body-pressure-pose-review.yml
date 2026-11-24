@@ -47,6 +47,7 @@ jobs:
           test -s build/wren-body-pressure-pose/wren-body-pressure-preview.png
           test -s build/wren-body-pressure-pose/wren-body-pressure-pose.glb
           test -s build/wren-body-pressure-pose/wren-body-pressure-report.json
+          test -s build/wren-body-pressure-pose/wren-body-pressure-compressed-preview.png
           python - <<'PY'
           import json
           from pathlib import Path
@@ -55,9 +56,11 @@ jobs:
           assert report["validation"]["both_arm_ik_created"], report["ik"]
           assert report["validation"]["preview_rendered"]
           assert report["validation"]["posed_glb_exported"]
-          print("Wren-only pose package passed structural checks.")
+          assert report["validation"]["pressure_shapes_authored"], report.get("authored_pressure_shapes", [])
+          assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})
+          print("Wren-only pose and localized pressure-shape package passed structural checks.")
           print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
-          print("Pressure deformation is not certified by this pose-only pass.")
+          print("Pressure shape authoring is a mesh-level prototype; Godot runtime binding is a separate integration check.")
           print(json.dumps(report,indent=2))
           PY
       - name: Upload Wren-only preview and diagnostics
