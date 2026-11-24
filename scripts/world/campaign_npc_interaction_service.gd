@@ -1,5 +1,7 @@
 class_name CampaignNpcInteractionService
 extends RefCounted
+
+const WORLD_STATE_SERVICE = preload("res://scripts/simulation/campaign_world_state_service.gd")
 ## Shared proximity and actor lookup for location-owned and streamed NPCs.
 ## Dialogue rules remain in campaign content; this service only resolves who
 ## can be interacted with in the currently resident world presentation.
@@ -34,11 +36,19 @@ static func nearby_entries(
 		var distance := HexGrid.distance(active_state.axial, state.axial)
 		if distance > interaction_radius:
 			continue
+		var actor := actor_for(scene_tree, local_actor_by_id, actor_id)
+		var settlement_id := String(actor.get_meta("campaign2_settlement_id", "")) if actor != null else ""
+		var faction_id := String(actor.get_meta("faction_id", "")) if actor != null else ""
+		var campaign_context := WORLD_STATE_SERVICE.npc_context(
+			simulation.campaign_journal, actor_id, settlement_id, faction_id
+		)
 		result.append({
 			"id":actor_id,
 			"name":state.display_name,
 			"distance":distance,
-			"hostile":state.side == "enemy"
+			"hostile":state.side == "enemy",
+			"campaign_context":campaign_context,
+			"public_status":String(campaign_context.get("public_status", ""))
 		})
 	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if int(a.distance) == int(b.distance):
