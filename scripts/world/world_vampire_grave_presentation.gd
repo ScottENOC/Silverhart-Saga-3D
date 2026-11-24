@@ -116,6 +116,41 @@ static func _add_grave_site(parent: Node3D, terrain_data: Campaign2WorldTerrainD
 	fang.material_override = bone
 	root.add_child(fang)
 
+	# Source buildVampireGrave places a journal directly on the grave hex.
+	# Keep the physical clue in the presentation layer; its text and interaction
+	# remain owned by campaign content.
+	var journal := Node3D.new()
+	journal.name = "BuriedJournal"
+	journal.position = Vector3(-0.58, 0.24, 0.34)
+	journal.rotation.y = deg_to_rad(-18.0)
+	journal.rotation.z = deg_to_rad(-12.0)
+	root.add_child(journal)
+	var leather := _material(Color("#49372b"))
+	var paper := _material(Color("#c9b58c"))
+	var cover := MeshInstance3D.new()
+	cover.name = "LeatherCover"
+	var cover_mesh := BoxMesh.new()
+	cover_mesh.size = Vector3(0.34, 0.055, 0.26)
+	cover.mesh = cover_mesh
+	cover.material_override = leather
+	journal.add_child(cover)
+	var pages := MeshInstance3D.new()
+	pages.name = "ParchmentPages"
+	var pages_mesh := BoxMesh.new()
+	pages_mesh.size = Vector3(0.30, 0.018, 0.23)
+	pages.mesh = pages_mesh
+	pages.position.y = 0.034
+	pages.material_override = paper
+	journal.add_child(pages)
+	var spine := MeshInstance3D.new()
+	spine.name = "JournalSpine"
+	var spine_mesh := BoxMesh.new()
+	spine_mesh.size = Vector3(0.035, 0.06, 0.27)
+	spine.mesh = spine_mesh
+	spine.position.x = -0.15
+	spine.material_override = leather
+	journal.add_child(spine)
+
 	for index in range(2):
 		var puncture := MeshInstance3D.new()
 		puncture.name = "ThroatPuncture_%02d" % index
