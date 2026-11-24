@@ -109,7 +109,7 @@ Per-settlement exterior inventory:
 | Skarn-tooth Camp | 7 | 55 | 0 | 0 | 0 | 0 | 55 |
 | Skarnak's Hold | 9 | 9 | 0 | 0 | 0 | 0 | 9 |
 
-These category counts overlap; only the 4,732 union is a non-duplicated local exterior total. The 256 strategic cells and 2,915 interior cells are separate scales and are not added to it. Regional authored GDScript features (for example, fort and wilderness terrain/props) are not yet included in this JSON-backed inventory.
+These category counts overlap; only the 4,730 union is a non-duplicated local exterior total. The 256 strategic cells and 2,915 interior cells are separate scales and are not added to it. Regional authored GDScript features (for example, fort and wilderness terrain/props) are not yet included in this JSON-backed inventory.
 
 ### Interior and floor-stack reconciliation
 
@@ -130,7 +130,7 @@ The pinned original `Hex-crpg/campaign2World.js` scene builder has now been exec
 | Multi-storey building definitions | 9 |
 | Wild-unicorn patrol waypoints | 8 |
 
-The 11,294 feature-builder union is the best current source-side measure of explicitly built map geometry. It includes roads, stream, settlement footprints, fortifications, interiors, caves, dungeons and landmark terrain. It is **not** a target coverage percentage: builder sets overlap, and the target-side 4,732 exterior-cell inventory still excludes regional GDScript features and several map-owned site systems.
+The 11,324 feature-builder union is the best current source-side measure of explicitly built map geometry. It includes roads, stream, settlement footprints, fortifications, interiors, caves, dungeons and landmark terrain. It is **not** a target coverage percentage: builder sets overlap, and the target-side 4,730 exterior-cell inventory still excludes regional GDScript features and several map-owned site systems.
 
 Source terrain cells touched by each owner builder (these figures overlap and must not be summed):
 
