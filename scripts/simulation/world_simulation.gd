@@ -1590,7 +1590,7 @@ func dwelling_action_availability(action_id: String, payment: String = "material
     return campaign_dwellings.evaluate_action(action_id, campaign_journal, player, payment, site_id)
 
 
-func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
+func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}, actor_id: String = "") -> Dictionary:
     if is_in_combat:
         return {"ok": false, "reason": "cannot_camp_during_combat"}
     var resolved_site := site_data.duplicate(true)
@@ -1599,6 +1599,13 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
         var dwelling_profile := campaign_dwellings.camp_profile_for(dwelling_id)
         if dwelling_profile.is_empty():
             return {"ok": false, "reason": "dwelling_not_owned_or_not_livable", "dwelling_id": dwelling_id}
+        if not bool(dwelling_profile.get("is_sheltered", false)):
+            return {"ok": false, "reason": "dwelling_not_livable", "dwelling_id": dwelling_id}
+        var required_site_id := campaign_dwellings.site_id_for_dwelling(dwelling_id)
+        var camp_actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+        var dwelling_hex: Variant = resolved_site.get("hex", null)
+        if camp_actor == null or not dwelling_hex is Vector2i or not campaign_dwellings.is_at_site(required_site_id, camp_actor.axial) or not campaign_dwellings.is_at_site(required_site_id, dwelling_hex):
+            return {"ok": false, "reason": "dwelling_not_at_site", "dwelling_id": dwelling_id, "required_site": required_site_id}
         resolved_site["dwelling_profile"] = dwelling_profile
     if site_data.has("hex"):
         var hex_value: Variant = site_data.get("hex")
