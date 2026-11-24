@@ -39,7 +39,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 
 | Location | Source content still to port |
 |---|---|
-| Silverhart | Palace core and radius-23 curtain wall with seven watchtowers/two ladders; radius-30 and radius-45 ring roads; Merchant/Noble street grids; four embassies, Ironbond office, Grand Cathedral and diplomatic plaza; commons inn, market board, three outlying homes, six middle-ring houses, radius-60 outer city wall with three-cell gate/two watchtowers, three Warrens shacks, Thieves' Guild and hidden vault. 40 buildings, 33 routes, 512 props and 38 source-named NPC placements are registered for streamed presentation. The source Grand Hall/gallery, barracks/loft and three-level wizard tower are registered as playable runtime floor stacks with tested stair transitions and source prop/actor placement data. | Verify 3D rendering, actor spawn and outer-wall traversal in Godot; complete remaining palace rooms/floors, building entry/exit wiring, doors/reputation gates, NPC interactions, Thieves' Guild quest-state and hidden-vault interactions, schedules and kingdom/faction interactions |
+| Silverhart | Palace core and radius-23 curtain wall with seven watchtowers/two ladders; radius-30 and radius-45 ring roads; Merchant/Noble street grids; four embassies, Ironbond office, Grand Cathedral and diplomatic plaza; Commons inn, market board, three outlying homes, six middle-ring houses, radius-60 outer city wall with three-cell gate/two watchtowers, three Warrens shacks, Thieves' Guild and hidden vault. All 40 source-authored ground-floor interior regions are registered and floor-builder tested, including Corstane manor, Hallis's polygon house, embassies, Ironbond office, Cathedral, Commons inn and the residential districts. Nine source multi-storey building definitions across Campaign 2 have corresponding floor stacks. 40 buildings, 33 routes, 512 props and 38 source-named NPC placements are registered for streamed presentation. | Verify 3D rendering, actor spawn and outer-wall traversal in Godot; building entry/exit wiring, doors/reputation gates, NPC interactions, Thieves' Guild quest-state and hidden-vault interactions, schedules and kingdom/faction interactions |
 | Skarn-tooth Camp | Source-authored exterior structures, road endpoint and campfire are ported; map presentation is complete pending in-engine visual review |
 | Northwatch Fort | Star fort, keep, gate, source moat/waterway, siege engine, distant catapult, oil barrels, six ladder props and keep hearth are ported; visual review remains |
 | Ridgehold Fort | Fort walls, keep, downstream waterway and keep hearth are ported; visual review remains |
@@ -53,11 +53,28 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Ashveil's Dragon Lair | Source-authored radius-six rocky outcrop and radius-two open cave den now receive chunk-scoped rock dressing; dragon actor and encounter are campaign-owned |
 | Lich Chapterhouse | Source-authored single-floor stone chapterhouse (4-by-3 room), east entrance and central fireplace are registered and map-tested; inquisitor and witch hunters remain campaign actors | Necromancer/lich faction content, encounter behaviour and chapterhouse runtime entry/exit wiring |
 | Emberwood Grove | Terrain clearing, foliage perimeter, spring stone rim and both source herb-patch visuals are ported; inhabitants, gathering and quest behaviour are campaign-owned |
-| Vampire Grave | Grave site, vampire encounter and related content |
+| Vampire Grave | Source anchor (-256,28) and chunk-owned physical dressing for disturbed earth, sheep carcass, throat punctures, fang and journal are implemented and presentation-tested. | Source journal interaction, fang pickup/inventory and related vampire quest state remain campaign-owned; in-engine visual review remains |
 | Thieves' Cove Caves | Three-level source-authored cave network and reciprocal stairs; source journal in the Smugglers' Den, guild-cache evidence in the Hidden Vault and wilderness tunnel-junction marker are registered as physical map objects | Guild residents, services and quest content; visual review and runtime traversal/interaction wiring |
-| Old Mac's Wolf Den | Canonical encounter-site anchor at (-59,204) is registered and the live farm-wolf quest uses that source coordinate; den dressing, trigger and quest persistence remain |
-| Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
+| Old Mac's Wolf Den | Canonical encounter-site anchor at (-59,204) is registered; chunk-scoped natural den entrance, rock overhang and bones are presented and tested. The source defines a discovery coordinate rather than a constructed building, so the entrance is a deliberate 3D dressing adaptation. | Wolf spawning, encounter trigger and quest persistence remain campaign-owned; in-engine visual review remains |
+| Unicorn Vale | The source-derived eight-waypoint loop is represented by 24 chunk-scoped hoofprint markers; all marker coordinates and directions match the pinned source `spawnWildUnicorn()` and `hexRound()` algorithm. | Live unicorn actor patrol, track discovery/Knowledge: Nature visibility and dialogue/trust-trial behaviour remain campaign-owned |
 | Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn coordinates are registered with the shared multi-story floor builder; exterior entry/exit wiring remains |
+
+## Regional wilderness presentation coverage
+
+The streamed regional preview invokes eight chunk-owned presentation modules. Each has a matching headless presentation test, and each is scoped so props are emitted only by their owning chunk.
+
+| Source feature | 3D target | Coverage |
+|---|---|---|
+| Northwatch and Ridgehold forts | `features.gd`, `hydrology.gd`, `world_border_fort_presentation.gd` | Star-fort ground, keep footprints, gates, waterways and source siege/fort props; presentation test |
+| Ashveil's Dragon Lair | `features.gd`, `world_dragon_lair_presentation.gd` | Radius-six rocky outcrop with radius-two cave den; presentation test |
+| Mirabel's spider ruin | `features.gd`, `world_spider_ruin_presentation.gd` | Source radius-three rocky ruin; presentation test |
+| Emberwood Grove | `features.gd`, `world_druid_grove_presentation.gd` | Radius-five clearing, spring stones and both herb patches; presentation test |
+| Vampire Grave | `world_vampire_grave_presentation.gd` | Disturbed earth, sheep carcass, punctures, fang and journal; presentation test |
+| Wild Unicorn trail | `world_unicorn_track_presentation.gd` | All 24 hoofprint markers across the source eight-waypoint loop; exact coordinate/direction parity checked against the pinned source algorithm |
+| Old Mac's Wolf Den | `world_wolf_den_presentation.gd` | Chunk-scoped natural entrance and scattered bones at the source discovery anchor; presentation test |
+| Sil'thandriel | `features.gd`, `world_canopy_settlement_presentation.gd` | Source canopy/clearing terrain and settlement presentation; presentation test |
+
+These are physical map presentations, not complete encounter implementations. Creature AI, patrol movement, NPCs, quest triggers, dialogue, gathering and persistent encounter state remain in their owning campaign systems. The wolf-den entrance is explicitly a naturalised 3D dressing adaptation: the original source supplies a discovery coordinate, not a constructed den.
 
 ## Authored-hex inventory snapshot
 
@@ -93,6 +110,10 @@ Per-settlement exterior inventory:
 | Skarnak's Hold | 9 | 9 | 0 | 0 | 0 | 0 | 9 |
 
 These category counts overlap; only the 4,732 union is a non-duplicated local exterior total. The 256 strategic cells and 2,915 interior cells are separate scales and are not added to it. Regional authored GDScript features (for example, fort and wilderness terrain/props) are not yet included in this JSON-backed inventory.
+
+### Interior and floor-stack reconciliation
+
+The pinned source runtime inventory reports 72 `interiorRegions` and nine multi-storey building definitions. The target registry contains 70 ground-floor floor-map regions, including all 40 Silverhart ground-floor regions, plus nine corresponding multi-floor location stacks. The two source regions not represented as indoor floor maps are the open Northwatch and Ridgehold star-fort grounds: these are represented by the regional terrain/fortification layer instead. This is a representation change, not two missing enclosed interiors.
 
 ## Original source runtime geometry baseline
 
