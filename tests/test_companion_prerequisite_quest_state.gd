@@ -15,6 +15,7 @@ func _initialize() -> void:
 	_test_aldric_measure_of_oath_prerequisite_and_literal_self_decision()
 	_test_aldric_measure_of_oath_bounded_self_decision()
 	_test_prerequisite_dialogue_adapter_routes_npc_evidence()
+	_test_campaign_simulation_persists_companion_state()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -347,3 +348,20 @@ func _test_prerequisite_dialogue_adapter_routes_npc_evidence() -> void:
 	var service_options: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(measure_chains, measure_journal, "preceptor_garran_vey", 6300.0)
 	_check(bool(service_options.get("ok", false)))
 	_check(String(measure_journal.quest_state("aldric_measure_of_oath").get("description", "")).contains("Talk to Aldric"), "The completed investigation points back to Aldric for the final decision")
+
+
+
+func _test_campaign_simulation_persists_companion_state() -> void:
+	var simulation := WorldSimulation.new()
+	simulation.companion_quest_chains.arc_states["fenn_oakheart"] = {"stewardship":17.0,"independence":-3.0}
+	simulation.companion_relationship_state.adjust("fenn_oakheart", {"trust":7.0,"friendship":4.0}, "test:persistence")
+	var snapshot := simulation.to_dict()
+	_check(snapshot.has("companion_quest_chains"), "The simulation save includes companion personality arcs")
+	_check(snapshot.has("companion_relationships"), "The simulation save includes persistent companion relationships")
+	var restored := WorldSimulation.new()
+	restored.load_dict(snapshot)
+	var arc: Dictionary = restored.companion_quest_chains.arc_states.get("fenn_oakheart", {})
+	var relationship: Dictionary = restored.companion_relationship_state.snapshot("fenn_oakheart")
+	_check(is_equal_approx(float(arc.get("stewardship", 0.0)), 17.0), "Companion arc state survives a simulation save round-trip")
+	_check(is_equal_approx(float(relationship.get("trust", 0.0)), 17.0), "Companion trust survives a simulation save round-trip")
+	_check(is_equal_approx(float(relationship.get("friendship", 0.0)), 20.0), "Companion friendship survives a simulation save round-trip")
