@@ -69,16 +69,20 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 			"warmth": 50.0, "comfort": 50.0
 		}
 	_plan_initial_activities()
+	plan_sleeping_arrangements(resources.tents)
 	camp_started.emit(site.duplicate(true))
 	return {"ok": true, "party_size": party_ids.size(), "assignments": assignments.duplicate(true)}
 
 
 func _plan_initial_activities() -> void:
 	var available := party_ids.duplicate()
+	# Reserve watch before assigning optional chores so every party size has
+	# meaningful security coverage where at least one character can stand watch.
+	_assign_watchers(available)
 	if resources.wood <= 0 and bool(environment.get("trees_nearby", false)):
 		_assign_from_pool(available, "gather_wood", 1)
 	if resources.tents > 0:
-		_assign_from_pool(available, "set_up_tents", mini(resources.tents, 2))
+		_assign_from_pool(available, "set_up_tents", mini(resources.tents, 1))
 	if bool(environment.get("water_nearby", false)) and resources.water < party_ids.size():
 		_assign_from_pool(available, "fetch_water", 1)
 	if resources.rations > 0 and (resources.wood > 0 or bool(environment.get("trees_nearby", false))):
@@ -87,7 +91,6 @@ func _plan_initial_activities() -> void:
 		_assign_from_pool(available, "repair_gear", 1)
 	if available.size() > 1:
 		_assign_from_pool(available, "study_map", 1)
-	_assign_watchers(available)
 	for character_id in available:
 		_set_assignment(character_id, "socialise")
 
@@ -108,7 +111,7 @@ func _assign_watchers(available: Array) -> void:
 func watch_slots_for_party(party_size: int) -> int:
 	if party_size <= 0:
 		return 0
-	return mini(party_size, maxi(1, ceili(float(party_size) / 4.0)))
+	return mini(party_size, maxi(1, ceili(float(party_size) / 6.0)))
 
 
 func _set_assignment(character_id: String, activity: String) -> void:
@@ -202,9 +205,26 @@ func _best_sleeping_candidate(candidates: Array, group: Array[String], bonds: Co
 	return best_index
 
 
+func begin_night() -> Dictionary:
+	if phase != "evening":
+		return {"ok": false, "reason": "not_in_evening_phase"}
+	phase = "night"
+	for character_id in party_ids:
+		var current: Dictionary = assignments.get(character_id, {})
+		if String(current.get("activity", "")) != "watch":
+			_set_assignment(character_id, "sleep")
+	return {"ok": true, "watchers": watch_slots_for_party(party_ids.size())}
+
+
+func skip_to_morning(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
+	if phase == "evening":
+		begin_night()
+	return resolve_night(hours)
+
+
 func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
-	if phase == "inactive" or phase == "resolved":
-		return {"ok": false, "reason": "camp_not_active"}
+	if phase != "night":
+		return {"ok": false, "reason": "night_not_started"}
 	var night_hours := clampf(hours, 1.0, 16.0)
 	var party_size := party_ids.size()
 	var has_fire := int(resources.wood) > 0 or bool(environment.get("fire_lit", false))
@@ -219,12 +239,13 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	var temperature := float(environment.get("night_temperature_c", 10.0))
 	var cold_penalty := maxf(0.0, 10.0 - temperature) * 2.0
 	var tented_count := 0
-	var bag_count := 0
+	var bagged_characters: Dictionary = {}
 	for arrangement in sleeping_arrangements:
 		if int(arrangement.get("tent_index", -1)) >= 0:
 			tented_count += (arrangement.get("character_ids", []) as Array).size()
 		if bool(arrangement.get("sleeping_bag", false)):
-			bag_count += 1
+			for bagged_id in arrangement.get("character_ids", []):
+				bagged_characters[String(bagged_id)] = true
 	var results: Dictionary = {}
 	for character_id in party_ids:
 		var condition: Dictionary = conditions[character_id]
@@ -235,7 +256,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 				in_tent = int(arrangement.get("tent_index", -1)) >= 0
 				tent_penalty = float(arrangement.get("comfort_penalty", 0))
 				break
-		var warmth := clampf(45.0 + (15.0 if in_tent else 0.0) + (20.0 if bag_count > 0 else 0.0) + (10.0 if has_fire else 0.0) - cold_penalty, 0.0, 100.0)
+		var has_sleeping_bag := bool(bagged_characters.get(character_id, false))
+		var warmth := clampf(45.0 + (15.0 if in_tent else 0.0) + (20.0 if has_sleeping_bag else 0.0) + (10.0 if has_fire else 0.0) - cold_penalty, 0.0, 100.0)
 		var nutrition := 90.0 if has_meal else (55.0 if int(resources.rations) > 0 else 35.0)
 		var hydration := 90.0 if has_water else 35.0
 		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0, 0.0, 100.0)
