@@ -47,7 +47,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Kragmoor | Six floor maps/presentations, stair traversal, quest-gated Sunken Deep and floor-state save/load are implemented; campaign travel routing, named NPC/creature spawning, dialogue and location interactions remain |
 | Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
 | Hollowmere Guild Den | Interior, guild contact, objects and recruitment/quest interactions |
-| Abandoned House | Building, hidden content, disciple/phylactery quest chain |
+| Abandoned House | Source-authored single-room wooden floor (half-width 3, half-height 2), west entrance, journal and phylactery altar positions are registered and map-tested | Exterior approach path dressing, dormant skeleton actors/activation, journal/altar interactions, disciple/phylactery quest chain and runtime entry/exit wiring |
 | Vessel-Seeker's Crypt | Source-authored three-room floor, connecting corridors and explicit one-cell wall-ring apertures are registered and map-tested |
 | Barrow of Corvin Ashgrave | Source-authored antechamber and sanctum, connecting corridor and door openings are registered and map-tested |
 | Ashveil's Dragon Lair | Source-authored radius-six rocky outcrop and radius-two open cave den now receive chunk-scoped rock dressing; dragon actor and encounter are campaign-owned |
