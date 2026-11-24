@@ -58,12 +58,12 @@ const windowState = {
       const match = line.match(/at (?:Object\.)?([A-Za-z_$][\w$]*)/);
       return match ? match[1] : "";
     }).filter(Boolean);
-    const writer = frames.find(name => name !== "setTerrainAt") || "unclassified";
+    const writer = frames.find(name => name !== "setTerrainAt" && name !== "campaign2World") || "unclassified";
     const helperNames = new Set([
       "setTerrainAt", "carveFlatRoom", "carveBuilding", "carveStarFort",
       "carveHexKeep", "carvePolygonRoom"
     ]);
-    const builder = frames.find(name => !helperNames.has(name)) || writer;
+    const builder = frames.find(name => /^(?:build[A-Z]|paint[A-Z]|setupVillageScene|openWallGap)/.test(name) && !helperNames.has(name)) || writer;
     const key = q + "," + r;
     this.overrideTerrain[key] = { name };
     if (!terrainCellsByBuilder[builder]) terrainCellsByBuilder[builder] = new Set();
