@@ -68,7 +68,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 		if not conditions.has(character_id):
 			conditions[character_id] = {
 				"fatigue": 40.0, "hunger": 30.0, "thirst": 25.0,
-				"warmth": 50.0, "comfort": 50.0
+				"warmth": 50.0, "comfort": 50.0, "social_satisfaction": 0.0
 			}
 	_plan_initial_activities()
 	plan_sleeping_arrangements(resources.tents)
@@ -123,6 +123,21 @@ func _set_assignment(character_id: String, activity: String) -> void:
 	assignments[character_id] = entry
 	_default_assignments[character_id] = entry.duplicate(true)
 	activity_assigned.emit(character_id, activity)
+
+
+## Social contact can happen during any camp job or outside camp entirely.
+## The small satisfaction reserve carries into the next night's comfort.
+func record_social_interaction(character_id: String, satisfaction_delta: float = 3.0) -> void:
+	if character_id.strip_edges().is_empty():
+		return
+	if not conditions.has(character_id):
+		conditions[character_id] = {
+			"fatigue": 40.0, "hunger": 30.0, "thirst": 25.0,
+			"warmth": 50.0, "comfort": 50.0, "social_satisfaction": 0.0
+		}
+	var condition: Dictionary = conditions[character_id]
+	condition["social_satisfaction"] = clampf(float(condition.get("social_satisfaction", 0.0)) + satisfaction_delta, 0.0, 50.0)
+	conditions[character_id] = condition
 
 
 func condition_for(character_id: String) -> Dictionary:
@@ -347,7 +362,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0, 0.0, 100.0)
 		# Social interactions can happen during any activity. The old dedicated
 		# "socialise" assignment is merely idle behaviour, not a social-time gate.
-		var social := 65.0 if String(evening_activity_history.get(character_id, "")) == "socialise" else 50.0
+		var social := clampf(50.0 + float(condition.get("social_satisfaction", 0.0)), 0.0, 100.0)
+		condition["social_satisfaction"] = maxf(0.0, float(condition.get("social_satisfaction", 0.0)) - 5.0)
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
 		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10), 0.0, 100.0)
 		var watch_penalty := 10.0 if String(assignments.get(character_id, {}).get("activity", "")) == "watch" else 0.0
