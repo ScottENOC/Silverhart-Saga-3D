@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_city_tunnel","silverhart_clothier","silverhart_general_goods","silverhart_magic_shop","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_aldenreach_embassy","silverhart_city_tunnel","silverhart_clothier","silverhart_commons_inn","silverhart_corvane_embassy","silverhart_dwarven_embassy","silverhart_elven_embassy","silverhart_grand_cathedral","silverhart_ironbond_office","silverhart_general_goods","silverhart_magic_shop","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -334,6 +334,32 @@ func _initialize() -> void:
 	_check(_has_record(abandoned_floor.get("tile_objects", []), "abandoned_house_journal"), "Abandoned House must retain its journal")
 	_check(_has_record(abandoned_floor.get("tile_objects", []), "phylactery_altar"), "Abandoned House must retain the phylactery altar position")
 	_check(abandoned_floor.get("actors", []).is_empty() and abandoned_floor.get("creatures", []).is_empty(), "Abandoned House map port must not import dormant skeletons")
+
+	# The four diplomatic missions, Ironbond's city office, the Grand Cathedral
+	# and the Commons inn are source-authored Silverhart rooms, not exterior-only
+	# building shells. Keep each room and its real entrance in the shared floor
+	# registry so later door wiring can consume them without bespoke geometry.
+	var silverhart_districts := {
+		"silverhart_elven_embassy": {"centre": Vector2i(0, -466), "half_width": 3, "half_height": 2, "door": Vector2i(3, -466)},
+		"silverhart_dwarven_embassy": {"centre": Vector2i(16, -470), "half_width": 3, "half_height": 2, "door": Vector2i(13, -470)},
+		"silverhart_aldenreach_embassy": {"centre": Vector2i(0, -460), "half_width": 3, "half_height": 2, "door": Vector2i(3, -460)},
+		"silverhart_corvane_embassy": {"centre": Vector2i(16, -462), "half_width": 3, "half_height": 2, "door": Vector2i(13, -462)},
+		"silverhart_ironbond_office": {"centre": Vector2i(1, -454), "half_width": 3, "half_height": 2, "door": Vector2i(4, -454)},
+		"silverhart_grand_cathedral": {"centre": Vector2i(14, -451), "half_width": 4, "half_height": 4, "door": Vector2i(10, -451)},
+		"silverhart_commons_inn": {"centre": Vector2i(8, -529), "half_width": 4, "half_height": 3, "door": Vector2i(8, -526)}
+	}
+	for location_id in silverhart_districts:
+		var district: Dictionary = silverhart_districts[location_id]
+		var definition: Dictionary = registry.get_definition(location_id)
+		_check(not definition.is_empty(), "Silverhart district interior must be registered: " + location_id)
+		_check(_position_matches(definition.get("anchor", {}), district["centre"]), "Silverhart district anchor must match buildSilverhartPalace: " + location_id)
+		var floor := registry.get_floor_definition(location_id, 0)
+		_check(floor.get("rooms", []).size() == 1, "Silverhart district must retain its source-authored room: " + location_id)
+		var room: Dictionary = floor.get("rooms", [])[0]
+		_check(_position_matches(room.get("center", {}), district["centre"]), "Silverhart district room centre must match its source anchor: " + location_id)
+		_check(int(room.get("half_width", 0)) == int(district["half_width"]) and int(room.get("half_height", 0)) == int(district["half_height"]), "Silverhart district room dimensions must match carveFlatRoom: " + location_id)
+		_check(_has_record(floor.get("tile_objects", []), location_id + "_" + ("south" if location_id == "silverhart_commons_inn" else "west" if location_id == "silverhart_dwarven_embassy" or location_id == "silverhart_corvane_embassy" or location_id == "silverhart_grand_cathedral" else "east") + "_door"), "Silverhart district must retain its source entrance: " + location_id)
+		_check(floor.get("actors", []).is_empty() and floor.get("creatures", []).is_empty(), "Silverhart district map port must not duplicate campaign-owned residents: " + location_id)
 
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
