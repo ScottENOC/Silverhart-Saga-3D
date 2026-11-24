@@ -83,12 +83,21 @@ def main():
         m and "skin" in m.name.lower() for m in o.data.materials)), None)
     # The GLB exporter may include the source body as a skinning dependency when
     # the armature is selected. Never assume the first imported mesh is the garment.
+    # A skinned garment GLB may carry the source body mesh as a dependency.
+    # Do not mistake Wren's mouth/eyes/hair materials for the garment: identify
+    # the actual garment by its dedicated material name.
+    garment_material_names = {"briefs", "garmentshell"}
     garment = next((o for o in garment_objects if o.type == "MESH" and any(
-        m and "skin" not in m.name.lower() for m in o.data.materials)), None)
+        m and m.name.strip().lower() in garment_material_names for m in o.data.materials)), None)
     if body is None or garment is None:
         imported_meshes = [(o.name, [m.name if m else None for m in o.data.materials])
                            for o in garment_objects if o.type == "MESH"]
-        raise RuntimeError(f"Could not identify Wren skin mesh and garment material mesh; imported={imported_meshes}")
+        raise RuntimeError(f"Could not identify Wren skin mesh and dedicated garment material mesh; imported={imported_meshes}")
+    # Hide any body mesh bundled only to satisfy the garment's skin dependency;
+    # the canonical Wren body was imported separately above.
+    for obj in garment_objects:
+        if obj.type == "MESH" and obj is not garment:
+            obj.hide_render = True
     armature_mod = next((m for m in body.modifiers if m.type == "ARMATURE" and m.object), None)
     if armature_mod is None or armature_mod.object.data.bones.get("LeftUpLeg") is None:
         raise RuntimeError("Wren rig is missing the LeftUpLeg landmark")
