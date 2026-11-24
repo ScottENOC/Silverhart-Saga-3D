@@ -25,7 +25,23 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_bunkhouse", "emberlode_foremans_hall", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	var emberlode_centres := {
+		"emberlode_bunkhouse": Vector2i(-252, 28),
+		"emberlode_foremans_hall": Vector2i(-256, 22)
+	}
+	for location_id in emberlode_centres:
+		var emberlode_location: Dictionary = registry.get_definition(location_id)
+		var emberlode_anchor: Dictionary = emberlode_location.get("anchor", {})
+		var expected_centre: Vector2i = emberlode_centres[location_id]
+		_check(int(emberlode_anchor.get("q", 0)) == expected_centre.x and int(emberlode_anchor.get("r", 0)) == expected_centre.y, "Emberlode building anchor must match buildEmberlode: " + location_id)
+		var emberlode_floor := registry.get_floor_definition(location_id, 0)
+		_check(emberlode_floor.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
+		var emberlode_room: Dictionary = emberlode_floor.get("rooms", [])[0]
+		_check(int(emberlode_room.get("half_width", 0)) == 3 and int(emberlode_room.get("half_height", 0)) == 2, "Emberlode building footprint must match carveBuilding: " + location_id)
+		_check(String(emberlode_room.get("row_shift_mode", "")) == "source_building", "Emberlode building must preserve carveBuilding row shift: " + location_id)
+		_check(_has_record(emberlode_floor.get("tile_objects", []), location_id + ("_north_door" if location_id == "emberlode_bunkhouse" else "_east_door")), "Emberlode building must retain its source entrance: " + location_id)
+
 	var guild_den: Dictionary = registry.get_definition("hollowmere_guild_den")
 	_check(int(guild_den.get("anchor", {}).get("q", 0)) == -12 and int(guild_den.get("anchor", {}).get("r", 0)) == -8, "Hollowmere Guild Den anchor must match buildHollowmereGuildDen")
 	var guild_den_floor := registry.get_floor_definition("hollowmere_guild_den", 0)
