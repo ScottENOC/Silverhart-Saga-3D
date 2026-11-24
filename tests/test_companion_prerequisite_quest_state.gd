@@ -10,6 +10,8 @@ func _initialize() -> void:
 	_test_aldric_broken_vigil_source_data_and_ordinary_evidence()
 	_test_aldric_sealed_dispatch_alternative_and_proof_bonus()
 	_test_aldric_money_resolution_and_faction_consequences()
+	_test_aldric_measure_of_oath_prerequisite_and_literal_self_decision()
+	_test_aldric_measure_of_oath_bounded_self_decision()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -197,3 +199,82 @@ func _test_aldric_money_resolution_and_faction_consequences() -> void:
 	_check(is_equal_approx(float(journal.quest_state("aldric_broken_vigil").get("world_effects", {}).get("surface_power_delta", 0.0)), 2.0), "The surface-power consequence is retained in the persistent quest record")
 	_check(int(result.get("xp_reward", 0)) == 240, "The ordinary evidence path awards the source-authored 240 XP")
 	_check(String(journal.quest_state("aldric_broken_vigil").get("status", "")) == "completed")
+
+
+
+func _prepare_aldric_measure(previous_resolution: String) -> Dictionary:
+	var setup := _new_aldric_quest()
+	if setup.is_empty():
+		return {}
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	chains.add_prerequisite_clue("aldric_broken_vigil", "company_roster", "Petra Voss", journal, 2600.0)
+	chains.add_prerequisite_clue("aldric_broken_vigil", "baron_customs", "Baron Corwin Aldervale", journal, 2700.0)
+	var player := CharacterState.new("player", "Player")
+	var completed: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", previous_resolution, journal, relationships, 2800.0, player)
+	_check(bool(completed.get("ok", false)), "The Broken Vigil must complete before its follow-on chapter")
+	return setup
+
+
+func _add_aldric_measure_clues(chains: Variant, journal: CampaignJournal) -> void:
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "hospice_need", "Preceptor Garran Vey", journal, 3100.0)
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "obedience_vow", "Preceptor Garran Vey", journal, 3100.0)
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "adelram_counsel", "High Cleric Adelram", journal, 3200.0)
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "service_options", "Preceptor Garran Vey", journal, 3300.0)
+
+
+func _test_aldric_measure_of_oath_prerequisite_and_literal_self_decision() -> void:
+	var setup := _new_aldric_quest()
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var blocked: Dictionary = chains.start_prerequisite("aldric_measure_of_oath", journal, party_ids, relationships, 3000.0)
+	_check(String(blocked.get("reason", "")) == "previous_quest_incomplete", "The Measure of an Oath must remain gated until The Broken Vigil is complete")
+	chains.add_prerequisite_clue("aldric_broken_vigil", "company_roster", "Petra Voss", journal, 2600.0)
+	chains.add_prerequisite_clue("aldric_broken_vigil", "baron_customs", "Baron Corwin Aldervale", journal, 2700.0)
+	var player := CharacterState.new("player", "Player")
+	var previous_result: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", "public_accountability", journal, relationships, 2800.0, player)
+	_check(bool(previous_result.get("ok", false)))
+	var started: Dictionary = chains.start_prerequisite("aldric_measure_of_oath", journal, party_ids, relationships, 3000.0)
+	_check(bool(started.get("ok", false)))
+	var seeded_arc: Dictionary = chains.arc_states.get("ser_aldric_thorne", {})
+	_check(float(seeded_arc.get("discernment", 0.0)) == -5.0, "Public accountability seeds Aldric's discernment from the previous chapter")
+	_check(float(seeded_arc.get("sharedBurden", 0.0)) == -15.0, "Public accountability seeds Aldric's shared-burden arc")
+	var opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "discern_first", journal, relationships)
+	_check(bool(opening.get("ok", false)))
+	var duplicate_opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "discern_first", journal, relationships)
+	_check(bool(duplicate_opening.get("ok", false)) and not bool(duplicate_opening.get("changed", true)), "The opening choice is idempotent")
+	var second_opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "agency", journal, relationships)
+	_check(String(second_opening.get("reason", "")) == "opening_choice_already_recorded", "Only one opening response may be selected")
+	_add_aldric_measure_clues(chains, journal)
+	_check(chains.can_resolve_prerequisite("aldric_measure_of_oath", journal), "All four Order and counsel clues are required")
+	var result: Dictionary = chains.resolve_prerequisite("aldric_measure_of_oath", "aldric_decides", journal, relationships, 3400.0, player)
+	_check(bool(result.get("ok", false)))
+	_check(String(result.get("effective_resolution", "")) == "literal_return", "Aldric's self-decision follows the source arc threshold")
+	_check(bool(result.get("outcome_flags", {}).get("future_wardenship", false)), "The literal outcome records future wardenship")
+	_check(int(result.get("xp_reward", 0)) == 300)
+
+
+func _test_aldric_measure_of_oath_bounded_self_decision() -> void:
+	var setup := _prepare_aldric_measure("spare_patrol")
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var started: Dictionary = chains.start_prerequisite("aldric_measure_of_oath", journal, party_ids, relationships, 4000.0)
+	_check(bool(started.get("ok", false)))
+	var opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "agency", journal, relationships)
+	_check(bool(opening.get("ok", false)))
+	_add_aldric_measure_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var result: Dictionary = chains.resolve_prerequisite("aldric_measure_of_oath", "aldric_decides", journal, relationships, 4400.0, player)
+	_check(bool(result.get("ok", false)))
+	_check(String(result.get("effective_resolution", "")) == "bounded_service", "Aldric chooses shared service when either source arc reaches zero")
+	_check(bool(result.get("outcome_flags", {}).get("vow_amended", false)), "The bounded outcome records the amended service")
+	_check(float(result.get("arc_state", {}).get("discernment", -99.0)) == 8.0, "The self-decision applies its own authored arc delta")
