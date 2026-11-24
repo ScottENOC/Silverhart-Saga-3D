@@ -22,9 +22,13 @@ def import_glb(path):
 def setup_scene(scene):
     engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
     scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else "BLENDER_EEVEE"
-    scene.render.resolution_x = 900
-    scene.render.resolution_y = 1100
+    scene.render.resolution_x = 720
+    scene.render.resolution_y = 900
     scene.render.resolution_percentage = 100
+    # These are fit-review images, not final marketing renders. Lower sample counts
+    # keep the three-view CI review quick while retaining enough detail for clipping checks.
+    if hasattr(scene, "eevee") and hasattr(scene.eevee, "taa_render_samples"):
+        scene.eevee.taa_render_samples = 16
     scene.render.image_settings.file_format = "PNG"
     scene.view_settings.view_transform = "AgX"
     if scene.world is None:
