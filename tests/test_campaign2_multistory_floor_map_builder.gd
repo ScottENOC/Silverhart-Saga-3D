@@ -134,6 +134,36 @@ func _initialize() -> void:
 	var southwest_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(registry.get_definition("silverhart_middle_ring_house_southwest"), 0)
 	var southwest_house_map: HexMapData = southwest_house_result.get("map_data") as HexMapData
 	_check(southwest_house_map.is_walkable(Vector2i(-32, -453)), "Southwest middle-ring house must preserve its source-added floor hex")
+
+	# The Corstane manor's source west-wall repair is irregular: its west
+	# wall moved one column inward, the former wall column was removed, and
+	# the old floor cells in the new wall column were restored as wall.
+	var manor_definition: Dictionary = registry.get_definition("silverhart_corstane_manor")
+	var manor_state = LOCATION_STATE.new()
+	_check(bool(manor_state.configure(manor_definition).get("ok", false)), "Corstane manor state must configure")
+	var manor_result: Dictionary = FLOOR_BUILDER.build_floor_map(manor_definition, 0, manor_state)
+	_check(bool(manor_result.get("ok", false)), "Corstane manor floor must build from explicit source masks")
+	if bool(manor_result.get("ok", false)):
+		var manor_map: HexMapData = manor_result.get("map_data") as HexMapData
+		_check(manor_map.is_walkable(Vector2i(36, -502)), "Corstane manor's moved west entrance must be walkable")
+		_check(not manor_map.is_walkable(Vector2i(36, -501)), "Corstane manor's shifted west wall must be solid")
+		_check(not manor_map.cells.has(Vector2i(35, -502)), "Corstane manor's abandoned west-wall column must not remain as a wall")
+		_check(_has_object(manor_result.get("tile_objects", []), "silverhart_corstane_manor_west_door"), "Corstane manor must retain its moved west door")
+	var silverhart_noble_doors := {
+		"silverhart_noble_neighbor_house": Vector2i(48, -502),
+		"silverhart_outlying_house_east": Vector2i(23, -544),
+		"silverhart_outlying_house_far_east": Vector2i(48, -544),
+		"silverhart_outlying_house_west": Vector2i(-30, -476)
+	}
+	for home_id in silverhart_noble_doors:
+		var home_definition: Dictionary = registry.get_definition(home_id)
+		var home_state = LOCATION_STATE.new()
+		_check(bool(home_state.configure(home_definition).get("ok", false)), "Noble/outlying house state must configure: " + home_id)
+		var home_result: Dictionary = FLOOR_BUILDER.build_floor_map(home_definition, 0, home_state)
+		_check(bool(home_result.get("ok", false)), "Noble/outlying house floor must build: " + home_id)
+		if bool(home_result.get("ok", false)):
+			var home_map: HexMapData = home_result.get("map_data") as HexMapData
+			_check(home_map.is_walkable(silverhart_noble_doors[home_id]), "Noble/outlying house entrance must be walkable: " + home_id)
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
