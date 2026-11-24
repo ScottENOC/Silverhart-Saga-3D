@@ -32,6 +32,8 @@ var pending_move_context: Dictionary = {}
 var pending_spell_context: Dictionary = {}
 var multistory_location_states: Dictionary = {}
 var pending_multistory_location_saves: Dictionary = {}
+var camp_simulation: CampSimulation = CampSimulation.new()
+var companion_bonds: CompanionBondState = CompanionBondState.new()
 
 signal multistory_transition_unlocked(location_id: String, quest_id: String, transitions: Array[Dictionary])
 
@@ -146,6 +148,8 @@ func advance_real_time(real_delta: float) -> int:
         if turn_scheduler.select_next_ready(characters) != null:
             clock.accumulator = 0.0
             return 0
+    if camp_simulation.phase == "evening" or camp_simulation.phase == "night":
+        return clock.advance_world_seconds(camp_simulation.advance_real_time(real_delta))
     return clock.advance_real_time(real_delta, is_in_combat)
 
 func advance_world_seconds(delta_seconds: float) -> int:
@@ -1567,6 +1571,32 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
         state.spell_effects[index] = effect
 
 
+func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
+    if is_in_combat:
+        return {"ok": false, "reason": "cannot_camp_during_combat"}
+    var resolved_site := site_data.duplicate(true)
+    if site_data.has("hex"):
+        var hex_value: Variant = site_data.get("hex")
+        if not hex_value is Vector2i:
+            return {"ok": false, "reason": "invalid_camp_hex"}
+        var camp_hex: Vector2i = hex_value
+        if not map_data.has_cell(camp_hex):
+            return {"ok": false, "reason": "unknown_camp_hex"}
+        resolved_site["walkable"] = map_data.is_walkable(camp_hex)
+        resolved_site["occupied"] = occupied_hexes.has(camp_hex)
+        resolved_site["terrain_id"] = map_data.terrain_id_at(camp_hex)
+    resolved_site["in_combat"] = is_in_combat
+    return camp_simulation.begin_camp(resolved_site, party_member_ids, environment_data, resource_data)
+
+
+func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> Dictionary:
+    var result := camp_simulation.skip_to_morning(hours)
+    if not bool(result.get("ok", false)):
+        return result
+    clock.advance_world_seconds(float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR)
+    return result
+
+
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     # Guard direct/test-driven clock advancement as well as the normal
     # _process freeze: no TP or world tick work occurs during an active turn.
@@ -1744,6 +1774,8 @@ func to_dict() -> Dictionary:
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
         "buildings": building_registry.to_dict(),
+        "camp_simulation": camp_simulation.to_dict(),
+        "companion_bonds": companion_bonds.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -1759,6 +1791,18 @@ func load_dict(data: Dictionary) -> void:
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
+    camp_simulation = CampSimulation.new()
+    var saved_camp: Variant = data.get("camp_simulation", {})
+    if saved_camp is Dictionary and not saved_camp.is_empty():
+        if not camp_simulation.from_dict(saved_camp):
+            push_error("Save contains invalid camp simulation state; camp was reset.")
+            camp_simulation = CampSimulation.new()
+    companion_bonds = CompanionBondState.new()
+    var saved_bonds: Variant = data.get("companion_bonds", {})
+    if saved_bonds is Dictionary and not saved_bonds.is_empty():
+        if not companion_bonds.from_dict(saved_bonds):
+            push_error("Save contains invalid companion bond state; bonds were reset.")
+            companion_bonds = CompanionBondState.new()
     for door_id_value in building_registry.doors.keys():
         sync_door_map_state(String(door_id_value))
     is_in_combat = bool(data.get("is_in_combat", false))
