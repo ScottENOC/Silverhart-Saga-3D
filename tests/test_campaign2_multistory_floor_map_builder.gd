@@ -336,6 +336,36 @@ func _initialize() -> void:
 			var reddale_hex := Vector2i(int(reddale_position.get("q", 0)), int(reddale_position.get("r", 0)))
 			_check(reddale_map.is_walkable(reddale_hex), "Reddale fixture must sit on walkable floor: " + String(reddale_object.get("id", "")))
 
+
+	# Build all nine newly registered Silverhart outer interiors and verify
+	# that their actual source door hexes land on walkable room floor.
+	var silverhart_outer_doors := {
+		"silverhart_warrens_shack_west": Vector2i(2, -431),
+		"silverhart_warrens_shack_centre": Vector2i(5, -429),
+		"silverhart_warrens_shack_east": Vector2i(11, -431),
+		"silverhart_middle_ring_house_east": Vector2i(51, -496),
+		"silverhart_middle_ring_house_northeast": Vector2i(49, -538),
+		"silverhart_middle_ring_house_northwest": Vector2i(8, -538),
+		"silverhart_middle_ring_house_west": Vector2i(-34, -496),
+		"silverhart_middle_ring_house_southwest": Vector2i(-34, -455),
+		"silverhart_middle_ring_house_southeast": Vector2i(20, -452)
+	}
+	for location_id in silverhart_outer_doors:
+		var outer_definition: Dictionary = registry.get_definition(location_id)
+		var outer_state = LOCATION_STATE.new()
+		_check(bool(outer_state.configure(outer_definition).get("ok", false)), "Silverhart outer interior state must configure: " + location_id)
+		var outer_result: Dictionary = FLOOR_BUILDER.build_floor_map(outer_definition, 0, outer_state)
+		_check(bool(outer_result.get("ok", false)), "Silverhart outer interior floor must build: " + location_id)
+		if not bool(outer_result.get("ok", false)):
+			continue
+		var outer_map: HexMapData = outer_result.get("map_data") as HexMapData
+		_check(outer_map.is_walkable(silverhart_outer_doors[location_id]), "Silverhart outer interior source entrance must be walkable: " + location_id)
+		_check(outer_result.get("actors", []).is_empty() and outer_result.get("creatures", []).is_empty(), "Silverhart outer interior must not duplicate campaign actors: " + location_id)
+	var southwest_house: Dictionary = FLOOR_BUILDER.build_floor_map(registry.get_definition("silverhart_middle_ring_house_southwest"), 0, LOCATION_STATE.new())
+	if bool(southwest_house.get("ok", false)):
+		var southwest_map: HexMapData = southwest_house.get("map_data") as HexMapData
+		_check(southwest_map.is_walkable(Vector2i(-32, -453)), "Southwest middle-ring house source wall correction must become walkable floor")
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
