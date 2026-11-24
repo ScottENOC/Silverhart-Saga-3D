@@ -184,6 +184,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_prop_feature_factory.gd
       - name: Run modular Hollowmere authored data tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_data_modules.gd
+      - name: Run Silverhart Warrens presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_warrens_presentation.gd
       - name: Run generic authored settlement presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_authored_settlement_presenter.gd
       - name: Run generic interior feature factory tests
