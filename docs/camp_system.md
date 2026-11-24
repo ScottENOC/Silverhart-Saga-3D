@@ -19,18 +19,18 @@ Current animation mapping:
 
 | Camp activity | Ara clip preference | Notes |
 | --- | --- | --- |
-| Gather wood | Pick up (ground) | Generic ground pickup; no dedicated chopping clip is documented |
-| Set up tents | Pick up (ground) | Generic lifting gesture; tent assembly itself is not animated yet |
-| Fetch water | Head-load idle, Carry idle, Pick up (ground) | The basin prop must be exported/attached for a convincing head-load |
-| Cook | Use / press | Generic interaction gesture; no dedicated cooking clip is documented |
-| Repair gear | Use / press | Generic interaction gesture |
-| Study map | Sit idle | No map prop/hand interaction yet |
-| Train | Squat, Push-ups | Fitness clips are loops |
-| Socialise | Talk with gestures | Background conversational loop |
-| Watch | Look around | Background look-around loop |
-| Sleep | Sleep, Lie down | Sleep is available; bedding alignment remains a separate task |
+| Gather wood | `pick_up` → `carry_idle` | Generic ground pickup followed by a two-hand carry pose; no dedicated chopping clip is documented |
+| Set up tents | `pick_up` → `use_press` | Generic lifting and interaction gestures; tent assembly itself is not animated yet |
+| Fetch water | `head_load_idle`, `carry_idle`, `pick_up` | The basin prop must be exported/attached for a convincing head-load |
+| Cook | `use_press` | Generic interaction gesture; no dedicated cooking clip is documented |
+| Repair gear | `use_press` | Generic interaction gesture |
+| Study map | `sit_idle` | No map prop/hand interaction yet |
+| Train | `squat`, `push_up` | Fitness clips are loops |
+| Socialise | `talk_gestures` | Background conversational loop |
+| Watch | `look_around` | Background look-around loop |
+| Sleep | `sleep`, `lie_down` | Sleep is available; bedding alignment remains a separate task |
 
-The runtime tries these preferences in order and falls back gracefully when an imported character asset does not contain a clip. Looping clips remain active; one-shot clips are replayed after completion while the character remains assigned.
+The runtime uses Ara's canonical clip IDs (rather than display labels), tries preferences in order and falls back gracefully when an imported character asset does not contain a clip. Looping clips remain active; one-shot clips are replayed or chained into a carry/interaction pose while the character remains assigned.
 
 ## Deliberate limitations
 
