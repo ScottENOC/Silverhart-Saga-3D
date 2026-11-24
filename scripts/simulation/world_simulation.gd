@@ -1592,33 +1592,33 @@ func dwelling_action_availability(action_id: String, payment: String = "material
 
 
 func buy_dwelling_furniture(item_id: String, quantity: int = 1, actor_id: String = "") -> Dictionary:
-	var player := get_character(player_character_id)
-	var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
-	if player == null or actor == null:
-		return {"ok": false, "reason": "missing_player_or_actor"}
-	return campaign_dwellings.buy_furniture(item_id, player, CampaignFurnitureCatalog.SHOP_ID, actor.axial, quantity)
+    var player := get_character(player_character_id)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null:
+        return {"ok": false, "reason": "missing_player_or_actor"}
+    return campaign_dwellings.buy_furniture(item_id, player, CampaignFurnitureCatalog.SHOP_ID, actor.axial, quantity)
 
 
 func craft_dwelling_furniture(item_id: String, dwelling_id: String, actor_id: String = "") -> Dictionary:
-	var player := get_character(player_character_id)
-	var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
-	if player == null or actor == null:
-		return {"ok": false, "reason": "missing_player_or_actor"}
-	return campaign_dwellings.craft_furniture(item_id, player, dwelling_id, actor.axial)
+    var player := get_character(player_character_id)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null:
+        return {"ok": false, "reason": "missing_player_or_actor"}
+    return campaign_dwellings.craft_furniture(item_id, player, dwelling_id, actor.axial)
 
 
 func place_dwelling_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int = 0, actor_id: String = "", floor_index: int = 0) -> Dictionary:
-	var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
-	if actor == null:
-		return {"ok": false, "reason": "missing_actor"}
-	return campaign_dwellings.place_furniture(dwelling_id, item_id, local_position, rotation_degrees, actor.axial, floor_index)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if actor == null:
+        return {"ok": false, "reason": "missing_actor"}
+    return campaign_dwellings.place_furniture(dwelling_id, item_id, local_position, rotation_degrees, actor.axial, floor_index)
 
 
 func remove_dwelling_furniture(dwelling_id: String, instance_id: String, actor_id: String = "") -> Dictionary:
-	var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
-	if actor == null:
-		return {"ok": false, "reason": "missing_actor"}
-	return campaign_dwellings.remove_furniture(dwelling_id, instance_id, actor.axial)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if actor == null:
+        return {"ok": false, "reason": "missing_actor"}
+    return campaign_dwellings.remove_furniture(dwelling_id, instance_id, actor.axial)
 
 
 func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}, actor_id: String = "") -> Dictionary:
