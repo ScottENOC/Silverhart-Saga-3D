@@ -75,8 +75,11 @@ jobs:
             --input build/wren-native/Wren.glb \
             --field-json build/wren-briefs-shell/ara-briefs-field.json \
             --output build/wren-briefs-shell/Wren_Ara_Briefs.glb \
-            --material-name Briefs --offset-m 0.003 --hem-depth-m 0.0015
+            --review-output build/wren-briefs-shell/Wren_Ara_Briefs_Review.glb \
+            --material-name Briefs --fabric-profile black_matte_moderate_stretch \
+            --colour 0.008 0.008 0.010 1.0 --offset-m 0.003 --hem-depth-m 0.0015
           test -s build/wren-briefs-shell/Wren_Ara_Briefs.glb
+          test -s build/wren-briefs-shell/Wren_Ara_Briefs_Review.glb
           test -s build/wren-briefs-shell/Wren_Ara_Briefs.report.json
 
       - name: Render front, side and rear review views
