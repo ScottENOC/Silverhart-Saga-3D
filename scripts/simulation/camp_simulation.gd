@@ -305,12 +305,12 @@ func _routine_activity_for(character_id: String, stage: int) -> String:
 		return "fetch_water"
 	if int(resources.wood) <= 0 and bool(environment.get("trees_nearby", false)) and not bool(environment.get("fire_lit", false)):
 		return "gather_wood"
+	if severe_weather and not has_dwelling:
+		return "socialise"
 	if stage == 1:
 		if int(resources.repair_kits) > 0 and injured:
 			return "repair_gear"
 		if fatigue >= 70.0 or injured:
-			return "socialise"
-		if severe_weather and not has_dwelling:
 			return "socialise"
 		if personality in ["scholarly", "curious", "methodical"]:
 			return "study_map"
@@ -321,14 +321,10 @@ func _routine_activity_for(character_id: String, stage: int) -> String:
 		return "cook" if int(resources.rations) > 0 and int(resources.wood) > 0 else "socialise"
 	if fatigue >= 55.0 or injured:
 		return "socialise"
-	if severe_weather and not has_dwelling:
-		return "socialise"
 	if personality in ["scholarly", "curious", "methodical"]:
 		return "study_map"
 	if has_dwelling and personality in ["craftsman", "meticulous"] and int(resources.repair_kits) > 0:
 		return "repair_gear"
-	if severe_weather and not has_dwelling:
-		return "socialise"
 	return "socialise"
 
 
@@ -453,6 +449,7 @@ func _complete_evening_preparations() -> void:
 	if bool(environment.get("fire_lit", false)) and int(resources.rations) >= party_ids.size() and _has_activity("cook"):
 		resources["rations"] = int(resources.rations) - party_ids.size()
 		environment["meal_prepared"] = true
+	_preparations_completed = true
 
 
 func skip_to_morning(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
