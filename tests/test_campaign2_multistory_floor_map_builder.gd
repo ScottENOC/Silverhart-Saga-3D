@@ -68,6 +68,29 @@ func _initialize() -> void:
 			var object_position: Dictionary = object_variant.get("position", {})
 			var object_hex := Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))
 			_check(interior_map.is_walkable(object_hex), "Merchant fixture must sit on walkable interior floor: " + String(object_variant.get("id", "")))
+
+	# The newly registered diplomatic and civic buildings must produce real
+	# walkable floor maps, with each source door landing on the room floor.
+	var silverhart_district_doors := {
+		"silverhart_elven_embassy": Vector2i(3, -466),
+		"silverhart_dwarven_embassy": Vector2i(13, -470),
+		"silverhart_aldenreach_embassy": Vector2i(3, -460),
+		"silverhart_corvane_embassy": Vector2i(13, -462),
+		"silverhart_ironbond_office": Vector2i(4, -454),
+		"silverhart_grand_cathedral": Vector2i(10, -451),
+		"silverhart_commons_inn": Vector2i(8, -526)
+	}
+	for district_id in silverhart_district_doors:
+		var district_definition: Dictionary = registry.get_definition(district_id)
+		var district_state = LOCATION_STATE.new()
+		_check(bool(district_state.configure(district_definition).get("ok", false)), "Silverhart district state must configure: " + district_id)
+		var district_result: Dictionary = FLOOR_BUILDER.build_floor_map(district_definition, 0, district_state)
+		_check(bool(district_result.get("ok", false)), "Silverhart district floor must build: " + district_id)
+		if not bool(district_result.get("ok", false)):
+			continue
+		var district_map: HexMapData = district_result.get("map_data") as HexMapData
+		_check(district_map.is_walkable(silverhart_district_doors[district_id]), "Silverhart district entrance must be walkable: " + district_id)
+		_check(district_result.get("actors", []).is_empty() and district_result.get("creatures", []).is_empty(), "Silverhart district floor must not duplicate campaign-owned residents: " + district_id)
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
