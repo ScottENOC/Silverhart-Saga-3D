@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import math
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,11 @@ def axial_key(q: int, r: int) -> str:
     return f"{q},{r}"
 
 
+def round_away_from_zero(value: float) -> int:
+    """Match Godot roundi(), including exact half-cell interpolation."""
+    return math.floor(value + 0.5) if value >= 0 else math.ceil(value - 0.5)
+
+
 def rasterize_segment(start: dict[str, Any], finish: dict[str, Any]) -> set[str]:
     """Match the project's cube-coordinate line rasterisation."""
     x1, z1 = int(start["q"]), int(start["r"])
@@ -40,7 +46,7 @@ def rasterize_segment(start: dict[str, Any], finish: dict[str, Any]) -> set[str]
         x = x1 + (x2 - x1) * t
         y = y1 + (y2 - y1) * t
         z = z1 + (z2 - z1) * t
-        rx, ry, rz = round(x), round(y), round(z)
+        rx, ry, rz = round_away_from_zero(x), round_away_from_zero(y), round_away_from_zero(z)
         dx, dy, dz = abs(rx - x), abs(ry - y), abs(rz - z)
         if dx > dy and dx > dz:
             rx = -ry - rz
@@ -74,6 +80,37 @@ def building_cells(building: dict[str, Any]) -> set[str]:
         for cell_q in range(q - half_q, q + half_q + 1)
         for cell_r in range(r - half_r, r + half_r + 1)
     }
+
+
+def polygon_cells(corners: list[dict[str, Any]]) -> set[str]:
+    """Rasterise an authored q/r polygon by testing integer hex centres."""
+    if len(corners) < 3:
+        return set()
+    points = [(float(point["q"]), float(point["r"])) for point in corners]
+    min_q = math.floor(min(point[0] for point in points))
+    max_q = math.ceil(max(point[0] for point in points))
+    min_r = math.floor(min(point[1] for point in points))
+    max_r = math.ceil(max(point[1] for point in points))
+    cells: set[str] = set()
+    for q in range(min_q, max_q + 1):
+        for r in range(min_r, max_r + 1):
+            inside = False
+            j = len(points) - 1
+            for i, (x1, y1) in enumerate(points):
+                x2, y2 = points[j]
+                if ((y1 > r) != (y2 > r)) and (q < (x2 - x1) * (r - y1) / (y2 - y1) + x1):
+                    inside = not inside
+                j = i
+            on_boundary = any(
+                abs((q - x1) * (y2 - y1) - (r - y1) * (x2 - x1)) < 1e-9
+                and min(x1, x2) <= q <= max(x1, x2)
+                and min(y1, y2) <= r <= max(y1, y2)
+                for index, (x1, y1) in enumerate(points)
+                for x2, y2 in [points[(index + 1) % len(points)]]
+            )
+            if inside or on_boundary:
+                cells.add(axial_key(q, r))
+    return cells
 
 
 def prop_anchor_cells(props: list[dict[str, Any]]) -> set[str]:
@@ -139,6 +176,9 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
     building_union: set[str] = set()
     path_union: set[str] = set()
     prop_union: set[str] = set()
+    field_union: set[str] = set()
+    fence_union: set[str] = set()
+    crop_union: set[str] = set()
     settlement_summary: list[dict[str, Any]] = []
     feature_counts: dict[str, int] = defaultdict(int)
     for settlement in layouts.get("settlements", []):
@@ -147,6 +187,18 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
         settlement_buildings: set[str] = set()
         settlement_paths: set[str] = set()
         settlement_props = prop_anchor_cells(settlement.get("props", []))
+        settlement_fields: set[str] = set()
+        settlement_fences: set[str] = set()
+        settlement_crops: set[str] = set()
+        for field in settlement.get("fields", []):
+            if isinstance(field, dict):
+                settlement_fields.update(polygon_cells(field.get("corners", [])))
+        for fence in settlement.get("fences", []):
+            if isinstance(fence, dict):
+                settlement_fences.update(record_path_cells({"points": fence.get("points", [])}))
+        for crop_row in settlement.get("crop_rows", []):
+            if isinstance(crop_row, dict):
+                settlement_crops.update(record_path_cells(crop_row))
         for building in settlement.get("buildings", []):
             if isinstance(building, dict):
                 settlement_buildings.update(building_cells(building))
@@ -156,6 +208,9 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
         building_union.update(settlement_buildings)
         path_union.update(settlement_paths)
         prop_union.update(settlement_props)
+        field_union.update(settlement_fields)
+        fence_union.update(settlement_fences)
+        crop_union.update(settlement_crops)
         feature_counts["building_records"] += len(settlement.get("buildings", []))
         feature_counts["path_records"] += len(settlement.get("paths", []))
         feature_counts["prop_records"] += len(settlement.get("props", []))
@@ -167,7 +222,10 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
             "path_hexes": len(settlement_paths),
             "props": len(settlement.get("props", [])),
             "prop_anchor_hexes": len(settlement_props),
-            "unique_exterior_hexes": len(settlement_buildings | settlement_paths | settlement_props),
+            "field_hexes": len(settlement_fields),
+            "fence_hexes": len(settlement_fences),
+            "crop_row_hexes": len(settlement_crops),
+            "unique_exterior_hexes": len(settlement_buildings | settlement_paths | settlement_props | settlement_fields | settlement_fences | settlement_crops),
         })
 
     strategic = geography.get("coordinate_system", {}).get("strategic_grid_dimensions", {})
@@ -177,6 +235,9 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
         "settlement_building_footprints": building_union,
         "settlement_paths": path_union,
         "map_prop_anchors": prop_union,
+        "field_footprints": field_union,
+        "fence_lines": fence_union,
+        "crop_rows": crop_union,
     }
     combined: set[str] = set().union(*local_categories.values())
     overlaps = {
@@ -221,7 +282,7 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
             "counts": "Unique axial q,r cells represented by explicit target map records",
             "includes": ["strategic road cells", "settlement building footprints", "settlement path segments", "map prop anchor cells"],
             "separate": ["16x16 strategic grid", "interior floor room footprints"],
-            "excludes": ["procedural grass/forest/noise terrain", "generated wilderness", "terrain elevation samples", "NPC positions", "visual mesh subdivisions"],
+            "excludes": ["procedural grass/forest/noise terrain", "generated wilderness", "source-authored regional feature GDScript not yet ingested", "terrain elevation samples", "NPC positions", "visual mesh subdivisions"],
             "caveat": "This is a target-side authored-geometry inventory, not yet a source-to-target parity percentage. Source builders contain loops and helper-generated footprints; a source runtime extractor is required before claiming a complete source denominator.",
         },
         "source": source_validation,
@@ -232,6 +293,9 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
             "unique_building_footprint_cells": len(building_union),
             "unique_settlement_path_cells": len(path_union),
             "unique_prop_anchor_cells": len(prop_union),
+            "unique_field_footprint_cells": len(field_union),
+            "unique_fence_line_cells": len(fence_union),
+            "unique_crop_row_cells": len(crop_union),
             "unique_local_exterior_authored_cells": len(combined),
             "interior_room_footprint_cells_sum": floor_total,
             "interior_room_footprint_cells_unique_per_floor": floor_unique,
@@ -264,6 +328,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         ("Unique settlement building-footprint cells", "unique_building_footprint_cells"),
         ("Unique settlement path cells", "unique_settlement_path_cells"),
         ("Unique map prop-anchor cells", "unique_prop_anchor_cells"),
+        ("Unique field-footprint cells", "unique_field_footprint_cells"),
+        ("Unique fence-line cells", "unique_fence_line_cells"),
+        ("Unique crop-row cells", "unique_crop_row_cells"),
         ("Unique local exterior authored cells (overlap removed)", "unique_local_exterior_authored_cells"),
         ("Interior room footprint cells (sum across floors)", "interior_room_footprint_cells_sum"),
         ("Building records", "building_records"),
@@ -276,14 +343,15 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## By settlement",
         "",
-        "| Settlement | Buildings | Building cells | Paths | Path cells | Props | Prop anchors | Unique exterior cells |",
+        "| Settlement | Buildings | Building cells | Paths | Path cells | Props | Prop anchors | Field cells | Fence cells | Crop cells | Unique exterior cells |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for item in report["settlements"]:
         lines.append(
             f'| {item["id"]} | {item["buildings"]} | {item["building_footprint_hexes"]:,} '
             f'| {item["paths"]} | {item["path_hexes"]:,} | {item["props"]} '
-            f'| {item["prop_anchor_hexes"]:,} | {item["unique_exterior_hexes"]:,} |'
+            f'| {item["prop_anchor_hexes"]:,} | {item["field_hexes"]:,} | {item["fence_hexes"]:,} '
+            f'| {item["crop_row_hexes"]:,} | {item["unique_exterior_hexes"]:,} |'
         )
     lines.extend([
         "",
