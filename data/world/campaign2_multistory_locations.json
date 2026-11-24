@@ -3194,7 +3194,15 @@
             }
           ],
           "corridors": [],
-          "tile_objects": [],
+          "tile_objects": [
+            {
+              "id": "sunken_cave_ledger",
+              "type": "journal",
+              "read_id": "sunken_cave_ledger",
+              "position": {"q": -274, "r": 39},
+              "light_radius": 0
+            }
+          ],
           "actors": [],
           "creatures": []
         },
@@ -3214,7 +3222,16 @@
             }
           ],
           "corridors": [],
-          "tile_objects": [],
+          "tile_objects": [
+            {
+              "id": "guild_cache_evidence",
+              "type": "evidence",
+              "evidence_key": "guild_cache_prize",
+              "item_id": "guild_cache_prize",
+              "position": {"q": -273, "r": 40},
+              "light_radius": 0
+            }
+          ],
           "actors": [],
           "creatures": []
         },
@@ -3234,7 +3251,15 @@
             }
           ],
           "corridors": [],
-          "tile_objects": [],
+          "tile_objects": [
+            {
+              "id": "wilderness_tunnel_junction",
+              "type": "tunnel_junction",
+              "node_id": "wilderness",
+              "position": {"q": -274, "r": 40},
+              "light_radius": 0
+            }
+          ],
           "actors": [],
           "creatures": []
         }
