@@ -350,8 +350,8 @@ func _initialize() -> void:
 	}
 
 	var ironbond_floor := registry.get_floor_definition("silverhart_ironbond_office", 0)
-	_check(ironbond_floor.get("floor_hexes", []).has({"q": 4, "r": -457}), "Ironbond office must retain its source-opened corner")
-	_check(ironbond_floor.get("wall_hexes", []).has({"q": 5, "r": -458}), "Ironbond office must retain its source-restored outer corner")
+	_check(_has_axial_position(ironbond_floor.get("floor_hexes", []), Vector2i(4, -457)), "Ironbond office must retain its source-opened corner")
+	_check(_has_axial_position(ironbond_floor.get("wall_hexes", []), Vector2i(5, -458)), "Ironbond office must retain its source-restored outer corner")
 	_check(_has_record(ironbond_floor.get("tile_objects", []), "silverhart_ironbond_office_table"), "Ironbond office must retain its source table")
 	_check(_has_record(ironbond_floor.get("tile_objects", []), "silverhart_ironbond_office_bench"), "Ironbond office must retain its source bench")
 	for location_id in silverhart_districts:
@@ -400,6 +400,12 @@ func _check(condition: bool, message: String) -> void:
 	failures += 1
 	push_error(message)
 
+
+func _has_axial_position(records: Array, expected: Vector2i) -> bool:
+	for record in records:
+		if record is Dictionary and _position_matches(record, expected):
+			return true
+	return false
 
 func _position_matches(value: Variant, expected: Vector2i) -> bool:
 	if value is Vector2i:
