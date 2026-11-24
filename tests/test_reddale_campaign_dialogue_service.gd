@@ -22,7 +22,7 @@ func _test_offer_and_start_dialogue() -> void:
 	var journal := _new_journal(39.0)
 	var unavailable := DIALOGUE_SERVICE.dialogue_for_reeve(journal)
 	_check(unavailable.get("choices", []).size() == 1, "The Reeve must not offer the quest below the influence threshold")
-	journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 40.0)
+	journal = _new_journal(40.0)
 	var offer := DIALOGUE_SERVICE.dialogue_for_reeve(journal)
 	_check(offer.get("choices", []).size() == 2, "The Reeve should offer the quest at the influence threshold")
 	var started := DIALOGUE_SERVICE.select_choice(journal, null, "reddale_cut_start")
