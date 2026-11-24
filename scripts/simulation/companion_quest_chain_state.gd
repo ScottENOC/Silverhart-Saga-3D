@@ -276,7 +276,7 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 			var arc_seed: Dictionary = arc_seed_by_previous.get(previous_resolution, {})
 			for trait_value in arc_seed:
 				var trait_name := String(trait_value)
-				initial_arc[trait_name] = float(initial_arc.get(trait_name, 0.0)) + float(arc_seed[trait_value])
+				initial_arc[trait_name] = float(existing_arc.get(trait_name, float(initial_arc.get(trait_name, 0.0)) + float(arc_seed[trait_value])))
 			initial_arc["_seeded_from_broken_vigil"] = true
 			arc_states[companion_id] = initial_arc
 	companion_relationships.note_conversation(companion_id, quest_id + ":opened", 3.0)
@@ -541,7 +541,7 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 	quest_state["outcome_flags"] = flags
 	var world_effects := {"surface_power_delta":float(effect.get("surface_power_delta", 0.0))}
 	quest_state["world_effects"] = world_effects.duplicate(true)
-	quest_state["description"] = String(effect.get("description", definition.get("description", "")))
+	quest_state["description"] = String(effective_effect.get("description", effect.get("description", definition.get("description", ""))))
 	journal.quests[quest_id] = quest_state
 	var result_line := String(effect.get("line", "The decision is made."))
 	var xp_reward := int(definition.get("xp", 0))
