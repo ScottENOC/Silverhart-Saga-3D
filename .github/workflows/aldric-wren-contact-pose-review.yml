@@ -1,0 +1,79 @@
+name: Aldric and Wren contact-pose review
+
+on:
+  push:
+    branches: [feature/aldric-wren-kiss-contact-pose]
+    paths:
+      - "tools/review/aldric_wren_kiss_contact_scene.gd"
+      - ".github/workflows/aldric-wren-contact-pose-review.yml"
+  pull_request:
+    branches: [feature/anatomy-integrated-body-pressure]
+    paths:
+      - "tools/review/aldric_wren_kiss_contact_scene.gd"
+      - ".github/workflows/aldric-wren-contact-pose-review.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: aldric-wren-contact-pose-review
+  cancel-in-progress: true
+
+jobs:
+  export-contact-pose:
+    name: Export paired native contact pose
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch current native Wren and Aldric builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native build/aldric-native
+          wren_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-wren-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          aldric_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-aldric-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          test "$wren_run" != "null" && test "$aldric_run" != "null"
+          wren_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.run_number')
+          aldric_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.run_number')
+          gh run download "$wren_run" --name "wren-native-ara-$wren_number" --dir build/wren-download
+          gh run download "$aldric_run" --name "aldric-native-ara-$aldric_number" --dir build/aldric-download
+          cp build/wren-download/Wren.glb build/wren-native/Wren.glb
+          cp build/aldric-download/Aldric.glb build/aldric-native/Aldric.glb
+          test -s build/wren-native/Wren.glb
+          test -s build/aldric-native/Aldric.glb
+
+      - name: Fetch verified Kenney Nature Kit models
+        run: python tools/ci/fetch_kenney_nature_assets.py
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import project
+        run: godot --headless --editor --path . --quit
+
+      - name: Pose and export paired GLB
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/aldric_wren_kiss_contact_scene.gd
+          test -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb
+          test -s build/aldric-wren-kiss-contact/pose-report.json
+
+      - name: Upload paired pose for iPhone review
+        uses: actions/upload-artifact@v7
+        with:
+          name: aldric-wren-kiss-contact-pose
+          path: build/aldric-wren-kiss-contact/
+          if-no-files-found: error
+          retention-days: 30
