@@ -69,6 +69,10 @@ func requirements_for_action(action_id: String, journal: CampaignJournal, player
 	if definition.is_empty():
 		requirements.append({"id": "known_action", "label": "Known construction option", "met": false, "reason": "unknown_action"})
 		return requirements
+	if player == null:
+		requirements.append({"id": "player_available", "label": "Active player inventory", "met": false, "reason": "missing_player"})
+	if journal == null:
+		requirements.append({"id": "journal_available", "label": "Campaign journal", "met": false, "reason": "missing_journal"})
 	var dwelling_id := String(definition.get("dwelling_id", ""))
 	var kind := String(definition.get("kind", ""))
 	if kind == "claim" and bool(owned.get(dwelling_id, false)):
@@ -195,14 +199,16 @@ func property_snapshot(journal: CampaignJournal, player: CharacterState) -> Arra
 				payment_methods.append("gold")
 			var preferred_payment := "materials"
 			var action_ready := false
+			var required_site := String(definition.get("required_site", ""))
+			var interaction_site := required_site if player != null and is_at_site(required_site, player.axial) else ""
 			for payment_method in payment_methods:
-				var payment_status := evaluate_action(action_id, journal, player, payment_method, String(definition.get("required_site", "")))
+				var payment_status := evaluate_action(action_id, journal, player, payment_method, interaction_site)
 				payment_status["payment"] = payment_method
 				payment_options.append(payment_status)
 				if bool(payment_status.get("ok", false)) and not action_ready:
 					preferred_payment = payment_method
 					action_ready = true
-			var action_status := evaluate_action(action_id, journal, player, preferred_payment, String(definition.get("required_site", "")))
+			var action_status := evaluate_action(action_id, journal, player, preferred_payment, interaction_site)
 			action_status["label"] = String(definition.get("label", action_id))
 			action_status["preferred_payment"] = preferred_payment
 			action_status["payment_options"] = payment_options
