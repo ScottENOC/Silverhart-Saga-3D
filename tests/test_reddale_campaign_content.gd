@@ -95,6 +95,6 @@ func _test_broker_ironbond_outcome() -> void:
 	restored.load_dict(journal.to_dict())
 	_check(is_equal_approx(restored.faction_standing("ironbond_company"), 30.0), "Faction reputation should survive save/load")
 	_check(is_equal_approx(restored.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 60.0), "Faction influence should survive save/load")
-	_check(is_equal_approx(restored.npc_standing("reeve_aldous_finch"), -10.0), "Kingdom reputation should survive save/load")
+	_check(is_equal_approx(restored.faction_standing("silverhart_kingdom"), -10.0), "Silverhart Kingdom reputation should survive save/load")
 	_check(is_equal_approx(float(restored.settlement_campaign_state("reddale").get("prosperity", 0.0)), 8.0), "Reddale campaign state should survive save/load")
 	_check(is_equal_approx(float(restored.npc_campaign_state("reeve_aldous_finch").get("trust", 0.0)), 5.0), "Reeve campaign state should survive save/load")
