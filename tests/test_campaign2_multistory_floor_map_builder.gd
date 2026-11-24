@@ -231,6 +231,16 @@ func _initialize() -> void:
 	_check(millbrook_map.is_walkable(Vector2i(4, -366)), "Millbrook house east entrance must be walkable")
 	_check(_has_object(millbrook_result.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house fireplace must be presented")
 
+	var farmhouse_registry := REGISTRY.new()
+	var farmhouse_definition: Dictionary = farmhouse_registry.get_definition("old_mac_farmhouse")
+	var farmhouse_state = LOCATION_STATE.new()
+	_check(bool(farmhouse_state.configure(farmhouse_definition).get("ok", false)), "Old Mac's farmhouse state must configure")
+	var farmhouse_result: Dictionary = FLOOR_BUILDER.build_floor_map(farmhouse_definition, 0, farmhouse_state)
+	_check(bool(farmhouse_result.get("ok", false)), "Old Mac's farmhouse floor must build")
+	var farmhouse_map: HexMapData = farmhouse_result.get("map_data") as HexMapData
+	_check(farmhouse_map != null and not farmhouse_map.cells.is_empty(), "Farmhouse must produce a walkable source floor")
+	_check(farmhouse_map.is_walkable(Vector2i(3, 194)), "Farmhouse east entrance must be walkable")
+
 	var reddale_registry := REGISTRY.new()
 	var reddale_entrances := {
 		"reddale_guardhouse": Vector2i(137, 24),
