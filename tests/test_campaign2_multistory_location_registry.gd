@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["corvin_ashgrave_barrow", "emberlode_mine", "kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["corvin_ashgrave_barrow", "emberlode_mine", "kragmoor", "lich_chapterhouse", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -186,6 +186,16 @@ func _initialize() -> void:
 	_check(_has_record(old_seam.get("tile_objects", []), "old_seam_blue_gem"), "Old Seam must retain the source blue-gem ore node")
 	_check(old_seam.get("creatures", []).size() == 2, "Old Seam must preserve both source spider placements as campaign-owned spawn data")
 	_check(emberlode_mine.get("transitions", []).size() == 4, "Emberlode Mine must retain reciprocal transitions between all three levels")
+
+	var chapterhouse: Dictionary = registry.get_definition("lich_chapterhouse")
+	_check(int(chapterhouse.get("anchor", {}).get("q", 0)) == -39 and int(chapterhouse.get("anchor", {}).get("r", 0)) == -346, "Silver Flame Chapterhouse anchor must match buildLichChapterhouse relative to Millbrook")
+	var chapterhouse_floor := registry.get_floor_definition("lich_chapterhouse", 0)
+	_check(chapterhouse_floor.get("rooms", []).size() == 1, "Chapterhouse must retain its single source-authored room")
+	var chapterhouse_room: Dictionary = chapterhouse_floor.get("rooms", [])[0]
+	_check(int(chapterhouse_room.get("half_width", 0)) == 4 and int(chapterhouse_room.get("half_height", 0)) == 3, "Chapterhouse room dimensions must match carveFlatRoom")
+	_check(_has_record(chapterhouse_floor.get("tile_objects", []), "chapterhouse_east_door"), "Chapterhouse must retain its east entrance")
+	_check(_has_record(chapterhouse_floor.get("tile_objects", []), "chapterhouse_fireplace"), "Chapterhouse must retain its central fireplace")
+	_check(chapterhouse_floor.get("actors", []).is_empty() and chapterhouse_floor.get("creatures", []).is_empty(), "Chapterhouse map port must not import campaign actors or encounters")
 
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
