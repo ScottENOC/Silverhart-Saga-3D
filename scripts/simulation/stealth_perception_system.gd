@@ -35,7 +35,7 @@ static func assess(
 	var obstruction := _trace_visual_path(observer, target, map_cells)
 	var target_profile := _visual_profile(target)
 	var terrain_profile: Dictionary = _cell_at(map_cells, target_hex)
-	var camouflage := _camouflage_score(target_profile, terrain_profile)
+	var camouflage := clampf(_camouflage_score(target_profile, terrain_profile) + float(target_profile.get("camouflage_skill_bonus", 0.0)), 0.0, 1.0)
 	var lighting := _target_illumination(target, target_hex, map_cells, environment)
 	var atmosphere := _atmospheric_visibility(environment)
 	var movement_exposure := clampf(float(target.get("movement_exposure", 0.0)), 0.0, 1.0)
@@ -147,6 +147,12 @@ static func character_visual_profile(character: Variant, appearance: Dictionary 
 				light_emission = maxf(light_emission, float(item.get("light_emission", 0.85)))
 			if item.has("cover"):
 				cover = maxf(cover, float(item.cover))
+		for item_value in state.inventory:
+			var carried_item: Dictionary = item_value
+			var carried_id := String(carried_item.get("id", "")).to_lower()
+			var carried_light := bool(carried_item.get("is_light_source", false)) or carried_id.contains("torch") or carried_id.contains("lantern")
+			if carried_light and bool(carried_item.get("is_lit", carried_item.get("lit", false))):
+				light_emission = maxf(light_emission, float(carried_item.get("light_emission", 0.85)))
 		for tag_value in state.tags:
 			var tag := String(tag_value).to_lower()
 			if tag in ["torch_lit", "lantern_lit"]:
@@ -178,11 +184,15 @@ static func make_character_sound_event(character: Variant, kind: String, loudnes
 		return {}
 	var state := character as CharacterState
 	var profile := character_visual_profile(state)
+	var stealth_rank := maxi(0, int(state.skills.get("stealth", 0)))
+	var quiet_movement := movement_noise * (1.0 - minf(float(stealth_rank) * 0.04, 0.3))
+	if state.tags.has("crouching") or state.tags.has("sneaking"):
+		quiet_movement *= 0.55
 	return {
 		"source_id": state.id,
 		"hex": state.axial,
 		"kind": kind,
-		"loudness": clampf(loudness + movement_noise, 0.0, 1.0),
+		"loudness": clampf(loudness + quiet_movement, 0.0, 1.0),
 		"equipment_noise": float(profile.get("equipment_noise", 0.0))
 	}
 
