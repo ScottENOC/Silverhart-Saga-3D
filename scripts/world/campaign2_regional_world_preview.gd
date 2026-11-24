@@ -61,13 +61,22 @@ func _ready() -> void:
 	ecology_simulation.name = "RegionalEcologySimulation"
 	add_child(ecology_simulation)
 	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts, null, ecology_simulation) as Campaign2SettlementBuilder
-	multistory_registry = MULTISTORY_REGISTRY_SCRIPT.new()
+	if not _ensure_multistory_registry():
+		push_error("Regional world preview could not initialise its multi-story location registry.")
+		return
 	_create_environment()
 	_create_materials()
 	_create_camera()
 	_create_player()
 	_build_interface()
 	jump_to_location("hollowmere")
+
+
+func _ensure_multistory_registry() -> bool:
+	if multistory_registry == null:
+		multistory_registry = MULTISTORY_REGISTRY_SCRIPT.new()
+	return multistory_registry != null
+
 
 func _create_environment() -> void:
 	var world_environment := WorldEnvironment.new()
