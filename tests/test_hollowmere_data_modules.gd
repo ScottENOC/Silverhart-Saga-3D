@@ -23,11 +23,29 @@ func _initialize() -> void:
 		building_ids[id] = true
 		assert(building.get("center") is Vector2i and building.get("door") is Vector2i, "Building footprint and entrance must use axial world coordinates")
 
-	assert(ROUTES.PRESENTATION_ROUTES.size() == 12, "All authored presentation routes must remain present")
+	assert(ROUTES.PRESENTATION_ROUTES.size() == 13, "All authored presentation routes must remain present")
 	assert(ROUTES.FARMYARD_CENTRELINE.front() == SETTLEMENT.FARMHOUSE_DOOR)
 	assert(ROUTES.FARMYARD_CENTRELINE.back() == SETTLEMENT.FARM_BARN_DOOR)
 	assert(BRIDGES.BRIDGE_PRESENTATION.parts.size() == 9)
-	assert(PROPS.LANDMARK_PROPS.size() == 2 and PROPS.QUEST_PROPS.size() == 2 and PROPS.WAYFINDING_PROPS.size() == 1)
+
+	var plot_route: Dictionary = {}
+	for route in ROUTES.PRESENTATION_ROUTES:
+		if String(route.get("id", "")) == "PlayerCottagePlotAccess":
+			plot_route = route
+	assert(not plot_route.is_empty(), "The source player-cottage plot access route must be presented")
+	assert(plot_route.get("points", []) == ROUTES.PLAYER_COTTAGE_PLOT_CENTRELINE,
+		"The cottage plot route must preserve the source's eight-cell L-shaped path")
+	assert(ROUTES.PLAYER_COTTAGE_PLOT_CENTRELINE.front() == Vector2i(8, 24))
+	assert(ROUTES.PLAYER_COTTAGE_PLOT_CENTRELINE.back() == Vector2i(13, 27))
+	var plot_marker: Dictionary = {}
+	for prop in PROPS.WAYFINDING_PROPS:
+		if String(prop.get("id", "")) == "PlayerCottagePlotMarker":
+			plot_marker = prop
+	assert(not plot_marker.is_empty(), "The source building_plot marker must have a 3D presentation")
+	assert(plot_marker.get("anchor", Vector2i.ZERO) == Vector2i(13, 27),
+		"The cottage plot marker must remain on the source-authored hex")
+
+	assert(PROPS.LANDMARK_PROPS.size() == 2 and PROPS.QUEST_PROPS.size() == 2 and PROPS.WAYFINDING_PROPS.size() == 2)
 	assert(AGRICULTURE.FARM_FIELDS.size() == 3 and AGRICULTURE.FARM_CROP_ROWS.size() == 17 and AGRICULTURE.FARM_FENCES.size() == 2)
 
 	# Only characters who actually belong in the opening settlement receive
