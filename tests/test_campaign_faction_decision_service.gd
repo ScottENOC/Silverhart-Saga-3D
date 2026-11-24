@@ -10,6 +10,7 @@ var _failures: int = 0
 func _initialize() -> void:
 	_test_reputation_and_influence_apply_once()
 	_test_invalid_outcome_has_no_side_effects()
+	_test_world_consequence_persistence_and_idempotency()
 	_test_hollowmere_source_outcomes()
 	if _failures > 0:
 		push_error("%d campaign faction decision assertion(s) failed." % _failures)
@@ -109,3 +110,39 @@ func _test_hollowmere_source_outcomes() -> void:
 		), "Hollowmere should preserve source-authored merchant influence: " + choice_id)
 		var repeated := HOLLOWMERE_CONTENT.apply_shakedown_choice(journal, choice_id)
 		_check(not bool(repeated.get("ok", false)), "Hollowmere choice should remain one-shot: " + choice_id)
+
+
+func _test_world_consequence_persistence_and_idempotency() -> void:
+	var journal := _journal_with_active_quest()
+	var decision := journal.record_decision("faction_decision_test", "reeve_response", "resist_ironbond")
+	_check(bool(decision.get("ok", false)), "World consequence source decision should be recorded")
+	var consequence := {
+		"region_id": "reddale",
+		"state": "ironbond_pressure_reduced",
+		"public_order_delta": 10
+	}
+	var first := journal.record_world_consequence(
+		"reddale_ironbond_pressure", "faction_decision_test", "reeve_response", consequence
+	)
+	_check(bool(first.get("ok", false)), "A valid world consequence should be recorded")
+	_check(not bool(first.get("already_recorded", true)), "First world consequence record should be new")
+	var repeated := journal.record_world_consequence(
+		"reddale_ironbond_pressure", "faction_decision_test", "reeve_response", consequence
+	)
+	_check(bool(repeated.get("ok", false)) and bool(repeated.get("already_recorded", false)), "Identical world consequence replay should be idempotent")
+	var conflict := journal.record_world_consequence(
+		"reddale_ironbond_pressure", "faction_decision_test", "reeve_response", {"state": "different"}
+	)
+	_check(not bool(conflict.get("ok", false)), "A consequence ID must not be reused for conflicting state")
+	_check(journal.world_consequence("reddale_ironbond_pressure").get("value", {}) == consequence, "Recorded world consequence should be queryable")
+	var restored := JOURNAL_SCRIPT.new()
+	restored.load_dict(journal.to_dict())
+	_check(restored.world_consequence("reddale_ironbond_pressure").get("value", {}) == consequence, "World consequence must survive save/load")
+	var replay_after_load := restored.record_world_consequence(
+		"reddale_ironbond_pressure", "faction_decision_test", "reeve_response", consequence
+	)
+	_check(bool(replay_after_load.get("ok", false)) and bool(replay_after_load.get("already_recorded", false)), "Save/load must preserve consequence idempotency")
+	var unlinked := restored.record_world_consequence(
+		"unlinked_consequence", "faction_decision_test", "missing_decision", {"state": "invalid"}
+	)
+	_check(not bool(unlinked.get("ok", false)), "World consequences must reference a recorded decision")
