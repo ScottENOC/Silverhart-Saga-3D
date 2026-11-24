@@ -51,6 +51,17 @@ var owned: Dictionary = {}
 var upgrades: Dictionary = {}
 
 
+func site_id_for_dwelling(dwelling_id: String) -> String:
+	match dwelling_id:
+		"crossroads_cottage":
+			return "crossroads_plot"
+		"abandoned_house":
+			return "abandoned_house"
+		"silverhart_manor":
+			return "silverhart_manor"
+	return ""
+
+
 func is_at_site(site_id: String, player_hex: Vector2i) -> bool:
 	if not SITE_HEXES.has(site_id):
 		return false
