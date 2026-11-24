@@ -26,6 +26,7 @@ on:
       - "tools/review/capture_garment_guide_editor.gd"
       - "tools/review/ara_contact_path_review.gd"
       - "tools/review/ara_anatomy_region_review.gd"
+      - "tools/review/aldric_wren_kiss_contact_scene.gd"
       - ".github/workflows/godot-validation.yml"
   push:
     branches: [dev, dev_2, "feature/**"]
@@ -242,6 +243,23 @@ jobs:
             done
             test -s "build/ara-anatomy-region-review/$character/report.json"
           done
+
+      - name: Export paired Aldric and Wren kiss/contact pose
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/aldric_wren_kiss_contact_scene.gd
+          test -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb
+          test -s build/aldric-wren-kiss-contact/pose-report.json
+
+      - name: Upload paired Aldric and Wren contact-pose GLB
+        uses: actions/upload-artifact@v7
+        with:
+          name: aldric-wren-kiss-contact-pose
+          path: build/aldric-wren-kiss-contact/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload Wren and Aldric anatomical region colour review
         uses: actions/upload-artifact@v7
