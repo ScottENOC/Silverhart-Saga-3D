@@ -210,6 +210,10 @@ func camp_profile_for(dwelling_id: String) -> Dictionary:
 	# A restored house shelters its occupants even before the player furnishes it.
 	profile["is_sheltered"] = not (dwelling_id == "silverhart_manor" and action_id == "claim_silverhart_manor")
 	profile["floor_size"] = floor_size_for(dwelling_id)
+	profile["floor_count"] = floor_count_for(dwelling_id)
+	var floor_size: Vector2 = profile["floor_size"]
+	profile["floor_area_m2"] = floor_size.x * floor_size.y * float(profile["floor_count"])
+	profile["indoor_floor_capacity"] = floori(float(profile["floor_area_m2"]) / 8.0) if bool(profile["is_sheltered"]) else 0
 	profile["placed_furniture"] = (placed_furniture.get(dwelling_id, []) as Array).duplicate(true)
 	return profile
 
