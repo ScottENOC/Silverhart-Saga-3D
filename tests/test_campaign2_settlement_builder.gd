@@ -46,7 +46,7 @@ func _initialize() -> void:
 			return
 	var emberwood_grove_chunk := Node3D.new()
 	root.add_child(emberwood_grove_chunk)
-	builder.add_settlements_in_chunk(emberwood_grove_chunk, Vector2i(-264, 0), 24)
+	builder.add_settlements_in_chunk(emberwood_grove_chunk, Vector2i(-288, 0), 24)
 	var nessa_actor := emberwood_grove_chunk.get_node_or_null("NPC_elder_nessa_wren_elf_female")
 	if nessa_actor == null:
 		push_error("Elder Nessa Wren must spawn at the source-authored Emberwood Grove clearing.")
