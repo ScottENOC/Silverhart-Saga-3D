@@ -25,6 +25,8 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv);
 const sourceText = fs.readFileSync(args.source, "utf8");
 const overrideTerrain = {};
+const terrainWritesByBuilder = {};
+const terrainWriteCountsByBuilder = {};
 const windowState = {
   overrideTerrain,
   tileObjects: {},
@@ -48,7 +50,18 @@ const windowState = {
   _campaign2TileObjectsBaseline: {},
   worldMapData: Array.from({ length: 16 }, () =>
     Array.from({ length: 16 }, () => ({ n: "" }))),
-  setTerrainAt(q, r, name) { this.overrideTerrain[q + "," + r] = { name }; },
+  setTerrainAt(q, r, name) {
+    const stack = new Error().stack || "";
+    const callerLine = stack.split("\\n").slice(1).find(line =>
+      /at (?:Object\\.)?(?:build|paint|setupVillageScene|carve|place)/.test(line));
+    const match = callerLine && callerLine.match(/at (?:Object\\.)?([A-Za-z_$][\\w$]*)/);
+    const builder = match ? match[1] : "unclassified";
+    const key = q + "," + r;
+    this.overrideTerrain[key] = { name };
+    if (!terrainWritesByBuilder[builder]) terrainWritesByBuilder[builder] = new Set();
+    terrainWritesByBuilder[builder].add(key);
+    terrainWriteCountsByBuilder[builder] = (terrainWriteCountsByBuilder[builder] || 0) + 1;
+  },
   setTerrainAtFloor() {},
   getTerrainAt(q, r) { return overrideTerrain[q + "," + r] || { name: "Grass" }; },
   getNeighbors(q, r) {
@@ -114,6 +127,8 @@ const captureCode = [
   "terrainBaseline: window._campaign2TerrainBaseline,",
   "tileObjectBaseline: window._campaign2TileObjectsBaseline,",
   "patrolPath: window.campaign2UnicornPatrolPath || [],",
+  "terrainWritesByBuilder: Object.fromEntries(Object.entries(terrainWritesByBuilder).map(([name, cells]) => [name, Array.from(cells)])),
+  "terrainWriteCountsByBuilder: terrainWriteCountsByBuilder,",
   "landmarks: {",
   "farmstead: window.campaign2FarmHouseCenter || null,",
   "millbrook: window.campaign2MillbrookCenter || null,",
