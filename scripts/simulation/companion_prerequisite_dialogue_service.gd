@@ -185,12 +185,12 @@ static func _clue_accessible(clue: Dictionary, journal: CampaignJournal, capabil
 		return false
 	var capability_any: Array = clue.get("capability_any", [])
 	if not capability_any.is_empty():
-		var granted := false
+		var capability_granted := false
 		for capability_value in capability_any:
 			if capabilities.has(String(capability_value)):
-				granted = true
+				capability_granted = true
 				break
-		if not granted:
+		if not capability_granted:
 			return false
 	if bool(clue.get("requires_stealth", false)) and not capabilities.has("stealth"):
 		return false
