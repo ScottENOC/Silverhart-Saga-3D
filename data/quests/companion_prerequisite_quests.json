@@ -245,7 +245,8 @@
             "insight"
           ],
           "faction_standing_min": 20,
-          "requires_stealth": true
+          "requires_stealth": true,
+          "faction_id": "ironbond_company"
         }
       },
       "required_clue_sets": [
