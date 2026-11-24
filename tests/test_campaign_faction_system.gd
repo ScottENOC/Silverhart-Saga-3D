@@ -66,9 +66,10 @@ func _test_goblin_reputation_spillover() -> void:
 func _test_feudal_reputation_cascade() -> void:
 	var journal := CampaignJournal.new()
 	FACTIONS.initialize_social_standings(journal, "human")
+	var authority_tiers: Array[String] = ["goblin_tribe", "silverhart_kingdom"]
 	var results := FACTIONS.cascade_reputation(
 		journal,
-		["goblin_tribe", "silverhart_kingdom"],
+		authority_tiers,
 		20.0,
 		10.0,
 		"Village diplomacy"
