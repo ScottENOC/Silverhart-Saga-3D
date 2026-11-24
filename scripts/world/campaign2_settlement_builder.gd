@@ -209,6 +209,7 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i, s
 	if actor == null:
 		return
 	actor.set_meta("campaign2_npc_id", character_id)
+	actor.set_meta("campaign2_settlement_id", settlement_id)
 	actor.set_meta("campaign2_streamed_npc", true)
 	actor.set_meta("dialogue_id", str(character.get("dialogue_id", "")))
 	actor.set_meta("faction_id", str(character.get("faction_id", "")))
