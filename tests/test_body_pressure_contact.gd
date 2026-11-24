@@ -70,7 +70,11 @@ func _test_garment_adds_transient_body_damping() -> void:
 	base_profile.damping_ns_per_m = 18.0
 	base_profile.effective_mass_kg = 0.2
 	base_profile.max_compression_m = 0.04
-	var cloth_profile := base_profile.duplicate_profile()
+	var cloth_profile := BodyRegionProfile.new()
+	cloth_profile.stiffness_n_per_m = base_profile.stiffness_n_per_m
+	cloth_profile.damping_ns_per_m = base_profile.damping_ns_per_m
+	cloth_profile.effective_mass_kg = base_profile.effective_mass_kg
+	cloth_profile.max_compression_m = base_profile.max_compression_m
 	baseline.register_region(&"breast_left", base_profile)
 	clothed.register_region(&"breast_left", cloth_profile)
 	# Give both regions identical displacement and velocity through the solver.
