@@ -441,6 +441,7 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 			"comfort_penalty": 8 if not has_floor_bag else 3
 		})
 	var tent_limit := mini(maxi(0, tent_count), ceili(float(remaining.size()) / float(TENT_COMFORTABLE_CAPACITY)))
+	var next_tent_index := 0
 	while tent_limit > 0 and not remaining.is_empty():
 		var group: Array[String] = [String(remaining.pop_front())]
 		var target_size := mini(TENT_MAX_CAPACITY, maxi(TENT_COMFORTABLE_CAPACITY, remaining.size() + 1 - (tent_limit - 1) * TENT_COMFORTABLE_CAPACITY))
@@ -460,6 +461,7 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 			"sleeping_bag_character_ids": bag_users,
 			"comfort_penalty": maxi(0, group.size() - TENT_COMFORTABLE_CAPACITY) * 10
 		})
+		next_tent_index += 1
 		tent_limit -= 1
 	for character_id in remaining:
 		var has_bag := bags_remaining > 0
