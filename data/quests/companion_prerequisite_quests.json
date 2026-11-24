@@ -345,7 +345,9 @@
           },
           "surface_power_delta": 2
         }
-      }
+      },
+      "xp": 240,
+      "full_proof_xp_bonus": 60
     }
   ]
 }
