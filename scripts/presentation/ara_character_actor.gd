@@ -768,7 +768,25 @@ static func camp_activity_animation_hints(activity: String) -> PackedStringArray
 func play_camp_activity(activity: String) -> bool:
 	if animation_player == null or not is_instance_valid(animation_player):
 		return false
-	var clip := _find_animation_clip(camp_activity_animation_hints(activity).to_array())
+	var current := String(animation_player.current_animation).to_lower()
+	var current_playing := animation_player.is_playing()
+	var preferred := camp_activity_animation_hints(activity).to_array()
+	var clip := ""
+	if activity == "gather_wood" or activity == "set_up_tents":
+		var pickup := _find_animation_clip(["pick_up"])
+		var follow_up := _find_animation_clip(["carry_idle"] if activity == "gather_wood" else ["use_press"])
+		if pickup.is_empty():
+			clip = follow_up
+		elif current == pickup.to_lower() and current_playing:
+			return true
+		elif current == follow_up.to_lower() and current_playing:
+			return true
+		elif current == pickup.to_lower() and not current_playing and not follow_up.is_empty():
+			clip = follow_up
+		else:
+			clip = pickup
+	else:
+		clip = _find_animation_clip(preferred)
 	if clip.is_empty():
 		return false
 	if animation_player.current_animation == StringName(clip) and animation_player.is_playing():
