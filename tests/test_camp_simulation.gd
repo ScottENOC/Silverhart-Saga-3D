@@ -281,6 +281,24 @@ func _test_evening_routine_progression() -> void:
 	_check(restored.routine_stage == 2, "A loaded camp should resume at its saved evening stage.")
 	_check(restored.companion_profiles == camp.companion_profiles, "Companion routine preferences should persist.")
 	_check(initial_assignments.size() == camp.party_ids.size(), "Every companion should receive an initial setup assignment.")
+	var exposed := CampSimulation.new()
+	exposed.begin_camp(
+		{"walkable": true},
+		["scholar"],
+		{"storm": true, "companion_profiles": {"scholar": {"personality": "scholarly"}}},
+		{"wood": 1, "water": 1}
+	)
+	exposed.advance_real_time(24.0)
+	_check(String(exposed.assignments.scholar.activity) == "socialise", "A wilderness camp in a storm should draw companions away from exposed study routines.")
+	var sheltered := CampSimulation.new()
+	sheltered.begin_camp(
+		{"walkable": true, "dwelling_profile": {"dwelling_id": "manor", "sleeping_capacity": 1}},
+		["scholar"],
+		{"storm": true, "companion_profiles": {"scholar": {"personality": "scholarly"}}},
+		{"wood": 1, "water": 1}
+	)
+	sheltered.advance_real_time(24.0)
+	_check(String(sheltered.assignments.scholar.activity) == "study_map", "A livable dwelling should let a scholarly companion continue an indoor routine during a storm.")
 
 
 
