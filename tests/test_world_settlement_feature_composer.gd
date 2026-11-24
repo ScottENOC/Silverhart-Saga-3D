@@ -48,7 +48,7 @@ func _test_silverhart_city_composes_all_source_props() -> void:
 	var gate_arches := 0
 	# Cover the complete source layout, including the Warrens beyond the
 	# radius-60 wall. Each feature must be owned by exactly one 24-hex chunk.
-	for chunk_q in range(-2, 3):
+	for chunk_q in range(-3, 3):
 		for chunk_r in range(-24, -17):
 			var parent := Node3D.new()
 			var chunk_min := Vector2i(chunk_q, chunk_r) * 24
