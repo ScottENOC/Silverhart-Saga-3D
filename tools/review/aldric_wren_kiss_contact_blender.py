@@ -205,19 +205,9 @@ def main():
         pos = evaluated_hand_position(actor, side.lower())
         hand_errors[key] = None if pos is None else round((pos-target.location).length, 4)
 
-    # Bake evaluated IK transforms into each armature's pose, then make this
-    # review-only pose the rest pose so GLB viewers show it without animation controls.
-    for actor in (aldric, wren):
-        bpy.ops.object.select_all(action="DESELECT")
-        actor["arm"].select_set(True)
-        bpy.context.view_layer.objects.active = actor["arm"]
-        bpy.ops.object.mode_set(mode="POSE")
-        bpy.ops.pose.select_all(action="SELECT")
-        bpy.ops.pose.armature_apply(selected=False)
-        for pb in actor["arm"].pose.bones:
-            for constraint in list(pb.constraints):
-                pb.constraints.remove(constraint)
-        bpy.ops.object.mode_set(mode="OBJECT")
+    # Keep the live armatures and IK constraints intact through rendering.
+    # The final review GLB is exported as evaluated static mesh geometry below;
+    # this avoids relying on viewers to evaluate a rig or animation track.
     bpy.context.view_layer.update()
 
     # Hide helper targets/poles from the final GLB; keep only the posed characters.
@@ -274,20 +264,52 @@ def main():
     scene.render.filepath = os.path.join(OUT_DIR, "pose-preview.png")
     bpy.ops.render.render(write_still=True)
 
-    # Export the baked pose. No IK helper objects or constraints are needed in the viewer.
-    bpy.ops.object.select_all(action="DESELECT")
+    # Bake each evaluated mesh after the preview render. to_mesh() returns the
+    # dependency-graph result, including armature deformation, IK, shape keys,
+    # and modifiers. Copy it before clearing the temporary evaluated mesh.
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    baked_collection = bpy.data.collections.new("StaticPosedCharacters")
+    scene.collection.children.link(baked_collection)
     exportables = []
     for actor in (aldric, wren):
-        # Include the actor root so the paired placement survives GLB export.
-        actor["root"].select_set(True)
-        exportables.append(actor["root"])
-        for obj in actor["objects"]:
-            obj.select_set(True)
-            exportables.append(obj)
-    bpy.context.view_layer.objects.active = aldric["arm"]
-    bpy.ops.export_scene.gltf(filepath=os.path.join(OUT_DIR, "aldric-wren-kiss-contact.glb"),
-        export_format="GLB", use_selection=True, export_apply=False,
-        export_animations=False, export_skins=True)
+        for source_obj in actor["meshes"]:
+            evaluated = source_obj.evaluated_get(depsgraph)
+            evaluated_mesh = evaluated.to_mesh(
+                preserve_all_data_layers=True, depsgraph=depsgraph
+            )
+            if evaluated_mesh is None or len(evaluated_mesh.polygons) == 0:
+                if evaluated_mesh is not None:
+                    evaluated.to_mesh_clear()
+                raise RuntimeError(
+                    f"Evaluated mesh is empty: {actor['name']}/{source_obj.name}"
+                )
+            baked_mesh = evaluated_mesh.copy()
+            evaluated.to_mesh_clear()
+            baked_obj = bpy.data.objects.new(
+                f"{actor['name']}_POSED_{source_obj.name}", baked_mesh
+            )
+            baked_collection.objects.link(baked_obj)
+            # The baked vertices remain in object-local space; preserve the
+            # evaluated world matrix, including actor root placement/orientation.
+            baked_obj.matrix_world = evaluated.matrix_world.copy()
+            exportables.append(baked_obj)
+
+    if not exportables:
+        raise RuntimeError("No evaluated character meshes were available to export")
+
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in exportables:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = exportables[0]
+    glb_path = os.path.join(OUT_DIR, "aldric-wren-kiss-contact.glb")
+    bpy.ops.export_scene.gltf(
+        filepath=glb_path,
+        export_format="GLB",
+        use_selection=True,
+        export_apply=False,
+        export_animations=False,
+        export_skins=False,
+    )
 
     report = {
         "scene": "Aldric and Wren height-aware paired kiss/contact pose",
@@ -305,6 +327,8 @@ def main():
             "actor_attachment_hierarchy_preserved": True,
             "posed_preview_rendered": os.path.exists(scene.render.filepath),
             "glb_exported": os.path.exists(os.path.join(OUT_DIR, "aldric-wren-kiss-contact.glb")),
+            "static_evaluated_meshes_exported": len(exportables),
+            "armature_or_animation_required_in_viewer": False,
             "pressure_deformation_applied": False,
             "anatomy_region_contact_resolved": False,
             "note": "This is a baked visual pose review only; it does not claim collision-based 145-region contact or pressure deformation."
