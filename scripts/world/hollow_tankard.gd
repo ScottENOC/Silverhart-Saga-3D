@@ -1685,7 +1685,7 @@ func _refresh_nearby_interactions() -> void:
 			nearby_interaction_box.add_child(talk_button)
 	if not nearby_sites.is_empty():
 		var property_heading := Label.new()
-		property_heading.text = "NEARBY PROPERTIES"
+		property_heading.text = "NEARBY LOCATIONS"
 		property_heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
 		nearby_interaction_box.add_child(property_heading)
 		for site in nearby_sites:
