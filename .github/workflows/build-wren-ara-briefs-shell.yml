@@ -24,7 +24,7 @@ permissions:
 jobs:
   build-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v6
         with:
@@ -104,6 +104,14 @@ jobs:
           set -euo pipefail
           git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
           git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+
+      - name: Restore cached MakeHuman source and system assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/ara-3d-gen/vendor/mh
+            /tmp/ara-3d-gen/vendor/sys
+          key: ara-makehuman-assets-b60b5bece6d383d2cbb7067fd50e7c8e68b5a395-v1
           corepack enable
           cd /tmp/ara-3d-gen
           pnpm install --no-frozen-lockfile
