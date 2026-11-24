@@ -2,6 +2,7 @@ class_name CampaignNpcInteractionService
 extends RefCounted
 
 const WORLD_STATE_SERVICE = preload("res://scripts/simulation/campaign_world_state_service.gd")
+const REDDALE_DIALOGUE_SERVICE = preload("res://scripts/simulation/reddale_campaign_dialogue_service.gd")
 ## Shared proximity and actor lookup for location-owned and streamed NPCs.
 ## Dialogue rules remain in campaign content; this service only resolves who
 ## can be interacted with in the currently resident world presentation.
@@ -46,20 +47,39 @@ static func nearby_entries(
 		var campaign_context := WORLD_STATE_SERVICE.npc_context(
 			simulation.campaign_journal, actor_id, settlement_id, faction_id
 		)
-		result.append({
+		var entry := {
 			"id":actor_id,
 			"name":state.display_name,
 			"distance":distance,
 			"hostile":state.side == "enemy",
 			"campaign_context":campaign_context,
 			"public_status":String(campaign_context.get("public_status", ""))
-		})
+		}
+		if actor_id == "reeve_aldous_finch":
+			entry["dialogue"] = REDDALE_DIALOGUE_SERVICE.dialogue_for_reeve(simulation.campaign_journal)
+		result.append(entry)
 	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if int(a.distance) == int(b.distance):
 			return String(a.name) < String(b.name)
 		return int(a.distance) < int(b.distance)
 	)
 	return result
+
+
+static func select_dialogue_choice(
+	simulation: WorldSimulation,
+	player_id: String,
+	npc_id: String,
+	choice_id: String
+) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_campaign"}
+	if npc_id != "reeve_aldous_finch":
+		return {"ok": false, "reason": "unsupported_dialogue_actor"}
+	var player := simulation.get_character(player_id)
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	return REDDALE_DIALOGUE_SERVICE.select_choice(simulation.campaign_journal, player, choice_id)
 
 
 static func actor_for(scene_tree: SceneTree, local_actor_by_id: Dictionary, character_id: String) -> Node3D:
