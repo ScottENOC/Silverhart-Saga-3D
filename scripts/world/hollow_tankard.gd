@@ -10,6 +10,7 @@ const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_ge
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const COMPANION_PREREQUISITE_DIALOGUE_SCRIPT = preload("res://scripts/simulation/companion_prerequisite_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
@@ -1031,6 +1032,63 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id == "companion_prerequisite_start":
+		var start_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.start_quest(
+			simulation.companion_quest_chains,
+			simulation.campaign_journal,
+			simulation.companion_relationship_state,
+			String(choice.get("quest_id", "")),
+			simulation.get_party_member_ids(),
+			simulation.clock.world_seconds
+		)
+		if bool(start_result.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That companion chapter cannot begin yet: %s." % String(start_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_opening_choice":
+		var opening_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.apply_opening_choice(
+			simulation.companion_quest_chains,
+			simulation.campaign_journal,
+			simulation.companion_relationship_state,
+			String(choice.get("quest_id", "")),
+			String(choice.get("choice_id", ""))
+		)
+		if bool(opening_result.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")), String(choice.get("text", "")))
+		else:
+			_show_dialogue("Campaign journal", "That response could not be recorded: %s." % String(opening_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_record_clues":
+		var actor_id := _companion_prerequisite_actor_id(String(choice.get("actor_id", "")))
+		var clue_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.record_actor_clues(
+			simulation.companion_quest_chains,
+			simulation.campaign_journal,
+			actor_id,
+			simulation.clock.world_seconds,
+			_companion_prerequisite_capabilities(simulation.get_character(active_character_id))
+		)
+		if bool(clue_result.get("ok", false)):
+			_show_companion_dialogue("companion_" + String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "We could not record that evidence: %s." % String(clue_result.get("reason", "no new evidence")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_resolve":
+		var resolution_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.resolve(
+			simulation.companion_quest_chains,
+			simulation.campaign_journal,
+			simulation.companion_relationship_state,
+			String(choice.get("quest_id", "")),
+			String(choice.get("resolution_id", "")),
+			simulation.clock.world_seconds,
+			simulation.get_character("player")
+		)
+		if bool(resolution_result.get("ok", false)):
+			var outcome_line := String(resolution_result.get("line", resolution_result.get("text", "You and your companion have reached a decision.")))
+			_show_dialogue(String(choice.get("companion_id", "Companion")), outcome_line, [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
 		var start_result := simulation.campaign_journal.start_quest(quest_id)
@@ -1139,6 +1197,25 @@ func _interact_with_character(character_id: String) -> void:
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)
 		return
+	var prerequisite_actor_id := _companion_prerequisite_actor_id(character_id)
+	var prerequisite_prompt: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.actor_prompt(
+		simulation.companion_quest_chains,
+		simulation.campaign_journal,
+		prerequisite_actor_id,
+		_companion_prerequisite_capabilities(player_state)
+	)
+	if not prerequisite_prompt.is_empty():
+		var prerequisite_choices: Array[Dictionary] = []
+		for choice_value in prerequisite_prompt.get("choices", []):
+			var prerequisite_choice: Dictionary = choice_value.duplicate(true)
+			prerequisite_choice["companion_id"] = String(prerequisite_prompt.get("companion_id", ""))
+			prerequisite_choices.append(prerequisite_choice)
+		_show_dialogue(
+				String(target_state.display_name),
+				String(prerequisite_prompt.get("body", "")),
+				prerequisite_choices
+		)
+		return
 	if character_id == "old_mac":
 		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
@@ -1206,9 +1283,29 @@ func _on_nearby_interaction_pressed(character_id: String) -> void:
 	_interact_with_character(character_id)
 
 
-func _show_companion_dialogue(character_id: String) -> void:
+func _show_companion_dialogue(character_id: String, extra_text: String = "") -> void:
 	var player_state := simulation.get_character("player")
 	if player_state == null:
+		return
+	var prerequisite_conversation: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.dialogue_for_companion(
+		simulation.companion_quest_chains,
+		simulation.campaign_journal,
+		character_id,
+		simulation.get_party_member_ids(),
+		player_state
+	)
+	if not prerequisite_conversation.is_empty():
+		var prerequisite_choices: Array[Dictionary] = []
+		for choice_value in prerequisite_conversation.get("choices", []):
+			var prerequisite_choice: Dictionary = choice_value.duplicate(true)
+			prerequisite_choice["companion_id"] = character_id
+			prerequisite_choices.append(prerequisite_choice)
+		var prerequisite_body := String(prerequisite_conversation.get("body", ""))
+		if not extra_text.strip_edges().is_empty():
+			prerequisite_body = extra_text + "\n\n" + prerequisite_body
+		var companion_state := simulation.get_character(character_id)
+		var companion_name := companion_state.display_name if companion_state != null else character_id
+		_show_dialogue(companion_name, prerequisite_body, prerequisite_choices)
 		return
 	var conversation: Dictionary = COMPANION_CAMPAIGN_SCRIPT.conversation(
 		character_id,
@@ -1225,6 +1322,30 @@ func _show_companion_dialogue(character_id: String) -> void:
 			choice["companion_id"] = character_id
 		choices.append(choice)
 	_show_dialogue(String(conversation.get("speaker", character_id)), String(conversation.get("text", "")), choices)
+
+
+func _companion_prerequisite_actor_id(character_id: String) -> String:
+	match character_id:
+		"old_mac":
+			return "old_mac_human_male"
+		_:
+			return character_id
+
+
+func _companion_prerequisite_capabilities(character: CharacterState) -> Array[String]:
+	var capabilities: Array[String] = []
+	if character == null:
+		return capabilities
+	for skill_id_value in character.skills.keys():
+		var skill_value: Variant = character.skills[skill_id_value]
+		var rank := 0.0
+		if skill_value is Dictionary:
+			rank = float(skill_value.get("rank", skill_value.get("value", 0.0)))
+		elif skill_value is int or skill_value is float:
+			rank = float(skill_value)
+		if rank > 0.0:
+			capabilities.append(String(skill_id_value).to_lower())
+	return capabilities
 
 
 func _recruit_staged_companion(character_id: String) -> void:
