@@ -283,9 +283,12 @@ func _advance_evening_routines(stage: int) -> void:
 		_preparations_completed = true
 	for character_id in party_ids:
 		var current: Dictionary = assignments.get(character_id, {})
-		if bool(current.get("player_override", false)):
-			continue
 		var next_activity := _routine_activity_for(character_id, stage)
+		if bool(current.get("player_override", false)):
+			_default_assignments[character_id] = {
+				"activity": next_activity, "player_override": false, "override_remaining": 0.0
+			}
+			continue
 		if String(current.get("activity", "")) != next_activity:
 			_set_assignment(character_id, next_activity)
 
@@ -552,7 +555,8 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_assignments: Variant = data.get("assignments", {})
 	var saved_resources: Variant = data.get("resources", {})
 	var saved_lodging: Variant = data.get("lodging_profile", data.get("site", {}).get("dwelling_profile", {}))
-	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary:
+	var saved_profiles: Variant = data.get("companion_profiles", data.get("environment", {}).get("companion_profiles", {}))
+	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary or not saved_profiles is Dictionary:
 		return false
 	var ids: Array[String] = []
 	for value in saved_party:
@@ -580,5 +584,5 @@ func from_dict(data: Dictionary) -> bool:
 	elapsed_world_seconds = maxf(0.0, float(data.get("elapsed_world_seconds", 0.0)))
 	routine_stage = clampi(int(data.get("routine_stage", 0)), 0, ROUTINE_STAGE_THRESHOLDS.size())
 	_preparations_completed = bool(data.get("preparations_completed", false))
-	companion_profiles = data.get("companion_profiles", environment.get("companion_profiles", {})).duplicate(true)
+	companion_profiles = saved_profiles.duplicate(true)
 	return true
