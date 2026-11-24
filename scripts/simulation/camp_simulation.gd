@@ -310,16 +310,18 @@ func _routine_activity_for(character_id: String, stage: int) -> String:
 			return "repair_gear"
 		if fatigue >= 70.0 or injured:
 			return "socialise"
+		if severe_weather and not has_dwelling:
+			return "socialise"
 		if personality in ["scholarly", "curious", "methodical"]:
 			return "study_map"
 		if personality in ["craftsman", "meticulous"] and int(resources.repair_kits) > 0:
 			return "repair_gear"
 		if personality in ["dutiful", "guardian"] and fatigue < 55.0 and not severe_weather:
 			return "train"
-		if severe_weather and not has_dwelling:
-			return "socialise"
 		return "cook" if int(resources.rations) > 0 and int(resources.wood) > 0 else "socialise"
 	if fatigue >= 55.0 or injured:
+		return "socialise"
+	if severe_weather and not has_dwelling:
 		return "socialise"
 	if personality in ["scholarly", "curious", "methodical"]:
 		return "study_map"
