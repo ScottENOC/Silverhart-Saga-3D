@@ -28,6 +28,7 @@ var conditions: Dictionary = {}
 var evening_activity_history: Dictionary = {}
 var elapsed_world_seconds: float = 0.0
 var _default_assignments: Dictionary = {}
+var lodging_profile: Dictionary = {}
 
 
 func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
@@ -48,6 +49,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	if validated_ids.is_empty():
 		return {"ok": false, "reason": "empty_party"}
 	site = site_data.duplicate(true)
+	lodging_profile = site.get("dwelling_profile", {}).duplicate(true)
 	party_ids = validated_ids
 	environment = environment_data.duplicate(true)
 	resources = {
@@ -221,6 +223,13 @@ func advance_real_time(real_delta: float) -> float:
 func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = null) -> Array[Dictionary]:
 	sleeping_arrangements.clear()
 	var remaining := party_ids.duplicate()
+	var indoor_capacity := mini(maxi(0, int(lodging_profile.get("sleeping_capacity", 0))), remaining.size())
+	for _index in range(indoor_capacity):
+		var indoor_id := String(remaining.pop_front())
+		sleeping_arrangements.append({
+			"tent_index": -2, "shelter_type": "dwelling", "dwelling_id": String(lodging_profile.get("dwelling_id", "")),
+			"character_ids": [indoor_id], "sleeping_bag_character_ids": [], "comfort_penalty": 0
+		})
 	var tent_limit := mini(maxi(0, tent_count), ceili(float(remaining.size()) / float(TENT_COMFORTABLE_CAPACITY)))
 	var bags_remaining := int(resources.sleeping_bags)
 	while tent_limit > 0 and not remaining.is_empty():
@@ -236,7 +245,7 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 			bag_users.append(member_id)
 			bags_remaining -= 1
 		sleeping_arrangements.append({
-			"tent_index": sleeping_arrangements.size(),
+			"tent_index": sleeping_arrangements.size(), "shelter_type": "tent",
 			"character_ids": group,
 			"sleeping_bag_character_ids": bag_users,
 			"comfort_penalty": maxi(0, group.size() - TENT_COMFORTABLE_CAPACITY) * 10
@@ -247,7 +256,7 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 		if has_bag:
 			bags_remaining -= 1
 		sleeping_arrangements.append({
-			"tent_index": -1, "character_ids": [character_id],
+			"tent_index": -1, "shelter_type": "open_air", "character_ids": [character_id],
 			"sleeping_bag_character_ids": [character_id] if has_bag else [],
 			"comfort_penalty": 0
 		})
@@ -354,23 +363,28 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	for character_id in party_ids:
 		var condition: Dictionary = conditions[character_id]
 		var in_tent := false
+		var in_dwelling := false
 		var tent_penalty := 0.0
 		for arrangement in sleeping_arrangements:
 			if (arrangement.get("character_ids", []) as Array).has(character_id):
 				in_tent = int(arrangement.get("tent_index", -1)) >= 0
+				in_dwelling = String(arrangement.get("shelter_type", "")) == "dwelling"
 				tent_penalty = float(arrangement.get("comfort_penalty", 0))
 				break
 		var has_sleeping_bag := bool(bagged_characters.get(character_id, false))
-		var warmth := clampf(45.0 + (15.0 if in_tent else 0.0) + (20.0 if has_sleeping_bag else 0.0) + (10.0 if has_fire else 0.0) - cold_penalty, 0.0, 100.0)
+		var dwelling_warmth := float(lodging_profile.get("warmth_bonus", 0.0)) if in_dwelling else 0.0
+		var warmth := clampf(45.0 + (15.0 if in_tent else 0.0) + (20.0 if has_sleeping_bag else 0.0) + (10.0 if has_fire else 0.0) + dwelling_warmth - cold_penalty, 0.0, 100.0
 		var nutrition := 90.0 if has_meal else (55.0 if int(resources.rations) > 0 else 35.0)
 		var hydration := 90.0 if has_water else 35.0
-		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0, 0.0, 100.0)
+		var dwelling_security := float(lodging_profile.get("security_bonus", 0.0)) if in_dwelling else 0.0
+		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0 + dwelling_security, 0.0, 100.0
 		# Social interactions can happen during any activity. The old dedicated
 		# "socialise" assignment is merely idle behaviour, not a social-time gate.
 		var social := clampf(50.0 + float(condition.get("social_satisfaction", 0.0)), 0.0, 100.0)
 		condition["social_satisfaction"] = maxf(0.0, float(condition.get("social_satisfaction", 0.0)) - 5.0)
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
-		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10), 0.0, 100.0)
+		var dwelling_comfort := float(lodging_profile.get("comfort_bonus", 0.0)) if in_dwelling else 0.0
+		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10) + dwelling_comfort, 0.0, 100.0
 		var watch_penalty := 10.0 if String(assignments.get(character_id, {}).get("activity", "")) == "watch" else 0.0
 		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, 20.0 + comfort * 0.35 - watch_penalty))
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
@@ -404,7 +418,7 @@ func to_dict() -> Dictionary:
 		"assignments": assignments.duplicate(true), "default_assignments": _default_assignments.duplicate(true),
 		"sleeping_arrangements": sleeping_arrangements.duplicate(true),
 		"conditions": conditions.duplicate(true), "evening_activity_history": evening_activity_history.duplicate(true),
-		"elapsed_world_seconds": elapsed_world_seconds
+		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true)
 	}
 
 
@@ -416,7 +430,8 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_conditions: Variant = data.get("conditions", {})
 	var saved_assignments: Variant = data.get("assignments", {})
 	var saved_resources: Variant = data.get("resources", {})
-	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary:
+	var saved_lodging: Variant = data.get("lodging_profile", data.get("site", {}).get("dwelling_profile", {}))
+	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary:
 		return false
 	var ids: Array[String] = []
 	for value in saved_party:
@@ -432,6 +447,7 @@ func from_dict(data: Dictionary) -> bool:
 			return false
 	phase = saved_phase
 	site = data.get("site", {}).duplicate(true)
+	lodging_profile = saved_lodging.duplicate(true)
 	party_ids = ids
 	environment = data.get("environment", {}).duplicate(true)
 	resources = saved_resources.duplicate(true)
