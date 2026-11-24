@@ -198,4 +198,4 @@ func _test_ara_camp_animation_mapping() -> void:
 	_check(social_hints.has("talk_gestures"), "Social camp duty should use Ara's looping conversational animation")
 	_check(watch_hints.has("look_around"), "Night watch should use Ara's looping look-around animation")
 	_check(sleep_hints.has("sleep"), "Sleep should use Ara's sleep animation")
-	_check(study_hints.has("sit_idle"), "Map study should use Ara's seated idle animation")
+	_check(study_hints.has("use_press"), "Map study should use Ara's seated idle animation")
