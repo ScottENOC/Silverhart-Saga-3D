@@ -184,6 +184,11 @@ func _test_companions_walk_to_camp_stations() -> void:
 	_check(probe.activity_count > 0, "A companion should start an Ara activity after reaching their station")
 	_check(probe.last_activity == "socialise", "The animation should match the companion's assigned camp routine")
 	_check(player.axial == Vector2i(-4, 0), "The player should remain under direct movement control")
+	var reassigned := world.camp_simulation.assign_activity("wren", "watch")
+	_check(bool(reassigned.get("ok", false)), "A companion's camp assignment can change during the evening")
+	for _step in range(20):
+		director.process_activity_movement(0.7)
+	_check(probe.last_activity == "watch", "The director should update the companion's station and Ara routine after reassignment")
 	director.stop()
 	_check(not director.is_running(), "Packing or sleeping should be able to stop autonomous camp movement")
 	director.free()
