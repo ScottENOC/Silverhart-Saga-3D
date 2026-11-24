@@ -3,6 +3,7 @@ extends SceneTree
 const JOURNAL_SCRIPT = preload("res://scripts/simulation/campaign_journal.gd")
 const CONSEQUENCE_SERVICE = preload("res://scripts/simulation/campaign_faction_decision_service.gd")
 const HOLLOWMERE_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
+const WORLD_CONSEQUENCE_SERVICE = preload("res://scripts/simulation/campaign_world_consequence_service.gd")
 
 var _failures: int = 0
 
@@ -11,6 +12,7 @@ func _initialize() -> void:
 	_test_reputation_and_influence_apply_once()
 	_test_invalid_outcome_has_no_side_effects()
 	_test_world_consequence_persistence_and_idempotency()
+	_test_settlement_and_npc_state_updates()
 	_test_hollowmere_source_outcomes()
 	if _failures > 0:
 		push_error("%d campaign faction decision assertion(s) failed." % _failures)
@@ -147,3 +149,57 @@ func _test_world_consequence_persistence_and_idempotency() -> void:
 		"unlinked_consequence", "faction_decision_test", "missing_decision", {"state": "invalid"}
 	)
 	_check(not bool(unlinked.get("ok", false)), "World consequences must reference a recorded decision")
+
+
+func _test_settlement_and_npc_state_updates() -> void:
+	var journal := _journal_with_active_quest()
+	var decision := journal.record_decision("faction_decision_test", "reeve_response", "resist_ironbond")
+	_check(bool(decision.get("ok", false)), "Settlement/NPC updates require a recorded decision")
+	var settlements: Array[Dictionary] = [{
+		"settlement_id": "reddale",
+		"deltas": {"public_order": 12.0, "ironbond_presence": -20.0},
+		"flags": {"reeve_backed_resistance": true}
+	}]
+	var npcs: Array[Dictionary] = [{
+		"npc_id": "reeve_aldous_finch",
+		"deltas": {"trust": 15.0, "fear": -10.0},
+		"flags": {"will_openly_oppose_ironbond": true}
+	}]
+	var result := WORLD_CONSEQUENCE_SERVICE.apply_decision_consequences(
+		journal, "faction_decision_test", "reeve_response", settlements, npcs
+	)
+	_check(bool(result.get("ok", false)), "A valid campaign decision should update settlement and NPC state")
+	var settlement_state := journal.settlement_campaign_state("reddale")
+	_check(is_equal_approx(float(settlement_state.get("public_order", 0.0)), 12.0), "Reddale public order should reflect the decision")
+	_check(is_equal_approx(float(settlement_state.get("ironbond_presence", 0.0)), -20.0), "Reddale faction presence should reflect the decision")
+	_check(bool(settlement_state.get("flags", {}).get("reeve_backed_resistance", false)), "Settlement flags should reflect the decision")
+	var npc_state := journal.npc_campaign_state("reeve_aldous_finch")
+	_check(is_equal_approx(float(npc_state.get("trust", 0.0)), 15.0), "Reeve trust should reflect the decision")
+	_check(is_equal_approx(float(npc_state.get("fear", 0.0)), -10.0), "Reeve fear should reflect the decision")
+	_check(bool(npc_state.get("flags", {}).get("will_openly_oppose_ironbond", false)), "Reeve campaign flags should reflect the decision")
+
+	var repeated := WORLD_CONSEQUENCE_SERVICE.apply_decision_consequences(
+		journal, "faction_decision_test", "reeve_response", settlements, npcs
+	)
+	_check(bool(repeated.get("ok", false)) and bool(repeated.get("already_recorded", false)), "World consequence application should be idempotent")
+	_check(is_equal_approx(float(journal.settlement_campaign_state("reddale").get("public_order", 0.0)), 12.0), "Repeated application must not stack settlement deltas")
+	_check(is_equal_approx(float(journal.npc_campaign_state("reeve_aldous_finch").get("trust", 0.0)), 15.0), "Repeated application must not stack NPC deltas")
+
+	var invalid_settlements: Array[Dictionary] = [{
+		"settlement_id": "reddale",
+		"deltas": {"public_order": NAN}
+	}]
+	var invalid := WORLD_CONSEQUENCE_SERVICE.apply_decision_consequences(
+		journal, "faction_decision_test", "reeve_response_invalid", invalid_settlements, []
+	)
+	_check(not bool(invalid.get("ok", false)), "Non-finite settlement deltas must be rejected before mutation")
+
+	var restored := JOURNAL_SCRIPT.new()
+	restored.register_quest_definition({"id": "faction_decision_test", "objectives": []})
+	restored.load_dict(journal.to_dict())
+	_check(is_equal_approx(float(restored.settlement_campaign_state("reddale").get("public_order", 0.0)), 12.0), "Settlement campaign state must survive save/load")
+	_check(is_equal_approx(float(restored.npc_campaign_state("reeve_aldous_finch").get("trust", 0.0)), 15.0), "NPC campaign state must survive save/load")
+	var replay_after_load := WORLD_CONSEQUENCE_SERVICE.apply_decision_consequences(
+		restored, "faction_decision_test", "reeve_response", settlements, npcs
+	)
+	_check(bool(replay_after_load.get("ok", false)) and bool(replay_after_load.get("already_recorded", false)), "Save/load must preserve world consequence idempotency")
