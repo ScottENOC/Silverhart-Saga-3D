@@ -8,6 +8,7 @@ The JSON file is {"field_values": [one signed value per body vertex]}.
 """
 import argparse
 import json
+from dataclasses import replace
 import sys
 import traceback
 from pathlib import Path
@@ -17,7 +18,7 @@ from mathutils import Vector
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from shell_core import build_shell
+from shell_core import build_shell, bridge_midline_concavities
 
 
 def parse_args():
@@ -198,6 +199,39 @@ def main():
     shell = build_shell(vertices, normals, faces, field_values, args.offset_m, args.hem_depth_m)
     print(f'BRIEFS_BUILD_STAGE shell_complete vertices={len(shell.positions)} faces={len(shell.faces)}', flush=True)
 
+    # Derive a body-local pelvis frame from Ara's rig landmarks.
+    armature_modifier = next(m for m in body.modifiers if m.type == "ARMATURE" and m.object)
+    armature = armature_modifier.object
+    bones = armature.data.bones
+    required = ("Neck", "LeftUpLeg", "RightUpLeg")
+    missing = [name for name in required if bones.get(name) is None]
+    if missing:
+        raise RuntimeError("Ara rig is missing bridge landmarks: " + ", ".join(missing))
+    to_body = body.matrix_world.inverted() @ armature.matrix_world
+    left_hip = to_body @ bones["LeftUpLeg"].head_local
+    right_hip = to_body @ bones["RightUpLeg"].head_local
+    hip = (left_hip + right_hip) * 0.5
+    neck = to_body @ bones["Neck"].head_local
+    lateral_axis = (left_hip - right_hip).normalized()
+    vertical_axis = (neck - hip).normalized()
+    depth_axis = lateral_axis.cross(vertical_axis).normalized()
+    sample_indices = {
+        index for face in faces for index in face if field_values[index] >= 0
+    }
+    sample_positions = [vertices[index] for index in sample_indices]
+    sample_normals = [normals[index] for index in sample_indices]
+    print(f'BRIEFS_BUILD_STAGE bridge_midline samples={len(sample_positions)}', flush=True)
+    bridged_positions = bridge_midline_concavities(
+        shell.positions, shell.normals, sample_positions, sample_normals,
+        tuple(hip), tuple(lateral_axis), tuple(vertical_axis), tuple(depth_axis),
+    )
+    bridge_moved = sum(
+        1 for before, after in zip(shell.positions, bridged_positions)
+        if (Vector(before) - Vector(after)).length > 1e-6
+    )
+    shell = replace(shell, positions=bridged_positions)
+    print(f'BRIEFS_BUILD_STAGE bridge_complete moved={bridge_moved}', flush=True)
+
     garment_mesh = bpy.data.meshes.new(args.material_name + "Mesh")
     garment_mesh.from_pydata(shell.positions, [], shell.faces)
     garment_mesh.update()
@@ -250,6 +284,13 @@ def main():
         "boundary_edges": len(shell.boundary_edges),
         "shape_keys": len(mesh.shape_keys.key_blocks) - 1 if mesh.shape_keys else 0,
         "skin_groups": len(body.vertex_groups),
+        "fabric_bridge": {
+            "moved_vertices": bridge_moved,
+            "central_half_width_m": 0.055,
+            "max_displacement_m": 0.025,
+            "strength": 0.82,
+            "height_range_m_from_hip": [-0.14, 0.08],
+        },
         "output": str(output_path),
         "review_output": str(Path(args.review_output)) if args.review_output else None,
         "fabric_profile": args.fabric_profile,
