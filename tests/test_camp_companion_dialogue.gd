@@ -71,6 +71,11 @@ func _initialize() -> void:
 			_check((pair.get("lines", []) as Array).size() == 2)
 
 	_check(not SERVICE.build_exchange("companion_warlord_grukk", "companion_nix_sharpear", 3, bonds).is_empty(), "Grukk's actual campaign ID should resolve to his authored profile")
+	_check(SERVICE.canonical_id("companion_dagna") == "dagna", "Dagna's companion actor ID should resolve to her camp dialogue profile")
+	var dagna_exchange := SERVICE.build_exchange("companion_dagna", "companion_nix_sharpear", 2, bonds, "Dagna", "Nix Sharpear")
+	_check(not dagna_exchange.is_empty(), "Dagna should be able to participate in autonomous camp dialogue")
+	_check(String(dagna_exchange.lines[0].text).contains("old travelling blessing"), "Dagna's ambient dialogue should acknowledge her religious upbringing without naming a deity or doctrine")
+	_check(SERVICE.supported_companion_ids().has("dagna"), "Dagna should be included in the supported camp dialogue roster")
 	_check(SERVICE.build_exchange("player", "companion_ser_aldric_thorne", 0, bonds).is_empty())
 	_check(SERVICE.build_exchange("companion_ser_aldric_thorne", "companion_ser_aldric_thorne", 0, bonds).is_empty())
 
