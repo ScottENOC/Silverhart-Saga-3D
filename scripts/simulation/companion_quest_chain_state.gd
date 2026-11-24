@@ -258,6 +258,11 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 	quest_state["resolution"] = ""
 	quest_state["description"] = String(definition.get("description", ""))
 	journal.quests[quest_id] = quest_state
+	if quest_id == "aldric_broken_vigil":
+		var aldric_state: Dictionary = companion_relationships.ensure(companion_id)
+		var aldric_history: Array = aldric_state.get("history", [])
+		if aldric_history.is_empty() and is_equal_approx(float(aldric_state.get("familiarity", 10.0)), 10.0) and is_equal_approx(float(aldric_state.get("trust", 10.0)), 10.0):
+			companion_relationships.adjust(companion_id, {"familiarity":8.0,"trust":20.0,"approval":10.0}, "authored_start:aldric_rescued_companion")
 	companion_relationships.note_conversation(companion_id, quest_id + ":opened", 3.0)
 	for clue_id_value in definition.get("clues", {}).keys():
 		var clue_id := String(clue_id_value)
@@ -281,9 +286,38 @@ func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, jo
 	if clues.has(clue_id):
 		return {"ok":true,"changed":false,"clue":clues[clue_id].duplicate(true)}
 	var clue: Dictionary = clue_definitions[clue_id]
+	var access_any: Array = clue.get("access_any", [])
+	if not access_any.is_empty():
+		var access_granted := false
+		for access_value in access_any:
+			var access_id := String(access_value)
+			match access_id:
+				"ironbond_standing_20":
+					access_granted = journal.faction_standing("ironbond_company") >= 20.0
+				_:
+					access_granted = capabilities.has(access_id)
+			if access_granted:
+				break
+		if not access_granted:
+			return {"ok":false,"reason":"access_gate_not_met","required_access":access_any.duplicate()}
 	var skill_gate := String(clue.get("skill_gate", ""))
 	if skill_gate == "nature_or_perception" and not capabilities.has("nature") and not capabilities.has("perception"):
 		return {"ok":false,"reason":"skill_gate_not_met","required_capability":"nature_or_perception"}
+	var capability_any: Array = clue.get("capability_any", [])
+	if not capability_any.is_empty():
+		var has_capability := false
+		for capability_value in capability_any:
+			if capabilities.has(String(capability_value)):
+				has_capability = true
+				break
+		if not has_capability:
+			return {"ok":false,"reason":"skill_gate_not_met","required_capabilities":capability_any.duplicate()}
+	if bool(clue.get("requires_stealth", false)) and not capabilities.has("stealth"):
+		return {"ok":false,"reason":"skill_gate_not_met","required_capability":"stealth"}
+	var faction_id := String(clue.get("faction_id", ""))
+	var faction_standing_min := float(clue.get("faction_standing_min", -1000.0))
+	if not faction_id.is_empty() and journal.faction_standing(faction_id) < faction_standing_min:
+		return {"ok":false,"reason":"faction_standing_too_low","faction_id":faction_id,"required_standing":faction_standing_min}
 	clues[clue_id] = {
 		"found":true,
 		"source":source,
@@ -306,6 +340,19 @@ func can_resolve_prerequisite(quest_id: String, journal: CampaignJournal) -> boo
 	if String(quest_state.get("status", "")) != "active":
 		return false
 	var clues: Dictionary = quest_state.get("clues", {})
+	var required_sets: Array = definition.get("required_clue_sets", [])
+	if not required_sets.is_empty():
+		for set_value in required_sets:
+			if not (set_value is Array):
+				continue
+			var complete_set := true
+			for required_value in set_value:
+				if not clues.has(String(required_value)):
+					complete_set = false
+					break
+			if complete_set:
+				return true
+		return false
 	for required_value in definition.get("required_clues", []):
 		if not clues.has(String(required_value)):
 			return false
@@ -343,7 +390,8 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		return {"ok":false,"reason":"unknown_resolution"}
 	var effect: Dictionary = resolutions[resolution_id]
 	var gold_cost := int(effect.get("cost_gold", 0))
-	if gold_cost > 0 and player_state == null:
+	var gold_reward := int(effect.get("gold_reward", 0))
+	if (gold_cost > 0 or gold_reward > 0) and player_state == null:
 		return {"ok":false,"reason":"missing_player_state","required_gold":gold_cost}
 	if gold_cost > 0 and player_state.gold < gold_cost:
 		return {"ok":false,"reason":"insufficient_gold","required_gold":gold_cost,"available_gold":player_state.gold}
@@ -358,11 +406,19 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		return completion
 	if gold_cost > 0:
 		player_state.gold -= gold_cost
+	if gold_reward > 0:
+		player_state.gold += gold_reward
 	var quest_state := journal.quest_state(quest_id)
 	var companion_id := String(definition.get("companion_id", ""))
 	var clues: Dictionary = quest_state.get("clues", {})
+	var has_sealed_dispatch := clues.has("sealed_dispatch")
 	var has_old_channel := clues.has("old_channel")
 	var relationship_delta: Dictionary = effect.get("relationship", {}).duplicate(true)
+	if has_sealed_dispatch:
+		var proof_bonus: Dictionary = effect.get("full_proof_relationship_bonus", {})
+		for axis_value in proof_bonus:
+			var proof_axis := String(axis_value)
+			relationship_delta[proof_axis] = float(relationship_delta.get(proof_axis, 0.0)) + float(proof_bonus[axis_value])
 	if resolution_id == "managed_spillway" and has_old_channel:
 		var channel_bonus: Dictionary = effect.get("channel_relationship_bonus", {})
 		for axis_value in channel_bonus:
@@ -392,6 +448,11 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		var npc_id := String(npc_id_value)
 		var reputation: Dictionary = npc_reputation[npc_id]
 		journal.adjust_npc_reputation(npc_id, float(reputation.get("standing", 0.0)), float(reputation.get("knowledge", 0.0)), reason)
+	var faction_reputation: Dictionary = effect.get("faction_reputation", {})
+	for faction_id_value in faction_reputation:
+		var faction_id := String(faction_id_value)
+		var faction_change: Dictionary = faction_reputation[faction_id]
+		journal.adjust_faction_reputation(faction_id, float(faction_change.get("standing", 0.0)), float(faction_change.get("knowledge", 0.0)), reason)
 	var flags: Dictionary = effect.get("flags", {}).duplicate(true)
 	if quest_id == "fenn_living_boundary":
 		flags["hydrology_understood"] = has_old_channel
@@ -400,9 +461,14 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 	quest_state["completed_at"] = world_seconds
 	quest_state["completion_reason"] = reason
 	quest_state["outcome_flags"] = flags
+	var world_effects := {"surface_power_delta":float(effect.get("surface_power_delta", 0.0))}
+	quest_state["world_effects"] = world_effects.duplicate(true)
 	quest_state["description"] = String(effect.get("description", definition.get("description", "")))
 	journal.quests[quest_id] = quest_state
 	var result_line := String(effect.get("line", "The decision is made."))
+	var xp_reward := int(definition.get("xp", 0))
+	if has_sealed_dispatch:
+		xp_reward += int(definition.get("full_proof_xp_bonus", 0))
 	if resolution_id == "managed_spillway" and has_old_channel:
 		result_line = String(effect.get("line_with_channel", result_line))
 	return {
@@ -410,12 +476,15 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		"quest_id":quest_id,
 		"resolution":resolution_id,
 		"line":result_line,
-		"xp_reward":int(definition.get("xp", 0)),
+		"xp_reward":xp_reward,
 		"relationship":relationship_delta,
 		"affinity":affinity_delta.duplicate(true),
 		"arc_state":arc_state.duplicate(true),
 		"outcome_flags":flags,
-		"gold_spent":gold_cost
+		"gold_spent":gold_cost,
+		"gold_awarded":gold_reward,
+		"full_proof":has_sealed_dispatch,
+		"world_effects":world_effects.duplicate(true)
 	}
 
 
