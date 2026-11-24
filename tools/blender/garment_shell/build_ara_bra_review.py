@@ -25,6 +25,33 @@ def material_labels(obj):
     return [slot.material.name.lower() for slot in obj.material_slots if slot.material]
 
 
+def separate_bra_material(objects):
+    """The Ara assembler appends garment primitives to the body's mesh node.
+    Split the Bra material faces into their own skinned object before fitting.
+    """
+    candidates = [obj for obj in objects if obj.type == "MESH"
+                  and any("skin" in name for name in material_labels(obj))
+                  and any("bra" in name for name in material_labels(obj))
+                  and any(mod.type == "ARMATURE" and mod.object for mod in obj.modifiers)]
+    if not candidates:
+        raise RuntimeError("Assembled Wren GLB has no mesh containing both Skin and Bra materials")
+    combined = max(candidates, key=lambda obj: len(obj.data.polygons))
+    bra_slots = [index for index, slot in enumerate(combined.material_slots)
+                 if slot.material and "bra" in slot.material.name.lower()]
+    if not bra_slots:
+        raise RuntimeError("No Ara Bra material slot found on assembled Wren mesh")
+    bpy.ops.object.select_all(action="DESELECT")
+    combined.select_set(True)
+    bpy.context.view_layer.objects.active = combined
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for polygon in combined.data.polygons:
+        polygon.select = polygon.material_index in bra_slots
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.separate(type="SELECTED")
+    bpy.ops.object.mode_set(mode="OBJECT")
+    return list(bpy.context.scene.objects)
+
+
 def find_body(objects):
     matches = [obj for obj in objects if obj.type == "MESH"
                and any("skin" in name for name in material_labels(obj))
@@ -118,7 +145,7 @@ def main():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
     bpy.ops.import_scene.gltf(filepath=str(Path(args.input)))
-    objects = list(bpy.context.scene.objects)
+    objects = separate_bra_material(list(bpy.context.scene.objects))
     body = find_body(objects)
     bra = find_bra(objects)
     armatures = [mod.object for mod in bra.modifiers
