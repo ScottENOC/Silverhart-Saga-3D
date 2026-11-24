@@ -111,7 +111,7 @@ func _test_wren_personal_conversation_topics() -> void:
 	var relationships := RUNTIME_STORE.relationship_state_for(simulation)
 	var arc := RUNTIME_STORE.wren_arc_state_for(simulation)
 	var initial_topics := arc.dialogue_topics(relationships, simulation.campaign_journal)
-	_check(initial_topics.is_empty(), "Wren's personal topics remain private until sufficient familiarity")
+	_check(initial_topics.size() == 1 and String(initial_topics[0].get("id", "")) == "wren_arc_topic:why_stay", "Wren's why-stay topic is available at her source-authored starting familiarity")
 	relationships.adjust("wren_talbot", {"familiarity": 35.0})
 	var familiar_topics := arc.dialogue_topics(relationships, simulation.campaign_journal)
 	_check(familiar_topics.size() == 1 and String(familiar_topics[0].get("id", "")) == "wren_arc_topic:why_stay", "Why Wren stays becomes available at the authored familiarity threshold")
