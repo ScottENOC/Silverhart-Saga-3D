@@ -103,6 +103,47 @@ func _run() -> void:
 		or animation_player.current_animation.to_lower().contains("stand"),
 		"Gameplay actor selects its idle clip")
 
+	var required_camp_clips := [
+		"pick_up", "carry_idle", "use_press", "talk_gestures",
+		"look_around", "squat", "push_up", "lie_down", "sleep"
+	]
+	for clip_token in required_camp_clips:
+		_check(_has_animation_token(animation_player, clip_token),
+			"Ara animation carrier includes camp clip " + clip_token)
+
+	var activity_cases := [
+		{"activity": "gather_wood", "expected": "pick_up"},
+		{"activity": "set_up_tents", "expected": "pick_up"},
+		{"activity": "fetch_water", "expected": "pick_up"},
+		{"activity": "cook", "expected": "use_press"},
+		{"activity": "repair_gear", "expected": "use_press"},
+		{"activity": "study_map", "expected": "use_press"},
+		{"activity": "train", "expected": "squat"},
+		{"activity": "socialise", "expected": "talk_gestures"},
+		{"activity": "watch", "expected": "look_around"},
+		{"activity": "sleep", "expected": "lie_down"}
+	]
+	for case in activity_cases:
+		var activity := String(case.activity)
+		var expected := String(case.expected)
+		var played: bool = actor.play_camp_activity(activity)
+		_check(played, "Ara actor accepts camp activity " + activity)
+		if played:
+			_check(animation_player.current_animation.to_lower().contains(expected),
+				"Camp activity %s selects its expected Ara clip" % activity)
+
+	_check(actor.play_camp_activity("socialise"), "Ara actor can return to conversational camp animation")
+	var social_starting_poses: Array[Transform3D] = []
+	for bone_index in range(skeleton.get_bone_count()):
+		social_starting_poses.append(skeleton.get_bone_global_pose(bone_index))
+	await create_timer(0.3).timeout
+	var social_changed_bones := 0
+	for bone_index in range(skeleton.get_bone_count()):
+		if not skeleton.get_bone_global_pose(bone_index).is_equal_approx(social_starting_poses[bone_index]):
+			social_changed_bones += 1
+	_check(social_changed_bones >= 3,
+		"Ara social camp animation deforms the visible character skeleton (%d changed bones)" % social_changed_bones)
+
 	actor.free()
 	var male_actor := ACTOR_SCRIPT.new()
 	root.add_child(male_actor)
@@ -144,6 +185,15 @@ func _run() -> void:
 	for asset_path in CHARACTER_ASSET_PATHS:
 		await _assert_character_asset_animated(asset_path, asset_path.get_file().get_basename())
 	_finish()
+
+
+func _has_animation_token(player: AnimationPlayer, token: String) -> bool:
+	if player == null:
+		return false
+	for animation_name in player.get_animation_list():
+		if String(animation_name).to_lower().contains(token.to_lower()):
+			return true
+	return false
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
