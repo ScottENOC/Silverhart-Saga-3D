@@ -134,7 +134,7 @@ jobs:
           npm run export -- --params /tmp/ara-bra-params.json --detail high --formats glb --out /tmp/ara-bra-export
           source_zip="$(find /tmp/ara-bra-export -maxdepth 1 -type f -name '*.zip' -print -quit)"
           test -n "$source_zip"
-          source_entry="$(unzip -Z1 "$source_zip" | grep -E '\\.glb
+          source_entry="$(unzip -Z1 "$source_zip" | grep -E '\.glb$' | head -n 1)"
           test -n "$source_entry"
           unzip -p "$source_zip" "$source_entry" > /tmp/ara-standard-bra-source.glb
           test -s /tmp/ara-standard-bra-source.glb
