@@ -175,6 +175,14 @@ func _initialize() -> void:
 	_check(_has_object(revealed.get("tile_objects", []), "transition_-4_-5"), "The quest must add the stair-down object to the Lower Tunnels")
 	_check((revealed.get("map_data") as HexMapData).is_walkable(Vector2i(890, -605)), "The revealed stair hex must be walkable")
 
+	var abandoned_house_registry := REGISTRY.new()
+	var abandoned_house_definition: Dictionary = abandoned_house_registry.get_definition("abandoned_house")
+	var abandoned_house_state := {}
+	var abandoned_house_map: Dictionary = FLOOR_BUILDER.build_floor_map(abandoned_house_definition, 0, abandoned_house_state)
+	_check(abandoned_house_map.get("walkable_hexes", []).size() > 0, "Abandoned House must produce a walkable source floor")
+	_check(abandoned_house_map.get("tile_objects", {}).has(Vector2i(14, -176)), "Abandoned House journal must be present in the built floor map")
+	_check(abandoned_house_map.get("tile_objects", {}).has(Vector2i(15, -176)), "Phylactery altar must be present in the built floor map")
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
