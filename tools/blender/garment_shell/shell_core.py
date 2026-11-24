@@ -200,3 +200,142 @@ def build_shell(
         tuple(positions), tuple(out_normals), tuple(outer + rim),
         len(outer), len(rim), tuple(refs), boundary,
     )
+
+
+def _dot(a: Vec3, b: Vec3) -> float:
+    return sum(a[i] * b[i] for i in range(3))
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def curved_trunk_limit(
+    lateral_distance: float,
+    half_width: float,
+    base: float = 0.12,
+    side_rise: float = 0.018,
+) -> float:
+    """Raise the waistband gradually towards the outer hips."""
+    if half_width <= 0 or side_rise < 0:
+        raise ValueError("half_width must be positive and side_rise non-negative")
+    t = _clamp(abs(lateral_distance) / half_width, 0.0, 1.0)
+    smooth = t * t * (3.0 - 2.0 * t)
+    return base + side_rise * smooth
+
+
+def curved_leg_limit(
+    outwardness: float,
+    base: float = 0.10,
+    high_cut_delta: float = 0.025,
+) -> float:
+    """Raise the leg opening at the outer thigh and lower it at the inner thigh.
+
+    outwardness is signed: +1 is the outside of the leg, -1 is the inside.
+    """
+    if high_cut_delta < 0:
+        raise ValueError("high_cut_delta must be non-negative")
+    return base - high_cut_delta * _clamp(outwardness, -1.0, 1.0)
+
+
+def bridge_midline_concavities(
+    positions: Sequence[Vec3],
+    normals: Sequence[Vec3],
+    sample_positions: Sequence[Vec3],
+    sample_normals: Sequence[Vec3],
+    center: Vec3,
+    lateral_axis: Vec3,
+    vertical_axis: Vec3,
+    depth_axis: Vec3,
+    *,
+    min_height: float = -0.14,
+    max_height: float = 0.08,
+    bridge_half_width: float = 0.055,
+    sample_outer_width: float = 0.10,
+    vertical_band: float = 0.018,
+    strength: float = 0.82,
+    max_bridge_distance: float = 0.025,
+    minimum_gap: float = 0.002,
+) -> tuple[Vec3, ...]:
+    """Pull cloth out of narrow central body valleys without changing its outline.
+
+    At each height, nearby body samples on the same anterior/posterior surface
+    and farther out on both sides provide a bridge depth. Only vertices inside
+    the central corridor are moved, and only when that bridge lies outward of
+    the local body surface. Normals distinguish the front and rear surfaces.
+    """
+    if len(positions) != len(normals) or len(sample_positions) != len(sample_normals):
+        raise ValueError("position and normal arrays must have matching lengths")
+    if vertical_band <= 0 or bridge_half_width <= 0 or sample_outer_width <= bridge_half_width:
+        raise ValueError("invalid bridge sampling dimensions")
+    if not 0.0 <= strength <= 1.0 or max_bridge_distance < 0 or minimum_gap < 0:
+        raise ValueError("invalid bridge strength or distance")
+
+    # Samples are bucketed by surface side and height, avoiding an O(n*m)
+    # search across the 77k-vertex body mesh.
+    buckets: dict[tuple[int, int], list[tuple[float, float, float]]] = {}
+    for point, normal in zip(sample_positions, sample_normals):
+        facing = _dot(normal, depth_axis)
+        if abs(facing) < 0.25:
+            continue
+        relative = _sub(point, center)
+        height = _dot(relative, vertical_axis)
+        lateral = _dot(relative, lateral_axis)
+        if not min_height - vertical_band <= height <= max_height + vertical_band:
+            continue
+        if abs(lateral) > sample_outer_width:
+            continue
+        depth = _dot(relative, depth_axis)
+        side = 1 if facing > 0 else -1
+        bucket = int(height // vertical_band)
+        buckets.setdefault((side, bucket), []).append((height, lateral, depth))
+
+    result: list[Vec3] = []
+    for point, normal in zip(positions, normals):
+        relative = _sub(point, center)
+        height = _dot(relative, vertical_axis)
+        lateral = _dot(relative, lateral_axis)
+        if not (min_height <= height <= max_height) or abs(lateral) >= bridge_half_width:
+            result.append(point)
+            continue
+
+        facing = _dot(normal, depth_axis)
+        if abs(facing) < 0.25:
+            result.append(point)
+            continue
+        side = 1 if facing > 0 else -1
+        first_bucket = int((height - vertical_band) // vertical_band)
+        last_bucket = int((height + vertical_band) // vertical_band)
+        left_samples: list[tuple[float, float]] = []
+        right_samples: list[tuple[float, float]] = []
+        required_lateral = abs(lateral) + 0.012
+        for bucket in range(first_bucket, last_bucket + 1):
+            for sample_height, sample_lateral, sample_depth in buckets.get((side, bucket), ()):
+                if abs(sample_height - height) > vertical_band:
+                    continue
+                if abs(sample_lateral) < required_lateral or abs(sample_lateral) > sample_outer_width:
+                    continue
+                weighted_depth = (sample_depth, 1.0 / (0.004 + abs(sample_height - height)))
+                (left_samples if sample_lateral < 0 else right_samples).append(weighted_depth)
+
+        if not left_samples and not right_samples:
+            result.append(point)
+            continue
+        means = []
+        for side_samples in (left_samples, right_samples):
+            if side_samples:
+                total_weight = sum(weight for _, weight in side_samples)
+                means.append(sum(depth * weight for depth, weight in side_samples) / total_weight)
+        bridge_depth = sum(means) / len(means)
+        current_depth = _dot(relative, depth_axis)
+        outward_gap = (bridge_depth - current_depth) * side
+        if outward_gap <= minimum_gap:
+            result.append(point)
+            continue
+
+        t = _clamp(abs(lateral) / bridge_half_width, 0.0, 1.0)
+        lateral_fade = 1.0 - t * t * (3.0 - 2.0 * t)
+        displacement = min(outward_gap, max_bridge_distance) * strength * lateral_fade
+        result.append(_add(point, _scale(depth_axis, side * displacement)))
+
+    return tuple(result)
