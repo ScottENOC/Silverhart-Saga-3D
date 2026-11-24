@@ -8,6 +8,7 @@ const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlem
 const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
 const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_prerequisite_dialogue_service.gd")
+const REDDALE_ESPIONAGE_SERVICE = preload("res://scripts/simulation/reddale_espionage_service.gd")
 const CAMPAIGN_DIALOGUE_PANEL = preload("res://scripts/ui/campaign_dialogue_panel.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
@@ -55,6 +56,7 @@ func _ready() -> void:
 		ecology_simulation.name = "RegionalEcologySimulation"
 		add_child(ecology_simulation)
 	_configure_companion_campaign_state()
+	REDDALE_ESPIONAGE_SERVICE.register_definitions(ecology_simulation.campaign_journal)
 	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts, null, ecology_simulation) as Campaign2SettlementBuilder
 	_create_environment()
 	_create_materials()
@@ -240,6 +242,7 @@ func jump_to_location(location_id: String) -> void:
 func _process(delta: float) -> void:
 	if movement_controller != null:
 		movement_controller.process_movement(delta)
+	_check_regional_espionage_detection()
 	_update_streamed_chunks(false)
 
 ## Chunk membership is keyed to the camera focus, not the map's gameplay regions.
@@ -556,6 +559,8 @@ func _interact_with_nearest_regional_npc() -> bool:
 	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
 	if player_state == null:
 		return false
+	if _interact_with_reddale_evidence(player_state.axial):
+		return true
 	var nearest_actor: Node3D
 	var nearest_distance := 3
 	for actor_value in get_tree().get_nodes_in_group("campaign2_npc"):
@@ -572,6 +577,15 @@ func _interact_with_nearest_regional_npc() -> bool:
 	var npc_id := String(nearest_actor.get_meta("campaign2_npc_id", ""))
 	if npc_id.is_empty():
 		return false
+	if npc_id in ["baron_corwin_aldervale", "petra_voss"]:
+		var espionage_prompt: Dictionary = REDDALE_ESPIONAGE_SERVICE.interact(
+			ecology_simulation.campaign_journal,
+			npc_id,
+			player_state.axial
+		)
+		if not espionage_prompt.is_empty():
+			_present_reddale_espionage_prompt(espionage_prompt)
+			return true
 	var prompt: Dictionary = COMPANION_DIALOGUE_SERVICE.actor_prompt(
 		companion_quest_chains,
 		ecology_simulation.campaign_journal,
@@ -593,8 +607,67 @@ func _interact_with_nearest_regional_npc() -> bool:
 	return true
 
 
+func _present_reddale_espionage_prompt(prompt: Dictionary) -> void:
+	var choices: Array[Dictionary] = []
+	var context: Dictionary = prompt.get("context", {})
+	var quest_id := String(context.get("quest_id", ""))
+	for choice_value in prompt.get("choices", []):
+		var choice: Dictionary = choice_value.duplicate(true)
+		choice["espionage_quest_id"] = quest_id
+		choices.append(choice)
+	dialogue_open = true
+	dialogue_panel.present(
+		String(prompt.get("title", "Reddale")),
+		String(prompt.get("body", "")),
+		choices
+	)
+
+
+func _interact_with_reddale_evidence(player_hex: Vector2i) -> bool:
+	var journal := ecology_simulation.campaign_journal
+	for quest_id in ["spy_on_guild", "spy_on_baron"]:
+		var result: Dictionary = REDDALE_ESPIONAGE_SERVICE.search_evidence(journal, quest_id, player_hex)
+		if bool(result.get("ok", false)):
+			_show_regional_dialogue("Espionage", String(result.get("message", "Evidence recovered.")))
+			return true
+	return false
+
+
+func _check_regional_espionage_detection() -> void:
+	if ecology_simulation == null:
+		return
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state == null:
+		return
+	for quest_id in ["spy_on_guild", "spy_on_baron"]:
+		var result: Dictionary = REDDALE_ESPIONAGE_SERVICE.check_guard_detection(
+			ecology_simulation.campaign_journal,
+			quest_id,
+			player_state.axial
+		)
+		if bool(result.get("detected", false)):
+			_show_regional_dialogue("Caught!", String(result.get("message", "The mission is blown.")))
+			return
+
+
 func _on_regional_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	var espionage_quest_id := String(choice.get("espionage_quest_id", ""))
+	if not espionage_quest_id.is_empty():
+		var player := ecology_simulation.get_character(ecology_simulation.player_character_id)
+		var result: Dictionary = REDDALE_ESPIONAGE_SERVICE.choose(
+			ecology_simulation.campaign_journal,
+			espionage_quest_id,
+			choice_id,
+			player
+		)
+		if bool(result.get("ok", false)):
+			_show_regional_dialogue("Reddale", String(result.get("message", "The decision is made.")))
+		elif choice_id not in ["decline", "close"]:
+			_show_regional_dialogue("Reddale", "That choice is no longer available: %s." % String(result.get("reason", "unknown reason")))
+		else:
+			_close_regional_dialogue()
+		return
 	if choice_id == "continue":
 		_close_regional_dialogue()
 		return
