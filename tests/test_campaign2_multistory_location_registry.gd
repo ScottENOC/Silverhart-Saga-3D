@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_aldenreach_embassy","silverhart_city_tunnel","silverhart_clothier","silverhart_commons_inn","silverhart_corvane_embassy","silverhart_dwarven_embassy","silverhart_east_house_four","silverhart_east_house_one","silverhart_east_house_three","silverhart_east_house_two","silverhart_elven_embassy","silverhart_general_goods","silverhart_grand_cathedral","silverhart_ironbond_office","silverhart_magic_shop","silverhart_middle_ring_house_east","silverhart_middle_ring_house_north","silverhart_middle_ring_house_northeast","silverhart_middle_ring_house_southeast","silverhart_middle_ring_house_southwest","silverhart_middle_ring_house_west","silverhart_north_cottage_one","silverhart_north_cottage_three","silverhart_north_cottage_two","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","silverhart_warrens_shack_centre","silverhart_warrens_shack_east","silverhart_warrens_shack_west","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_aldenreach_embassy","silverhart_city_tunnel","silverhart_clothier","silverhart_commons_inn","silverhart_corstane_manor","silverhart_corvane_embassy","silverhart_dwarven_embassy","silverhart_east_house_four","silverhart_east_house_one","silverhart_east_house_three","silverhart_east_house_two","silverhart_elven_embassy","silverhart_general_goods","silverhart_grand_cathedral","silverhart_ironbond_office","silverhart_magic_shop","silverhart_middle_ring_house_east","silverhart_middle_ring_house_north","silverhart_middle_ring_house_northeast","silverhart_middle_ring_house_southeast","silverhart_middle_ring_house_southwest","silverhart_middle_ring_house_west","silverhart_noble_neighbor_house","silverhart_north_cottage_one","silverhart_north_cottage_three","silverhart_north_cottage_two","silverhart_outlying_house_east","silverhart_outlying_house_far_east","silverhart_outlying_house_west","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","silverhart_warrens_shack_centre","silverhart_warrens_shack_east","silverhart_warrens_shack_west","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -384,6 +384,27 @@ func _initialize() -> void:
 		_check(_has_record(floor.get("tile_objects", []), location_id + ("_north_door" if location_id == "silverhart_warrens_shack_centre" or location_id == "silverhart_middle_ring_house_north" else "_west_door" if location_id == "silverhart_middle_ring_house_west" or location_id == "silverhart_middle_ring_house_southwest" or location_id == "silverhart_middle_ring_house_southeast" else "_south_door" if location_id.begins_with("silverhart_warrens") else "_east_door")), "Silverhart house must retain its source entrance: " + location_id)
 	var southwest_floor := registry.get_floor_definition("silverhart_middle_ring_house_southwest", 0)
 	_check(southwest_floor.get("floor_hexes", []).has({"q": -32, "r": -453}), "Southwest middle-ring house must retain the source wall-notch floor repair")
+
+	var silverhart_noble_homes := {
+		"silverhart_noble_neighbor_house": {"centre": Vector2i(45, -502), "half_width": 3, "half_height": 2, "door": Vector2i(48, -502)},
+		"silverhart_outlying_house_east": {"centre": Vector2i(23, -546), "half_width": 2, "half_height": 2, "door": Vector2i(23, -544)},
+		"silverhart_outlying_house_far_east": {"centre": Vector2i(48, -546), "half_width": 2, "half_height": 2, "door": Vector2i(48, -544)},
+		"silverhart_outlying_house_west": {"centre": Vector2i(-32, -476), "half_width": 2, "half_height": 2, "door": Vector2i(-30, -476)}
+	}
+	for location_id in silverhart_noble_homes:
+		var home: Dictionary = silverhart_noble_homes[location_id]
+		var definition: Dictionary = registry.get_definition(location_id)
+		_check(_position_matches(definition.get("anchor", {}), home["centre"]), "Noble/outlying house anchor must match source: " + location_id)
+		var floor := registry.get_floor_definition(location_id, 0)
+		var room: Dictionary = floor.get("rooms", [])[0]
+		_check(_position_matches(room.get("center", {}), home["centre"]), "Noble/outlying room centre must match source: " + location_id)
+		_check(int(room.get("half_width", 0)) == int(home["half_width"]) and int(room.get("half_height", 0)) == int(home["half_height"]), "Noble/outlying room dimensions must match carveFlatRoom: " + location_id)
+	_check(_position_matches(registry.get_definition("silverhart_corstane_manor").get("anchor", {}), Vector2i(39, -502)), "Corstane manor anchor must match buildSilverhartPalace")
+	var manor_floor := registry.get_floor_definition("silverhart_corstane_manor", 0)
+	_check(manor_floor.get("floor_hexes", []).size() == 25, "Corstane manor must preserve the source-shrunk floor mask")
+	_check(manor_floor.get("wall_hexes", []).size() == 22, "Corstane manor must preserve the source-rebuilt wall mask")
+	_check(manor_floor.get("floor_hexes", []).has({"q": 36, "r": -502}), "Corstane manor's moved west door must remain floor")
+	_check(manor_floor.get("wall_hexes", []).has({"q": 36, "r": -501}), "Corstane manor's shifted west wall must be restored")
 	var ironbond_floor := registry.get_floor_definition("silverhart_ironbond_office", 0)
 	_check(ironbond_floor.get("floor_hexes", []).has({"q": 4, "r": -457}), "Ironbond office must retain its source-opened corner")
 	_check(ironbond_floor.get("wall_hexes", []).has({"q": 5, "r": -458}), "Ironbond office must retain its source-restored outer corner")
