@@ -1494,6 +1494,7 @@ func _show_wren_dialogue() -> void:
 	if arc == null:
 		return
 	if relationships != null:
+		arc.sync_story_events(relationships)
 		relationships.note_personal_dialogue("wren_talbot", "wren_personal_talk:" + str(int(simulation.clock.world_seconds)))
 	var choices := arc.dialogue_topics(relationships, simulation.campaign_journal)
 	choices.append({"id":"continue","label":"Nothing else for now.","text":""})
