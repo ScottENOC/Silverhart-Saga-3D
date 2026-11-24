@@ -187,6 +187,17 @@ func _initialize() -> void:
 	_check(_has_object(abandoned_house_result.get("tile_objects", []), "abandoned_house_journal"), "Abandoned House journal must be present in the built floor map")
 	_check(_has_object(abandoned_house_result.get("tile_objects", []), "phylactery_altar"), "Phylactery altar must be present in the built floor map")
 
+	var guild_den_registry := REGISTRY.new()
+	var guild_den_definition: Dictionary = guild_den_registry.get_definition("hollowmere_guild_den")
+	var guild_den_state = LOCATION_STATE.new()
+	_check(bool(guild_den_state.configure(guild_den_definition).get("ok", false)), "Hollowmere Guild Den traversal state must configure")
+	var guild_den_result: Dictionary = FLOOR_BUILDER.build_floor_map(guild_den_definition, 0, guild_den_state)
+	_check(bool(guild_den_result.get("ok", false)), "Hollowmere Guild Den floor must build")
+	var guild_den_map: HexMapData = guild_den_result.get("map_data") as HexMapData
+	_check(guild_den_map != null and not guild_den_map.cells.is_empty(), "Guild Den must produce a walkable source floor")
+	_check(guild_den_map.is_walkable(Vector2i(-12, -6)), "Guild Den south entrance must be walkable")
+	_check(_has_object(guild_den_result.get("tile_objects", []), "hollowmere_guild_den_door"), "Guild Den entrance must be presented as a door")
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
