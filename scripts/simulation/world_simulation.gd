@@ -1819,10 +1819,6 @@ func assess_character_perception(observer_id: String, target_id: String, environ
 	if observer == null or target == null or not observer.alive or not target.alive:
 		return {"visual_level": StealthPerceptionSystem.VISUAL_NONE, "visual_label": "unseen", "reason": "character_unavailable"}
 	var target_profile := StealthPerceptionSystem.character_visual_profile(target, target_appearance)
-	var target_equipment: Array[Dictionary] = []
-	for item_value in target.equipped_item_data.values():
-		if item_value is Dictionary:
-			target_equipment.append(item_value.duplicate(true))
 	var observer_profile := {
 		"hex": observer.axial,
 		"eye_height": float(observer.tags.has("small_creature")) * 0.5 + 1.6
@@ -1831,7 +1827,6 @@ func assess_character_perception(observer_id: String, target_id: String, environ
 		"hex": target.axial,
 		"visual_height": float(target.tags.has("small_creature")) * 0.8 + 1.6,
 		"appearance": target_profile,
-		"equipment": target_equipment,
 		"movement_exposure": 0.25 if target.tags.has("running") else 0.0
 	}
 	return stealth_perception.assess(observer_profile, target_profile_data, map_data.cells, environment)
