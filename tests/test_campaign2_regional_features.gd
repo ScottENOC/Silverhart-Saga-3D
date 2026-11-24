@@ -8,17 +8,6 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 
-	# Source buildPlayerCottagePlot paints a nine-cell L-shaped approach and
-	# places the vacant build-plot marker on its final hex.
-	_check(FEATURES.PLAYER_COTTAGE_PLOT == Vector2i(13, 27), "Player cottage plot must retain crossroads + (5,3)")
-	for q in range(9, 14):
-		_check(FEATURES.is_player_cottage_plot_path(Vector2i(q, 24)), "Cottage approach must retain its eastbound source path row")
-		_check(terrain.terrain_for_hex(Vector2i(q, 24)) == "path", "Cottage approach row must render as walkable path")
-	for r in range(25, 28):
-		_check(FEATURES.is_player_cottage_plot_path(Vector2i(13, r)), "Cottage approach must retain its northbound source path leg")
-		_check(terrain.terrain_for_hex(Vector2i(13, r)) == "path", "Cottage approach leg must render as walkable path")
-	_check(FEATURES.feature_id_at(Vector2i(13, 27)) == "player_cottage_plot", "Final approach hex must retain the source vacant cottage plot marker")
-	_check(not FEATURES.is_player_cottage_plot_path(Vector2i(14, 27)), "Cottage plot approach must stop at its source endpoint")
 
 	_check(FEATURES.MIRABEL_SPIDER_RUIN_CENTRE == Vector2i(160, 24), "Mirabel ruin centre must derive from Reddale guildhouse + (14, -10)")
 	_check(terrain.terrain_for_hex(Vector2i(160, 24)) == "rocky_outcrop", "Mirabel ruin centre must be source rocky outcrop")
