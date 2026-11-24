@@ -47,6 +47,18 @@ const QUEST_PROPS := [
 			{"name": "BloodTrail_06", "type": "cylinder", "axial": Vector2i(-38, 73), "position": Vector3.ZERO, "top_radius": 0.075, "bottom_radius": 0.075, "height": 0.018, "radial_segments": 7, "material": "blood"}
 		]
 	},
+
+const WAYFINDING_PROPS := [
+	{
+		"id": "CrossroadsSignpost", "anchor": CROSSROADS,
+		"parts": [
+			{"name": "SignpostStem", "type": "cylinder", "position": Vector3(0.0, 1.3, 0.0), "top_radius": 0.10, "bottom_radius": 0.15, "height": 2.6, "material": "timber"},
+			{"name": "SignboardNorth", "type": "box", "position": Vector3(0.0, 2.0, -0.05), "size": Vector3(4.2, 0.78, 0.14), "material": "dark_wood"},
+			{"name": "SignboardSouth", "type": "box", "position": Vector3(0.0, 1.05, -0.05), "size": Vector3(4.2, 0.78, 0.14), "material": "dark_wood"},
+			{"name": "NorthSouthLabel", "type": "label3d", "text": "N  MILLBROOK  /  SILVERHART\nS  OLD MAC'S FARMSTEAD", "position": Vector3(0.0, 2.0, -0.14), "font_size": 17, "pixel_size": 0.004, "modulate": Color(0.91, 0.82, 0.63), "outline_size": 4},
+			{"name": "EastWestLabel", "type": "label3d", "text": "E  REDDALE  /  W  EMBERLODE", "position": Vector3(0.0, 1.05, -0.14), "font_size": 17, "pixel_size": 0.004, "modulate": Color(0.91, 0.82, 0.63), "outline_size": 4}
+		]
+	},
 	{
 		## The source building_plot marker at (13,27) is represented as a
 		## surveyed plot assembly; its access spur remains a separate route.
@@ -59,18 +71,6 @@ const QUEST_PROPS := [
 			{"name": "PlotStakeNortheast", "type": "cylinder", "axial": Vector2i(1, -1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"},
 			{"name": "PlotStakeSouthwest", "type": "cylinder", "axial": Vector2i(-1, 1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"},
 			{"name": "PlotStakeSoutheast", "type": "cylinder", "axial": Vector2i(1, 1), "position": Vector3(0.0, 0.36, 0.0), "top_radius": 0.045, "bottom_radius": 0.065, "height": 0.72, "material": "timber"}
-		]
-	}
-]
-const WAYFINDING_PROPS := [
-	{
-		"id": "CrossroadsSignpost", "anchor": CROSSROADS,
-		"parts": [
-			{"name": "SignpostStem", "type": "cylinder", "position": Vector3(0.0, 1.3, 0.0), "top_radius": 0.10, "bottom_radius": 0.15, "height": 2.6, "material": "timber"},
-			{"name": "SignboardNorth", "type": "box", "position": Vector3(0.0, 2.0, -0.05), "size": Vector3(4.2, 0.78, 0.14), "material": "dark_wood"},
-			{"name": "SignboardSouth", "type": "box", "position": Vector3(0.0, 1.05, -0.05), "size": Vector3(4.2, 0.78, 0.14), "material": "dark_wood"},
-			{"name": "NorthSouthLabel", "type": "label3d", "text": "N  MILLBROOK  /  SILVERHART\nS  OLD MAC'S FARMSTEAD", "position": Vector3(0.0, 2.0, -0.14), "font_size": 17, "pixel_size": 0.004, "modulate": Color(0.91, 0.82, 0.63), "outline_size": 4},
-			{"name": "EastWestLabel", "type": "label3d", "text": "E  REDDALE  /  W  EMBERLODE", "position": Vector3(0.0, 1.05, -0.14), "font_size": 17, "pixel_size": 0.004, "modulate": Color(0.91, 0.82, 0.63), "outline_size": 4}
 		]
 	}
 ]
