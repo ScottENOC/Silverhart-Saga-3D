@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var guild_den: Dictionary = registry.get_definition("hollowmere_guild_den")
 	_check(int(guild_den.get("anchor", {}).get("q", 0)) == -12 and int(guild_den.get("anchor", {}).get("r", 0)) == -8, "Hollowmere Guild Den anchor must match buildHollowmereGuildDen")
 	var guild_den_floor := registry.get_floor_definition("hollowmere_guild_den", 0)
@@ -35,6 +35,15 @@ func _initialize() -> void:
 	_check(String(guild_den_room.get("row_shift_mode", "")) == "source_building", "Guild Den must preserve carveBuilding's source row shift")
 	_check(_has_record(guild_den_floor.get("tile_objects", []), "hollowmere_guild_den_door"), "Guild Den must retain its south entrance")
 	_check(guild_den_floor.get("actors", []).is_empty(), "Guild Den map port must not import its campaign-owned contact")
+
+	var millbrook: Dictionary = registry.get_definition("millbrook_house")
+	_check(int(millbrook.get("anchor", {}).get("q", 0)) == 1 and int(millbrook.get("anchor", {}).get("r", 0)) == -366, "Millbrook house anchor must match buildMillbrook relative to its north-road waypoint")
+	var millbrook_floor := registry.get_floor_definition("millbrook_house", 0)
+	_check(millbrook_floor.get("rooms", []).size() == 1, "Millbrook house must retain its single source-authored room")
+	var millbrook_room: Dictionary = millbrook_floor.get("rooms", [])[0]
+	_check(int(millbrook_room.get("half_width", 0)) == 3 and int(millbrook_room.get("half_height", 0)) == 3, "Millbrook house footprint must match carveFlatRoom")
+	_check(_has_record(millbrook_floor.get("tile_objects", []), "millbrook_house_east_door"), "Millbrook house must retain its east entrance")
+	_check(_has_record(millbrook_floor.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house must retain its source fireplace")
 
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
