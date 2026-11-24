@@ -125,10 +125,10 @@ func _test_mask_contract(asset_path: String) -> void:
             target_corner = candidate_corner
             break
     assert(triangle_vertices.size() == 3, "Could not find a source triangle containing the synthetic mask vertex")
-    var barycentric := Vector3(0.25, 0.50, 0.25)
+    var barycentric := PackedFloat32Array([0.25, 0.50, 0.25])
     # Put the painted vertex at a non-unit barycentric coordinate to prove
     # membership is continuous across the triangle rather than a nearest-dot lookup.
-    barycentric = Vector3.ZERO
+    barycentric = PackedFloat32Array([0.0, 0.0, 0.0])
     barycentric[target_corner] = 0.25
     barycentric[(target_corner + 1) % 3] = 0.50
     barycentric[(target_corner + 2) % 3] = 0.25
