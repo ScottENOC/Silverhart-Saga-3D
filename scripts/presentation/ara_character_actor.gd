@@ -27,10 +27,52 @@ var surface_landmarks: Array[Resource] = []
 var _surface_landmarks_loaded := false
 var surface_contact_paths: Array[Resource] = []
 var _surface_contact_paths_loaded := false
+var body_pressure_controller := BodyPressureController.new()
 const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
 var current_hair_colour: Color = Color("#49372a")
+
+func _physics_process(delta: float) -> void:
+    body_pressure_controller.step(delta)
+
+
+## Register a canonical anatomy region for pressure response. Region IDs are
+## owned by CharacterSurfaceRegionMask; this API does not create new anatomy IDs.
+func register_body_pressure_region(region_id: StringName, profile: BodyRegionProfile) -> void:
+    body_pressure_controller.register_region(region_id, profile)
+
+
+func apply_body_pressure(region_id: StringName, force_n: float) -> void:
+    body_pressure_controller.apply_pressure(region_id, force_n)
+
+
+func apply_body_contact(
+    region_id: StringName,
+    penetration_m: float,
+    closing_speed_m_per_s: float,
+    contact_stiffness_n_per_m: float = 1800.0,
+    contact_damping_ns_per_m: float = 35.0,
+    max_force_n: float = 120.0
+) -> float:
+    return BodyPressureContact.submit_contact(
+        body_pressure_controller,
+        region_id,
+        penetration_m,
+        closing_speed_m_per_s,
+        contact_stiffness_n_per_m,
+        contact_damping_ns_per_m,
+        max_force_n
+    )
+
+
+func get_body_pressure_m(region_id: StringName) -> float:
+    return body_pressure_controller.get_compression_m(region_id)
+
+
+func get_body_pressure_region_ids() -> Array[StringName]:
+    return body_pressure_controller.get_region_ids()
+
 
 func configure(glb_path: String) -> bool:
     if model_root != null and is_instance_valid(model_root):
@@ -70,6 +112,10 @@ func configure(glb_path: String) -> bool:
     # query, and eagerly building per-vertex masks for every spawned actor is wasteful.
     surface_regions = CHARACTER_SURFACE_REGIONS_SCRIPT.new() as CharacterSurfaceRegions
     loaded_asset_path = glb_path
+    # Register the 145 canonical fine-region IDs from the anatomy resource.
+    # Their overlapping surface masks remain the source of contact location.
+    BodyPressureProfileLibrary.register_anatomy_regions(body_pressure_controller)
+    body_pressure_controller.bind_model(model_root)
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
     # Report the loaded character model regardless of whether the separate
