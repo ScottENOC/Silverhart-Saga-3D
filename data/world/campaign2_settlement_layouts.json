@@ -354,6 +354,48 @@
             "r": 28
           },
           "source": "campaign2Content.js"
+        },
+        {
+          "id": "elder_nessa_wren_elf_female",
+          "name": "Elder Nessa Wren",
+          "title": "Warden of the Emberwood Grove",
+          "race": "elf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "druid"
+          ],
+          "skill_picks": [
+            "health",
+            "barkskin_active",
+            "wild_shape_adaptation"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "",
+          "dialogue_id": "elder_nessa_wren",
+          "position": {
+            "q": -266,
+            "r": 11
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her",
+            "skin_colour": "#70452F",
+            "eye_colour": "darkbrown",
+            "hair_colour": "#17120F",
+            "hair_style": "short03",
+            "height": 0.37,
+            "muscle": 0.56,
+            "weight": 0.69,
+            "proportions": 0.39,
+            "breasts": 0.25,
+            "legs": 0.45
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
         }
       ],
       "interiors": [
@@ -3954,6 +3996,33 @@
             "pronouns": "he/him"
           },
           "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "preceptor_garran_vey",
+          "name": "Preceptor Garran Vey",
+          "title": "Preceptor of the Silver Vigil",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "cleric",
+            "cleric"
+          ],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "preceptor_garran_vey",
+          "position": {
+            "q": 11,
+            "r": -452
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/aldricMeasureOfOath.js"
         },
         {
           "id": "high_cleric_adelram",

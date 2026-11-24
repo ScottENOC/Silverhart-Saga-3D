@@ -12,7 +12,7 @@ The original feature branch also contains a Hollowmere fog renderer and profilin
 
 The following gameplay remains future work, not completed functionality:
 
-- Stealth checks and concealment from sight.
+- General stealth actions and concealment from sight are not yet integrated across the game. Reddale's two espionage missions now provide a mission-scoped stealth toggle and detection roll using the shared spatial visibility query.
 - Light-source propagation and the source's detailed low-light model.
 - Hearing, movement/casting noise, and suspicion accumulation.
 - Per-character knowledge and memory, including last-known positions and timestamps.
@@ -43,3 +43,5 @@ The original `Hex-crpg` behaviour includes vision modifiers, hex-ray LOS, terrai
 - The initial low-light implementation uses the source's 0.2 range factor and racial exemptions but does not calculate dynamic light fields.
 - Blocker height and terrain opacity are currently cell metadata; integration with actual door/building state remains to be designed.
 - The current helper skill IDs/ranks are source-backed but are not yet wired to the complete skill progression/effect architecture.
+- Reddale's mission-scoped stealth state and score are stored in the active CampaignJournal quest state. The `V` toggle is currently exposed only in the Campaign 2 regional development preview.
+- Reddale detection currently uses the source's distance and perception bonuses, a light-level modifier, and the shared VisionRules range/LOS query. It does not yet provide guard memory, shared sightings, hearing, or general AI stealth behaviour.

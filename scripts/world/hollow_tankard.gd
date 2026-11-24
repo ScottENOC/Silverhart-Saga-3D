@@ -10,6 +10,7 @@ const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_ge
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const COMPANION_PREREQUISITE_DIALOGUE_SCRIPT = preload("res://scripts/simulation/companion_prerequisite_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
@@ -49,6 +50,8 @@ const ROOM_HALF_WIDTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_WIDTH
 const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 
 var simulation: WorldSimulation
+var companion_quest_chains: CompanionQuestChainState
+var companion_relationship_state: CompanionRelationshipState
 var world_cell_loader: Campaign2WorldCellLoader
 var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
@@ -125,6 +128,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
+	_configure_companion_campaign_state()
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
 	movement_controller.name = "WorldPlayerMovementController"
@@ -148,6 +152,24 @@ func _ready() -> void:
 		if save_manager != null:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
+
+func _configure_companion_campaign_state() -> void:
+	if simulation == null:
+		return
+	var saved_chain: Variant = simulation.get_meta("companion_quest_chains", null)
+	var saved_relationships: Variant = simulation.get_meta("companion_relationship_state", null)
+	if saved_chain is CompanionQuestChainState:
+		companion_quest_chains = saved_chain
+	else:
+		companion_quest_chains = CompanionQuestChainState.new()
+	if saved_relationships is CompanionRelationshipState:
+		companion_relationship_state = saved_relationships
+	else:
+		companion_relationship_state = CompanionRelationshipState.new()
+	simulation.set_meta("companion_quest_chains", companion_quest_chains)
+	simulation.set_meta("companion_relationship_state", companion_relationship_state)
+	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
+
 
 func _create_materials() -> void:
 	grass_material = _material(Color(0.28, 0.38, 0.27))
@@ -879,6 +901,8 @@ func _build_save_snapshot() -> Dictionary:
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
+		"companion_quest_chains": companion_quest_chains.to_dict(),
+		"companion_relationships": companion_relationship_state.to_dict(),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
@@ -959,6 +983,15 @@ func _apply_save_data(data: Dictionary) -> void:
 	var journal_data: Variant = data.get("campaign_journal", {})
 	if journal_data is Dictionary:
 		simulation.campaign_journal.load_dict(journal_data)
+	var companion_chain_data: Variant = data.get("companion_quest_chains", {})
+	if companion_chain_data is Dictionary:
+		companion_quest_chains.from_dict(companion_chain_data)
+	var companion_relationship_data: Variant = data.get("companion_relationships", {})
+	if companion_relationship_data is Dictionary:
+		companion_relationship_state.load_dict(companion_relationship_data)
+	simulation.set_meta("companion_quest_chains", companion_quest_chains)
+	simulation.set_meta("companion_relationship_state", companion_relationship_state)
+	companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
@@ -1029,8 +1062,130 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 	dialogue_panel.present(speaker, body, choices)
 
 
+func _award_companion_quest_experience(result: Dictionary) -> int:
+	var reward := maxi(0, int(result.get("xp_reward", 0)))
+	if reward <= 0 or simulation == null:
+		return 0
+	var player := simulation.get_character("player")
+	if player == null:
+		return 0
+	player.experience += reward
+	return reward
+
+
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id == "companion_chain_start":
+		var chain_start: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.start_chapter(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("chapter_id", "")),
+			simulation.get_party_member_ids(),
+			simulation.clock.world_seconds
+		)
+		if bool(chain_start.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That companion chapter cannot begin yet: %s." % String(chain_start.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_chain_consult":
+		var chain_consult: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.consult_chapter(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			String(choice.get("chapter_id", "")),
+			_companion_prerequisite_actor_id(String(choice.get("actor_id", ""))),
+			simulation.clock.world_seconds
+		)
+		if bool(chain_consult.get("ok", false)):
+			_show_companion_dialogue("companion_" + String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That conversation could not be recorded: %s." % String(chain_consult.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_chain_resolve":
+		var chain_resolution: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.resolve_chapter(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("chapter_id", "")),
+			String(choice.get("resolution_id", "")),
+			simulation.clock.world_seconds
+		)
+		if bool(chain_resolution.get("ok", false)):
+			var chain_line := String(chain_resolution.get("line", "The decision is made."))
+			var chain_xp := _award_companion_quest_experience(chain_resolution)
+			if chain_xp > 0:
+				chain_line += "\n\n+%d XP" % chain_xp
+			var chain_companion_id := String(choice.get("companion_id", ""))
+			var chain_companion := simulation.get_character(chain_companion_id)
+			var chain_speaker := chain_companion.display_name if chain_companion != null else "Companion"
+			_show_dialogue(chain_speaker, chain_line, [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(chain_resolution.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_start":
+		var start_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.start_quest(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("quest_id", "")),
+			simulation.get_party_member_ids(),
+			simulation.clock.world_seconds
+		)
+		if bool(start_result.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That companion chapter cannot begin yet: %s." % String(start_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_opening_choice":
+		var opening_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.apply_opening_choice(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("quest_id", "")),
+			String(choice.get("choice_id", ""))
+		)
+		if bool(opening_result.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")), String(choice.get("text", "")))
+		else:
+			_show_dialogue("Campaign journal", "That response could not be recorded: %s." % String(opening_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_record_clues":
+		var actor_id := _companion_prerequisite_actor_id(String(choice.get("actor_id", "")))
+		var clue_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.record_actor_clues(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			actor_id,
+			simulation.clock.world_seconds,
+			_companion_prerequisite_capabilities(simulation.get_character(active_character_id))
+		)
+		if bool(clue_result.get("ok", false)):
+			_show_companion_dialogue("companion_" + String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "We could not record that evidence: %s." % String(clue_result.get("reason", "no new evidence")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_prerequisite_resolve":
+		var resolution_result: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.resolve(
+			companion_quest_chains,
+			simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("quest_id", "")),
+			String(choice.get("resolution_id", "")),
+			simulation.clock.world_seconds,
+			simulation.get_character("player")
+		)
+		if bool(resolution_result.get("ok", false)):
+			var outcome_line := String(resolution_result.get("line", resolution_result.get("text", "You and your companion have reached a decision.")))
+			var prerequisite_xp := _award_companion_quest_experience(resolution_result)
+			if prerequisite_xp > 0:
+				outcome_line += "\n\n+%d XP" % prerequisite_xp
+			var resolved_companion_id := String(choice.get("companion_id", ""))
+			var resolved_companion := simulation.get_character(resolved_companion_id)
+			var resolved_speaker := resolved_companion.display_name if resolved_companion != null else "Companion"
+			_show_dialogue(resolved_speaker, outcome_line, [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
 		var start_result := simulation.campaign_journal.start_quest(quest_id)
@@ -1139,6 +1294,25 @@ func _interact_with_character(character_id: String) -> void:
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)
 		return
+	var prerequisite_actor_id := _companion_prerequisite_actor_id(character_id)
+	var prerequisite_prompt: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.actor_prompt(
+		companion_quest_chains,
+		simulation.campaign_journal,
+		prerequisite_actor_id,
+		_companion_prerequisite_capabilities(player_state)
+	)
+	if not prerequisite_prompt.is_empty():
+		var prerequisite_choices: Array[Dictionary] = []
+		for choice_value in prerequisite_prompt.get("choices", []):
+			var prerequisite_choice: Dictionary = choice_value.duplicate(true)
+			prerequisite_choice["companion_id"] = String(prerequisite_prompt.get("companion_id", ""))
+			prerequisite_choices.append(prerequisite_choice)
+		_show_dialogue(
+				String(target_state.display_name),
+				String(prerequisite_prompt.get("body", "")),
+				prerequisite_choices
+		)
+		return
 	if character_id == "old_mac":
 		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
@@ -1206,9 +1380,30 @@ func _on_nearby_interaction_pressed(character_id: String) -> void:
 	_interact_with_character(character_id)
 
 
-func _show_companion_dialogue(character_id: String) -> void:
+func _show_companion_dialogue(character_id: String, extra_text: String = "") -> void:
 	var player_state := simulation.get_character("player")
 	if player_state == null:
+		return
+	var prerequisite_conversation: Dictionary = COMPANION_PREREQUISITE_DIALOGUE_SCRIPT.dialogue_for_companion(
+		companion_quest_chains,
+		simulation.campaign_journal,
+		character_id,
+		simulation.get_party_member_ids(),
+		player_state,
+		simulation.clock.world_seconds
+	)
+	if not prerequisite_conversation.is_empty():
+		var prerequisite_choices: Array[Dictionary] = []
+		for choice_value in prerequisite_conversation.get("choices", []):
+			var prerequisite_choice: Dictionary = choice_value.duplicate(true)
+			prerequisite_choice["companion_id"] = character_id
+			prerequisite_choices.append(prerequisite_choice)
+		var prerequisite_body := String(prerequisite_conversation.get("body", ""))
+		if not extra_text.strip_edges().is_empty():
+			prerequisite_body = extra_text + "\n\n" + prerequisite_body
+		var companion_state := simulation.get_character(character_id)
+		var companion_name := companion_state.display_name if companion_state != null else character_id
+		_show_dialogue(companion_name, prerequisite_body, prerequisite_choices)
 		return
 	var conversation: Dictionary = COMPANION_CAMPAIGN_SCRIPT.conversation(
 		character_id,
@@ -1225,6 +1420,30 @@ func _show_companion_dialogue(character_id: String) -> void:
 			choice["companion_id"] = character_id
 		choices.append(choice)
 	_show_dialogue(String(conversation.get("speaker", character_id)), String(conversation.get("text", "")), choices)
+
+
+func _companion_prerequisite_actor_id(character_id: String) -> String:
+	match character_id:
+		"old_mac":
+			return "old_mac_human_male"
+		_:
+			return character_id
+
+
+func _companion_prerequisite_capabilities(character: CharacterState) -> Array[String]:
+	var capabilities: Array[String] = []
+	if character == null:
+		return capabilities
+	for skill_id_value in character.skills.keys():
+		var skill_value: Variant = character.skills[skill_id_value]
+		var rank := 0.0
+		if skill_value is Dictionary:
+			rank = float(skill_value.get("rank", skill_value.get("value", 0.0)))
+		elif skill_value is int or skill_value is float:
+			rank = float(skill_value)
+		if rank > 0.0:
+			capabilities.append(String(skill_id_value).to_lower())
+	return capabilities
 
 
 func _recruit_staged_companion(character_id: String) -> void:

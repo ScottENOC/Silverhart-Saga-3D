@@ -88,7 +88,7 @@ func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void
 	var layout: Dictionary = definition.get("layout", {})
 	_check(layout.get("buildings", []).size() == 3, "Emberlode must retain its foreman's hall, bunkhouse and mine entrance")
 	_check(layout.get("paths", []).size() == 2, "Emberlode must retain its two authored mine and bunkhouse approaches")
-	_check(definition.get("placements", {}).get("characters", []).size() == 3, "Emberlode must retain Corran, Bettina and Rennik")
+	_check(definition.get("placements", {}).get("characters", []).size() == 4, "Emberlode must retain Corran, Bettina, Rennik and Elder Nessa")
 	_check(definition.get("interiors", []).size() == 3, "Emberlode must retain all three interior definitions")
 	var mine := _find_record(definition.get("interiors", []), "emberlode_mine_interior")
 	_check(mine.get("floors", []).size() == 3, "Emberlode mine must retain surface, -1 and -2 floors")
@@ -100,7 +100,7 @@ func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void
 	var ids: Dictionary = {}
 	for actor in actors:
 		ids[String(actor.get("character_id", ""))] = actor
-	_check(ids.has("corran_vale") and ids.has("bettina_marrow") and ids.has("rennik_coalmarrow"), "Emberlode character IDs must remain stable")
+	_check(ids.has("corran_vale") and ids.has("bettina_marrow") and ids.has("rennik_coalmarrow") and ids.has("elder_nessa_wren_elf_female"), "Emberlode character IDs must remain stable, including Elder Nessa")
 	_check(terrain.terrain_for_hex(Vector2i(-256, 22)) == "authored", "Emberlode foreman's hall must suppress procedural terrain")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 20)) == "path", "Emberlode mine approach must be indexed as a path")
 	var factory = BUILDING_FACTORY
@@ -144,7 +144,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var props: Array = layout.get("props", [])
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
 	var placements: Array = definition.get("placements", {}).get("characters", [])
-	_check(placements.size() == 38, "Silverhart must retain its 38 named palace, guard, merchant, diplomatic, residential and guild NPCs")
+	_check(placements.size() == 39, "Silverhart must retain its 39 named palace, guard, merchant, diplomatic, residential, guild and Cathedral NPCs")
 	var character_registry = CHARACTER_REGISTRY.new()
 	var placement_ids: Dictionary = {}
 	for placement in placements:
@@ -156,7 +156,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		"wall_guard_brennan", "royal_guard_denna", "ossian_fell", "perrin_vance",
 		"mirelle_sondhe", "corvin_ashe", "lady_miriel_corstane", "master_builder_hallis",
 		"ambassador_elarion", "ambassador_brokk_stonehammer", "ambassador_cassia_wren",
-		"ambassador_toren_aldwyn", "factor_willem_drass", "high_cleric_adelram",
+		"ambassador_toren_aldwyn", "factor_willem_drass", "high_cleric_adelram", "preceptor_garran_vey",
 		"hollis_vane", "sergeant_bell", "nix_the_cutpurse", "osric_fenn", "greta_aldwyn", "tomlin_reed",
 		"tessa_nightshade", "corvin_ashe_guildmaster", "marsh_dobbins", "silas_crane"
 	]:

@@ -54,6 +54,7 @@ func register_quest_definitions(journal: CampaignJournal) -> void:
 			"id":prerequisite_id,
 			"title":String(quest.get("title", prerequisite_id)),
 			"description":String(quest.get("description", "")),
+			"prerequisites":[String(quest.get("previous", ""))] if not String(quest.get("previous", "")).is_empty() else [],
 			"objectives":[{"id":"resolution","description":"Investigate the companion’s concern and decide how it should be resolved.","target":1.0,"required":true}]
 		})
 
@@ -244,6 +245,9 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 	var companion_id := String(definition.get("companion_id", ""))
 	if not _party_contains_companion(party_ids, companion_id):
 		return {"ok":false,"reason":"companion_not_in_party","companion_id":companion_id}
+	var previous_id := String(definition.get("previous", ""))
+	if not previous_id.is_empty() and String(journal.quest_state(previous_id).get("status", "")) != "completed":
+		return {"ok":false,"reason":"previous_quest_incomplete","previous_quest_id":previous_id}
 	if companion_relationships == null:
 		return {"ok":false,"reason":"missing_companion_relationship_state"}
 	register_quest_definitions(journal)
@@ -257,12 +261,29 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 	quest_state["chapter_stage"] = "investigation"
 	quest_state["resolution"] = ""
 	quest_state["description"] = String(definition.get("description", ""))
+	var initial_stage_rules: Array = definition.get("stage_rules", [])
+	if not initial_stage_rules.is_empty():
+		var initial_rule: Dictionary = initial_stage_rules[initial_stage_rules.size() - 1]
+		quest_state["chapter_stage"] = String(initial_rule.get("stage", "investigation"))
+		quest_state["description"] = String(initial_rule.get("description", quest_state["description"]))
 	journal.quests[quest_id] = quest_state
 	if quest_id == "aldric_broken_vigil":
 		var aldric_state: Dictionary = companion_relationships.ensure(companion_id)
 		var aldric_history: Array = aldric_state.get("history", [])
 		if aldric_history.is_empty() and is_equal_approx(float(aldric_state.get("familiarity", 10.0)), 10.0) and is_equal_approx(float(aldric_state.get("trust", 10.0)), 10.0):
 			companion_relationships.adjust(companion_id, {"familiarity":8.0,"trust":20.0,"approval":10.0}, "authored_start:aldric_rescued_companion")
+	var arc_seed_by_previous: Dictionary = definition.get("arc_seed_by_previous_resolution", {})
+	if not arc_seed_by_previous.is_empty():
+		var existing_arc: Dictionary = arc_states.get(companion_id, {})
+		if not bool(existing_arc.get("_seeded_from_broken_vigil", false)):
+			var initial_arc: Dictionary = definition.get("arc_initial", {}).duplicate(true)
+			var previous_resolution := String(journal.quest_state(previous_id).get("resolution", ""))
+			var arc_seed: Dictionary = arc_seed_by_previous.get(previous_resolution, {})
+			for trait_value in arc_seed:
+				var trait_name := String(trait_value)
+				initial_arc[trait_name] = float(existing_arc.get(trait_name, float(initial_arc.get(trait_name, 0.0)) + float(arc_seed[trait_value])))
+			initial_arc["_seeded_from_broken_vigil"] = true
+			arc_states[companion_id] = initial_arc
 	companion_relationships.note_conversation(companion_id, quest_id + ":opened", 3.0)
 	for clue_id_value in definition.get("clues", {}).keys():
 		var clue_id := String(clue_id_value)
@@ -270,6 +291,54 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 		if bool(clue.get("automatic", false)):
 			add_prerequisite_clue(quest_id, clue_id, "companion opening conversation", journal, world_seconds)
 	return {"ok":true,"quest_id":quest_id,"quest":definition.duplicate(true),"quest_state":journal.quest_state(quest_id)}
+
+
+
+func apply_prerequisite_choice(quest_id: String, choice_id: String, journal: CampaignJournal, companion_relationships: CompanionRelationshipState) -> Dictionary:
+	var definition: Dictionary = prerequisite_quests.get(quest_id, {})
+	if definition.is_empty() or journal == null or companion_relationships == null:
+		return {"ok":false,"reason":"unknown_quest_or_missing_state"}
+	var quest_state := journal.quest_state(quest_id)
+	if String(quest_state.get("status", "")) != "active":
+		return {"ok":false,"reason":"quest_not_active"}
+	var selected: Dictionary = {}
+	for choice_value in definition.get("opening_choices", []):
+		var choice: Dictionary = choice_value
+		if String(choice.get("id", "")) == choice_id:
+			selected = choice
+			break
+	if selected.is_empty():
+		return {"ok":false,"reason":"unknown_opening_choice"}
+	var choice_keys: Array = quest_state.get("opening_choice_keys", [])
+	if choice_keys.has(choice_id):
+		return {"ok":true,"changed":false}
+	if not choice_keys.is_empty():
+		return {"ok":false,"reason":"opening_choice_already_recorded"}
+	choice_keys.append(choice_id)
+	quest_state["opening_choice_keys"] = choice_keys
+	journal.quests[quest_id] = quest_state
+	var companion_id := String(definition.get("companion_id", ""))
+	var arc_state: Dictionary = arc_states.get(companion_id, {})
+	for trait_value in selected.get("arc", {}).keys():
+		var trait_name := String(trait_value)
+		arc_state[trait_name] = float(arc_state.get(trait_name, 0.0)) + float(selected.arc[trait_value])
+	arc_states[companion_id] = arc_state
+	var reason := String(selected.get("reason", "companion quest opening choice"))
+	var relationship_delta: Dictionary = selected.get("relationship", {})
+	if not relationship_delta.is_empty():
+		companion_relationships.record_event(companion_id, "prerequisite_quest:" + quest_id + ":opening:" + choice_id + ":relationship", relationship_delta, reason)
+	var affinity_delta: Dictionary = selected.get("affinity", {})
+	var normalized_affinity: Dictionary = {}
+	for axis_value in affinity_delta:
+		var axis := String(axis_value)
+		match axis:
+			"romanticBond":
+				normalized_affinity["romantic_bond"] = affinity_delta[axis_value]
+			"friendship", "attraction":
+				normalized_affinity[axis] = affinity_delta[axis_value]
+	if not normalized_affinity.is_empty():
+		companion_relationships.record_event(companion_id, "prerequisite_quest:" + quest_id + ":opening:" + choice_id + ":affinity", normalized_affinity, reason)
+	return {"ok":true,"changed":true,"arc_state":arc_state.duplicate(true)}
 
 
 func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, journal: CampaignJournal, world_seconds: float = 0.0, capabilities: Array[String] = []) -> Dictionary:
@@ -328,6 +397,30 @@ func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, jo
 	var clue_order: Array = quest_state.get("clue_order", [])
 	clue_order.append(clue_id)
 	quest_state["clue_order"] = clue_order
+	journal.quests[quest_id] = quest_state
+	for linked_clue_value in clue.get("also_add_clues", []):
+		var linked_clue_id := String(linked_clue_value)
+		if not clues.has(linked_clue_id):
+			add_prerequisite_clue(quest_id, linked_clue_id, source + " (linked evidence)", journal, world_seconds, capabilities)
+	quest_state = journal.quest_state(quest_id)
+	clues = quest_state.get("clues", {})
+	var stage_rules: Array = definition.get("stage_rules", [])
+	var stage_applied := false
+	for rule_value in stage_rules:
+		var rule: Dictionary = rule_value
+		var requirements_met := true
+		for required_clue_value in rule.get("required_clues", []):
+			if not clues.has(String(required_clue_value)):
+				requirements_met = false
+				break
+		if requirements_met:
+			quest_state["chapter_stage"] = String(rule.get("stage", "investigation"))
+			quest_state["description"] = String(rule.get("description", definition.get("description", "")))
+			stage_applied = true
+			break
+	if not stage_applied and can_resolve_prerequisite(quest_id, journal):
+		quest_state["chapter_stage"] = "reckoning"
+		quest_state["description"] = String(definition.get("ready_description", quest_state.get("description", "")))
 	journal.quests[quest_id] = quest_state
 	return {"ok":true,"changed":true,"clue":clues[clue_id].duplicate(true),"can_resolve":can_resolve_prerequisite(quest_id, journal)}
 
@@ -389,6 +482,19 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 	if not resolutions.has(resolution_id):
 		return {"ok":false,"reason":"unknown_resolution"}
 	var effect: Dictionary = resolutions[resolution_id]
+	var effective_resolution := resolution_id
+	var companion_decision: Dictionary = effect.get("companion_decision", {})
+	if not companion_decision.is_empty():
+		var decision_arc: Dictionary = arc_states.get(String(definition.get("companion_id", "")), {})
+		var any_nonnegative := false
+		for trait_value in companion_decision.get("trait_any_gte_zero", []):
+			if float(decision_arc.get(String(trait_value), -1.0)) >= 0.0:
+				any_nonnegative = true
+				break
+		effective_resolution = String(companion_decision.get("if_true" if any_nonnegative else "if_false", resolution_id))
+		if not resolutions.has(effective_resolution):
+			return {"ok":false,"reason":"companion_decision_unresolved"}
+	var effective_effect: Dictionary = resolutions[effective_resolution]
 	var gold_cost := int(effect.get("cost_gold", 0))
 	var gold_reward := int(effect.get("gold_reward", 0))
 	if (gold_cost > 0 or gold_reward > 0) and player_state == null:
@@ -453,17 +559,18 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		var faction_id := String(faction_id_value)
 		var faction_change: Dictionary = faction_reputation[faction_id]
 		journal.adjust_faction_reputation(faction_id, float(faction_change.get("standing", 0.0)), float(faction_change.get("knowledge", 0.0)), reason)
-	var flags: Dictionary = effect.get("flags", {}).duplicate(true)
+	var flags: Dictionary = effective_effect.get("flags", effect.get("flags", {})).duplicate(true)
 	if quest_id == "fenn_living_boundary":
 		flags["hydrology_understood"] = has_old_channel
 	quest_state["chapter_stage"] = "completed"
 	quest_state["resolution"] = resolution_id
+	quest_state["effective_resolution"] = effective_resolution
 	quest_state["completed_at"] = world_seconds
 	quest_state["completion_reason"] = reason
 	quest_state["outcome_flags"] = flags
 	var world_effects := {"surface_power_delta":float(effect.get("surface_power_delta", 0.0))}
 	quest_state["world_effects"] = world_effects.duplicate(true)
-	quest_state["description"] = String(effect.get("description", definition.get("description", "")))
+	quest_state["description"] = String(effective_effect.get("description", effect.get("description", definition.get("description", ""))))
 	journal.quests[quest_id] = quest_state
 	var result_line := String(effect.get("line", "The decision is made."))
 	var xp_reward := int(definition.get("xp", 0))
@@ -475,6 +582,7 @@ func resolve_prerequisite(quest_id: String, resolution_id: String, journal: Camp
 		"ok":true,
 		"quest_id":quest_id,
 		"resolution":resolution_id,
+		"effective_resolution":effective_resolution,
 		"line":result_line,
 		"xp_reward":xp_reward,
 		"relationship":relationship_delta,
@@ -512,6 +620,62 @@ func active_chapter_for_actor(actor_id: String, journal: CampaignJournal) -> Dic
 		var quest_state := journal.quest_state(String(chapter.get("id", "")))
 		if String(quest_state.get("status", "")) == "active" and not bool(quest_state.get("consulted", false)):
 			return {"chapter":chapter.duplicate(true),"quest_state":quest_state}
+	return {}
+
+
+func next_prerequisite_for_companion(companion_id: String, journal: CampaignJournal, party_ids: Array[String]) -> Dictionary:
+	if journal == null or not _party_contains_companion(party_ids, companion_id):
+		return {}
+	for quest_value in prerequisite_quests.values():
+		var definition: Dictionary = quest_value
+		if String(definition.get("companion_id", "")) != companion_id:
+			continue
+		var quest_id := String(definition.get("id", ""))
+		var quest_state := journal.quest_state(quest_id)
+		if String(quest_state.get("status", "")) == "active":
+			return {"quest":definition.duplicate(true),"quest_state":quest_state.duplicate(true)}
+		if not quest_state.is_empty():
+			continue
+		var previous_id := String(definition.get("previous", ""))
+		if not previous_id.is_empty() and String(journal.quest_state(previous_id).get("status", "")) != "completed":
+			continue
+		return {"quest":definition.duplicate(true),"quest_state":{}}
+	return {}
+
+
+func active_prerequisite_for_actor(actor_id: String, journal: CampaignJournal) -> Dictionary:
+	if actor_id.strip_edges().is_empty() or journal == null:
+		return {}
+	for quest_value in prerequisite_quests.values():
+		var definition: Dictionary = quest_value
+		var quest_id := String(definition.get("id", ""))
+		var quest_state := journal.quest_state(quest_id)
+		if String(quest_state.get("status", "")) != "active":
+			continue
+		var found_clues: Array[Dictionary] = []
+		var known_clues: Dictionary = quest_state.get("clues", {})
+		var clue_definitions: Dictionary = definition.get("clues", {})
+		for clue_id_value in clue_definitions.keys():
+			var clue_id := String(clue_id_value)
+			var clue: Dictionary = clue_definitions[clue_id]
+			if String(clue.get("actor_id", "")) != actor_id or known_clues.has(clue_id):
+				continue
+			var prerequisites_met := true
+			for required_clue_value in clue.get("requires_clues", []):
+				if not known_clues.has(String(required_clue_value)):
+					prerequisites_met = false
+					break
+			if not prerequisites_met:
+				continue
+			found_clues.append({"id":clue_id,"definition":clue.duplicate(true)})
+		if not found_clues.is_empty():
+			return {
+				"quest_id":quest_id,
+				"title":String(definition.get("title", quest_id)),
+				"companion_id":String(definition.get("companion_id", "")),
+				"quest_state":quest_state.duplicate(true),
+				"clues":found_clues
+			}
 	return {}
 
 

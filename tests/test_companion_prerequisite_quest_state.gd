@@ -1,5 +1,7 @@
 extends SceneTree
 
+const PREREQUISITE_DIALOGUE_SERVICE := preload("res://scripts/simulation/companion_prerequisite_dialogue_service.gd")
+
 var _failures: int = 0
 
 
@@ -10,6 +12,13 @@ func _initialize() -> void:
 	_test_aldric_broken_vigil_source_data_and_ordinary_evidence()
 	_test_aldric_sealed_dispatch_alternative_and_proof_bonus()
 	_test_aldric_money_resolution_and_faction_consequences()
+	_test_aldric_measure_of_oath_prerequisite_and_literal_self_decision()
+	_test_aldric_measure_of_oath_bounded_self_decision()
+	_test_prerequisite_dialogue_adapter_routes_npc_evidence()
+	_test_campaign_simulation_persists_companion_state()
+	_test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter()
+	_test_fenn_follow_on_chapter_routes_elder_nessa_alias()
+	_test_fenn_third_chapter_resolves_through_elder_nessa()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -149,6 +158,10 @@ func _test_aldric_broken_vigil_source_data_and_ordinary_evidence() -> void:
 	var journal: CampaignJournal = setup.journal
 	var quest: Dictionary = chains.prerequisite_for("aldric_broken_vigil")
 	_check(String(quest.get("title", "")) == "The Broken Vigil")
+	var petra_hook: Dictionary = chains.active_prerequisite_for_actor("guildmaster_petra_voss", journal)
+	var baron_hook: Dictionary = chains.active_prerequisite_for_actor("baron_corwin_aldervale", journal)
+	_check(String(petra_hook.get("quest_id", "")) == "aldric_broken_vigil", "The Ironbond archive NPC is discoverable as an active quest actor")
+	_check(String(baron_hook.get("quest_id", "")) == "aldric_broken_vigil", "The Baron is discoverable as an active quest actor")
 	_check(quest.get("resolutions", {}).size() == 4, "All four source-authored outcomes are retained")
 	_check(quest.get("clues", {}).has("sealed_dispatch"), "The signed dispatch remains a separate proof clue")
 	_check(not chains.can_resolve_prerequisite("aldric_broken_vigil", journal))
@@ -168,6 +181,7 @@ func _test_aldric_sealed_dispatch_alternative_and_proof_bonus() -> void:
 	var capabilities: Array[String] = ["persuasion"]
 	var proof: Dictionary = chains.add_prerequisite_clue("aldric_broken_vigil", "sealed_dispatch", "Persuasion — Ironbond archive", journal, 2300.0, capabilities)
 	_check(bool(proof.get("changed", false)), "Persuasion independently unlocks the sealed dispatch")
+	_check(journal.quest_state("aldric_broken_vigil").get("clues", {}).has("company_roster"), "The sealed dispatch also records the associated duty roster")
 	_check(chains.can_resolve_prerequisite("aldric_broken_vigil", journal), "The signed dispatch is an alternative to the two ordinary clues")
 	var player := CharacterState.new("player", "Player")
 	var result: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", "spare_patrol", journal, relationships, 2400.0, player)
@@ -197,3 +211,269 @@ func _test_aldric_money_resolution_and_faction_consequences() -> void:
 	_check(is_equal_approx(float(journal.quest_state("aldric_broken_vigil").get("world_effects", {}).get("surface_power_delta", 0.0)), 2.0), "The surface-power consequence is retained in the persistent quest record")
 	_check(int(result.get("xp_reward", 0)) == 240, "The ordinary evidence path awards the source-authored 240 XP")
 	_check(String(journal.quest_state("aldric_broken_vigil").get("status", "")) == "completed")
+
+
+
+func _prepare_aldric_measure(previous_resolution: String) -> Dictionary:
+	var setup := _new_aldric_quest()
+	if setup.is_empty():
+		return {}
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	chains.add_prerequisite_clue("aldric_broken_vigil", "company_roster", "Petra Voss", journal, 2600.0)
+	chains.add_prerequisite_clue("aldric_broken_vigil", "baron_customs", "Baron Corwin Aldervale", journal, 2700.0)
+	var player := CharacterState.new("player", "Player")
+	var completed: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", previous_resolution, journal, relationships, 2800.0, player)
+	_check(bool(completed.get("ok", false)), "The Broken Vigil must complete before its follow-on chapter")
+	return setup
+
+
+func _add_aldric_measure_clues(chains: Variant, journal: CampaignJournal) -> void:
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "hospice_need", "Preceptor Garran Vey", journal, 3100.0)
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "obedience_vow", "Preceptor Garran Vey", journal, 3100.0)
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "adelram_counsel", "High Cleric Adelram", journal, 3200.0)
+	chains.add_prerequisite_clue("aldric_measure_of_oath", "service_options", "Preceptor Garran Vey", journal, 3300.0)
+
+
+func _test_aldric_measure_of_oath_prerequisite_and_literal_self_decision() -> void:
+	var setup := _new_aldric_quest()
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var blocked: Dictionary = chains.start_prerequisite("aldric_measure_of_oath", journal, party_ids, relationships, 3000.0)
+	_check(String(blocked.get("reason", "")) == "previous_quest_incomplete", "The Measure of an Oath must remain gated until The Broken Vigil is complete")
+	chains.add_prerequisite_clue("aldric_broken_vigil", "company_roster", "Petra Voss", journal, 2600.0)
+	chains.add_prerequisite_clue("aldric_broken_vigil", "baron_customs", "Baron Corwin Aldervale", journal, 2700.0)
+	var player := CharacterState.new("player", "Player")
+	var previous_result: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", "public_accountability", journal, relationships, 2800.0, player)
+	_check(bool(previous_result.get("ok", false)))
+	var next_prerequisite: Dictionary = chains.next_prerequisite_for_companion("ser_aldric_thorne", journal, party_ids)
+	_check(String(next_prerequisite.get("quest", {}).get("id", "")) == "aldric_measure_of_oath", "Aldric's next eligible personal quest follows The Broken Vigil")
+	var started: Dictionary = chains.start_prerequisite("aldric_measure_of_oath", journal, party_ids, relationships, 3000.0)
+	_check(bool(started.get("ok", false)))
+	var preceptor_hook: Dictionary = chains.active_prerequisite_for_actor("preceptor_garran_vey", journal)
+	_check(preceptor_hook.get("clues", []).size() == 2, "Preceptor Garran exposes both linked summons clues in one NPC interaction")
+	var adelram_hook: Dictionary = chains.active_prerequisite_for_actor("adelram", journal)
+	_check(adelram_hook.is_empty(), "High Cleric Adelram's counsel remains gated until Aldric's obedience vow is established")
+	var seeded_arc: Dictionary = chains.arc_states.get("ser_aldric_thorne", {})
+	_check(float(seeded_arc.get("discernment", 0.0)) == -5.0, "Public accountability seeds Aldric's discernment from the previous chapter")
+	_check(float(seeded_arc.get("sharedBurden", 0.0)) == -15.0, "Public accountability seeds Aldric's shared-burden arc")
+	var opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "discern_first", journal, relationships)
+	_check(bool(opening.get("ok", false)))
+	var duplicate_opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "discern_first", journal, relationships)
+	_check(bool(duplicate_opening.get("ok", false)) and not bool(duplicate_opening.get("changed", true)), "The opening choice is idempotent")
+	var second_opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "agency", journal, relationships)
+	_check(String(second_opening.get("reason", "")) == "opening_choice_already_recorded", "Only one opening response may be selected")
+	_add_aldric_measure_clues(chains, journal)
+	_check(chains.can_resolve_prerequisite("aldric_measure_of_oath", journal), "All four Order and counsel clues are required")
+	var result: Dictionary = chains.resolve_prerequisite("aldric_measure_of_oath", "aldric_decides", journal, relationships, 3400.0, player)
+	_check(bool(result.get("ok", false)))
+	_check(String(result.get("effective_resolution", "")) == "literal_return", "Aldric's self-decision follows the source arc threshold")
+	_check(bool(result.get("outcome_flags", {}).get("future_wardenship", false)), "The literal outcome records future wardenship")
+	_check(int(result.get("xp_reward", 0)) == 300)
+
+
+func _test_aldric_measure_of_oath_bounded_self_decision() -> void:
+	var setup := _prepare_aldric_measure("spare_patrol")
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var started: Dictionary = chains.start_prerequisite("aldric_measure_of_oath", journal, party_ids, relationships, 4000.0)
+	_check(bool(started.get("ok", false)))
+	var opening: Dictionary = chains.apply_prerequisite_choice("aldric_measure_of_oath", "agency", journal, relationships)
+	_check(bool(opening.get("ok", false)))
+	_add_aldric_measure_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var result: Dictionary = chains.resolve_prerequisite("aldric_measure_of_oath", "aldric_decides", journal, relationships, 4400.0, player)
+	_check(bool(result.get("ok", false)))
+	_check(String(result.get("effective_resolution", "")) == "bounded_service", "Aldric chooses shared service when either source arc reaches zero")
+	_check(bool(result.get("outcome_flags", {}).get("vow_amended", false)), "The bounded outcome records the amended service")
+	_check(float(result.get("arc_state", {}).get("discernment", -99.0)) == 8.0, "The self-decision applies its own authored arc delta")
+
+
+
+func _test_prerequisite_dialogue_adapter_routes_npc_evidence() -> void:
+	var setup := _new_aldric_quest()
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var companion_dialogue: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids)
+	_check(String(companion_dialogue.get("quest_id", "")) == "aldric_broken_vigil")
+	_check(companion_dialogue.get("choices", []).size() == 2, "The companion adapter exposes the authored opening responses")
+	var ordinary_petra: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "guildmaster_petra_voss")
+	_check(ordinary_petra.get("clues", []).size() == 1, "The ordinary Petra interaction does not expose the sealed dispatch")
+	var persuasion: Array[String] = ["persuasion"]
+	var skilled_petra: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "guildmaster_petra_voss", persuasion)
+	_check(skilled_petra.get("clues", []).size() == 2, "Persuasion exposes both the roster and sealed dispatch")
+	var recorded: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(chains, journal, "guildmaster_petra_voss", 5100.0, persuasion)
+	_check(bool(recorded.get("ok", false)))
+	_check(bool(recorded.get("can_resolve", false)), "The sealed dispatch provides the alternative full-proof resolution route")
+	var ready_dialogue: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids)
+	_check(ready_dialogue.get("choices", []).size() == 4, "The companion adapter exposes all four authored resolutions when evidence is sufficient")
+	var player := CharacterState.new("player", "Player")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve(chains, journal, relationships, "aldric_broken_vigil", "private_closure", 5200.0, player)
+	_check(bool(resolution.get("ok", false)), "The dialogue adapter routes the companion's resolution back to campaign state")
+
+	var measure_setup := _prepare_aldric_measure("public_accountability")
+	if measure_setup.is_empty():
+		return
+	var measure_chains: Variant = measure_setup.chains
+	var measure_journal: CampaignJournal = measure_setup.journal
+	var measure_relationships: CompanionRelationshipState = measure_setup.relationships
+	var measure_party_ids: Array[String] = ["ser_aldric_thorne"]
+	var measure_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_quest(measure_chains, measure_journal, measure_relationships, "aldric_measure_of_oath", measure_party_ids, 6000.0)
+	_check(bool(measure_start.get("ok", false)))
+	_check(String(measure_journal.quest_state("aldric_measure_of_oath").get("description", "")).contains("Speak with Preceptor Garran Vey"), "The new chapter begins with its first supporting NPC objective")
+	var garran_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "preceptor_garran_vey")
+	_check(garran_prompt.get("clues", []).size() == 2, "Garran initially exposes the summons and obedience-vow clues")
+	var adelram_before: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "adelram")
+	_check(adelram_before.is_empty(), "Adelram cannot be consulted before the obedience vow is established")
+	var garran_recorded: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(measure_chains, measure_journal, "preceptor_garran_vey", 6100.0)
+	_check(garran_recorded.get("recorded_clues", []).size() == 2)
+	_check(String(measure_journal.quest_state("aldric_measure_of_oath").get("description", "")).contains("Speak with High Cleric Adelram"), "The quest journal points the player to the next required NPC")
+	var adelram_after: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "adelram")
+	_check(adelram_after.get("clues", []).size() == 1, "Adelram's counsel unlocks only after the summons conversation")
+	var adelram_recorded: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(measure_chains, measure_journal, "adelram", 6200.0)
+	_check(bool(adelram_recorded.get("ok", false)))
+	_check(String(measure_journal.quest_state("aldric_measure_of_oath").get("description", "")).contains("Return to Preceptor Garran Vey"), "The quest journal sends the player back to Garran after counsel")
+	var garran_followup: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "preceptor_garran_vey")
+	_check(garran_followup.get("clues", []).size() == 1, "Garran's service-options clue unlocks after the initial summons and vow")
+	var service_options: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(measure_chains, measure_journal, "preceptor_garran_vey", 6300.0)
+	_check(bool(service_options.get("ok", false)))
+	_check(String(measure_journal.quest_state("aldric_measure_of_oath").get("description", "")).contains("Talk to Aldric"), "The completed investigation points back to Aldric for the final decision")
+
+
+
+func _test_campaign_simulation_persists_companion_state() -> void:
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
+	chains.arc_states["fenn_oakheart"] = {"stewardship":17.0,"independence":-3.0}
+	var restored_chains := CompanionQuestChainState.new()
+	restored_chains.from_dict(chains.to_dict())
+	var relationships := CompanionRelationshipState.new()
+	relationships.adjust("fenn_oakheart", {"trust":7.0,"friendship":4.0}, "test:persistence")
+	var restored_relationships := CompanionRelationshipState.new()
+	restored_relationships.load_dict(relationships.to_dict())
+	var arc: Dictionary = restored_chains.arc_states.get("fenn_oakheart", {})
+	var relationship: Dictionary = restored_relationships.snapshot("fenn_oakheart")
+	_check(is_equal_approx(float(arc.get("stewardship", 0.0)), 17.0), "Companion arc state survives a save round-trip")
+	_check(is_equal_approx(float(relationship.get("trust", 0.0)), 17.0), "Companion trust survives a save round-trip")
+	_check(is_equal_approx(float(relationship.get("friendship", 0.0)), 20.0), "Companion friendship survives a save round-trip")
+
+
+
+func _test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter() -> void:
+	var setup := _prepare_aldric_measure("public_accountability")
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var measure_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_quest(chains, journal, relationships, "aldric_measure_of_oath", party_ids, 3000.0)
+	_check(bool(measure_start.get("ok", false)))
+	chains.apply_prerequisite_choice("aldric_measure_of_oath", "agency", journal, relationships)
+	_add_aldric_measure_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var measure_result: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve(chains, journal, relationships, "aldric_measure_of_oath", "aldric_decides", 3400.0, player)
+	_check(bool(measure_result.get("ok", false)))
+	var offered: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids, player, 50000.0)
+	_check(String(offered.get("quest_id", "")) == "aldric_weight_of_command", "The next Aldric chapter unlocks after The Measure of an Oath and its cooldown")
+	var offered_choices: Array = offered.get("choices", [])
+	_check(not offered_choices.is_empty() and String(offered_choices[0].get("id", "")) == "companion_chain_start")
+	var started: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "aldric_weight_of_command", party_ids, 50000.0)
+	_check(bool(started.get("ok", false)))
+	var adelram_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "adelram")
+	_check(String(adelram_prompt.get("chapter_id", "")) == "aldric_weight_of_command", "Adelram is discoverable as the supporting NPC for the follow-on chapter")
+	_check(String(adelram_prompt.get("body", "")).contains("Red Ford"), "The NPC interaction presents the authored command briefing")
+	var consultation: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "aldric_weight_of_command", "adelram", 51000.0)
+	_check(bool(consultation.get("ok", false)))
+	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids, player, 51000.0)
+	_check(String(reckoning.get("body", "")).contains("I am less certain"), "Aldric's reckoning appears only after the supporting NPC consultation")
+	_check(reckoning.get("choices", []).size() == 4, "All three authored outcomes and companion self-decision are offered")
+	var shared_burden_before := float(chains.arc_states.get("ser_aldric_thorne", {}).get("sharedBurden", 0.0))
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "aldric_weight_of_command", "shared_command", 52000.0)
+	_check(bool(resolution.get("ok", false)))
+	_check(int(resolution.get("xp_reward", 0)) == 350)
+	_check(String(journal.quest_state("aldric_weight_of_command").get("status", "")) == "completed")
+	_check(float(resolution.get("arc_state", {}).get("sharedBurden", -999.0)) > shared_burden_before, "The chapter applies its authored shared-burden development")
+
+
+
+func _test_fenn_follow_on_chapter_routes_elder_nessa_alias() -> void:
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
+	var journal := _new_fenn_journal(chains)
+	var relationships := CompanionRelationshipState.new()
+	_start_fenn(chains, journal, relationships)
+	_add_fenn_required_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var first_result: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "preserve_marsh", journal, relationships, 1400.0, player)
+	_check(bool(first_result.get("ok", false)))
+	var party_ids: Array[String] = ["fenn_oakheart"]
+	var offered: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 50000.0)
+	_check(String(offered.get("quest_id", "")) == "fenn_fire_in_understory", "Fenn's second chapter follows the completed Living Boundary story")
+	var started: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "fenn_fire_in_understory", party_ids, 50000.0)
+	_check(bool(started.get("ok", false)))
+	var nessa_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "elder_nessa_wren_elf_female")
+	_check(String(nessa_prompt.get("chapter_id", "")) == "fenn_fire_in_understory", "Elder Nessa's world actor ID resolves to the chapter's authored NPC ID")
+	var consulted: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_fire_in_understory", "nessa_wren", 51000.0)
+	_check(bool(consulted.get("ok", false)))
+	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 51000.0)
+	_check(String(reckoning.get("body", "")).contains("mosaic burn"), "Fenn's reckoning presents the authored fire-management choices")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_fire_in_understory", "mosaic_burn", 52000.0)
+	_check(bool(resolution.get("ok", false)))
+	_check(int(resolution.get("xp_reward", 0)) == 300)
+
+
+
+func _test_fenn_third_chapter_resolves_through_elder_nessa() -> void:
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
+	var journal := _new_fenn_journal(chains)
+	var relationships := CompanionRelationshipState.new()
+	_start_fenn(chains, journal, relationships)
+	_add_fenn_required_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var first_result: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "preserve_marsh", journal, relationships, 1400.0, player)
+	_check(bool(first_result.get("ok", false)))
+
+	var party_ids: Array[String] = ["fenn_oakheart"]
+	var second_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "fenn_fire_in_understory", party_ids, 50000.0)
+	_check(bool(second_start.get("ok", false)), "Fenn's second chapter can be started after The Living Boundary")
+	var second_consult: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_fire_in_understory", "nessa_wren", 51000.0)
+	_check(bool(second_consult.get("ok", false)))
+	var second_result: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_fire_in_understory", "mosaic_burn", 52000.0)
+	_check(bool(second_result.get("ok", false)))
+
+	var offered: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 100000.0)
+	_check(String(offered.get("quest_id", "")) == "fenn_groves_answer", "The Grove's Answer unlocks after Fire in the Understory and its chapter cooldown")
+	var third_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "fenn_groves_answer", party_ids, 100000.0)
+	_check(bool(third_start.get("ok", false)))
+	var nessa_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "elder_nessa_wren_elf_female")
+	_check(String(nessa_prompt.get("chapter_id", "")) == "fenn_groves_answer", "Elder Nessa remains the supporting actor for Fenn's final chapter")
+	_check(String(nessa_prompt.get("body", "")).contains("Nessa offers no hidden oath") and String(nessa_prompt.get("body", "")).contains("Ask Nessa what becoming a voice of the grove would require"), "Nessa presents the authored supporting-character dialogue and invitation prompt")
+	var third_consult: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_groves_answer", "nessa_wren", 101000.0)
+	_check(bool(third_consult.get("ok", false)))
+	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 101000.0)
+	_check(String(reckoning.get("body", "")).contains("Going back would be easier now"), "Fenn's final reckoning is gated on Nessa's consultation")
+	_check(reckoning.get("choices", []).size() == 4, "The final chapter offers three authored outcomes and Fenn's own decision")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_groves_answer", "changed_charter", 102000.0)
+	_check(bool(resolution.get("ok", false)))
+	_check(int(resolution.get("xp_reward", 0)) == 350)
+	_check(String(resolution.get("effective_resolution", "")) == "changed_charter")
+	_check(float(resolution.get("arc_state", {}).get("independence", -999.0)) > 0.0, "The final chapter applies its authored independence arc consequence")
+	_check(String(journal.quest_state("fenn_groves_answer").get("status", "")) == "completed")

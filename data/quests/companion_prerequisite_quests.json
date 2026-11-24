@@ -1,6 +1,6 @@
 {
-  "source": "Hex-crpg/fennLivingBoundary.js; Hex-crpg/aldricBrokenVigil.js",
-  "source_build": "20260930-fenn-living-boundary-v1 + 20260930-aldric-broken-vigil-v2",
+  "source": "Hex-crpg/fennLivingBoundary.js; Hex-crpg/aldricBrokenVigil.js; Hex-crpg/aldricMeasureOfOath.js",
+  "source_build": "20260930-fenn-living-boundary-v1 + 20260930-aldric-broken-vigil-v2 + 20260930-aldric-measure-of-oath-v1",
   "quests": [
     {
       "id": "fenn_living_boundary",
@@ -245,6 +245,9 @@
             "insight",
             "ironbond_standing_20",
             "stealth"
+          ],
+          "also_add_clues": [
+            "company_roster"
           ]
         }
       },
@@ -347,7 +350,277 @@
         }
       },
       "xp": 240,
-      "full_proof_xp_bonus": 60
+      "full_proof_xp_bonus": 60,
+      "ready_description": "You know why Ironbond abandoned Aldric’s position. Talk to Aldric about what should happen next."
+    },
+    {
+      "id": "aldric_measure_of_oath",
+      "title": "The Measure of an Oath",
+      "companion": "Ser Aldric Thorne",
+      "companion_id": "ser_aldric_thorne",
+      "chapter": 2,
+      "previous": "aldric_broken_vigil",
+      "xp": 300,
+      "description": "Aldric has been summoned by the Order of the Silver Vigil to take permanent charge of Saint Orra’s road hospice. Hear the Order’s claim and decide what his old obedience vow requires now.",
+      "opening": "Aldric holds out a letter with the seal already broken. “The Silver Vigil has summoned me to Saint Orra’s Hospice. Permanent wardenship.” He rubs his thumb across the Order’s mark. “It is not punishment. The border war emptied two posts and the road is worse than it was.”\n\nHe looks uncomfortable in a way Ironbond never managed. “When I took the Vigil’s vows, I promised to serve where lawfully sent. I meant it.”",
+      "opening_choices": [
+        {
+          "id": "discern_first",
+          "label": "“Then we hear the Order out before deciding what the promise requires.”",
+          "arc": {
+            "discernment": 4,
+            "sharedBurden": 2
+          },
+          "relationship": {
+            "approval": 3,
+            "trust": 4,
+            "familiarity": 3
+          },
+          "affinity": {
+            "friendship": 3,
+            "romanticBond": 1
+          },
+          "reason": "treated Aldric’s vow as a real obligation rather than a nuisance"
+        },
+        {
+          "id": "agency",
+          "label": "“Whatever you choose, it should be your choice rather than mine or theirs.”",
+          "arc": {
+            "discernment": 3,
+            "sharedBurden": 5
+          },
+          "relationship": {
+            "approval": 3,
+            "trust": 6,
+            "familiarity": 3
+          },
+          "affinity": {
+            "friendship": 4,
+            "romanticBond": 2
+          },
+          "reason": "made clear Aldric would not be coerced from either side"
+        }
+      ],
+      "arc_seed_by_previous_resolution": {
+        "public_accountability": {
+          "discernment": 10,
+          "sharedBurden": 5
+        },
+        "spare_patrol": {
+          "discernment": 12,
+          "sharedBurden": 10
+        },
+        "private_closure": {
+          "discernment": 5,
+          "sharedBurden": 3
+        },
+        "buried_for_money": {
+          "discernment": -6,
+          "sharedBurden": -5
+        }
+      },
+      "arc_initial": {
+        "discernment": -15,
+        "sharedBurden": -20
+      },
+      "clues": {
+        "hospice_need": {
+          "label": "Saint Orra’s Hospice genuinely needs a warden",
+          "text": "Border fighting has left Saint Orra’s road hospice short of experienced healers and protectors. The Order is not punishing Aldric or trying to remove him from the party; it wants a proven fighter-cleric to take permanent charge.",
+          "actor_id": "preceptor_garran_vey",
+          "speaker": "Preceptor Garran Vey",
+          "dialogue": "Garran Vey greets Aldric with genuine warmth before getting to business. “Saint Orra’s lost its senior healer to the Northwatch levy and its warden to a fever. Caravans still come. Wounded still come. Bandits know exactly how thin the road is.”",
+          "response": "And you invoke my obedience vow?"
+        },
+        "obedience_vow": {
+          "label": "Aldric really did promise to serve where the Order sends him",
+          "text": "Aldric’s initiation vow includes obedience to lawful assignments of the Silver Vigil. The summons is within the ordinary meaning of the promise he made.",
+          "actor_id": "preceptor_garran_vey",
+          "speaker": "Preceptor Garran Vey",
+          "dialogue": "Aldric asks the question directly. “And you invoke my obedience vow?”\n\n“I do,” Garran says. “Not as a threat. As a promise you made to go where the Vigil most needs you.”",
+          "response": "We understand the summons."
+        },
+        "adelram_counsel": {
+          "label": "A vow can be amended openly without pretending it never mattered",
+          "text": "High Cleric Adelram distinguishes breaking a promise for convenience from asking the other party to amend or release it. A vow can remain morally serious without becoming permanent ownership of the person who made it.",
+          "actor_id": "adelram",
+          "speaker": "High Cleric Adelram",
+          "dialogue": "Adelram listens without interrupting. “A vow is not serious because it is impossible to change. Marriage vows can be released. Monastic vows can be dispensed. Offices can be resigned. What makes the promise serious is that you do not quietly declare yourself free the moment it becomes inconvenient.”\n\nAldric frowns. “So asking release is not breaking it?”\n\n“It is asking the other party whether the form of your duty still serves the thing you promised yourself to.” Adelram glances at you. “And asking others to share a burden is not the same as abandoning it.”",
+          "response": "That is clearer than I expected from a priest.",
+          "requires_clues": [
+            "obedience_vow"
+          ]
+        },
+        "service_options": {
+          "label": "The hospice needs continuity more than Aldric specifically",
+          "text": "Garran admits the practical need can be met by a bounded rotation plus training local healers. Permanent wardenship is the Order’s preferred answer, not the only answer consistent with the hospice’s needs.",
+          "actor_id": "preceptor_garran_vey",
+          "speaker": "Preceptor Garran Vey",
+          "dialogue": "Garran considers the question instead of taking offence. “A permanent warden is cleanest. It is not the only way. Aldric could serve a fixed rotation while training two local healers and a road sergeant. And if he believes his life has genuinely moved beyond ordinary assignment, he can petition release from that part of the vow. Openly. I may dislike the answer; I will not pretend our own rule does not allow it.”",
+          "response": "So this is a choice, not a trap.",
+          "requires_clues": [
+            "hospice_need",
+            "obedience_vow"
+          ]
+        }
+      },
+      "required_clues": [
+        "hospice_need",
+        "obedience_vow",
+        "adelram_counsel",
+        "service_options"
+      ],
+      "resolutions": {
+        "literal_return": {
+          "label": "“You promised to go where sent. Keep the vow as you made it, and take the hospice when the present crisis is over.”",
+          "arc": {
+            "discernment": -12,
+            "sharedBurden": -8
+          },
+          "relationship": {
+            "approval": 5,
+            "trust": 3,
+            "familiarity": 4
+          },
+          "affinity": {
+            "friendship": 3,
+            "romanticBond": 1
+          },
+          "reason": "affirmed Aldric’s original obedience vow in its most literal form",
+          "line": "Aldric accepts the summons as written. He intends to take permanent wardenship of Saint Orra’s Hospice when the present border crisis is concluded.",
+          "flags": {
+            "future_wardenship": true
+          },
+          "description": "Aldric reaffirmed the original obedience vow. When the present border crisis is concluded, he intends to take permanent wardenship of Saint Orra’s Hospice."
+        },
+        "bounded_service": {
+          "label": "“Keep the duty, not necessarily the original shape. Take a rotation and train people who can carry it with you.”",
+          "arc": {
+            "discernment": 18,
+            "sharedBurden": 20
+          },
+          "relationship": {
+            "approval": 9,
+            "trust": 11,
+            "familiarity": 5
+          },
+          "affinity": {
+            "friendship": 7,
+            "romanticBond": 3
+          },
+          "reason": "helped Aldric keep the purpose of his vow while openly sharing and reshaping the burden",
+          "line": "The Silver Vigil accepts an amended service: Aldric will serve a fixed hospice rotation and train local healers and guards, sharing the burden instead of treating permanent self-sacrifice as the only faithful answer.",
+          "flags": {
+            "vow_amended": true
+          },
+          "description": "The Silver Vigil accepted an amended service: Aldric will serve a fixed hospice rotation and train local healers and guards, sharing the burden instead of treating permanent self-sacrifice as the only faithful answer."
+        },
+        "formal_release": {
+          "label": "“Your life has changed. Ask openly to be released from the assignment clause, and keep the vows that still belong to you.”",
+          "arc": {
+            "discernment": 22,
+            "sharedBurden": 8
+          },
+          "relationship": {
+            "approval": 4,
+            "trust": 10,
+            "familiarity": 6
+          },
+          "affinity": {
+            "friendship": 6,
+            "romanticBond": 3
+          },
+          "reason": "supported Aldric in openly seeking release from an obedience promise whose context had changed",
+          "line": "Aldric openly petitions release from the Vigil’s assignment-obedience clause. The Order releases him while his broader vows of faith and service remain his own.",
+          "flags": {
+            "formally_released": true
+          },
+          "description": "Aldric openly petitioned release from the Vigil’s assignment-obedience clause. The Order released him while his broader vows of faith and service remain his own."
+        },
+        "aldric_decides": {
+          "label": "“It is your vow. You decide what keeping it means, and I will not make the choice for you.”",
+          "arc": {
+            "discernment": 8,
+            "sharedBurden": 12
+          },
+          "relationship": {
+            "approval": 7,
+            "trust": 13,
+            "familiarity": 6
+          },
+          "affinity": {
+            "friendship": 8,
+            "romanticBond": 4
+          },
+          "reason": "refused to turn Aldric’s vow into another decision made for him",
+          "line": "Aldric makes his own decision about the vow.",
+          "companion_decision": {
+            "trait_any_gte_zero": [
+              "discernment",
+              "sharedBurden"
+            ],
+            "if_true": "bounded_service",
+            "if_false": "literal_return"
+          },
+          "description": "Aldric decided what his own vow required, without letting the player or the Order make the choice for him."
+        },
+        "walk_away": {
+          "label": "“Just refuse. You owe the Order nothing after everything you’ve been through.”",
+          "arc": {
+            "discernment": -6,
+            "sharedBurden": -6
+          },
+          "relationship": {
+            "approval": -12,
+            "trust": -10,
+            "familiarity": 4
+          },
+          "affinity": {
+            "friendship": -7,
+            "romanticBond": -5
+          },
+          "reason": "urged Aldric to ignore a real promise without release, amendment, or honest accounting",
+          "line": "Aldric refuses the summons without asking release or amendment. He remains with the party, but the unresolved promise sits badly with him.",
+          "flags": {
+            "unresolved_breach": true
+          },
+          "description": "Aldric refused the summons without asking release or amendment. He remains with the party, but the unresolved promise sits badly with him."
+        }
+      },
+      "stage_rules": [
+        {
+          "stage": "reckoning",
+          "required_clues": [
+            "hospice_need",
+            "obedience_vow",
+            "adelram_counsel",
+            "service_options"
+          ],
+          "description": "Aldric now knows the Order’s need is real, his old vow genuinely applies, and an honest amendment is possible. Talk to Aldric about what he chooses to promise now."
+        },
+        {
+          "stage": "return_to_preceptor",
+          "required_clues": [
+            "hospice_need",
+            "obedience_vow",
+            "adelram_counsel"
+          ],
+          "description": "Adelram has explained how a vow can be amended honestly. Return to Preceptor Garran Vey and ask whether the hospice needs Aldric permanently or needs a durable plan."
+        },
+        {
+          "stage": "seek_counsel",
+          "required_clues": [
+            "hospice_need",
+            "obedience_vow"
+          ],
+          "description": "The summons is legitimate and Aldric’s obedience vow applies. Speak with High Cleric Adelram about whether keeping a vow always means keeping its original form."
+        },
+        {
+          "stage": "hear_order",
+          "required_clues": [],
+          "description": "Speak with Preceptor Garran Vey at the Grand Cathedral and understand exactly what the Silver Vigil is asking of Aldric."
+        }
+      ]
     }
   ]
 }
