@@ -236,18 +236,34 @@ static func record_exchange(
 	var second_id := String(exchange.get("second_id", ""))
 	if first_id.is_empty() or second_id.is_empty() or first_id == second_id:
 		return {"ok": false, "reason": "invalid_pair"}
+	var first_changes := {"familiarity": 1.0, "trust": 0.5, "friendship": 0.5}
+	var second_changes := {"familiarity": 1.0, "trust": 0.5, "friendship": 1.0}
+	var social_gain := 2.0
+	if String(exchange.get("kind", "")) == "campaign_memory":
+		var agreement := String(exchange.get("campaign_memory", {}).get("agreement", "neutral"))
+		social_gain = 1.0
+		match agreement:
+			"support":
+				first_changes = {"familiarity": 0.5, "trust": 0.5, "friendship": 0.5}
+				second_changes = {"familiarity": 0.5, "trust": 0.5, "friendship": 0.5}
+			"disagree":
+				# Honest disagreement can build trust without pretending the
+				# companions suddenly agree or become close friends.
+				first_changes = {"familiarity": 0.5, "trust": 0.25}
+				second_changes = {"familiarity": 0.5, "trust": 0.5}
+			_:
+				first_changes = {"familiarity": 0.5}
+				second_changes = {"familiarity": 0.5}
 	var first_result := bonds.record_interaction(
-		first_id, second_id, "camp_conversation",
-		{"familiarity": 1.0, "trust": 0.5, "friendship": 0.5}, event_key + ":first"
+		first_id, second_id, "camp_conversation", first_changes, event_key + ":first"
 	)
 	var second_result := bonds.record_interaction(
-		second_id, first_id, "camp_conversation",
-		{"familiarity": 1.0, "trust": 0.5, "friendship": 1.0}, event_key + ":second"
+		second_id, first_id, "camp_conversation", second_changes, event_key + ":second"
 	)
 	var changed := bool(first_result.get("changed", false)) or bool(second_result.get("changed", false))
 	if changed:
-		camp.record_social_interaction(first_id, 2.0)
-		camp.record_social_interaction(second_id, 2.0)
+		camp.record_social_interaction(first_id, social_gain)
+		camp.record_social_interaction(second_id, social_gain)
 	return {
 		"ok": true,
 		"changed": changed,
