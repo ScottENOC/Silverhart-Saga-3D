@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_activity_planning_and_player_override()
 	_test_tent_capacity_and_relationship_matching()
 	_test_night_resolution_and_save_load()
+	_test_world_simulation_integration()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
 		quit(1)
@@ -95,3 +96,24 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(float(result.summary.characters.player.comfort) > 0.0)
 	_check(String(restored.phase) == "resolved")
 	_check(not bool(restored.resolve_night().ok), "A resolved camp cannot resolve twice")
+
+
+
+func _test_world_simulation_integration() -> void:
+	var world := WorldSimulation.new()
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	var companion := CharacterState.new("wren", "Wren", Vector2i(1, 0))
+	companion.side = "player"
+	world.register_character(player)
+	world.register_character(companion)
+	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
+	_check(bool(started.ok), "World simulation should start camp with the current party")
+	world.companion_bonds.set_relationship("wren", "player", {"friendship": 30})
+	var saved := world.to_dict()
+	var restored := WorldSimulation.new()
+	restored.load_dict(saved)
+	_check(String(restored.camp_simulation.phase) == "evening", "Camp state should be part of the world save")
+	_check(float(restored.companion_bonds.snapshot("wren", "player").friendship) == 30.0, "Companion bonds should be part of the world save")
+	var morning := restored.skip_camp_to_morning(6.0)
+	_check(bool(morning.ok), "The world simulation should resolve the camp night")
+	_check(is_equal_approx(restored.clock.world_seconds, 6.0 * WorldClock.SECONDS_PER_HOUR), "Skipping camp should advance the authoritative world clock")
