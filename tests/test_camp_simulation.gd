@@ -76,6 +76,12 @@ func _test_tent_capacity_and_relationship_matching() -> void:
 	var crowded := camp.plan_sleeping_arrangements(1, bonds)
 	_check((crowded[0].character_ids as Array).size() == 5)
 	_check(int(crowded[0].comfort_penalty) == 20)
+	var spacious := CampSimulation.new()
+	spacious.begin_camp({"walkable": true}, ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"], {}, {"tents": 4})
+	var comfortable_groups := spacious.plan_sleeping_arrangements(4, bonds)
+	_check(comfortable_groups.size() == 4)
+	for group in comfortable_groups:
+		_check((group.character_ids as Array).size() <= 3, "Available tents should be used to avoid unnecessary crowding")
 
 
 func _test_night_resolution_and_save_load() -> void:
