@@ -261,6 +261,11 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 	quest_state["chapter_stage"] = "investigation"
 	quest_state["resolution"] = ""
 	quest_state["description"] = String(definition.get("description", ""))
+	var initial_stage_rules: Array = definition.get("stage_rules", [])
+	if not initial_stage_rules.is_empty():
+		var initial_rule: Dictionary = initial_stage_rules[initial_stage_rules.size() - 1]
+		quest_state["chapter_stage"] = String(initial_rule.get("stage", "investigation"))
+		quest_state["description"] = String(initial_rule.get("description", quest_state["description"]))
 	journal.quests[quest_id] = quest_state
 	if quest_id == "aldric_broken_vigil":
 		var aldric_state: Dictionary = companion_relationships.ensure(companion_id)
