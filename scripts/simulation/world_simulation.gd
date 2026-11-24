@@ -1574,16 +1574,18 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
         state.spell_effects[index] = effect
 
 
-func claim_dwelling(action_id: String, payment: String = "materials", site_id: String = "") -> Dictionary:
+func claim_dwelling(action_id: String, payment: String = "materials", site_id: String = "", actor_id: String = "") -> Dictionary:
     var player := get_character(player_character_id)
-    if player == null or not campaign_dwellings.is_at_site(site_id, player.axial):
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null or not campaign_dwellings.is_at_site(site_id, actor.axial):
         return {"ok": false, "reason": "not_at_dwelling_site", "required_site": site_id}
     return campaign_dwellings.complete_action(action_id, campaign_journal, player, payment, site_id)
 
 
-func dwelling_action_availability(action_id: String, payment: String = "materials", site_id: String = "") -> Dictionary:
+func dwelling_action_availability(action_id: String, payment: String = "materials", site_id: String = "", actor_id: String = "") -> Dictionary:
     var player := get_character(player_character_id)
-    if player == null or not campaign_dwellings.is_at_site(site_id, player.axial):
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null or not campaign_dwellings.is_at_site(site_id, actor.axial):
         return {"ok": false, "reason": "not_at_dwelling_site", "required_site": site_id}
     return campaign_dwellings.evaluate_action(action_id, campaign_journal, player, payment, site_id)
 
