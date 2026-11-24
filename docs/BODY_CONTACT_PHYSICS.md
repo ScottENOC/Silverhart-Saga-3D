@@ -16,7 +16,7 @@ These stiffness, damping, effective-mass and maximum-compression values are game
 4. Read get_compression_m(region_id) and feed it to a model-specific deformation adapter.
 5. Stop submitting force when contact ends; the spring returns to rest.
 
-Multiple contact sources can contribute in the same tick. BodyPressureContact.calculate_force_n() converts detected penetration and closing speed into a capped compressive force. BodyPressureContact.submit_contact() sends that force to a registered canonical region. AraCharacterActor.apply_body_contact() exposes the same bridge. Collision detection and selection of the canonical region ID remain the contact producer's responsibility.
+Multiple contact sources can contribute in the same tick. BodyPressureContact.calculate_force_n() converts detected penetration and closing speed into a capped compressive force. BodyPressureContact.submit_contact() sends that force to a registered canonical region. AraCharacterActor.apply_body_contact() exposes the same bridge. Triangle-hit region resolution is now available through CharacterSurfaceRegions.get_authored_triangle_region_weights(): it barycentrically interpolates every independently authored channel across the hit triangle, preserving overlap. BodyPressureContact.submit_surface_contact() weights the contact force by each interpolated membership and submits it to the matching region spring. The collision producer still has to resolve its hit to the exact mesh surface and three source vertex indices; the repository does not yet contain a universal collider-to-source-triangle adapter.
 
 ## Runtime deformation adapter
 
@@ -24,7 +24,7 @@ BodyPressureController connects named regions to explicitly authored blend shape
 
 ## Remaining integration stages
 
-- Integrate the pressure controller with evaluated CharacterSurfaceRegions samples so a contact point can resolve to one or more overlapping canonical IDs.
+- Add a universal collider-hit adapter that maps engine collision results to the exact source mesh surface, triangle vertex indices and barycentric coordinates.
 - Add actual collision probes and region-selection data for hands, garments and character-to-character contact.
 - Author and visually inspect localised pressure deformation on the actual Wren/Aldric meshes.
 - Add a debug test scene with adjustable contact force, region profile and recovery.
