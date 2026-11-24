@@ -166,3 +166,106 @@ def make_material(name, colour, source):
     material["stretch"] = "moderate (construction intent; not simulated by static GLB)"
     return material
 
+def main():
+    args = parse_args()
+    input_path = Path(args.input)
+    field_path = Path(args.field_json)
+    output_path = Path(args.output)
+    if not input_path.is_file() or not field_path.is_file():
+        raise FileNotFoundError(input_path if not input_path.is_file() else field_path)
+
+    print('BRIEFS_BUILD_STAGE import_glb', flush=True)
+    import_glb(input_path)
+    print('BRIEFS_BUILD_STAGE find_body', flush=True)
+    body = find_body(args.body_object)
+    mesh = body.data
+    field_doc = json.loads(field_path.read_text())
+    field_values = field_doc.get("field_values") if isinstance(field_doc, dict) else field_doc
+    if not isinstance(field_values, list):
+        raise ValueError("field JSON must be an array or an object containing field_values")
+    if len(field_values) != len(mesh.vertices):
+        raise ValueError(f"coverage field has {len(field_values)} values; body has {len(mesh.vertices)} vertices")
+
+    vertices = [tuple(v.co) for v in mesh.vertices]
+    normals = [tuple(v.normal) for v in mesh.vertices]
+    faces = [tuple(poly.vertices) for poly in mesh.polygons
+             if poly.material_index < len(mesh.materials)
+             and mesh.materials[poly.material_index]
+             and mesh.materials[poly.material_index].name == args.source_material]
+    if not faces:
+        raise RuntimeError(f"No body faces use source material {args.source_material!r}")
+    print(f'BRIEFS_BUILD_STAGE build_shell vertices={len(vertices)} faces={len(faces)}', flush=True)
+    shell = build_shell(vertices, normals, faces, field_values, args.offset_m, args.hem_depth_m)
+    print(f'BRIEFS_BUILD_STAGE shell_complete vertices={len(shell.positions)} faces={len(shell.faces)}', flush=True)
+
+    garment_mesh = bpy.data.meshes.new(args.material_name + "Mesh")
+    garment_mesh.from_pydata(shell.positions, [], shell.faces)
+    garment_mesh.update()
+    garment = bpy.data.objects.new(args.material_name, garment_mesh)
+    bpy.context.collection.objects.link(garment)
+    garment.parent = body.parent
+    garment.matrix_world = body.matrix_world.copy()
+    source_material = next((m for m in mesh.materials if m and "skin" in m.name.lower()), None)
+    garment_mesh.materials.append(make_material(args.material_name, args.colour, source_material))
+
+    print('BRIEFS_BUILD_STAGE copy_skinning', flush=True)
+    copy_skinning(body, garment, shell)
+    print('BRIEFS_BUILD_STAGE copy_shape_keys', flush=True)
+    copy_shape_keys(body, garment, shell)
+
+    # Keep the exported garment attached to the same armature, but omit the body.
+    armatures = [m.object for m in body.modifiers if m.type == "ARMATURE" and m.object]
+    bpy.ops.object.select_all(action="DESELECT")
+    garment.select_set(True)
+    for armature in armatures:
+        armature.select_set(True)
+    bpy.context.view_layer.objects.active = garment
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    print('BRIEFS_BUILD_STAGE export_garment', flush=True)
+    bpy.ops.export_scene.gltf(filepath=str(output_path), export_format="GLB",
+                              use_selection=True, export_apply=False,
+                              export_skins=True, export_morph=True)
+    if args.review_output:
+        review_path = Path(args.review_output)
+        review_path.parent.mkdir(parents=True, exist_ok=True)
+        bpy.ops.object.select_all(action="DESELECT")
+        body.select_set(True)
+        garment.select_set(True)
+        for armature in armatures:
+            armature.select_set(True)
+        bpy.context.view_layer.objects.active = body
+        print('BRIEFS_BUILD_STAGE export_review', flush=True)
+        bpy.ops.export_scene.gltf(filepath=str(review_path), export_format="GLB",
+                                  use_selection=True, export_apply=False,
+                                  export_skins=True, export_morph=True)
+    report = {
+        "body_object": body.name,
+        "body_vertices": len(mesh.vertices),
+        "source_material": args.source_material,
+        "source_faces": len(faces),
+        "coverage_vertices": sum(1 for value in field_values if value >= 0),
+        "garment_vertices": len(shell.positions),
+        "surface_faces": shell.surface_face_count,
+        "rim_faces": shell.rim_face_count,
+        "boundary_edges": len(shell.boundary_edges),
+        "shape_keys": len(mesh.shape_keys.key_blocks) - 1 if mesh.shape_keys else 0,
+        "skin_groups": len(body.vertex_groups),
+        "output": str(output_path),
+        "review_output": str(Path(args.review_output)) if args.review_output else None,
+        "fabric_profile": args.fabric_profile,
+        "opacity": "opaque",
+        "stretch": "moderate (construction intent; not simulated by static GLB)",
+    }
+    report_path = output_path.with_suffix(".report.json")
+    report_path.write_text(json.dumps(report, indent=2) + "\n")
+    print("BODY_DERIVED_GARMENT " + json.dumps(report), flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except BaseException:
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        raise
