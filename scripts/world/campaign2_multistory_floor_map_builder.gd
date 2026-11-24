@@ -27,6 +27,29 @@ static func build_floor_map(
 			return {"ok": false, "reason": "invalid_corridor_definition"}
 		_add_corridor(corridor_variant, floor_cells, wall_cells)
 
+	# Some source interiors are authored as irregular cell masks rather than
+	# rectangles/corridors (for example, the hexagonal fort keeps). Preserve
+	# those masks directly instead of approximating them with room bounds.
+	var explicit_floor_hexes: Variant = floor_definition.get("floor_hexes", [])
+	if not explicit_floor_hexes is Array:
+		return {"ok": false, "reason": "invalid_explicit_floor_hexes"}
+	for hex_variant in explicit_floor_hexes:
+		var hex := _position_from(hex_variant)
+		if not _is_valid_position(hex):
+			return {"ok": false, "reason": "invalid_explicit_floor_hex"}
+		floor_cells[hex] = true
+		wall_cells.erase(hex)
+
+	var explicit_wall_hexes: Variant = floor_definition.get("wall_hexes", [])
+	if not explicit_wall_hexes is Array:
+		return {"ok": false, "reason": "invalid_explicit_wall_hexes"}
+	for hex_variant in explicit_wall_hexes:
+		var hex := _position_from(hex_variant)
+		if not _is_valid_position(hex):
+			return {"ok": false, "reason": "invalid_explicit_wall_hex"}
+		if not floor_cells.has(hex):
+			wall_cells[hex] = true
+
 	var tile_objects: Array[Dictionary] = []
 	for object_variant in floor_definition.get("tile_objects", []):
 		if not object_variant is Dictionary:
