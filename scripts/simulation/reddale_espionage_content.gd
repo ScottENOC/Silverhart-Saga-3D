@@ -95,8 +95,8 @@ static func complete(journal: CampaignJournal, quest_id: String, player: Charact
 		]
 	else:
 		faction_changes = [
-			{"faction_id":employer, "standing_delta":15.0 if is_guild else -20.0, "knowledge_delta":15.0},
-			{"faction_id":target, "standing_delta":-20.0 if is_guild else 15.0, "knowledge_delta":20.0}
+			{"faction_id":employer, "standing_delta":15.0, "knowledge_delta":15.0},
+			{"faction_id":target, "standing_delta":-20.0, "knowledge_delta":20.0}
 		]
 		influence_changes = [{"faction_id":IRONBOND, "kingdom_id":KINGDOM, "amount":-10.0 if is_guild else 10.0}]
 	var choice_id := "double_agent_success" if double_agent else "evidence_delivered"
