@@ -158,6 +158,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_building_factory.gd
       - name: Run reusable wall feature factory tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wall_feature_factory.gd
+      - name: Run Silverhart city wall and gate tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_city_wall_gate.gd
       - name: Run border fort presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_border_fort_presentation.gd
       - name: Run Ashveil dragon lair presentation tests
