@@ -22,6 +22,9 @@ var _running: bool = false
 func configure(world_simulation: WorldSimulation, actor_lookup: Callable = Callable()) -> void:
 	simulation = world_simulation
 	_actor_lookup = actor_lookup
+	var assignment_callback := Callable(self, "_on_activity_assigned")
+	if not simulation.camp_simulation.activity_assigned.is_connected(assignment_callback):
+		simulation.camp_simulation.activity_assigned.connect(assignment_callback)
 
 
 func begin_camp(site: Dictionary) -> void:
@@ -158,3 +161,23 @@ func _play_assigned_activity(character_id: String) -> void:
 	if actor == null or not is_instance_valid(actor) or not actor.has_method("play_camp_activity"):
 		return
 	actor.call("play_camp_activity", String(_activity_by_character.get(character_id, "socialise")))
+
+
+func _on_activity_assigned(character_id: String, activity: String) -> void:
+	if not _running or character_id == simulation.player_character_id:
+		return
+	if not _destination_by_character.has(character_id):
+		return
+	var state := simulation.get_character(character_id)
+	if state == null or not state.alive:
+		return
+	var reserved: Dictionary = {}
+	for other_id_value in _destination_by_character:
+		var other_id := String(other_id_value)
+		if other_id != character_id:
+			reserved[_destination_by_character[other_id_value]] = true
+	var target := _choose_station(activity, reserved, character_id)
+	if target == INVALID_HEX:
+		return
+	_destination_by_character[character_id] = target
+	_activity_by_character[character_id] = activity
