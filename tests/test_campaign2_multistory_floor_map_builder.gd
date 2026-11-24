@@ -175,6 +175,136 @@ func _initialize() -> void:
 	_check(_has_object(revealed.get("tile_objects", []), "transition_-4_-5"), "The quest must add the stair-down object to the Lower Tunnels")
 	_check((revealed.get("map_data") as HexMapData).is_walkable(Vector2i(890, -605)), "The revealed stair hex must be walkable")
 
+	var emberlode_building_registry := REGISTRY.new()
+	var emberlode_building_entrances := {
+		"emberlode_bunkhouse": Vector2i(-252, 26),
+		"emberlode_foremans_hall": Vector2i(-253, 22)
+	}
+	for location_id in emberlode_building_entrances:
+		var emberlode_building_definition: Dictionary = emberlode_building_registry.get_definition(location_id)
+		var emberlode_building_state = LOCATION_STATE.new()
+		_check(bool(emberlode_building_state.configure(emberlode_building_definition).get("ok", false)), "Emberlode building state must configure: " + location_id)
+		var emberlode_building_result: Dictionary = FLOOR_BUILDER.build_floor_map(emberlode_building_definition, 0, emberlode_building_state)
+		_check(bool(emberlode_building_result.get("ok", false)), "Emberlode building floor must build: " + location_id)
+		if not bool(emberlode_building_result.get("ok", false)):
+			continue
+		var emberlode_building_map: HexMapData = emberlode_building_result.get("map_data") as HexMapData
+		_check(emberlode_building_map.is_walkable(emberlode_building_entrances[location_id]), "Emberlode building entrance must be walkable: " + location_id)
+		for emberlode_building_object in emberlode_building_result.get("tile_objects", []):
+			var emberlode_building_position: Dictionary = emberlode_building_object.get("position", {})
+			var emberlode_building_hex := Vector2i(int(emberlode_building_position.get("q", 0)), int(emberlode_building_position.get("r", 0)))
+			_check(emberlode_building_map.is_walkable(emberlode_building_hex), "Emberlode building fixture must be walkable: " + String(emberlode_building_object.get("id", "")))
+		if location_id == "emberlode_foremans_hall":
+			_check(_has_object(emberlode_building_result.get("tile_objects", []), "emberlode_foremans_hall_fireplace"), "Foreman's Hall must retain its source fireplace")
+
+	var abandoned_house_registry := REGISTRY.new()
+	var abandoned_house_definition: Dictionary = abandoned_house_registry.get_definition("abandoned_house")
+	var abandoned_house_state = LOCATION_STATE.new()
+	_check(bool(abandoned_house_state.configure(abandoned_house_definition).get("ok", false)), "Abandoned House traversal state must configure")
+	var abandoned_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(abandoned_house_definition, 0, abandoned_house_state)
+	_check(bool(abandoned_house_result.get("ok", false)), "Abandoned House floor must build")
+	var abandoned_house_map: HexMapData = abandoned_house_result.get("map_data") as HexMapData
+	_check(abandoned_house_map != null and not abandoned_house_map.cells.is_empty(), "Abandoned House must produce a walkable source floor")
+	_check(abandoned_house_map.is_walkable(Vector2i(11, -176)), "Abandoned House west entrance must be walkable")
+	_check(_has_object(abandoned_house_result.get("tile_objects", []), "abandoned_house_journal"), "Abandoned House journal must be present in the built floor map")
+	_check(_has_object(abandoned_house_result.get("tile_objects", []), "phylactery_altar"), "Phylactery altar must be present in the built floor map")
+
+	var guild_den_registry := REGISTRY.new()
+	var guild_den_definition: Dictionary = guild_den_registry.get_definition("hollowmere_guild_den")
+	var guild_den_state = LOCATION_STATE.new()
+	_check(bool(guild_den_state.configure(guild_den_definition).get("ok", false)), "Hollowmere Guild Den traversal state must configure")
+	var guild_den_result: Dictionary = FLOOR_BUILDER.build_floor_map(guild_den_definition, 0, guild_den_state)
+	_check(bool(guild_den_result.get("ok", false)), "Hollowmere Guild Den floor must build")
+	var guild_den_map: HexMapData = guild_den_result.get("map_data") as HexMapData
+	_check(guild_den_map != null and not guild_den_map.cells.is_empty(), "Guild Den must produce a walkable source floor")
+	_check(guild_den_map.is_walkable(Vector2i(-12, -6)), "Guild Den south entrance must be walkable")
+	_check(_has_object(guild_den_result.get("tile_objects", []), "hollowmere_guild_den_door"), "Guild Den entrance must be presented as a door")
+
+	var millbrook_registry := REGISTRY.new()
+	var millbrook_definition: Dictionary = millbrook_registry.get_definition("millbrook_house")
+	var millbrook_state = LOCATION_STATE.new()
+	_check(bool(millbrook_state.configure(millbrook_definition).get("ok", false)), "Millbrook house traversal state must configure")
+	var millbrook_result: Dictionary = FLOOR_BUILDER.build_floor_map(millbrook_definition, 0, millbrook_state)
+	_check(bool(millbrook_result.get("ok", false)), "Millbrook house floor must build")
+	var millbrook_map: HexMapData = millbrook_result.get("map_data") as HexMapData
+	_check(millbrook_map != null and not millbrook_map.cells.is_empty(), "Millbrook house must produce a walkable source floor")
+	_check(millbrook_map.is_walkable(Vector2i(4, -366)), "Millbrook house east entrance must be walkable")
+	_check(_has_object(millbrook_result.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house fireplace must be presented")
+
+	var farmhouse_registry := REGISTRY.new()
+	var farmhouse_definition: Dictionary = farmhouse_registry.get_definition("old_mac_farmhouse")
+	var farmhouse_state = LOCATION_STATE.new()
+	_check(bool(farmhouse_state.configure(farmhouse_definition).get("ok", false)), "Old Mac's farmhouse state must configure")
+	var farmhouse_result: Dictionary = FLOOR_BUILDER.build_floor_map(farmhouse_definition, 0, farmhouse_state)
+	_check(bool(farmhouse_result.get("ok", false)), "Old Mac's farmhouse floor must build")
+	var farmhouse_map: HexMapData = farmhouse_result.get("map_data") as HexMapData
+	_check(farmhouse_map != null and not farmhouse_map.cells.is_empty(), "Farmhouse must produce a walkable source floor")
+	_check(farmhouse_map.is_walkable(Vector2i(3, 194)), "Farmhouse east entrance must be walkable")
+
+	var hollowmere_building_registry := REGISTRY.new()
+	var hollowmere_building_entrances := {
+		"hollowmere_chapel": Vector2i(-11, 0),
+		"hollowmere_general_store": Vector2i(0, 15),
+		"hollowmere_house": Vector2i(0, -10),
+		"hollowmere_store": Vector2i(10, 0),
+		"hollowmere_tavern": Vector2i(0, 4),
+		"mira_house": Vector2i(10, 9),
+		"oskar_house": Vector2i(-4, 9)
+	}
+	for location_id in hollowmere_building_entrances:
+		var hollowmere_building_definition: Dictionary = hollowmere_building_registry.get_definition(location_id)
+		var hollowmere_building_state = LOCATION_STATE.new()
+		_check(bool(hollowmere_building_state.configure(hollowmere_building_definition).get("ok", false)), "Hollowmere building state must configure: " + location_id)
+		var hollowmere_building_result: Dictionary = FLOOR_BUILDER.build_floor_map(hollowmere_building_definition, 0, hollowmere_building_state)
+		_check(bool(hollowmere_building_result.get("ok", false)), "Hollowmere building floor must build: " + location_id)
+		if not bool(hollowmere_building_result.get("ok", false)):
+			continue
+		var hollowmere_building_map: HexMapData = hollowmere_building_result.get("map_data") as HexMapData
+		_check(hollowmere_building_map.is_walkable(hollowmere_building_entrances[location_id]), "Hollowmere entrance must be walkable: " + location_id)
+		for hollowmere_object in hollowmere_building_result.get("tile_objects", []):
+			var hollowmere_position: Dictionary = hollowmere_object.get("position", {})
+			var hollowmere_hex := Vector2i(int(hollowmere_position.get("q", 0)), int(hollowmere_position.get("r", 0)))
+			_check(hollowmere_building_map.is_walkable(hollowmere_hex), "Hollowmere fixture must sit on walkable floor: " + String(hollowmere_object.get("id", "")))
+		if location_id == "hollowmere_tavern":
+			for tavern_fixture_id in ["hollowmere_tavern_fireplace", "hollowmere_tavern_table_east", "hollowmere_tavern_bench_east", "hollowmere_tavern_table_west", "hollowmere_tavern_bench_west"]:
+				_check(_has_object(hollowmere_building_result.get("tile_objects", []), tavern_fixture_id), "Tavern must retain its source fixture: " + tavern_fixture_id)
+		if location_id == "hollowmere_general_store":
+			_check(_has_object(hollowmere_building_result.get("tile_objects", []), "hollowmere_general_store_counter"), "General store must retain its source counter")
+
+	var reddale_registry := REGISTRY.new()
+	var reddale_entrances := {
+		"reddale_guardhouse": Vector2i(137, 24),
+		"reddale_guildhouse": Vector2i(143, 34),
+		"reddale_inn": Vector2i(138, 28),
+		"reddale_manor": Vector2i(143, 14),
+		"reddale_reeve_house": Vector2i(138, 20),
+		"reddale_smithy": Vector2i(137, 32)
+	}
+	var reddale_expected_fixtures := {
+		"reddale_guardhouse": ["guardhouse_fireplace"],
+		"reddale_guildhouse": ["guildhouse_fireplace", "guildhouse_table", "guildhouse_ledgers"],
+		"reddale_inn": ["inn_fireplace"],
+		"reddale_manor": ["manor_fireplace", "manor_table", "baron_tariff_records"],
+		"reddale_reeve_house": [],
+		"reddale_smithy": ["smithy_fireplace", "smithy_bed"]
+	}
+	for location_id in reddale_entrances:
+		var reddale_definition: Dictionary = reddale_registry.get_definition(location_id)
+		var reddale_state = LOCATION_STATE.new()
+		_check(bool(reddale_state.configure(reddale_definition).get("ok", false)), "Reddale location state must configure: " + location_id)
+		var reddale_result: Dictionary = FLOOR_BUILDER.build_floor_map(reddale_definition, 0, reddale_state)
+		_check(bool(reddale_result.get("ok", false)), "Reddale interior floor must build: " + location_id)
+		if not bool(reddale_result.get("ok", false)):
+			continue
+		var reddale_map: HexMapData = reddale_result.get("map_data") as HexMapData
+		_check(reddale_map.is_walkable(reddale_entrances[location_id]), "Reddale entrance must be walkable: " + location_id)
+		for fixture_id in reddale_expected_fixtures[location_id]:
+			_check(_has_object(reddale_result.get("tile_objects", []), fixture_id), "Reddale source fixture must be presented: " + fixture_id)
+		for reddale_object in reddale_result.get("tile_objects", []):
+			var reddale_position: Dictionary = reddale_object.get("position", {})
+			var reddale_hex := Vector2i(int(reddale_position.get("q", 0)), int(reddale_position.get("r", 0)))
+			_check(reddale_map.is_walkable(reddale_hex), "Reddale fixture must sit on walkable floor: " + String(reddale_object.get("id", "")))
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
