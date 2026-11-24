@@ -42,36 +42,69 @@ func action_definition(action_id: String) -> Dictionary:
 	return (ACTIONS.get(action_id, {}) as Dictionary).duplicate(true)
 
 
-func evaluate_action(action_id: String, journal: CampaignJournal, player: CharacterState) -> Dictionary:
+func requirements_for_action(action_id: String, journal: CampaignJournal, player: CharacterState, payment: String = "materials") -> Array[Dictionary]:
+	var requirements: Array[Dictionary] = []
 	var definition := action_definition(action_id)
 	if definition.is_empty():
-		return {"ok": false, "reason": "unknown_action"}
+		requirements.append({"id": "known_action", "label": "Known construction option", "met": false, "reason": "unknown_action"})
+		return requirements
 	var dwelling_id := String(definition.get("dwelling_id", ""))
-	if String(definition.get("kind", "")) == "claim" and bool(owned.get(dwelling_id, false)):
-		return {"ok": false, "reason": "already_owned"}
-	if String(definition.get("kind", "")) == "upgrade" and String(upgrades.get(dwelling_id, "")) == action_id:
-		return {"ok": false, "reason": "already_upgraded"}
+	var kind := String(definition.get("kind", ""))
+	if kind == "claim" and bool(owned.get(dwelling_id, false)):
+		requirements.append({"id": "not_owned", "label": "Not already owned", "met": false, "reason": "already_owned"})
+	if kind == "upgrade" and String(upgrades.get(dwelling_id, "")) == action_id:
+		requirements.append({"id": "not_upgraded", "label": "Not already improved", "met": false, "reason": "already_upgraded"})
 	var required_owned := String(definition.get("requires_owned", ""))
-	if not required_owned.is_empty() and not bool(owned.get(required_owned, false)):
-		return {"ok": false, "reason": "prerequisite_dwelling_not_owned", "required_dwelling": required_owned}
+	if not required_owned.is_empty():
+		var has_prerequisite := bool(owned.get(required_owned, false))
+		requirements.append({"id": "owned:" + required_owned, "label": "Own " + required_owned.replace("_", " "), "met": has_prerequisite, "reason": "prerequisite_dwelling_not_owned", "required_dwelling": required_owned})
 	var required_quest := String(definition.get("required_quest", ""))
-	if not required_quest.is_empty() and (journal == null or String(journal.quest_state(required_quest).get("status", "")) != "completed"):
-		return {"ok": false, "reason": "required_quest_incomplete", "required_quest": required_quest}
+	if not required_quest.is_empty():
+		var quest_status := String(journal.quest_state(required_quest).get("status", "")) if journal != null else ""
+		var quest_complete := quest_status == "completed"
+		requirements.append({"id": "quest:" + required_quest, "label": "Complete " + required_quest.replace("_", " "), "met": quest_complete, "reason": "required_quest_incomplete", "required_quest": required_quest, "current": quest_status, "required": "completed"})
 	var required_faction := String(definition.get("required_faction", ""))
-	if not required_faction.is_empty() and (journal == null or journal.faction_standing(required_faction) < float(definition.get("minimum_standing", 0.0))):
-		return {"ok": false, "reason": "insufficient_reputation", "required_faction": required_faction, "minimum_standing": float(definition.get("minimum_standing", 0.0))}
+	if not required_faction.is_empty():
+		var required_standing := float(definition.get("minimum_standing", 0.0))
+		var current_standing := journal.faction_standing(required_faction) if journal != null else 0.0
+		requirements.append({"id": "reputation:" + required_faction, "label": required_faction.replace("_", " ").capitalize() + " reputation", "met": current_standing >= required_standing, "reason": "insufficient_reputation", "required_faction": required_faction, "current": current_standing, "required": required_standing})
 	var materials: Dictionary = definition.get("materials", {})
-	var missing := _missing_materials(player, materials)
-	var gold_cost := int(definition.get("gold_alternative", -1))
-	var can_pay_gold := gold_cost >= 0 and player != null and player.gold >= gold_cost
-	var can_pay_materials := missing.is_empty() and not materials.is_empty()
-	if not materials.is_empty() and not can_pay_materials and not can_pay_gold:
-		return {"ok": false, "reason": "insufficient_materials_or_gold" if gold_cost >= 0 else "insufficient_materials", "missing_materials": missing, "gold_required": gold_cost}
-	return {"ok": true, "action_id": action_id, "dwelling_id": dwelling_id, "kind": String(definition.get("kind", "")), "materials": materials.duplicate(true), "gold_alternative": gold_cost, "can_pay_materials": can_pay_materials, "can_pay_gold": can_pay_gold, "layout_id": String(definition.get("layout_id", ""))}
+	if not materials.is_empty():
+		if payment == "materials":
+			var missing := _missing_materials(player, materials)
+			requirements.append({"id": "payment:materials", "label": "Gathered materials", "met": missing.is_empty(), "reason": "insufficient_materials", "required": materials.duplicate(true), "missing": missing})
+		elif payment == "gold":
+			var gold_cost := int(definition.get("gold_alternative", -1))
+			var gold_valid := gold_cost >= 0
+			var current_gold := player.gold if player != null else 0
+			requirements.append({"id": "payment:gold", "label": "Gold payment", "met": gold_valid and current_gold >= gold_cost, "reason": "gold_not_accepted" if not gold_valid else "insufficient_gold", "current": current_gold, "required": gold_cost})
+		else:
+			requirements.append({"id": "payment:method", "label": "Valid payment method", "met": false, "reason": "unknown_payment_method"})
+	return requirements
 
+
+func evaluate_action(action_id: String, journal: CampaignJournal, player: CharacterState, payment: String = "materials") -> Dictionary:
+	var definition := action_definition(action_id)
+	var requirements := requirements_for_action(action_id, journal, player, payment)
+	for requirement in requirements:
+		if not bool(requirement.get("met", false)):
+			return {"ok": false, "reason": String(requirement.get("reason", "requirements_not_met")), "requirements": requirements, "failed_requirement": requirement.duplicate(true)}
+	if definition.is_empty():
+		return {"ok": false, "reason": "unknown_action", "requirements": requirements}
+	return {
+		"ok": true,
+		"action_id": action_id,
+		"dwelling_id": String(definition.get("dwelling_id", "")),
+		"kind": String(definition.get("kind", "")),
+		"materials": (definition.get("materials", {}) as Dictionary).duplicate(true),
+		"gold_alternative": int(definition.get("gold_alternative", -1)),
+		"payment": payment,
+		"requirements": requirements,
+		"layout_id": String(definition.get("layout_id", ""))
+	}
 
 func complete_action(action_id: String, journal: CampaignJournal, player: CharacterState, payment: String = "materials") -> Dictionary:
-	var availability := evaluate_action(action_id, journal, player)
+	var availability := evaluate_action(action_id, journal, player, payment)
 	if not bool(availability.get("ok", false)):
 		return availability
 	var definition := action_definition(action_id)
@@ -119,6 +152,31 @@ func camp_profile_for(dwelling_id: String) -> Dictionary:
 	profile["is_sheltered"] = int(profile.get("sleeping_capacity", 0)) > 0
 	return profile
 
+
+func property_snapshot(journal: CampaignJournal, player: CharacterState) -> Array[Dictionary]:
+	var properties: Array[Dictionary] = [
+		{"id": "crossroads_cottage", "name": "Crossroads cottage", "location": "Surveyed starting plot, five q-steps and three r-steps from the crossroads", "layout_id": String(camp_profile_for("crossroads_cottage").get("layout_id", "cottage_one_room")), "owned": bool(owned.get("crossroads_cottage", false)), "actions": ["build_crossroads_cottage", "upgrade_country_house"]},
+		{"id": "abandoned_house", "name": "Abandoned roadside house", "location": "North road, six q-steps beyond the abandoned-house waypoint", "layout_id": String(camp_profile_for("abandoned_house").get("layout_id", "")), "owned": bool(owned.get("abandoned_house", false)), "actions": ["restore_abandoned_house"]},
+		{"id": "silverhart_manor", "name": "Silverhart manor", "location": "Corstane townhouse in the Silverhart Noble Quarter", "layout_id": String(camp_profile_for("silverhart_manor").get("layout_id", "")), "owned": bool(owned.get("silverhart_manor", false)), "actions": ["claim_silverhart_manor", "fortify_silverhart_manor"]}
+	]
+	for property in properties:
+		property["camp_profile"] = camp_profile_for(String(property.id))
+		var action_statuses: Array[Dictionary] = []
+		for action_id_value in property.actions:
+			var action_id := String(action_id_value)
+			var definition := action_definition(action_id)
+			var preferred_payment := "materials"
+			var material_check := evaluate_action(action_id, journal, player, "materials")
+			if not bool(material_check.get("ok", false)) and int(definition.get("gold_alternative", -1)) >= 0:
+				var gold_check := evaluate_action(action_id, journal, player, "gold")
+				if bool(gold_check.get("ok", false)):
+					preferred_payment = "gold"
+					material_check = gold_check
+			material_check["label"] = String(definition.get("label", action_id))
+			material_check["preferred_payment"] = preferred_payment
+			action_statuses.append(material_check)
+		property["action_statuses"] = action_statuses
+	return properties
 
 func _missing_materials(player: CharacterState, costs: Dictionary) -> Dictionary:
 	var missing: Dictionary = {}
