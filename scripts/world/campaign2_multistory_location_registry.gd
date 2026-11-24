@@ -88,6 +88,14 @@ func configure(manifest: Dictionary) -> Dictionary:
 		for floor_variant in floors:
 			if not floor_variant is Dictionary:
 				continue
+			for coordinate_collection_name in ["floor_hexes", "wall_hexes"]:
+				var coordinate_collection: Variant = floor_variant.get(coordinate_collection_name, [])
+				if not coordinate_collection is Array:
+					validation_errors.append("%s floor %s: %s must be an array." % [location_id, floor_variant.get("floor", 0), coordinate_collection_name])
+					continue
+				for coordinate_variant in coordinate_collection:
+					if not _is_axial(coordinate_variant):
+						validation_errors.append("%s floor %s: %s contains an invalid axial coordinate." % [location_id, floor_variant.get("floor", 0), coordinate_collection_name])
 			for room_variant in floor_variant.get("rooms", []):
 				if room_variant is Dictionary:
 					var hidden_by_secret := String(room_variant.get("hidden_by_secret", "")).strip_edges()
