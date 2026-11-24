@@ -56,6 +56,7 @@ jobs:
         run: |
           python tools/campaign2_authored_hex_audit.py \
             --source-root Hex-crpg \
+            --source-runtime artifacts/campaign2_source_runtime_geometry.json \
             --json-out artifacts/campaign2_authored_hex_audit.json \
             --markdown-out artifacts/campaign2_authored_hex_audit.md
       - name: Upload inventory report
