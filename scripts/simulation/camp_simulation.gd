@@ -13,6 +13,11 @@ const TENT_COMFORTABLE_CAPACITY := 3
 const TENT_MAX_CAPACITY := 5
 const PLAYER_OVERRIDE_SECONDS := 10.0
 const ROUTINE_STAGE_THRESHOLDS := [120.0, 360.0]
+const WEATHER_CONTEXT_KEYS: Array[String] = [
+	"weather_type", "weather_label", "season", "month_index", "temperature_c",
+	"night_temperature_c", "wind_speed", "rain_intensity", "storm", "heavy_rain",
+	"snow", "fog", "visibility_multiplier"
+]
 const ACTIVITY_IDS: Array[String] = [
 	"gather_wood", "set_up_tents", "fetch_water", "cook", "repair_gear",
 	"study_map", "train", "socialise", "watch", "sleep"
@@ -358,10 +363,28 @@ func _routine_activity_for(character_id: String, stage: int) -> String:
 	return "socialise"
 
 
+func update_weather(weather_data: Dictionary) -> void:
+	for key in WEATHER_CONTEXT_KEYS:
+		environment.erase(key)
+	environment.merge(weather_data, true)
+	if phase != "evening" or routine_stage < 1:
+		return
+	for character_id in party_ids:
+		var current: Dictionary = assignments.get(character_id, {})
+		var next_activity := _routine_activity_for(character_id, routine_stage)
+		if bool(current.get("player_override", false)):
+			_default_assignments[character_id] = {
+				"activity": next_activity, "player_override": false, "override_remaining": 0.0
+			}
+		elif String(current.get("activity", "")) != next_activity:
+			_set_assignment(character_id, next_activity)
+
+
 func _weather_is_severe() -> bool:
 	return (
 		bool(environment.get("storm", false))
 		or bool(environment.get("heavy_rain", false))
+		or bool(environment.get("snow", false))
 		or float(environment.get("wind_speed", 0.0)) >= 45.0
 		or float(environment.get("rain_intensity", 0.0)) >= 0.7
 		or float(environment.get("night_temperature_c", 10.0)) <= 2.0
