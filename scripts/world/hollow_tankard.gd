@@ -32,6 +32,7 @@ const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persiste
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
+const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -123,6 +124,7 @@ var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
 var camp_presentation: CampWorldPresentation
+var camp_activity_director: CampPartyActivityDirector
 var camp_selection_mode: bool = false
 var camp_button: Button
 var camp_sleep_button: Button
@@ -627,6 +629,10 @@ func _create_camp_presentation() -> void:
 	camp_presentation.name = "CampWorldPresentation"
 	camp_presentation.configure(Callable(self, "_hex_world_position"))
 	add_child(camp_presentation)
+	camp_activity_director = CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT.new() as CampPartyActivityDirector
+	camp_activity_director.name = "CampPartyActivityDirector"
+	camp_activity_director.configure(simulation)
+	add_child(camp_activity_director)
 
 
 func _toggle_camp_site_selection() -> void:
@@ -684,6 +690,7 @@ func _select_camp_site(hex: Vector2i) -> void:
 		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
 		return
 	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+	camp_activity_director.begin_camp(simulation.camp_simulation.site)
 	camp_status_label.text = "Camp established. The party can continue exploring and working while evening activities unfold."
 	if camp_sleep_button != null:
 		camp_sleep_button.visible = true
@@ -694,6 +701,7 @@ func _sleep_or_pack_camp() -> void:
 	if simulation == null:
 		return
 	if simulation.camp_simulation.phase == "evening":
+		camp_activity_director.stop()
 		var result := simulation.skip_camp_to_morning()
 		if not bool(result.get("ok", false)):
 			camp_status_label.text = "Could not begin the night: %s" % String(result.get("reason", "unknown"))
@@ -706,6 +714,7 @@ func _sleep_or_pack_camp() -> void:
 		]
 		camp_sleep_button.text = "Pack camp"
 	elif simulation.camp_simulation.phase == "resolved":
+		camp_activity_director.stop()
 		camp_presentation.clear_camp()
 		camp_sleep_button.visible = false
 		camp_status_label.text = "Camp packed. Ready to continue travelling."
@@ -1178,6 +1187,8 @@ func _apply_save_data(data: Dictionary) -> void:
 		actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
 	if simulation.camp_simulation.phase in ["evening", "night", "resolved"]:
 		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		if simulation.camp_simulation.phase == "evening":
+			camp_activity_director.begin_camp(simulation.camp_simulation.site)
 		camp_sleep_button.visible = true
 		camp_sleep_button.text = "Sleep until morning" if simulation.camp_simulation.phase == "evening" else "Pack camp"
 	if camera_rig != null:
@@ -2345,6 +2356,8 @@ func _process(delta: float) -> void:
 		_refresh_nearby_interactions()
 	if movement_controller != null:
 		movement_controller.process_movement(delta)
+	if camp_activity_director != null:
+		camp_activity_director.process_activity_movement(delta)
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")
