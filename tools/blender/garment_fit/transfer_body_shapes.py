@@ -95,13 +95,21 @@ def closest_triangle_weights(point, a, b, c):
     return (1.0 - v - w, v, w)
 
 
-def build_body_surface(body):
+def build_body_surface(body, body_materials):
     mesh = body.data
     mesh.calc_loop_triangles()
+    body_faces = set(material_face_indices(body, body_materials))
+    # A glTF import may combine body and garments into one Blender mesh. Never
+    # include garment triangles in the query surface: otherwise each garment
+    # vertex can map to itself and receive no useful body deformation.
+    triangles = [
+        tuple(triangle.vertices)
+        for triangle in mesh.loop_triangles
+        if triangle.polygon_index in body_faces
+    ]
     vertices_world = [body.matrix_world @ vertex.co for vertex in mesh.vertices]
-    triangles = [tuple(triangle.vertices) for triangle in mesh.loop_triangles]
     if not triangles:
-        raise RuntimeError("Body surface has no triangles")
+        raise RuntimeError("Body material selection produced no surface triangles")
     tree = BVHTree.FromPolygons(vertices_world, triangles, all_triangles=True)
     if tree is None:
         raise RuntimeError("Could not build body surface BVH")
@@ -229,7 +237,7 @@ def main():
     body, garments = find_body_and_garments(
         meshes, set(args.body_material), set(args.garment_material)
     )
-    body_vertices, body_triangles, tree = build_body_surface(body)
+    body_vertices, body_triangles, tree = build_body_surface(body, set(args.body_material))
     max_distance = args.max_surface_distance_mm / 1000.0
 
     results = []
