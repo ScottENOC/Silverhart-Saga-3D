@@ -11,6 +11,8 @@ func _initialize() -> void:
 	_test_world_integration_and_persistence()
 	_test_save_restore()
 	_test_requirement_reports_and_atomic_payments()
+	_test_abandoned_house_clearing_quest()
+	_test_dwelling_world_sites_and_inspection()
 	if _failures > 0:
 		push_error("%d dwelling assertion(s) failed." % _failures)
 		quit(1)
@@ -117,6 +119,7 @@ func _test_world_integration_and_persistence() -> void:
 	var world := WorldSimulation.new()
 	var player := CharacterState.new("player", "Player")
 	var companion := CharacterState.new("companion", "Companion", Vector2i(1, 0))
+	player.axial = Vector2i.ZERO
 	player.side = "player"
 	companion.side = "player"
 	world.register_character(player)
@@ -124,7 +127,12 @@ func _test_world_integration_and_persistence() -> void:
 	world.restore_party_members(["player", "companion"])
 	var blocked := world.begin_camp({"walkable": true, "dwelling_id": "crossroads_cottage"}, {}, {"tents": 0})
 	_check(not bool(blocked.get("ok", false)), "An unowned dwelling must not be used as a sheltered camp.")
-	_check(bool(world.claim_dwelling("build_crossroads_cottage", "materials", "crossroads_plot").get("ok", false)), "World simulation should expose the dwelling claim action.")
+	var wrong_location := world.claim_dwelling("build_crossroads_cottage", "materials", "crossroads_plot")
+	_check(not bool(wrong_location.get("ok", false)), "World simulation must reject a dwelling claim from the wrong location.")
+	player.axial = Vector2i(13, 27)
+	var wrong_site := world.claim_dwelling("build_crossroads_cottage", "materials", "abandoned_house")
+	_check(not bool(wrong_site.get("ok", false)), "World simulation must reject a site ID that does not match the player's location.")
+	_check(bool(world.claim_dwelling("build_crossroads_cottage", "materials", "crossroads_plot").get("ok", false)), "World simulation should expose the dwelling claim action at the surveyed plot.")
 	var started := world.begin_camp({"walkable": true, "dwelling_id": "crossroads_cottage"}, {}, {"tents": 0})
 	_check(bool(started.get("ok", false)), "An owned cottage should be accepted as a camp site.")
 	_check(String(world.camp_simulation.sleeping_arrangements[0].get("shelter_type", "")) == "dwelling", "World simulation should pass the owned dwelling's lodging profile into camp.")
@@ -166,4 +174,94 @@ func _test_requirement_reports_and_atomic_payments() -> void:
 	var properties := state.property_snapshot(journal, player)
 	_check(properties.size() == 3, "The management snapshot should describe the three distinct legacy properties.")
 	_check(String(properties[0].get("id", "")) == "crossroads_cottage", "Property snapshots should use stable property IDs.")
+
+func _test_abandoned_house_clearing_quest() -> void:
+	var simulation := WorldSimulation.new()
+	var player := CharacterState.new("player", "Player", AbandonedHouseClearingQuest.HOUSE_CENTRE)
+	var companion := CharacterState.new("companion", "Companion", AbandonedHouseClearingQuest.HOUSE_CENTRE + Vector2i(1, 0))
+	player.side = "player"
+	companion.side = "player"
+	simulation.register_character(player)
+	simulation.register_character(companion)
+	simulation.restore_party_members(["player", "companion"])
+	var journal := simulation.campaign_journal
+	var dwelling_state := CampaignDwellingState.new()
+	_add_item(player, "wood", 8)
+	_add_item(player, "stone", 8)
+	var started := AbandonedHouseClearingQuest.ensure_started(journal)
+	_check(bool(started.get("ok", false)), "Approaching the house should start its clearing quest.")
+	var created := AbandonedHouseClearingQuest.ensure_guardians(simulation)
+	_check(created.get("created_ids", []).size() == 3, "The abandoned house should spawn exactly three guardians.")
+	for guardian_id in AbandonedHouseClearingQuest.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		_check(guardian != null, "Every authored house guardian should exist in simulation state.")
+		_check(guardian.tags.has("necromancerMinion"), "House guardians must carry the legacy necromancerMinion tag.")
+		_check(not guardian.tags.has("cryptMinion"), "House guardians must not use the separate cryptMinion tag.")
+	var crypt_minion := CharacterState.new("crypt_minion_test", "Crypt minion", AbandonedHouseClearingQuest.HOUSE_CENTRE + Vector2i(0, 2))
+	crypt_minion.side = "enemy"
+	crypt_minion.tags.append("cryptMinion")
+	simulation.register_character(crypt_minion)
+	var other_house_minion := CharacterState.new("other_necromancer_minion_test", "Other necromancer minion", AbandonedHouseClearingQuest.HOUSE_CENTRE + Vector2i(2, 0))
+	other_house_minion.side = "enemy"
+	other_house_minion.tags.append("necromancerMinion")
+	simulation.register_character(other_house_minion)
+	_check(not bool(dwelling_state.evaluate_action("restore_abandoned_house", journal, player, "materials", "abandoned_house").get("ok", false)), "Restoration must remain locked before the actual clearing encounter resolves.")
+	var encounter := AbandonedHouseClearingQuest.start_encounter(simulation, ["player", "companion"])
+	_check(bool(encounter.get("ok", false)) and simulation.is_in_combat, "The house interaction should start a real combat encounter.")
+	var first_guardian := simulation.get_character(AbandonedHouseClearingQuest.GUARDIAN_IDS[0])
+	first_guardian.health = 0
+	first_guardian.alive = false
+	var reputation_before := journal.faction_standing("necromancer_cult")
+	_check(AbandonedHouseClearingQuest.apply_defeat_consequences(journal, simulation) == 1, "Killing a guardian should apply its reputation consequence once.")
+	var reputation_after := journal.faction_standing("necromancer_cult")
+	_check(reputation_after < reputation_before, "Killing a guardian should reduce necromancer-cult standing.")
+	_check(AbandonedHouseClearingQuest.apply_defeat_consequences(journal, simulation) == 0, "Repeated resolution checks must not apply the same reputation penalty twice.")
+	for index in range(1, AbandonedHouseClearingQuest.GUARDIAN_IDS.size()):
+		var guardian := simulation.get_character(AbandonedHouseClearingQuest.GUARDIAN_IDS[index])
+		guardian.health = 0
+		guardian.alive = false
+	AbandonedHouseClearingQuest.apply_defeat_consequences(journal, simulation)
+	simulation.end_combat()
+	AbandonedHouseClearingQuest.finish_encounter(simulation, encounter.get("previous_states", {}))
+	var blocked_resolution := AbandonedHouseClearingQuest.resolve_clearing(journal, simulation)
+	_check(bool(blocked_resolution.get("ok", false)) and not bool(blocked_resolution.get("completed", false)), "A living necromancerMinion elsewhere should preserve the legacy global clearing gate.")
+	other_house_minion.health = 0
+	other_house_minion.alive = false
+	var resolved := AbandonedHouseClearingQuest.resolve_clearing(journal, simulation)
+	_check(bool(resolved.get("ok", false)) and bool(resolved.get("completed", false)), "The clearing quest should resolve when all necromancerMinion enemies are dead.")
+	_check(crypt_minion.can_act(), "A living cryptMinion must not block abandoned-house restoration.")
+	_check(String(journal.quest_state(AbandonedHouseClearingQuest.QUEST_ID).get("status", "")) == "completed", "Quest completion should persist as an explicit campaign state.")
+	_check(bool(dwelling_state.evaluate_action("restore_abandoned_house", journal, player, "materials", "abandoned_house").get("ok", false)), "Restoration should unlock from the actual resolved encounter, with the required materials.")
+	var saved_characters := simulation.to_dict()
+	var saved_journal := journal.to_dict()
+	var restored_simulation := WorldSimulation.new()
+	restored_simulation.load_dict(saved_characters)
+	restored_simulation.campaign_journal.register_quest_definition(AbandonedHouseClearingQuest.definition())
+	restored_simulation.campaign_journal.load_dict(saved_journal)
+	_check(String(restored_simulation.campaign_journal.quest_state(AbandonedHouseClearingQuest.QUEST_ID).get("status", "")) == "completed", "The clearing quest should survive journal save/load.")
+	_check(restored_simulation.get_character(AbandonedHouseClearingQuest.GUARDIAN_IDS[0]) != null, "Guardian encounter states should survive world save/load.")
+	_check(not restored_simulation.get_character(AbandonedHouseClearingQuest.GUARDIAN_IDS[0]).can_act(), "Defeated guardians must not respawn from a save.")
+
+
+func _test_dwelling_world_sites_and_inspection() -> void:
+	var state := CampaignDwellingState.new()
+	var journal := CampaignJournal.new()
+	var player := _player()
+	_check(state.is_at_site("crossroads_plot", Vector2i(13, 27)), "The cottage site should use the source crossroads-relative location.")
+	_check(not state.is_at_site("crossroads_plot", Vector2i.ZERO), "A distant player must not pass the cottage location gate.")
+	_check(state.is_at_site("silverhart_palace", Vector2i(8, -496)), "The manor grant should be tied to the royal palace.")
+	var house_site := CampaignDwellingWorldService.site_definition("abandoned_house")
+	_check(house_site.get("hex", Vector2i.ZERO) == Vector2i(14, -176), "The abandoned house should retain its source north-road location.")
+	var nearby := CampaignDwellingWorldService.nearby_sites(Vector2i(14, -176), 2)
+	_check(nearby.size() == 1 and String(nearby[0].get("id", "")) == "abandoned_house", "Only the nearby abandoned-house property should be offered at its site.")
+	var inspection := CampaignDwellingWorldService.inspection_for_site(state, journal, player, "abandoned_house")
+	_check(bool(inspection.get("ok", false)), "The abandoned house should have a player-facing inspection.")
+	var body := String(inspection.get("text", ""))
+	_check(body.contains("complete the abandoned-house clearing encounter"), "The inspection should explain the unmet clearing-quest requirement.")
+	_check(body.contains("missing 8 wood") and body.contains("8 stone"), "The inspection should show the exact missing construction materials.")
+	var parent := Node3D.new()
+	var presentation := CampaignDwellingWorldPresentation.present_all(parent, state, 1.0)
+	_check(bool(presentation.get("ok", false)) and int(presentation.get("site_count", 0)) == 3, "The three property sites should receive world presentations.")
+	_check(parent.get_node_or_null("CampaignDwellingPresentation") != null, "Dwelling exteriors should be attached to the world scene.")
+	parent.free()
 
