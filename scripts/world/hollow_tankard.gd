@@ -1415,6 +1415,7 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
 		"necromancer_standing": journal.faction_standing("necromancer_cult"),
 		"phylactery_returned": bool(simulation.get_meta("phylactery_returned", false)),
+		"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
 		"has_phylactery_shard": _player_has_item("phylactery_shard"),
 		"wizard_vendetta_active": String(journal.quest_state("wizard_vendetta").get("status", "")) == "active",
 		"has_wizard_corruption_evidence": _player_has_item("wizard_corruption_evidence"),
@@ -1434,8 +1435,15 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		"seraphine_request_favour":
 			response = content.seraphine_manor_request_response()
 		"seraphine_manor_accept":
+			var grant := simulation.claim_dwelling("claim_silverhart_manor", "materials", "silverhart_palace")
+			if not bool(grant.get("ok", false)):
+				_show_dialogue("Queen Seraphine Corrin", "I cannot grant the townhouse just now: %s." % String(grant.get("reason", "requirements_not_met")).replace("_", " "), [{"id":"continue","label":"Understood","kind":"leave"}])
+				return true
 			simulation.set_meta("silverhart_manor_granted", true)
+			_refresh_dwelling_world_presentation()
 			response = content.seraphine_manor_granted_response()
+		"seraphine_manor_followup":
+			response = {"ok": true, "speaker": "Queen Seraphine Corrin", "text": "The grant remains yours. The townhouse is still in need of fortification; timber and stone will see it restored.", "response_label": "I will see to it."}
 		"seraphine_wizard_evidence":
 			response = content.seraphine_wizard_evidence_response()
 		"seraphine_report_chancellor_tunnel":
@@ -1449,10 +1457,13 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	if not bool(response.get("ok", false)):
 		_show_dialogue("Queen Seraphine Corrin", "That matter cannot be discussed just now.", [{"id":"continue","label":"Understood","kind":"leave"}])
 		return true
+	var response_choices: Array = response.get("choices", [])
+	if response_choices.is_empty():
+		response_choices = [{"id":"continue","label":String(response.get("response_label", "Continue")),"kind":"leave"}]
 	_show_dialogue(
 		String(response.get("speaker", "Queen Seraphine Corrin")),
 		String(response.get("text", "")),
-		[{"id":"continue","label":String(response.get("response_label", "Continue")),"kind":"leave"}]
+		response_choices
 	)
 	return true
 
@@ -1643,7 +1654,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 			var supported_choices: Array[Dictionary] = []
 			for choice_value in conversation.get("choices", []):
 				var choice: Dictionary = choice_value
-				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_leave"]:
+				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
 					supported_choices.append(choice)
 			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
 		else:
