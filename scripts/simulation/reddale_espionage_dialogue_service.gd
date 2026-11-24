@@ -14,7 +14,7 @@ static func dialogue_for_npc(journal: CampaignJournal, npc_id: String) -> Dictio
 		return {"ok":false, "reason":"unsupported_dialogue_actor"}
 	var quest: Dictionary = journal.quests.get(quest_id, {})
 	var is_guild := quest_id == CONTENT.GUILD_QUEST
-	var employer := "Baron Corwin Aldervale" if is_guild else "Guildmaster Petra Voss"
+	var employer := "Baron Corwin Aldervale" if npc_id == BARON_ID else "Guildmaster Petra Voss"
 	var target := "Ironbond's guildhouse" if is_guild else "the Baron's manor"
 	if quest.is_empty():
 		if CONTENT.can_offer(journal, quest_id):
