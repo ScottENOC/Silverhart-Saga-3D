@@ -1607,11 +1607,11 @@ func craft_dwelling_furniture(item_id: String, dwelling_id: String, actor_id: St
 	return campaign_dwellings.craft_furniture(item_id, player, dwelling_id, actor.axial)
 
 
-func place_dwelling_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int = 0, actor_id: String = "") -> Dictionary:
+func place_dwelling_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int = 0, actor_id: String = "", floor_index: int = 0) -> Dictionary:
 	var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
 	if actor == null:
 		return {"ok": false, "reason": "missing_actor"}
-	return campaign_dwellings.place_furniture(dwelling_id, item_id, local_position, rotation_degrees, actor.axial)
+	return campaign_dwellings.place_furniture(dwelling_id, item_id, local_position, rotation_degrees, actor.axial, floor_index)
 
 
 func remove_dwelling_furniture(dwelling_id: String, instance_id: String, actor_id: String = "") -> Dictionary:
