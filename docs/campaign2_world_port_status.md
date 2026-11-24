@@ -76,7 +76,7 @@ This is an inventory of **explicit geometry currently represented in the 3D proj
 | Fence lines | 22 unique local hexes |
 | Crop rows | 0 currently registered |
 | **Local exterior authored geometry** | **4,732 unique local hexes after overlap removal** |
-| Interior room footprints | 2,915 cells across the registered floor maps |
+| Interior room footprints | 1,543 walkable cells across the registered floor maps (recalculated using the actual Godot floor-builder bounds and row-shift rules) |
 | Building records | 67 |
 | Settlement path records | 40 |
 
@@ -93,6 +93,53 @@ Per-settlement exterior inventory:
 | Skarnak's Hold | 9 | 9 | 0 | 0 | 0 | 0 | 9 |
 
 These category counts overlap; only the 4,732 union is a non-duplicated local exterior total. The 256 strategic cells and 2,915 interior cells are separate scales and are not added to it. Regional authored GDScript features (for example, fort and wilderness terrain/props) are not yet included in this JSON-backed inventory.
+
+## Original source runtime geometry baseline
+
+The pinned original `Hex-crpg/campaign2World.js` scene builder has now been executed headlessly in CI. Its runtime output is captured with the calling source builder attributed to each terrain write. This distinguishes the broad `setupVillageScene` base pass from named feature builders and prevents source-code line counts from being mistaken for hex counts.
+
+| Source runtime measure | Count |
+|---|---:|
+| Unique terrain cells in the resolved source scene | 16,536 |
+| Cells touched only by the broad `setupVillageScene` base pass | 5,242 |
+| Cells touched by named feature builders other than the base pass, deduplicated across builders | 11,294 |
+| Base-pass / feature-builder overlap | 326 |
+| Physical tile-object placements | 246 |
+| Interior regions | 72 |
+| Multi-storey building definitions | 9 |
+| Wild-unicorn patrol waypoints | 8 |
+
+The 11,294 feature-builder union is the best current source-side measure of explicitly built map geometry. It includes roads, stream, settlement footprints, fortifications, interiors, caves, dungeons and landmark terrain. It is **not** a target coverage percentage: builder sets overlap, and the target-side 4,732 exterior-cell inventory still excludes regional GDScript features and several map-owned site systems.
+
+Source terrain cells touched by each owner builder (these figures overlap and must not be summed):
+
+| Source builder | Unique cells touched |
+|---|---:|
+| Silverhart Palace | 2,584 |
+| Dwarven Kingdom / Kragmoor | 1,959 |
+| Road painter | 1,633 |
+| Northwatch Fort | 1,217 |
+| Ridgehold Fort | 937 |
+| Stream painter | 902 |
+| Elven Capital / Sil'thandriel | 702 |
+| Orc Stronghold / Skarnak's Hold | 238 |
+| Reddale | 222 |
+| Necromancer Crypt | 143 |
+| Goblin Camp / Skarn-tooth | 127 |
+| Dragon Lair | 127 |
+| Emberlode | 115 |
+| Lich Barrow | 109 |
+| Druid Grove / Emberwood | 91 |
+| Path painter | 65 |
+| Lich Chapterhouse | 61 |
+| Millbrook | 49 |
+| Thieves' Cove Caves | 47 |
+| Old Mac's Farmstead | 39 |
+| Abandoned House | 35 |
+| Hollowmere Guild Den | 25 |
+| Player Cottage Plot | 8 |
+
+The audit now applies the actual `Campaign2MultiStoryFloorMapBuilder` room bounds and `source_building` row-shift convention. The previous interior count of 2,915 was an overcount from treating half-width/half-height as inclusive extents; the corrected walkable-room footprint count is 1,543. The test suite now locks in the correct builder semantics.
 
 ## Next map port order
 
