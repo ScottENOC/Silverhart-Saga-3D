@@ -85,13 +85,16 @@ static func inspection_for_site(
 		lines.append("Silverhart Kingdom reputation: %d / 60." % roundi(journal.faction_standing("silverhart_kingdom")))
 	if bool(dwelling_state.owned.get(dwelling_id, false)):
 		lines.append("Ownership: yours.")
-		if int(profile.get("sleeping_capacity", 0)) > 0:
-			lines.append("Indoor sleeping places: %d. Layout: %s." % [
+		if bool(profile.get("is_sheltered", false)):
+			lines.append("Building: structurally habitable.")
+			lines.append("Indoor beds: %d. Layout: %s." % [
 				int(profile.get("sleeping_capacity", 0)),
 				String(profile.get("layout_id", "unassigned"))
 			])
+			if int(profile.get("sleeping_capacity", 0)) == 0:
+				lines.append("The house is unfurnished. Buy or craft beds and other furniture to make use of the rooms.")
 		else:
-			lines.append("Status: owned, but still uninhabitable.")
+			lines.append("Status: owned, but structural repairs are still required.")
 	else:
 		lines.append("Ownership: not yet acquired.")
 
