@@ -4,6 +4,391 @@
   "source": "Hex-crpg/campaign2World.js:buildDwarvenKingdom, carveFloorRoom, paintFloorCorridor, revealSunkenDeepPassage; campaign2Content.js:campaign2DwarfKing/campaign2DwarfGuards/campaign2DwarfTrader/campaign2DwarfRunesmith/campaign2DwarfForeman/campaign2DeepholdsVermin; Hex-crpg/campaign2World.js:buildEmberlode, carveBuilding, carveFloorRoom",
   "locations": [
     {
+      "id": "hollowmere_chapel",
+      "name": "Hollowmere — Chapel",
+      "anchor": {
+        "q": -14,
+        "r": 0
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Chapel",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_chapel_room",
+              "center": {
+                "q": -14,
+                "r": 0
+              },
+              "half_width": 3,
+              "half_height": 3,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "hollowmere_chapel_east_door",
+                "type": "door_open",
+                "position": {
+                  "q": -11,
+                  "r": 0
+                },
+                "light_radius": 0
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The chapel is centred at (-14,0), uses carveBuilding half-width 3 and half-height 3, and has an east entrance at (-11,0). The Elder Locket remains a separate source map item.",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "hollowmere_general_store",
+      "name": "Hollowmere — General Store",
+      "anchor": {
+        "q": 0,
+        "r": 18
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "General Store",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_general_store_room",
+              "center": {
+                "q": 0,
+                "r": 18
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "hollowmere_general_store_north_door",
+                "type": "door_open",
+                "position": {
+                  "q": 0,
+                  "r": 15
+                },
+                "light_radius": 0
+              },
+            {
+                "id": "hollowmere_general_store_counter",
+                "type": "table",
+                "position": {
+                  "q": 0,
+                  "r": 17
+                }
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The general store is centred at (0,18), uses carveFlatRoom half-width 4 and half-height 3, has a north door at (0,15), and a counter/table at (0,17).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "hollowmere_house",
+      "name": "Hollowmere — House",
+      "anchor": {
+        "q": 0,
+        "r": -12
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_house_room",
+              "center": {
+                "q": 0,
+                "r": -12
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "hollowmere_house_south_door",
+                "type": "door_open",
+                "position": {
+                  "q": 0,
+                  "r": -10
+                },
+                "light_radius": 0
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The house is centred at (0,-12), uses carveBuilding half-width 3 and half-height 2, and has a south entrance at (0,-10).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "hollowmere_store",
+      "name": "Hollowmere — Store",
+      "anchor": {
+        "q": 14,
+        "r": 0
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Store",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_store_room",
+              "center": {
+                "q": 14,
+                "r": 0
+              },
+              "half_width": 4,
+              "half_height": 3,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "hollowmere_store_west_door",
+                "type": "door_open",
+                "position": {
+                  "q": 10,
+                  "r": 0
+                },
+                "light_radius": 0
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The store is centred at (14,0), uses carveBuilding half-width 4 and half-height 3, and has a west entrance at (10,0).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "hollowmere_tavern",
+      "name": "Hollowmere — Tavern",
+      "anchor": {
+        "q": 0,
+        "r": 0
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Tavern",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "hollowmere_tavern_room",
+              "center": {
+                "q": 0,
+                "r": 0
+              },
+              "half_width": 6,
+              "half_height": 4,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "hollowmere_tavern_south_door",
+                "type": "door_closed",
+                "position": {
+                  "q": 0,
+                  "r": 4
+                },
+                "light_radius": 0,
+                "locked": true
+              },
+            {
+                "id": "hollowmere_tavern_fireplace",
+                "type": "fireplace",
+                "position": {
+                  "q": -4,
+                  "r": -2
+                },
+                "light_radius": 6
+              },
+            {
+                "id": "hollowmere_tavern_table_east",
+                "type": "table",
+                "position": {
+                  "q": 1,
+                  "r": 1
+                }
+              },
+            {
+                "id": "hollowmere_tavern_bench_east",
+                "type": "bench",
+                "position": {
+                  "q": 1,
+                  "r": 2
+                }
+              },
+            {
+                "id": "hollowmere_tavern_table_west",
+                "type": "table",
+                "position": {
+                  "q": -2,
+                  "r": 0
+                }
+              },
+            {
+                "id": "hollowmere_tavern_bench_west",
+                "type": "bench",
+                "position": {
+                  "q": -2,
+                  "r": 1
+                }
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The tavern floor is the source row-shifted q=-5..5/r=-3..3 footprint, represented as a 6-by-4 half-size room with the same source_building row shift. Its south door at (0,4) begins closed and locked; the fireplace and four source furniture positions are preserved.",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "mira_house",
+      "name": "Hollowmere — Mira's House",
+      "anchor": {
+        "q": 12,
+        "r": 9
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Mira's House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "mira_house_room",
+              "center": {
+                "q": 12,
+                "r": 9
+              },
+              "half_width": 2,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "mira_house_west_door",
+                "type": "door_open",
+                "position": {
+                  "q": 10,
+                  "r": 9
+                },
+                "light_radius": 0
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "Mira's house is centred at (12,9), uses carveBuilding half-width 2 and half-height 2, and has a west entrance at (10,9).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "oskar_house",
+      "name": "Hollowmere — Oskar's House",
+      "anchor": {
+        "q": -6,
+        "r": 9
+      },
+      "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Oskar's House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "oskar_house_room",
+              "center": {
+                "q": -6,
+                "r": 9
+              },
+              "half_width": 2,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "oskar_house_east_door",
+                "type": "door_open",
+                "position": {
+                  "q": -4,
+                  "r": 9
+                },
+                "light_radius": 0
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "Oskar's house is centred at (-6,9), uses carveBuilding half-width 2 and half-height 2, and has an east entrance at (-4,9).",
+        "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
       "id": "hollowmere_guild_den",
       "name": "Hollowmere — Guild Den",
       "anchor": {
