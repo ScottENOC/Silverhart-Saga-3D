@@ -18,12 +18,22 @@ jobs:
     steps:
       - name: Check out Silverhart Saga
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /data/world/
+            /tools/
+            /tests/test_campaign2_authored_hex_audit.py
       - name: Check out original Hex-crpg source
         uses: actions/checkout@v4
         with:
           repository: ScottENOC/Hex-crpg
           ref: 4de96f16889d43cae91e03832c8eb1c1b4b00e42
           path: Hex-crpg
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /campaign2World.js
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
