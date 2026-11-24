@@ -52,9 +52,9 @@ const windowState = {
     Array.from({ length: 16 }, () => ({ n: "" }))),
   setTerrainAt(q, r, name) {
     const stack = new Error().stack || "";
-    const callerLine = stack.split("\\n").slice(1).find(line =>
-      /at (?:Object\\.)?(?:build|paint|setupVillageScene|carve|place)/.test(line));
-    const match = callerLine && callerLine.match(/at (?:Object\\.)?([A-Za-z_$][\\w$]*)/);
+    const callerLine = stack.split("\n").slice(1).find(line =>
+      /at (?:Object\.)?(?:build|paint|setupVillageScene|carve|place)/.test(line));
+    const match = callerLine && callerLine.match(/at (?:Object\.)?([A-Za-z_$][\w$]*)/);
     const builder = match ? match[1] : "unclassified";
     const key = q + "," + r;
     this.overrideTerrain[key] = { name };
@@ -63,7 +63,7 @@ const windowState = {
     terrainWriteCountsByBuilder[builder] = (terrainWriteCountsByBuilder[builder] || 0) + 1;
   },
   setTerrainAtFloor() {},
-  getTerrainAt(q, r) { return overrideTerrain[q + "," + r] || { name: "Grass" }; },
+  getTerrainAt(q, r) { return this.overrideTerrain[q + "," + r] || { name: "Grass" }; },
   getNeighbors(q, r) {
     return [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]]
       .map(([dq, dr]) => ({ q: q + dq, r: r + dr }));
@@ -154,6 +154,10 @@ try {
   process.exit(1);
 }
 const captured = JSON.parse(encoded);
+captured.terrainWritesByBuilder = Object.fromEntries(
+  Object.entries(terrainWritesByBuilder).map(([name, cells]) => [name, Array.from(cells)])
+);
+captured.terrainWriteCountsByBuilder = terrainWriteCountsByBuilder;
 const terrainCounts = {};
 for (const value of Object.values(captured.terrain)) {
   const name = value && value.name ? value.name : "UNNAMED";
