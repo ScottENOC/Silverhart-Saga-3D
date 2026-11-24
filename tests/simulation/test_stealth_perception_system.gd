@@ -32,6 +32,10 @@ func _run() -> void:
 	_check(int(fire_result.visual_level) < StealthPerceptionSystem.VISUAL_IDENTIFIED, "distant campfire should not reveal fine detail")
 
 	_check(not bool(fire_result.hex_known), "distant fire should not reveal an exact target hex")
+	_check(bool(fire_result.long_range_light_allowed), "night should allow long-range light detection")
+	var daytime_fire_result := StealthPerceptionSystem.assess(observer, campfire, {}, {"ambient_light": 1.0})
+	_check(int(daytime_fire_result.visual_level) == StealthPerceptionSystem.VISUAL_NONE, "distant fire should not be visible in daylight")
+	_check(not bool(daytime_fire_result.light_detected), "daylight should disable long-range light detection")
 	var distant_unlit_target := {"hex": Vector2i(20, 0), "appearance": {"colours": [Color.WHITE]}}
 	var distant_unlit_result := StealthPerceptionSystem.assess(observer, distant_unlit_target, {}, night)
 	_check(int(distant_unlit_result.visual_level) == StealthPerceptionSystem.VISUAL_NONE, "unlit target beyond vision radius should remain unseen")
