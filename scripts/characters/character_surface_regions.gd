@@ -534,5 +534,57 @@ func _collect_skinned_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
         _collect_skinned_meshes(child, output)
 
 
+## Samples overlapping authored fine-region weights continuously inside one source triangle.
+## The caller supplies the three source vertex indices and their barycentric weights
+## (for example, from a triangle hit on this exact mesh surface). This deliberately
+## does not collapse overlaps to a single "winning" region.
+func get_authored_triangle_region_weights(
+    mesh_node_path: NodePath,
+    surface_index: int,
+    triangle_vertex_indices: PackedInt32Array,
+    barycentric_weights: Vector3,
+    minimum_weight: float = 0.0
+) -> Dictionary:
+    var result: Dictionary = {}
+    if not is_configured() or triangle_vertex_indices.size() != 3:
+        return result
+    if not barycentric_weights.is_finite():
+        return result
+    var barycentric_sum := barycentric_weights.x + barycentric_weights.y + barycentric_weights.z
+    if absf(barycentric_sum - 1.0) > 0.001:
+        return result
+    for component in range(3):
+        if barycentric_weights[component] < -0.001 or barycentric_weights[component] > 1.001:
+            return result
+
+    for surface in _surfaces:
+        var mesh_instance: MeshInstance3D = surface["mesh_instance"]
+        if _body_root.get_path_to(mesh_instance) != mesh_node_path:
+            continue
+        if int(surface["surface_index"]) != surface_index:
+            continue
+        var vertices: PackedVector3Array = surface["vertices"]
+        for vertex_index in triangle_vertex_indices:
+            if vertex_index < 0 or vertex_index >= vertices.size():
+                return result
+
+        var fine_weights: Dictionary = surface.get("fine_region_weights", {})
+        var threshold := maxf(0.0, minimum_weight)
+        for region_variant in fine_weights:
+            var region_id := String(region_variant)
+            var values: PackedFloat32Array = fine_weights[region_variant]
+            if values.size() != vertices.size():
+                continue
+            var interpolated := (
+                values[triangle_vertex_indices[0]] * barycentric_weights.x
+                + values[triangle_vertex_indices[1]] * barycentric_weights.y
+                + values[triangle_vertex_indices[2]] * barycentric_weights.z
+            )
+            if interpolated > threshold:
+                result[region_id] = clampf(interpolated, 0.0, 1.0)
+        return result
+    return result
+
+
 func _normalise_bone_name(value: String) -> String:
     return value.to_lower().replace("_", "").replace("-", "").replace(" ", "").replace(":", "")
