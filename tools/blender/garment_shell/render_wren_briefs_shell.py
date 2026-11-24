@@ -80,11 +80,11 @@ def main():
     # The GLB exporter may include the source body as a skinning dependency when
     # the armature is selected. Never assume the first imported mesh is the garment.
     garment = next((o for o in garment_objects if o.type == "MESH" and any(
-        m and m.name == "Briefs" for m in o.data.materials)), None)
+        m and "skin" not in m.name.lower() for m in o.data.materials)), None)
     if body is None or garment is None:
         imported_meshes = [(o.name, [m.name if m else None for m in o.data.materials])
                            for o in garment_objects if o.type == "MESH"]
-        raise RuntimeError(f"Could not identify Wren skin mesh and Briefs material mesh; imported={imported_meshes}")
+        raise RuntimeError(f"Could not identify Wren skin mesh and garment material mesh; imported={imported_meshes}")
     armature_mod = next((m for m in body.modifiers if m.type == "ARMATURE" and m.object), None)
     if armature_mod is None or armature_mod.object.data.bones.get("LeftUpLeg") is None:
         raise RuntimeError("Wren rig is missing the LeftUpLeg landmark")
