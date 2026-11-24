@@ -100,7 +100,11 @@ const PROFILES := {
 }
 
 static func canonical_id(character_id: String) -> String:
-	return character_id.trim_prefix("companion_").trim_prefix("companion_")
+	var canonical := character_id.trim_prefix("companion_")
+	# The campaign spawn ID is shorter than the canonical content key.
+	if canonical == "warlord_grukk":
+		return "warlord_grukk_ironhide"
+	return canonical
 
 static func supported_companion_ids() -> Array[String]:
 	var result: Array[String] = []
