@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var guild_den: Dictionary = registry.get_definition("hollowmere_guild_den")
 	_check(int(guild_den.get("anchor", {}).get("q", 0)) == -12 and int(guild_den.get("anchor", {}).get("r", 0)) == -8, "Hollowmere Guild Den anchor must match buildHollowmereGuildDen")
 	var guild_den_floor := registry.get_floor_definition("hollowmere_guild_den", 0)
@@ -44,6 +44,26 @@ func _initialize() -> void:
 	_check(int(millbrook_room.get("half_width", 0)) == 3 and int(millbrook_room.get("half_height", 0)) == 3, "Millbrook house footprint must match carveFlatRoom")
 	_check(_has_record(millbrook_floor.get("tile_objects", []), "millbrook_house_east_door"), "Millbrook house must retain its east entrance")
 	_check(_has_record(millbrook_floor.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house must retain its source fireplace")
+
+	var reddale_centres := {
+		"reddale_guardhouse": Vector2i(134, 24),
+		"reddale_guildhouse": Vector2i(146, 34),
+		"reddale_inn": Vector2i(138, 30),
+		"reddale_manor": Vector2i(146, 14),
+		"reddale_reeve_house": Vector2i(138, 18),
+		"reddale_smithy": Vector2i(134, 32)
+	}
+	for location_id in reddale_centres:
+		var reddale_location: Dictionary = registry.get_definition(location_id)
+		var reddale_anchor: Dictionary = reddale_location.get("anchor", {})
+		var expected_centre: Vector2i = reddale_centres[location_id]
+		_check(int(reddale_anchor.get("q", 0)) == expected_centre.x and int(reddale_anchor.get("r", 0)) == expected_centre.y, "Reddale building anchor must match buildReddale: " + location_id)
+		var reddale_floor := registry.get_floor_definition(location_id, 0)
+		_check(reddale_floor.get("rooms", []).size() == 1, "Reddale building must retain one source room: " + location_id)
+		var reddale_room: Dictionary = reddale_floor.get("rooms", [])[0]
+		_check(int(reddale_room.get("half_width", 0)) == 3 and int(reddale_room.get("half_height", 0)) == 2, "Reddale building footprint must match carveBuilding: " + location_id)
+		_check(String(reddale_room.get("row_shift_mode", "")) == "source_building", "Reddale building must preserve carveBuilding row shift: " + location_id)
+		_check(_has_record(reddale_floor.get("tile_objects", []), location_id + "_door"), "Reddale building must retain its source entrance: " + location_id)
 
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
