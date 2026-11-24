@@ -70,7 +70,7 @@ def add_arm_ik(actor, side, target, pole_point, report):
     con.use_stretch=False
     pole=add_target("Wren_"+side+"_elbow_pole",pole_point)
     con.pole_target=pole
-    con.pole_angle=math.radians(180)
+    con.pole_angle=math.radians(-90)
     report[side+"_ik"]={"created":True,"chain":names,"target_world":[round(v,4) for v in target.location]}
 
 def bounds(actor):
@@ -173,7 +173,7 @@ def main():
     # Imported native Ara Wren faces -Y in this Blender scene. Contact targets
     # are placed from her measured bounds, then checked against the evaluated mesh.
     left_breast=Vector((centre.x+width*0.14,lo.y+depth*0.13,lo.z+height*0.665))
-    right_hip=Vector((centre.x-width*0.22,lo.y+depth*0.25,lo.z+height*0.51))
+    right_hip=Vector((centre.x-width*0.22,lo.y+depth*0.25,lo.z+height*0.56))
     left_target=add_target("Left_hand_contact_target_breast",left_breast)
     right_target=add_target("Right_hand_contact_target_hip",right_hip)
 
