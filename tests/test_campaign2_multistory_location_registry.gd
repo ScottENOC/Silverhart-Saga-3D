@@ -428,6 +428,15 @@ func _initialize() -> void:
 	_check(builder_house.get("wall_hexes", []).size() == 28, "Hallis's polygon house must retain its reinforced perimeter")
 	_check(_has_record(builder_house.get("tile_objects", []), "silverhart_builder_house_west_door"), "Hallis's house must retain its west door")
 	_check(_has_record(builder_house.get("tile_objects", []), "silverhart_builder_house_south_door"), "Hallis's house must retain its south door")
+
+	for embassy_id in ["silverhart_elven_embassy", "silverhart_dwarven_embassy", "silverhart_aldenreach_embassy", "silverhart_corvane_embassy"]:
+		_check(_has_record(registry.get_floor_definition(embassy_id, 0).get("tile_objects", []), embassy_id + "_table"), "Each Silverhart embassy must retain its source table: " + embassy_id)
+	var cathedral_objects: Array = registry.get_floor_definition("silverhart_grand_cathedral", 0).get("tile_objects", [])
+	_check(_has_record(cathedral_objects, "silverhart_grand_cathedral_altar"), "Grand Cathedral must retain its source altar")
+	_check(_has_record(cathedral_objects, "silverhart_grand_cathedral_bench_west") and _has_record(cathedral_objects, "silverhart_grand_cathedral_bench_east"), "Grand Cathedral must retain both source benches")
+	var commons_objects: Array = registry.get_floor_definition("silverhart_commons_inn", 0).get("tile_objects", [])
+	_check(_has_record(commons_objects, "silverhart_commons_inn_fireplace"), "Silverhart Commons inn must retain its source fireplace")
+	_check(_has_record(commons_objects, "silverhart_commons_inn_bench_west") and _has_record(commons_objects, "silverhart_commons_inn_bench_east"), "Silverhart Commons inn must retain both source benches")
 	var ironbond_floor := registry.get_floor_definition("silverhart_ironbond_office", 0)
 	_check(ironbond_floor.get("floor_hexes", []).has({"q": 4, "r": -457}), "Ironbond office must retain its source-opened corner")
 	_check(ironbond_floor.get("wall_hexes", []).has({"q": 5, "r": -458}), "Ironbond office must retain its source-restored outer corner")
