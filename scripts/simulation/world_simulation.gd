@@ -1573,11 +1573,17 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
 
 
 func claim_dwelling(action_id: String, payment: String = "materials", site_id: String = "") -> Dictionary:
-    return campaign_dwellings.complete_action(action_id, campaign_journal, get_character(player_character_id), payment, site_id)
+    var player := get_character(player_character_id)
+    if player == null or not campaign_dwellings.is_at_site(site_id, player.axial):
+        return {"ok": false, "reason": "not_at_dwelling_site", "required_site": site_id}
+    return campaign_dwellings.complete_action(action_id, campaign_journal, player, payment, site_id)
 
 
 func dwelling_action_availability(action_id: String, payment: String = "materials", site_id: String = "") -> Dictionary:
-    return campaign_dwellings.evaluate_action(action_id, campaign_journal, get_character(player_character_id), payment, site_id)
+    var player := get_character(player_character_id)
+    if player == null or not campaign_dwellings.is_at_site(site_id, player.axial):
+        return {"ok": false, "reason": "not_at_dwelling_site", "required_site": site_id}
+    return campaign_dwellings.evaluate_action(action_id, campaign_journal, player, payment, site_id)
 
 
 func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
