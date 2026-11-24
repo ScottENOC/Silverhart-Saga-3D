@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_bunkhouse", "emberlode_foremans_hall", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_bunkhouse", "emberlode_foremans_hall", "emberlode_mine", "hollowmere_guild_den", "kragmoor", "lich_chapterhouse", "millbrook_house", "old_mac_farmhouse", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -60,6 +60,15 @@ func _initialize() -> void:
 	_check(int(millbrook_room.get("half_width", 0)) == 3 and int(millbrook_room.get("half_height", 0)) == 3, "Millbrook house footprint must match carveFlatRoom")
 	_check(_has_record(millbrook_floor.get("tile_objects", []), "millbrook_house_east_door"), "Millbrook house must retain its east entrance")
 	_check(_has_record(millbrook_floor.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house must retain its source fireplace")
+
+	var farmhouse: Dictionary = registry.get_definition("old_mac_farmhouse")
+	_check(int(farmhouse.get("anchor", {}).get("q", 0)) == 0 and int(farmhouse.get("anchor", {}).get("r", 0)) == 194, "Old Mac's farmhouse anchor must match buildFarmstead")
+	var farmhouse_floor := registry.get_floor_definition("old_mac_farmhouse", 0)
+	_check(farmhouse_floor.get("rooms", []).size() == 1, "Old Mac's farmhouse must retain its source-authored room")
+	var farmhouse_room: Dictionary = farmhouse_floor.get("rooms", [])[0]
+	_check(int(farmhouse_room.get("half_width", 0)) == 3 and int(farmhouse_room.get("half_height", 0)) == 2, "Farmhouse footprint must match carveBuilding")
+	_check(String(farmhouse_room.get("row_shift_mode", "")) == "source_building", "Farmhouse must preserve carveBuilding row shift")
+	_check(_has_record(farmhouse_floor.get("tile_objects", []), "old_mac_farmhouse_east_door"), "Farmhouse must retain its source east entrance")
 
 	var reddale_centres := {
 		"reddale_guardhouse": Vector2i(134, 24),
