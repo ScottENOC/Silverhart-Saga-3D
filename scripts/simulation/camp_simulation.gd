@@ -330,6 +330,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	if has_water:
 		resources["water"] = maxi(0, int(resources.water) - party_size)
 	var results: Dictionary = {}
+	var total_comfort := 0.0
 	for character_id in party_ids:
 		var condition: Dictionary = conditions[character_id]
 		var in_tent := false
@@ -357,6 +358,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		condition["warmth"] = warmth
 		condition["comfort"] = comfort
 		conditions[character_id] = condition
+		total_comfort += comfort
 		results[character_id] = {
 			"comfort": comfort, "warmth": warmth, "nutrition": nutrition,
 			"hydration": hydration, "security": security, "social": social,
@@ -365,7 +367,9 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	phase = "resolved"
 	var summary := {
 		"hours": night_hours, "party_size": party_size, "watchers": watchers,
-		"ambush_chance": ambush_chance, "characters": results,
+		"ambush_chance": ambush_chance,
+		"average_comfort": total_comfort / float(maxi(1, party_size)),
+		"characters": results,
 		"resources_remaining": resources.duplicate(true)
 	}
 	night_resolved.emit(summary.duplicate(true))
