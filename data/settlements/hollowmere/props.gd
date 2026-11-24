@@ -46,7 +46,8 @@ const QUEST_PROPS := [
 			{"name": "BloodTrail_05", "type": "cylinder", "axial": Vector2i(-31, 72), "position": Vector3.ZERO, "top_radius": 0.075, "bottom_radius": 0.075, "height": 0.018, "radial_segments": 7, "material": "blood"},
 			{"name": "BloodTrail_06", "type": "cylinder", "axial": Vector2i(-38, 73), "position": Vector3.ZERO, "top_radius": 0.075, "bottom_radius": 0.075, "height": 0.018, "radial_segments": 7, "material": "blood"}
 		]
-	},
+	}
+]
 
 const WAYFINDING_PROPS := [
 	{
