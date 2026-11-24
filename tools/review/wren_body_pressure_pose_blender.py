@@ -57,7 +57,7 @@ def add_arm_ik(actor, side, target, pole_point, report):
     upper_alias=["LeftArm","LeftUpperArm","UpperArm_L"] if side=="left" else ["RightArm","RightUpperArm","UpperArm_R"]
     fore_alias=["LeftForeArm","LeftLowerArm","ForeArm_L"] if side=="left" else ["RightForeArm","RightLowerArm","ForeArm_R"]
     hand_alias=["LeftHand","Hand_L"] if side=="left" else ["RightHand","Hand_R"]
-    names=[bone_name(actor,[x]) for x in (upper_alias+fore_alias+hand_alias)]
+    # Resolve each segment from its alias set. Resolving each alias separately\n    # accidentally treated optional naming variants as required bones.\n    names=[bone_name(actor,upper_alias), bone_name(actor,fore_alias), bone_name(actor,hand_alias)]
     if not all(names):
         report[side+"_ik"]={"created":False,"resolved_chain":names}
         return
