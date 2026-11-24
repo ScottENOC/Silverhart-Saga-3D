@@ -5,6 +5,7 @@ var _failures := 0
 
 func _initialize() -> void:
 	_test_cottage_routes()
+	_test_furniture_purchase_crafting_and_placement()
 	_test_abandoned_house_quest_gate()
 	_test_manor_reputation_and_fortification()
 	_test_dwelling_camp_lodging()
@@ -35,6 +36,41 @@ func _add_item(player: CharacterState, item_id: String, quantity: int) -> void:
 	player.inventory.append({"instance_id": item_id + "_" + str(player.inventory.size()), "id": item_id, "quantity": quantity})
 
 
+
+func _test_furniture_purchase_crafting_and_placement() -> void:
+	var state := CampaignDwellingState.new()
+	var journal := CampaignJournal.new()
+	var player := _player()
+	player.gold = 100
+	player.axial = Vector2i(8, -496)
+	var wrong_shop := state.buy_furniture("bed_double", player, "general_store", player.axial)
+	_check(not bool(wrong_shop.get("ok", false)), "Furniture purchases must use the dedicated capital furniture shop.")
+	var purchase := state.buy_furniture("bed_double", player, CampaignFurnitureCatalog.SHOP_ID, player.axial)
+	_check(bool(purchase.get("ok", false)), "The capital furniture shop should sell a double bed.")
+	_check(player.gold == 52, "The furniture shop should deduct the listed price exactly once.")
+	_check(state.furniture_inventory_count("bed_double") == 1, "Purchased furniture should enter the dwelling furniture inventory.")
+	player.axial = Vector2i(13, 27)
+	_check(bool(state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot").get("ok", false)), "The cottage should be available for furnishing.")
+	var placed := state.place_furniture("crossroads_cottage", "bed_double", Vector2.ZERO, 0, player.axial)
+	_check(bool(placed.get("ok", false)), "A purchased double bed should fit inside the cottage.")
+	_check(state.sleeping_capacity_for("crossroads_cottage") == 2, "A double bed should provide two indoor sleeping places.")
+	var overlap := state.place_furniture("crossroads_cottage", "bed_double", Vector2.ZERO, 0, player.axial)
+	_check(not bool(overlap.get("ok", false)), "Furniture placement must reject overlapping objects.")
+	var instance_id := String(placed.get("furniture", {}).get("instance_id", ""))
+	_check(bool(state.remove_furniture("crossroads_cottage", instance_id, player.axial).get("ok", false)), "Placed furniture should be movable back into the furniture inventory.")
+	_check(state.sleeping_capacity_for("crossroads_cottage") == 0, "Removing the only bed should remove its sleeping capacity.")
+	_check(state.furniture_inventory_count("bed_double") == 1, "Removing furniture should return it to storage without destroying it.")
+	_add_item(player, "wood", 8)
+	_add_item(player, "hide", 2)
+	var crafted := state.craft_furniture("bed_single", player, "crossroads_cottage", player.axial)
+	_check(bool(crafted.get("ok", false)), "A single bed should be craftable from existing campaign materials.")
+	_check(state.furniture_inventory_count("bed_single") == 1, "Crafted furniture should enter the same furniture inventory as purchased goods.")
+	_check(state.to_dict().has("placed_furniture") and state.to_dict().has("furniture_inventory"), "Furniture inventory and placement should be included in dwelling saves.")
+	var restored := CampaignDwellingState.new()
+	_check(restored.from_dict(state.to_dict()), "Furniture state should validate and restore from a save.")
+	_check(restored.to_dict() == state.to_dict(), "Furniture inventory and placement should round-trip exactly.")
+
+
 func _test_cottage_routes() -> void:
 	var state := CampaignDwellingState.new()
 	var journal := CampaignJournal.new()
@@ -44,12 +80,12 @@ func _test_cottage_routes() -> void:
 	_check(not bool(wrong_site.get("ok", false)), "A dwelling must not be claimed from another property site.")
 	_check(not bool(wrong_site_state.owned.get("crossroads_cottage", false)), "A wrong-site claim must not set ownership.")
 	_check(bool(state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot").get("ok", false)), "The starting cottage should have no reputation or quest gate.")
-	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 1, "The cottage should provide one indoor sleeping place.")
+	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 0, "A newly built cottage should start unfurnished with no beds.")
 	_check(not bool(state.evaluate_action("upgrade_country_house", journal, player, "materials", "crossroads_plot").get("ok", false)), "The country-house upgrade should require materials or gold.")
 	_add_item(player, "wood", 6)
 	_add_item(player, "stone", 6)
 	_check(bool(state.complete_action("upgrade_country_house", journal, player, "materials", "crossroads_plot").get("ok", false)), "The country-house upgrade should accept gathered materials.")
-	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 3, "The expanded house should provide three indoor sleeping places.")
+	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 0, "Expanding the house should not grant free beds.")
 	var gold_state := CampaignDwellingState.new()
 	var gold_player := _player()
 	gold_state.complete_action("build_crossroads_cottage", journal, gold_player, "materials", "crossroads_plot")
@@ -69,7 +105,7 @@ func _test_abandoned_house_quest_gate() -> void:
 	journal.start_quest("abandoned_house_cleared")
 	journal.complete_quest("abandoned_house_cleared")
 	_check(bool(state.complete_action("restore_abandoned_house", journal, player, "materials", "abandoned_house").get("ok", false)), "The abandoned house should be restorable after its quest and material gates.")
-	_check(int(state.camp_profile_for("abandoned_house").get("sleeping_capacity", 0)) == 2, "The restored roadside house should shelter two party members.")
+	_check(int(state.camp_profile_for("abandoned_house").get("sleeping_capacity", 0)) == 0, "The restored roadside house should start without furniture.")
 
 
 func _test_manor_reputation_and_fortification() -> void:
@@ -84,7 +120,7 @@ func _test_manor_reputation_and_fortification() -> void:
 	_add_item(player, "wood", 10)
 	_add_item(player, "stone", 10)
 	_check(bool(state.complete_action("fortify_silverhart_manor", journal, player, "materials", "silverhart_manor").get("ok", false)), "Manor fortification should require gathered materials.")
-	_check(int(state.camp_profile_for("silverhart_manor").get("sleeping_capacity", 0)) == 8, "The livable manor should provide eight indoor sleeping places.")
+	_check(int(state.camp_profile_for("silverhart_manor").get("sleeping_capacity", 0)) == 0, "The fortified manor should start unfurnished rather than granting eight free beds.")
 
 
 func _test_save_restore() -> void:
@@ -102,6 +138,11 @@ func _test_dwelling_camp_lodging() -> void:
 	var journal := CampaignJournal.new()
 	var player := _player()
 	state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot")
+	player.axial = Vector2i(13, 27)
+	_add_item(player, "wood", 8)
+	_add_item(player, "hide", 2)
+	_check(bool(state.craft_furniture("bed_single", player, "crossroads_cottage", player.axial).get("ok", false)), "The owner should be able to craft a single bed from timber and hide.")
+	_check(bool(state.place_furniture("crossroads_cottage", "bed_single", Vector2(-1.0, 0.0), 0, player.axial).get("ok", false)), "The crafted bed should be placeable inside the cottage.")
 	var profile := state.camp_profile_for("crossroads_cottage")
 	var camp := CampSimulation.new()
 	camp.begin_camp({"walkable": true, "dwelling_profile": profile}, ["player", "companion"], {}, {"tents": 0})
@@ -139,7 +180,7 @@ func _test_world_integration_and_persistence() -> void:
 	_check(not bool(started_without_location.get("ok", false)), "A dwelling must not provide shelter when the camp is not at its site.")
 	var started := world.begin_camp({"walkable": true, "hex": Vector2i(13, 27), "dwelling_id": "crossroads_cottage"}, {}, {"tents": 0})
 	_check(bool(started.get("ok", false)), "An owned cottage should be accepted as a camp site.")
-	_check(String(world.camp_simulation.sleeping_arrangements[0].get("shelter_type", "")) == "dwelling", "World simulation should pass the owned dwelling's lodging profile into camp.")
+	_check(String(world.camp_simulation.sleeping_arrangements[0].get("shelter_type", "")) == "open_air", "An unfurnished dwelling should not provide an indoor sleeping place.")
 	var saved := world.to_dict()
 	var restored := WorldSimulation.new()
 	restored.load_dict(saved)
