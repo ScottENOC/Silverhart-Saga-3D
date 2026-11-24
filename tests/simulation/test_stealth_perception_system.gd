@@ -60,6 +60,19 @@ func _run() -> void:
 	var blocked_sound := StealthPerceptionSystem.assess_sound(Vector2i.ZERO, {"hex": Vector2i(2, 0), "loudness": 0.8}, wall_cells)
 	_check(float(blocked_sound.confidence) < float(open_sound.confidence), "sound barriers should attenuate sound")
 
+	var world := WorldSimulation.new()
+	var observer_state := CharacterState.new("observer_test", "Observer", Vector2i.ZERO)
+	var target_state := CharacterState.new("target_test", "Target", Vector2i(4, 0))
+	world.register_character(observer_state)
+	world.register_character(target_state)
+	var service := StealthPerceptionService.new(world)
+	world.clock.set_world_seconds(12.0 * 3600.0)
+	var daylight_result := service.assess_character(observer_state.id, target_state.id)
+	world.clock.set_world_seconds(0.0)
+	var midnight_result := service.assess_character(observer_state.id, target_state.id)
+	_check(float(daylight_result.visual_confidence) > float(midnight_result.visual_confidence), "campaign time should change ambient visibility")
+	world.free()
+
 	print("Stealth perception regression checks passed.")
 	quit(0)
 
