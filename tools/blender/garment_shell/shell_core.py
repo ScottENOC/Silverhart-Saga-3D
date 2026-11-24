@@ -250,12 +250,12 @@ def bridge_midline_concavities(
     *,
     min_height: float = -0.14,
     max_height: float = 0.08,
-    bridge_half_width: float = 0.055,
-    sample_outer_width: float = 0.10,
-    vertical_band: float = 0.018,
-    strength: float = 0.82,
-    max_bridge_distance: float = 0.025,
-    minimum_gap: float = 0.002,
+    bridge_half_width: float = 0.075,
+    sample_outer_width: float = 0.14,
+    vertical_band: float = 0.025,
+    strength: float = 1.0,
+    max_bridge_distance: float = 0.045,
+    minimum_gap: float = 0.001,
 ) -> tuple[Vec3, ...]:
     """Pull cloth out of narrow central body valleys without changing its outline.
 
