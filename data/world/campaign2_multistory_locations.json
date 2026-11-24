@@ -854,6 +854,379 @@
       ]
     },
     {
+      "id": "reddale_guardhouse",
+      "name": "Reddale — Guardhouse",
+      "anchor": {
+        "q": 134,
+        "r": 24
+      },
+      "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Guardhouse",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "reddale_guardhouse_room",
+              "center": {
+                "q": 134,
+                "r": 24
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "reddale_guardhouse_door",
+                "type": "door_open",
+                "position": {
+                  "q": 137,
+                  "r": 24
+                },
+                "light_radius": 0
+              },
+            {
+                "id": "guardhouse_fireplace",
+                "type": "fireplace",
+                "position": {
+                  "q": 134,
+                  "r": 24
+                },
+                "light_radius": 6
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildReddale places the guardhouse at road-end offset (-4,0), uses carveBuilding half-width 3/half-height 2, an east door, and a central fireplace.",
+        "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "reddale_guildhouse",
+      "name": "Reddale — Ironbond Guildhouse",
+      "anchor": {
+        "q": 146,
+        "r": 34
+      },
+      "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Ironbond Guildhouse",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "reddale_guildhouse_room",
+              "center": {
+                "q": 146,
+                "r": 34
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "reddale_guildhouse_door",
+                "type": "door_open",
+                "position": {
+                  "q": 143,
+                  "r": 34
+                },
+                "light_radius": 0
+              },
+            {
+                "id": "guildhouse_fireplace",
+                "type": "fireplace",
+                "position": {
+                  "q": 146,
+                  "r": 34
+                },
+                "light_radius": 6
+              },
+            {
+                "id": "guildhouse_table",
+                "type": "table",
+                "position": {
+                  "q": 146,
+                  "r": 33
+                }
+              },
+            {
+                "id": "guildhouse_ledgers",
+                "type": "evidence",
+                "position": {
+                  "q": 147,
+                  "r": 33
+                }
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildReddale places the guildhouse at road-end offset (+8,+10), uses carveBuilding half-width 3/half-height 2, a west door, fireplace, table and guild-ledger evidence.",
+        "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "reddale_inn",
+      "name": "Reddale — Inn",
+      "anchor": {
+        "q": 138,
+        "r": 30
+      },
+      "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Inn",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "reddale_inn_room",
+              "center": {
+                "q": 138,
+                "r": 30
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "reddale_inn_door",
+                "type": "door_open",
+                "position": {
+                  "q": 138,
+                  "r": 28
+                },
+                "light_radius": 0
+              },
+            {
+                "id": "inn_fireplace",
+                "type": "fireplace",
+                "position": {
+                  "q": 138,
+                  "r": 30
+                },
+                "light_radius": 6
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildReddale places the inn at road-end offset (0,+6), uses carveBuilding half-width 3/half-height 2, a north door and central fireplace. The innkeeper, guild contact and disciple remain campaign actors.",
+        "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "reddale_manor",
+      "name": "Reddale — Baron's Manor",
+      "anchor": {
+        "q": 146,
+        "r": 14
+      },
+      "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Baron's Manor",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "reddale_manor_room",
+              "center": {
+                "q": 146,
+                "r": 14
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "reddale_manor_door",
+                "type": "door_open",
+                "position": {
+                  "q": 143,
+                  "r": 14
+                },
+                "light_radius": 0
+              },
+            {
+                "id": "manor_fireplace",
+                "type": "fireplace",
+                "position": {
+                  "q": 146,
+                  "r": 14
+                },
+                "light_radius": 6
+              },
+            {
+                "id": "manor_table",
+                "type": "table",
+                "position": {
+                  "q": 146,
+                  "r": 13
+                }
+              },
+            {
+                "id": "baron_tariff_records",
+                "type": "evidence",
+                "position": {
+                  "q": 147,
+                  "r": 13
+                }
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildReddale places the manor at road-end offset (+8,-10), uses carveBuilding half-width 3/half-height 2, a west door, fireplace, table and tariff-record evidence.",
+        "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "reddale_reeve_house",
+      "name": "Reddale — Reeve's House",
+      "anchor": {
+        "q": 138,
+        "r": 18
+      },
+      "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Reeve's House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "reddale_reeve_house_room",
+              "center": {
+                "q": 138,
+                "r": 18
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "reddale_reeve_house_door",
+                "type": "door_open",
+                "position": {
+                  "q": 138,
+                  "r": 20
+                },
+                "light_radius": 0
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildReddale places the Reeve's house at road-end offset (0,-6), uses carveBuilding half-width 3/half-height 2 and a south door.",
+        "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
+      "id": "reddale_smithy",
+      "name": "Reddale — Smithy",
+      "anchor": {
+        "q": 134,
+        "r": 32
+      },
+      "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Smithy",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "reddale_smithy_room",
+              "center": {
+                "q": 134,
+                "r": 32
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+                "id": "reddale_smithy_door",
+                "type": "door_open",
+                "position": {
+                  "q": 137,
+                  "r": 32
+                },
+                "light_radius": 0
+              },
+            {
+                "id": "smithy_fireplace",
+                "type": "fireplace",
+                "position": {
+                  "q": 134,
+                  "r": 32
+                },
+                "light_radius": 6
+              },
+            {
+                "id": "smithy_bed",
+                "type": "bed",
+                "position": {
+                  "q": 133,
+                  "r": 32
+                }
+              }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "buildReddale places the smithy at road-end offset (-4,+8), uses carveBuilding half-width 3/half-height 2, an east door, fireplace and source blacksmith bed.",
+        "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
+      ]
+    },
+    {
       "id": "silthandriel",
       "name": "Sil'thandriel — Court of the Silver Leaf",
       "anchor": {
