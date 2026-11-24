@@ -36,7 +36,7 @@ func _initialize() -> void:
 		var expected_centre: Vector2i = emberlode_centres[location_id]
 		_check(int(emberlode_anchor.get("q", 0)) == expected_centre.x and int(emberlode_anchor.get("r", 0)) == expected_centre.y, "Emberlode building anchor must match buildEmberlode: " + location_id)
 		var emberlode_floor := registry.get_floor_definition(location_id, 0)
-		_check(emberlode_residential_floor_definition.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
+		_check(emberlode_floor.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
 		var emberlode_room: Dictionary = emberlode_floor.get("rooms", [])[0]
 		_check(int(emberlode_room.get("half_width", 0)) == 3 and int(emberlode_room.get("half_height", 0)) == 2, "Emberlode building footprint must match carveBuilding: " + location_id)
 		_check(String(emberlode_room.get("row_shift_mode", "")) == "source_building", "Emberlode building must preserve carveBuilding row shift: " + location_id)
@@ -356,8 +356,8 @@ func _initialize() -> void:
 		var residential_location_definition: Dictionary = registry.get_definition(location_id)
 		_check(_position_matches(residential_location_definition.get("anchor", {}), residential_expected["centre"]), "Silverhart residential centre must match source: " + location_id)
 		var residential_floor_definition := registry.get_floor_definition(location_id, 0)
-		_check(floor.get("rooms", []).size() == 1, "Silverhart residential interior must contain one source room: " + location_id)
-		if floor.get("rooms", []).size() == 1:
+		_check(residential_floor_definition.get("rooms", []).size() == 1, "Silverhart residential interior must contain one source room: " + location_id)
+		if residential_floor_definition.get("rooms", []).size() == 1:
 			var residential_room: Dictionary = residential_floor_definition.get("rooms", [])[0]
 			_check(_position_matches(residential_room.get("center", {}), residential_expected["centre"]), "Silverhart residential room centre must match source: " + location_id)
 			_check(int(residential_room.get("half_width", 0)) == int(residential_expected["width"]) and int(residential_room.get("half_height", 0)) == int(residential_expected["height"]), "Silverhart residential room dimensions must match source: " + location_id)
