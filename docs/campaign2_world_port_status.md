@@ -54,7 +54,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Lich Chapterhouse | Source-authored single-floor stone chapterhouse (4-by-3 room), east entrance and central fireplace are registered and map-tested; inquisitor and witch hunters remain campaign actors | Necromancer/lich faction content, encounter behaviour and chapterhouse runtime entry/exit wiring |
 | Emberwood Grove | Terrain clearing, foliage perimeter, spring stone rim and both source herb-patch visuals are ported; inhabitants, gathering and quest behaviour are campaign-owned |
 | Vampire Grave | Grave site, vampire encounter and related content |
-| Thieves' Cove Caves | Cave network, guild residents, services and quest content |
+| Thieves' Cove Caves | Three-level source-authored cave network and reciprocal stairs; source journal in the Smugglers' Den, guild-cache evidence in the Hidden Vault and wilderness tunnel-junction marker are registered as physical map objects | Guild residents, services and quest content; visual review and runtime traversal/interaction wiring |
 | Old Mac's Wolf Den | Canonical encounter-site anchor at (-59,204) is registered and the live farm-wolf quest uses that source coordinate; den dressing, trigger and quest persistence remain |
 | Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
 | Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn coordinates are registered with the shared multi-story floor builder; exterior entry/exit wiring remains |
