@@ -141,6 +141,32 @@ static func stealth_check_bonus(target: CharacterState) -> int:
 		+ _skill_rank(target, "stealth_rogue")
 	)
 
+## Returns the source game's percentage chance to detect a concealed target.
+## Callers must first establish ordinary spatial visibility with can_see(); this
+## chance query never extends range or bypasses line-of-sight.
+## target_stealth_score is the target's already-computed base score (including
+## terrain/equipment effects); target skill bonuses can be added via
+## stealth_check_bonus() by the caller.
+static func stealth_detection_chance(
+	observer: CharacterState,
+	distance: int,
+	target_stealth_score: float,
+	effective_light: float = 1.0,
+	observer_has_light: bool = false
+) -> float:
+	if observer == null or distance < 0:
+		return 0.0
+	var distance_bonus := maxi(0, (15 - distance) * 5)
+	var spot_chance := maxf(
+		5.0,
+		100.0 - target_stealth_score + float(distance_bonus)
+		+ float(stealth_detection_bonus(observer))
+	)
+	var light := clampf(effective_light, 0.2, 1.0)
+	var light_penalty := (1.0 - light) * 50.0
+	var final_chance := (spot_chance * 1.5 if observer_has_light else spot_chance) - light_penalty
+	return clampf(final_chance, 0.0, 100.0)
+
 
 static func _skill_rank(state: CharacterState, skill_id: String) -> int:
 	var value: Variant = state.skills.get(skill_id, 0)
