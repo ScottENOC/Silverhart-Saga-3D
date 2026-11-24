@@ -1360,13 +1360,6 @@ func _refresh_nearby_interactions() -> void:
 			nearby.remove_at(index)
 	for child in nearby_interaction_box.get_children():
 		child.free()
-	if nearby.is_empty():
-		nearby_interaction_panel.visible = false
-		return
-	var heading := Label.new()
-	heading.text = "NEARBY PEOPLE"
-	heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
-	nearby_interaction_box.add_child(heading)
 	# Party members are normally excluded from the NPC interaction service.
 	# Keep nearby companion conversations reachable without switching control.
 	for party_id_value in simulation.get_party_member_ids():
@@ -1385,6 +1378,13 @@ func _refresh_nearby_interactions() -> void:
 				break
 		if not already_listed:
 			nearby.append({"id":party_id,"name":party_state.display_name,"hostile":false})
+	if nearby.is_empty():
+		nearby_interaction_panel.visible = false
+		return
+	var heading := Label.new()
+	heading.text = "NEARBY PEOPLE"
+	heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+	nearby_interaction_box.add_child(heading)
 	for index in range(mini(nearby.size(), 6)):
 		var entry: Dictionary = nearby[index]
 		var target_id := String(entry.id)
@@ -1462,12 +1462,7 @@ func _show_companion_dialogue(character_id: String) -> void:
 	)
 	if conversation.is_empty():
 		return
-	var canonical_id := character_id.trim_prefix("companion_")
 	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
-	if canonical_id == "wren_talbot" and relationships != null:
-		var character_arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
-		if character_arc != null:
-			character_arc.sync_story_events(relationships)
 	var relationship_line := ""
 	if relationships != null and relationships.has_profile(canonical_id):
 		var conversation_key := "world_talk:" + str(int(simulation.clock.world_seconds))
