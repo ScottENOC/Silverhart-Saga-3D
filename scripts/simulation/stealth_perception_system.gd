@@ -15,6 +15,11 @@ const SOUND_UNHEARD := 0
 const SOUND_SUSPICIOUS := 1
 const SOUND_HEARD := 2
 
+# Ordinary sight stays local for predictable CPU cost. Only emitted light gets
+# a separate, bounded long-range check.
+const DEFAULT_VISION_RADIUS := 8
+const DEFAULT_LIGHT_DETECTION_RADIUS := 24
+
 const DETAIL_THRESHOLDS := {
 	"vague": 0.08,
 	"silhouette": 0.22,
@@ -42,17 +47,24 @@ static func assess(
 	var reflective_exposure := clampf(float(target_profile.get("reflectivity", 0.0)), 0.0, 1.0)
 	var emitted_light := clampf(float(target_profile.get("light_emission", 0.0)), 0.0, 1.0)
 
-	# Light sources have their own long-range low-detail visibility. This is
-	# intentionally independent of whether the person carrying one is visible.
-	var light_signal := maxf(emitted_light, lighting * 0.35)
-	var light_visibility := clampf(light_signal * atmosphere / (1.0 + float(distance) * 0.055), 0.0, 1.0)
-	var ambient_visibility := clampf(
-		(float(environment.get("ambient_light", 1.0)) + lighting * 0.8)
-		* atmosphere
-		/ (1.0 + float(distance) * 0.11),
-		0.0,
-		1.0
-	)
+	# Ordinary sight never evaluates beyond the configured local radius.
+	# Emitted light is the sole exception and has its own hard, bounded radius.
+	var vision_radius := maxi(0, int(environment.get("vision_radius", DEFAULT_VISION_RADIUS)))
+	var light_radius := maxi(vision_radius, int(environment.get("light_detection_radius", DEFAULT_LIGHT_DETECTION_RADIUS)))
+	var within_vision_radius := distance <= vision_radius
+	var within_light_radius := distance <= light_radius
+	var light_visibility := 0.0
+	if emitted_light > 0.0 and within_light_radius:
+		light_visibility = clampf(emitted_light * atmosphere / (1.0 + float(distance) * 0.055), 0.0, 1.0)
+	var ambient_visibility := 0.0
+	if within_vision_radius:
+		ambient_visibility = clampf(
+			(float(environment.get("ambient_light", 1.0)) + lighting * 0.8)
+			* atmosphere
+			/ (1.0 + float(distance) * 0.11),
+			0.0,
+			1.0
+		)
 	var contrast_penalty := (1.0 - camouflage) * 0.58
 	var exposure_bonus := movement_exposure * 0.28 + reflective_exposure * 0.24
 	var cover := clampf(float(target_profile.get("cover", terrain_profile.get("cover", 0.0))), 0.0, 1.0)
@@ -64,6 +76,15 @@ static func assess(
 	)
 	visual_signal *= float(obstruction.get("transmission", 1.0))
 	var visual_level := _visual_level(visual_signal, distance, emitted_light, light_visibility)
+	# A distant light can be noticed as a glow, never as an identified object
+	# or a precise hex. Poor camouflage cannot extend ordinary sight range.
+	if not within_vision_radius:
+		if light_visibility >= 0.09:
+			visual_level = mini(visual_level, VISUAL_VAGUE)
+		elif light_visibility >= 0.045:
+			visual_level = VISUAL_SUSPICIOUS
+		else:
+			visual_level = VISUAL_NONE
 	var result := {
 		"visual_level": visual_level,
 		"visual_label": visual_level_name(visual_level),
@@ -72,6 +93,8 @@ static func assess(
 		"camouflage": camouflage,
 		"reflective_exposure": reflective_exposure,
 		"light_visibility": light_visibility,
+		"within_vision_radius": within_vision_radius,
+		"light_detected": light_visibility >= 0.09,
 		"obstruction": obstruction,
 		"target_hex": target_hex if visual_level >= VISUAL_RECOGNISED else null,
 		"hex_known": visual_level >= VISUAL_RECOGNISED,
