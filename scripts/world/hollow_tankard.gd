@@ -10,6 +10,8 @@ const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_ge
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
@@ -130,6 +132,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
+	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
 	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
@@ -148,6 +151,7 @@ func _ready() -> void:
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
+	_initialise_companion_relationship_context()
 	var initial_player_state := simulation.get_character("player")
 	var player_race := initial_player_state.race if initial_player_state != null else "human"
 	CAMPAIGN_FACTION_SIMULATION_SCRIPT.seed_faction_standings(simulation.campaign_journal, String(player_race))
@@ -162,6 +166,16 @@ func _ready() -> void:
 		if save_manager != null:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
+
+func _initialise_companion_relationship_context() -> void:
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if relationships == null:
+		return
+	var presentation := String(player_profile.get("gender_presentation", "Masculine")).strip_edges().to_lower()
+	if not ["masculine", "feminine", "androgynous", "unknown"].has(presentation):
+		presentation = "unknown"
+	for companion_id in ["wren_talbot", "ser_aldric_thorne", "fenn_oakheart", "reyna_fletcher", "mirabel_quill", "brother_alden"]:
+		relationships.set_presentation(companion_id, presentation)
 
 func _create_materials() -> void:
 	grass_material = _material(Color(0.28, 0.38, 0.27))
@@ -899,6 +913,7 @@ func _build_save_snapshot() -> Dictionary:
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
 		"persistent_character_relationships": PERSISTENT_RELATIONSHIP_STORE.to_dict(simulation),
+		"companion_campaign_runtime": COMPANION_RUNTIME_STORE.to_dict(simulation),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
@@ -983,6 +998,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	if persistent_relationship_data is Dictionary:
 		if not PERSISTENT_RELATIONSHIP_STORE.restore(simulation, persistent_relationship_data):
 			push_warning("Persistent NPC relationship state could not be fully synchronised with the campaign journal.")
+	var companion_runtime_data: Variant = data.get("companion_campaign_runtime", {})
+	if companion_runtime_data is Dictionary and not COMPANION_RUNTIME_STORE.restore(simulation, companion_runtime_data):
+		push_warning("Companion relationship and personal quest state could not be fully restored.")
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
@@ -1083,6 +1101,44 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
 	if _handle_seraphine_choice(choice):
+		return
+	if choice_id == "wren_arc_topic:why_stay":
+		_show_wren_arc_topic("why_stay")
+		return
+	if choice_id == "wren_arc_topic:parents_reflection":
+		_show_wren_arc_topic("parents_reflection")
+		return
+	if choice_id.begins_with("wren_arc_choice:"):
+		var wren_choice_id := choice_id.trim_prefix("wren_arc_choice:")
+		var wren_arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
+		var wren_relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+		if wren_arc != null:
+			var applied := wren_arc.apply_dialogue_choice(wren_choice_id, wren_relationships)
+			if bool(applied.get("ok", false)):
+				_show_dialogue("Wren Talbot", wren_arc.dialogue_response_for(wren_choice_id), [{"id":"continue","label":"I understand.","text":""}])
+				return
+		_show_wren_dialogue()
+		return
+	if choice_id == "companion_chapter_start":
+		var chapter_id := String(choice.get("chapter_id", ""))
+		var start_result := COMPANION_DIALOGUE_SERVICE.start_chapter(simulation, chapter_id)
+		if bool(start_result.get("ok", false)):
+			_show_companion_dialogue(String(choice.get("companion_id", "")))
+		else:
+			_show_dialogue("Campaign journal", "That chapter could not be started: %s." % String(start_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+		return
+	if choice_id == "companion_chapter_resolve":
+		var resolution_result := COMPANION_DIALOGUE_SERVICE.resolve_chapter(simulation, String(choice.get("chapter_id", "")), String(choice.get("resolution_id", "")))
+		if bool(resolution_result.get("ok", false)):
+			var reward_text := String(resolution_result.get("line", "The decision is made."))
+			var xp_reward := int(resolution_result.get("xp_reward", 0))
+			var player_state := simulation.get_character("player")
+			if player_state != null and xp_reward > 0:
+				player_state.experience += xp_reward
+				reward_text += "\n\nChapter complete · %d XP gained." % xp_reward
+			_show_dialogue(String(choice.get("companion_name", "Companion")), reward_text, [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Campaign journal", "That resolution could not be recorded: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
 		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
@@ -1247,6 +1303,17 @@ func _interact_with_character(character_id: String) -> void:
 		else:
 			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}], "afraid")
 		return
+	if character_id in ["companion_wren_talbot", "wren_talbot"]:
+		_show_wren_dialogue()
+		return
+	var chapter_consultation := COMPANION_DIALOGUE_SERVICE.consult_for_actor(simulation, character_id, target_state.display_name)
+	if bool(chapter_consultation.get("ok", false)):
+		var consultation_text := String(chapter_consultation.get("text", ""))
+		var consultation_prompt := String(chapter_consultation.get("prompt", ""))
+		if not consultation_prompt.is_empty():
+			consultation_text += "\n\n" + consultation_prompt
+		_show_dialogue(String(chapter_consultation.get("actor", target_state.display_name)), consultation_text, [{"id":"continue","label":"I'll speak with them.","text":""}])
+		return
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)
 		return
@@ -1275,6 +1342,10 @@ func _refresh_nearby_interactions() -> void:
 	if dialogue_open or encounter_active or simulation.is_in_combat:
 		nearby_interaction_panel.visible = false
 		return
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null:
+		nearby_interaction_panel.visible = false
+		return
 	var nearby: Array[Dictionary] = NPC_INTERACTION_SERVICE.nearby_entries(
 		simulation,
 		active_character_id,
@@ -1289,6 +1360,24 @@ func _refresh_nearby_interactions() -> void:
 			nearby.remove_at(index)
 	for child in nearby_interaction_box.get_children():
 		child.free()
+	# Party members are normally excluded from the NPC interaction service.
+	# Keep nearby companion conversations reachable without switching control.
+	for party_id_value in simulation.get_party_member_ids():
+		var party_id := String(party_id_value)
+		if party_id == active_character_id:
+			continue
+		if not COMPANION_CAMPAIGN_SCRIPT.is_companion_id(party_id) and party_id != "companion_wren_talbot":
+			continue
+		var party_state := simulation.get_character(party_id)
+		if party_state == null or HexGrid.distance(active_state.axial, party_state.axial) > 2:
+			continue
+		var already_listed := false
+		for entry_value in nearby:
+			if String(entry_value.get("id", "")) == party_id:
+				already_listed = true
+				break
+		if not already_listed:
+			nearby.push_front({"id":party_id,"name":party_state.display_name,"hostile":false})
 	if nearby.is_empty():
 		nearby_interaction_panel.visible = false
 		return
@@ -1358,6 +1447,10 @@ func _player_has_item(item_id: String) -> bool:
 
 
 func _show_companion_dialogue(character_id: String) -> void:
+	var canonical_id := character_id.trim_prefix("companion_")
+	if canonical_id == "wren_talbot":
+		_show_wren_dialogue()
+		return
 	var player_state := simulation.get_character("player")
 	if player_state == null:
 		return
@@ -1369,13 +1462,55 @@ func _show_companion_dialogue(character_id: String) -> void:
 	)
 	if conversation.is_empty():
 		return
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	var relationship_line := ""
+	if relationships != null and relationships.has_profile(canonical_id):
+		var conversation_key := "world_talk:" + str(int(simulation.clock.world_seconds))
+		if canonical_id == "wren_talbot":
+			relationships.note_personal_dialogue(canonical_id, conversation_key)
+		else:
+			relationships.note_conversation(canonical_id, conversation_key, 2.0)
+		relationship_line = String(relationships.interpret_relationship(canonical_id).get("line", ""))
+	var body := String(conversation.get("text", ""))
+	if not relationship_line.is_empty():
+		body += "\n\n" + relationship_line
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		var choice: Dictionary = choice_value.duplicate(true)
 		if String(choice.get("id", "")).begins_with("start:"):
 			choice["companion_id"] = character_id
 		choices.append(choice)
-	_show_dialogue(String(conversation.get("speaker", character_id)), String(conversation.get("text", "")), choices)
+	var chapter_dialogue := COMPANION_DIALOGUE_SERVICE.chapter_dialogue_for_companion(simulation, character_id)
+	if not chapter_dialogue.is_empty():
+		body += String(chapter_dialogue.get("body", ""))
+		for chapter_choice_value in chapter_dialogue.get("choices", []):
+			choices.append(chapter_choice_value.duplicate(true))
+	_show_dialogue(String(conversation.get("speaker", character_id)), body, choices)
+
+
+func _show_wren_dialogue() -> void:
+	var arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if arc == null:
+		return
+	if relationships != null:
+		arc.sync_story_events(relationships)
+		relationships.note_personal_dialogue("wren_talbot", "wren_personal_talk:" + str(int(simulation.clock.world_seconds)))
+	var choices := arc.dialogue_topics(relationships, simulation.campaign_journal)
+	choices.append({"id":"continue","label":"Nothing else for now.","text":""})
+	_show_dialogue("Wren Talbot", "What's on your mind?", choices)
+
+
+func _show_wren_arc_topic(topic_id: String) -> void:
+	var arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if arc == null:
+		return
+	var body := arc.why_stays_line(relationships) if topic_id == "why_stay" else arc.parents_reflection_line()
+	var choices := arc.dialogue_options_for_topic(topic_id)
+	if choices.is_empty():
+		choices.append({"id":"continue","label":"I understand.","text":""})
+	_show_dialogue("Wren Talbot", body, choices)
 
 
 func _recruit_staged_companion(character_id: String) -> void:
@@ -1416,6 +1551,18 @@ func _resolve_shakedown(choice_id: String) -> void:
 	if not bool(result.get("ok", false)):
 		return
 	shakedown_resolved = true
+	_record_wren_authored_event("hollowmere_shakedown:" + choice_id)
+
+func _record_wren_authored_event(event_key: String) -> void:
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if relationships == null:
+		return
+	var result := relationships.apply_wren_authored_event(event_key)
+	if not bool(result.get("ok", false)) and String(result.get("reason", "")) != "unknown_wren_event":
+		push_warning("Could not apply Wren campaign relationship event %s: %s" % [event_key, result])
+	var character_arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
+	if character_arc != null:
+		character_arc.sync_story_events(relationships)
 
 func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
@@ -1603,6 +1750,7 @@ func _begin_shakedown_combat() -> void:
 		_show_dialogue("Hollowmere", "The choice could not be recorded: " + String(branch_result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 	shakedown_resolved = true
+	_record_wren_authored_event("hollowmere_shakedown:fight")
 	var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation)
 	if not bool(result.get("ok", false)):
 		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
