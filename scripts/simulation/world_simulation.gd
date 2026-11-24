@@ -1621,7 +1621,10 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
         if state == null or not state.alive:
             continue
         var recovery_multiplier := camp_simulation.time_point_regeneration_multiplier(state.id)
-        state.time_points = minf(150.0, state.time_points + float(skipped_ticks) * state.time_points_per_tick * recovery_multiplier)
+        var bulk_ticks := maxi(0, skipped_ticks - 1)
+        var previous_tp := state.time_points
+        state.time_points = minf(150.0, state.time_points + float(bulk_ticks) * state.time_points_per_tick * recovery_multiplier)
+        _advance_character_spell_effects(state, maxf(0.0, state.time_points - previous_tp))
     return result
 
 
