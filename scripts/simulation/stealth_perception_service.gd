@@ -29,7 +29,7 @@ func assess_character(observer_id: String, target_id: String, environment: Dicti
 		"appearance": target_profile,
 		"movement_exposure": 0.25 if target.tags.has("running") else 0.0
 	}
-	return StealthPerceptionSystem.assess(observer_profile, target_profile_data, world_simulation.map_data.cells, environment)
+	return StealthPerceptionSystem.assess(observer_profile, target_profile_data, world_simulation.map_data.cells, _resolve_environment(environment))
 
 
 func make_character_sound_event(character_id: String, kind: String, loudness: float, movement_noise: float = 0.0) -> Dictionary:
@@ -47,4 +47,17 @@ func assess_sound_event(observer_id: String, sound_event: Dictionary, environmen
 	var observer := world_simulation.get_character(observer_id)
 	if observer == null or not observer.alive:
 		return {"sound_level": StealthPerceptionSystem.SOUND_UNHEARD, "heard": false, "reason": "observer_unavailable"}
-	return StealthPerceptionSystem.assess_sound(observer.axial, sound_event, world_simulation.map_data.cells, environment)
+	return StealthPerceptionSystem.assess_sound(observer.axial, sound_event, world_simulation.map_data.cells, _resolve_environment(environment))
+
+
+## Weather, local light sources and other explicit overrides are supplied by the
+## caller. If ambient light is omitted, derive it from the shared campaign clock
+## so the same observer sees very different things at noon and midnight.
+func _resolve_environment(overrides: Dictionary) -> Dictionary:
+	var resolved := overrides.duplicate(true)
+	if not resolved.has("ambient_light"):
+		var time := world_simulation.clock.time_of_day()
+		var hour := float(time.get("hour", 12)) + float(time.get("minute", 0)) / 60.0
+		var daylight := clampf(sin((hour - 6.0) * PI / 12.0), 0.0, 1.0)
+		resolved["ambient_light"] = 0.025 + daylight * 0.975
+	return resolved
