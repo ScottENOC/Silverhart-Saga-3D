@@ -107,6 +107,81 @@ def hand_position(actor, side):
     arm=actor["arm"].evaluated_get(deps)
     return arm.matrix_world @ arm.pose.bones[name].tail
 
+def palm_anchor(actor, side):
+    # Use the bases of the four fingers plus thumb as a stable palm reference.
+    arm=actor["arm"]
+    prefix="LeftHand" if side=="left" else "RightHand"
+    aliases=[prefix+"Index1",prefix+"Middle1",prefix+"Ring1",prefix+"Pinky1",prefix+"Thumb1"]
+    deps=bpy.context.evaluated_depsgraph_get()
+    evaluated=arm.evaluated_get(deps)
+    points=[]
+    used=[]
+    for alias in aliases:
+        name=bone_name(actor,[alias])
+        if name:
+            pb=evaluated.pose.bones[name]
+            points.append(evaluated.matrix_world @ pb.head)
+            used.append(name)
+    if not points:
+        hand_name=bone_name(actor,["LeftHand","Hand_L"] if side=="left" else ["RightHand","Hand_R"])
+        if not hand_name:return None,[]
+        pb=evaluated.pose.bones[hand_name]
+        return evaluated.matrix_world @ ((pb.head+pb.tail)*0.5),[hand_name]
+    return sum(points,Vector())/len(points),used
+
+def optimise_contact_pose(actor, side, target, report):
+    # The IK endpoint alone is not a contact metric. Search wrist orientation and
+    # elbow pole angle, then score the actual palm/finger-base anchor against target.
+    con_name="Wren_"+side+"_contact_IK"
+    hand=actor["arm"].pose.bones[bone_name(actor,["LeftHand","Hand_L"] if side=="left" else ["RightHand","Hand_R"])]
+    con=hand.constraints.get(con_name)
+    if con is None:
+        report[side+"_pose_search"]={"performed":False,"reason":"IK constraint missing"}
+        return
+    pole_name="Wren_"+side+"_elbow_pole"
+    pole=bpy.data.objects.get(pole_name)
+    con.use_rotation=True
+    original_rotation=target.rotation_euler.copy()
+    original_pole_angle=con.pole_angle
+    original_pole_location=pole.location.copy() if pole else Vector()
+    best=None
+    # Coarse deterministic sweep: wrist orientation (3 axes) and elbow bend plane.
+    for pole_delta_deg in (-60,-30,0,30,60):
+        con.pole_angle=original_pole_angle+math.radians(pole_delta_deg)
+        for rx in (-30,0,30):
+            for ry in (-30,0,30):
+                for rz in (-30,0,30):
+                    target.rotation_euler=(original_rotation.x+math.radians(rx),
+                        original_rotation.y+math.radians(ry),
+                        original_rotation.z+math.radians(rz))
+                    bpy.context.view_layer.update()
+                    bpy.context.evaluated_depsgraph_get().update()
+                    anchor,bones=palm_anchor(actor,side)
+                    if anchor is None:continue
+                    distance=(anchor-target.location).length
+                    # Tiny regulariser avoids needless wrist twisting when scores tie.
+                    score=distance+0.00002*(abs(rx)+abs(ry)+abs(rz))
+                    if best is None or score<best["score"]:
+                        best={"score":score,"distance_m":distance,
+                            "wrist_offset_deg":[rx,ry,rz],
+                            "pole_angle_deg":math.degrees(con.pole_angle),
+                            "palm_anchor_world":[round(v,5) for v in anchor],
+                            "finger_base_bones":bones}
+    if best is not None:
+        target.rotation_euler=(original_rotation.x+math.radians(best["wrist_offset_deg"][0]),
+            original_rotation.y+math.radians(best["wrist_offset_deg"][1]),
+            original_rotation.z+math.radians(best["wrist_offset_deg"][2]))
+        con.pole_angle=math.radians(best["pole_angle_deg"])
+        bpy.context.view_layer.update()
+        report[side+"_pose_search"]={"performed":True,"candidates_tested":135,
+            "best_palm_target_distance_m":round(best["distance_m"],5),
+            "wrist_offset_deg":best["wrist_offset_deg"],
+            "elbow_pole_angle_deg":round(best["pole_angle_deg"],2),
+            "palm_anchor_world":best["palm_anchor_world"],
+            "finger_base_bones":best["finger_base_bones"],
+            "metric":"distance from average proximal finger-bone heads to contact target"}
+    target.rotation_euler=target.rotation_euler
+
 def finger_inventory(actor):
     arm=actor["arm"]
     names=[]
@@ -280,6 +355,10 @@ def main():
 
     bpy.context.view_layer.update()
     for _ in range(5): bpy.context.view_layer.update()
+    report["pose_search"]={}
+    optimise_contact_pose(actor,"left",left_target,report["pose_search"])
+    optimise_contact_pose(actor,"right",right_target,report["pose_search"])
+    bpy.context.view_layer.update()
     authored_shapes = author_pressure_shapes(actor, surface_centres, report)
     report["bones"]={
         "left_shoulder":world_bone(actor,["LeftShoulder","Shoulder_L"]),
@@ -294,9 +373,15 @@ def main():
         "left_breast":nearest_surface(actor,left_breast),
         "right_hip":nearest_surface(actor,right_hip)}
     report["hand_target_errors"]={}
+    report["palm_target_errors"]={}
     for side,target in (("left",left_target),("right",right_target)):
         p=hand_position(actor,side)
         report["hand_target_errors"][side]=None if p is None else round((p-target.location).length,5)
+        anchor,anchor_bones=palm_anchor(actor,side)
+        report["palm_target_errors"][side]=None if anchor is None else {
+            "distance_m":round((anchor-target.location).length,5),
+            "palm_anchor_world":[round(v,5) for v in anchor],
+            "finger_base_bones":anchor_bones}
     report["finger_bones"]=finger_inventory(actor)
     report["pressure_blend_shapes"]=pressure_shape_inventory(actor)
     report["deformation_status"]={
