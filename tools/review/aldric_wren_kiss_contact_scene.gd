@@ -69,6 +69,11 @@ func _build() -> void:
     await process_frame
     await process_frame
     await process_frame
+    if _count_ik_nodes(stage) != 4:
+        push_error("Paired contact pose requires all four TwoBoneIK3D arm chains; created %d" % _count_ik_nodes(stage))
+        quit(1)
+        return
+
     for actor in [aldric, wren]:
         var skeleton: Skeleton3D = actor["skeleton"]
         skeleton.force_update_all_bone_transforms()
