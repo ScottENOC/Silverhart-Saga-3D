@@ -43,7 +43,7 @@ static func dialogue_for_companion(
 					"label":String(option.get("label", "Choose"))
 				})
 		else:
-			chapter_body += "\\n\\n" + String(chapter_state.get("description", ""))
+			chapter_body += "\n\n" + String(chapter_state.get("description", ""))
 			chapter_choices.append({"id":"continue","label":"Continue","text":""})
 		return {"quest_id":chapter_id,"body":chapter_body,"choices":chapter_choices,"quest_state":chapter_state.duplicate(true),"chapter":chapter.duplicate(true)}
 	var definition: Dictionary = next.get("quest", {})
@@ -132,7 +132,7 @@ static func actor_prompt(
 		var chapter_body := String(chapter.get("actorText", ""))
 		var actor_prompt_text := String(chapter.get("actorPrompt", ""))
 		if not actor_prompt_text.is_empty():
-			chapter_body += "\\n\\n" + actor_prompt_text
+			chapter_body += "\n\n" + actor_prompt_text
 		return {
 			"quest_id":chapter_id,
 			"chapter_id":chapter_id,
@@ -143,7 +143,7 @@ static func actor_prompt(
 			"choices":[{
 				"id":"companion_chain_consult",
 				"chapter_id":chapter_id,
-				"actor_id":actor_id,
+				"actor_id":chain_actor_id,
 				"label":"Ask what this means for our companion."
 			}]
 		}
