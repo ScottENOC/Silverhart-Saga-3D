@@ -180,6 +180,16 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		_check(not district_building.is_empty(), "Silverhart source district building must be present: " + building_id)
 		if not district_building.is_empty():
 			_check(BUILDING_FACTORY.supports_definition(district_building), "Silverhart district building archetype must be supported: " + building_id)
+
+	var outlying_house_specs := {
+		"silverhart_outlying_house_1": {"centre": Vector2i(63, -546), "door": Vector2i(63, -544)},
+		"silverhart_outlying_house_2": {"centre": Vector2i(88, -546), "door": Vector2i(88, -544)},
+		"silverhart_outlying_house_3": {"centre": Vector2i(20, -476), "door": Vector2i(22, -476)}
+	}
+	for building_id in outlying_house_specs:
+		var outlying: Dictionary = _find_record(layout.get("buildings", []), building_id)
+		_assert_axial(outlying.get("center", {}), outlying_house_specs[building_id]["centre"], building_id + " source centre")
+		_assert_axial(outlying.get("door", {}), outlying_house_specs[building_id]["door"], building_id + " source door")
 	for road_id in [
 		"silverhart_merchant_near_street", "silverhart_merchant_far_street", "silverhart_merchant_cross_alley",
 		"silverhart_noble_near_street", "silverhart_noble_far_street", "silverhart_noble_cross_alley",
@@ -217,6 +227,12 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		_assert_axial(middle_points[0], Vector2i(53, -496), "Middle ring east corner")
 		_assert_axial(middle_points[2], Vector2i(8, -541), "Middle ring north corner")
 		_assert_axial(middle_points[4], Vector2i(-37, -451), "Middle ring south-west corner")
+
+	var market_table := _find_record(props, "silverhart_commons_market_table")
+	_check(not market_table.is_empty(), "Silverhart Commons market square must retain the source table at (8,-521)")
+	if not market_table.is_empty():
+		_assert_axial(market_table.get("anchor", {}), Vector2i(8, -521), "Silverhart Commons market table")
+		_check(market_table.get("parts", []).size() == 5, "Market table must retain its tabletop and four legs")
 	var city_wall_cells := 0
 	var city_towers := 0
 	for prop in props:
