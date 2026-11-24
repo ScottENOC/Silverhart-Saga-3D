@@ -44,3 +44,13 @@ Ara GLBs use metres, +Y up, and face +Z. The current gameplay actor wrapper alre
 - Ara's two-person Handshake is documented for two characters of similar height at a precise relative position. It should not be treated as a general-purpose hug, romance or contact animation.
 - Character-specific height, body proportions and rig differences should be respected by the Ara animation carrier and any future interaction placement. Paired contact scenes need their own contact validation before being considered complete.
 - The current camp director moves companions to a station and keeps them there. Resource gathering, carried prop state, inventory consumption and chore outcomes still need simulation integration.
+
+## Companion-to-companion camp dialogue
+
+Camp now schedules autonomous companion exchanges rather than waiting for the player to speak to someone. Every 22 real seconds during the evening, the director selects a pair from the recruited companions (excluding the player), cycles through all possible pairs, and starts a short two-turn conversation. The speakers receive the Ara talk-gesture animation and each line appears as a speech bubble above its speaker.
+
+The authored banter service currently covers Wren, Aldric, Nix, Grukk, Reyna, Mirabel, Fenn, Brother Alden and Snik. Four recurring subjects (the road, camp work, home and danger) give each character a distinct voice. A listener's response is guarded when familiarity is low and becomes warmer when that listener's trust and friendship with the speaker are established.
+
+Each completed exchange records directional familiarity/trust/friendship changes and improves both companions' camp social satisfaction. Event keys make those effects idempotent. Conversations are not gated on a character having the socialise assignment: companions can talk while taking a break from another camp duty. The player remains directly controlled and is not inserted as a participant in these autonomous exchanges.
+
+This is an initial ambient-dialogue layer, not yet a full branching conversation UI between NPCs. It does not infer romance or consent from friendship, and it does not yet create a relationship agreement. The authored exchange content is data-driven so further pair-specific history, quest references and conflict reactions can be added without changing the camp movement system.
