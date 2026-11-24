@@ -167,21 +167,29 @@ func _test_companions_walk_to_camp_stations() -> void:
 	player.side = "player"
 	var companion := CharacterState.new("wren", "Wren", Vector2i(4, 0))
 	companion.side = "player"
+	var second_companion := CharacterState.new("aldric", "Aldric", Vector2i(4, -1))
+	second_companion.side = "player"
 	world.register_character(player)
 	world.register_character(companion)
+	world.register_character(second_companion)
 	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
 	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
 	var probe := CampActivityProbe.new()
+	var second_probe := CampActivityProbe.new()
 	_camp_actor_probes["wren"] = probe
+	_camp_actor_probes["aldric"] = second_probe
 	var director := CampPartyActivityDirector.new()
 	director.configure(world, Callable(self, "_camp_actor_for_id"))
 	director.begin_camp(world.camp_simulation.site)
 	_check(director.is_running(), "A companion away from camp should receive a visible approach route")
 	var initial_distance := HexGrid.distance(companion.axial, Vector2i.ZERO)
+	var second_initial_distance := HexGrid.distance(second_companion.axial, Vector2i.ZERO)
 	for _step in range(20):
 		director.process_activity_movement(0.7)
 	_check(HexGrid.distance(companion.axial, Vector2i.ZERO) < initial_distance, "Companion should physically move towards their camp station")
+	_check(HexGrid.distance(second_companion.axial, Vector2i.ZERO) < second_initial_distance, "A second companion should move on the same camp movement cadence")
 	_check(probe.activity_count > 0, "A companion should start an Ara activity after reaching their station")
+	_check(second_probe.activity_count > 0, "A second companion should also start an Ara activity after reaching their station")
 	_check(probe.last_activity == "socialise", "The animation should match the companion's assigned camp routine")
 	_check(player.axial == Vector2i(-4, 0), "The player should remain under direct movement control")
 	var reassigned := world.camp_simulation.assign_activity("wren", "watch")
