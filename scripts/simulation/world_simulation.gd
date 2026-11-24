@@ -1586,7 +1586,10 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
         resolved_site["occupied"] = occupied_hexes.has(camp_hex)
         resolved_site["terrain_id"] = map_data.terrain_id_at(camp_hex)
     resolved_site["in_combat"] = is_in_combat
-    return camp_simulation.begin_camp(resolved_site, party_member_ids, environment_data, resource_data)
+    var result := camp_simulation.begin_camp(resolved_site, party_member_ids, environment_data, resource_data)
+    if bool(result.get("ok", false)):
+        camp_simulation.plan_sleeping_arrangements(int(camp_simulation.resources.get("tents", 0)), companion_bonds)
+    return result
 
 
 ## Relationship events are not gated by camp phase or a dedicated social activity.
