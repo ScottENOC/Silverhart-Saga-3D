@@ -409,6 +409,15 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 			_check(BUILDING_FACTORY.supports_definition(building), "Goblin camp structure must use a supported shared archetype: " + building_id)
 	_check(terrain.terrain_for_hex(Vector2i(203, 21)) == "authored", "Chief hut footprint must suppress procedural terrain")
 	_check(terrain.settlement_building_cells.has("203,21"), "Chief hut occupancy must be indexed by streamed world terrain")
+	var props: Array = definition.get("layout", {}).get("props", [])
+	_check(props.size() == 1, "Skarn-tooth Camp must retain the source goblin scout journal as a physical map prop")
+	var scout_note := _find_record(props, "skarn_tooth_goblin_scout_note")
+	_check(not scout_note.is_empty(), "Goblin scout note prop must retain its stable source ID")
+	if not scout_note.is_empty():
+		_assert_axial(scout_note.get("anchor", {}), Vector2i(204, 21), "Goblin scout note source position beside the chief hut")
+		_check(String(scout_note.get("feature_type", "")) == "quest_props", "Goblin scout journal must use the streamed quest-prop presenter")
+		_check(scout_note.get("parts", []).size() == 4, "Goblin scout note must render parchment and its three ink lines")
+		_check(String(scout_note.get("source", "")).contains("goblin_scout_note"), "Goblin scout note must retain source journal identity")
 	_check(String(definition.get("source", "")).contains("buildGoblinCamp"), "Goblin camp must retain source traceability")
 
 
