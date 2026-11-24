@@ -557,7 +557,6 @@ func get_authored_triangle_region_weights(
         barycentric_sum += weight
     if absf(barycentric_sum - 1.0) > 0.001:
         return result
-    for component in range(3):
 
     for surface in _surfaces:
         var mesh_instance: MeshInstance3D = surface["mesh_instance"]
