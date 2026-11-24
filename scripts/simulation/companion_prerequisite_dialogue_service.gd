@@ -43,7 +43,7 @@ static func dialogue_for_companion(
 					"label":String(option.get("label", "Choose"))
 				})
 		else:
-			chapter_body += "\n\n" + String(chapter_state.get("description", ""))
+			chapter_body = String(chapter_state.get("description", chapter_body))
 			chapter_choices.append({"id":"continue","label":"Continue","text":""})
 		return {"quest_id":chapter_id,"body":chapter_body,"choices":chapter_choices,"quest_state":chapter_state.duplicate(true),"chapter":chapter.duplicate(true)}
 	var definition: Dictionary = next.get("quest", {})
