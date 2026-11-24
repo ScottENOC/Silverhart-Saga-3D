@@ -2150,14 +2150,6 @@ func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
 func _refresh_dwelling_world_presentation() -> void:
 	if simulation == null:
 		return
-	var materials := {
-		"wood": timber_material,
-		"weathered_wood": dark_wood_material,
-		"stone": stone_material,
-		"roof": roof_material,
-		"repaired_roof": timber_material,
-		"glass": glass_material
-	}
 	DWELLING_WORLD_PRESENTATION.present_all(self, simulation.campaign_dwellings, HEX_RADIUS)
 
 
