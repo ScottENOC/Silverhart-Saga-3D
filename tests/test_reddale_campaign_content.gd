@@ -28,7 +28,7 @@ func _new_journal(influence: float = 30.0) -> CampaignJournal:
 	var journal := JOURNAL_SCRIPT.new()
 	journal.seed_faction_reputation("ironbond_company", 10.0, 0.0)
 	journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", influence)
-	journal.seed_npc_reputation("reeve_aldous_finch", 0.0, 0.0)
+	journal.seed_faction_reputation("silverhart_kingdom", 0.0, 0.0)
 	return journal
 
 
@@ -53,7 +53,7 @@ func _test_resist_ironbond_outcome() -> void:
 	_check(bool(result.get("ok", false)), "Resistance path should resolve")
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), -5.0), "Resistance should reduce Ironbond standing by 15")
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.0), "Resistance should reduce Ironbond influence by 15")
-	_check(is_equal_approx(journal.npc_standing("reeve_aldous_finch"), 20.0), "Resistance should improve the Reeve's standing by 20")
+	_check(is_equal_approx(journal.faction_standing("silverhart_kingdom"), 20.0), "Resistance should improve Silverhart Kingdom standing by 20")
 	_check(int(result.get("gold_delta", -1)) == 0, "Resistance should not award gold")
 	_check(String(journal.quest_state("reddale_cut").get("status", "")) == "completed", "Resistance should complete the quest")
 	var repeated := REDDALE_CONTENT.resolve_cut(journal, "resist_ironbond")
@@ -68,10 +68,10 @@ func _test_broker_ironbond_outcome() -> void:
 	_check(bool(result.get("ok", false)), "Broker path should resolve")
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), 30.0), "Brokered deal should improve Ironbond standing by 20")
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 60.0), "Brokered deal should increase Ironbond influence by 15")
-	_check(is_equal_approx(journal.npc_standing("reeve_aldous_finch"), -10.0), "Brokered deal should reduce the Reeve's standing by 10")
+	_check(is_equal_approx(journal.npc_standing("reeve_aldous_finch"), -10.0), "Brokered deal should reduce Silverhart Kingdom standing by 10")
 	_check(int(result.get("gold_delta", 0)) == 50, "Brokered deal should return the 50 gold reward")
 	var restored := JOURNAL_SCRIPT.new()
 	restored.load_dict(journal.to_dict())
 	_check(is_equal_approx(restored.faction_standing("ironbond_company"), 30.0), "Faction reputation should survive save/load")
 	_check(is_equal_approx(restored.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 60.0), "Faction influence should survive save/load")
-	_check(is_equal_approx(restored.npc_standing("reeve_aldous_finch"), -10.0), "Reeve reputation should survive save/load")
+	_check(is_equal_approx(restored.npc_standing("reeve_aldous_finch"), -10.0), "Kingdom reputation should survive save/load")
