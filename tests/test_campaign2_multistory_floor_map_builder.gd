@@ -97,6 +97,43 @@ func _initialize() -> void:
 			_check(not district_map.is_walkable(Vector2i(5, -458)), "Ironbond office's source-restored corner must remain a wall")
 			_check(_has_object(district_result.get("tile_objects", []), "silverhart_ironbond_office_table"), "Ironbond office table must be presented")
 			_check(_has_object(district_result.get("tile_objects", []), "silverhart_ironbond_office_bench"), "Ironbond office bench must be presented")
+
+	# All remaining source-authored Silverhart homes and Warrens shacks must
+	# build as independent walkable floors with their original door cells.
+	var silverhart_house_doors := {
+		"silverhart_warrens_shack_west": Vector2i(2, -431),
+		"silverhart_warrens_shack_centre": Vector2i(5, -429),
+		"silverhart_warrens_shack_east": Vector2i(11, -431),
+		"silverhart_north_cottage_one": Vector2i(37, -507),
+		"silverhart_north_cottage_two": Vector2i(37, -513),
+		"silverhart_north_cottage_three": Vector2i(37, -519),
+		"silverhart_east_house_one": Vector2i(28, -479),
+		"silverhart_east_house_two": Vector2i(34, -480),
+		"silverhart_east_house_three": Vector2i(24, -470),
+		"silverhart_east_house_four": Vector2i(27, -471),
+		"silverhart_middle_ring_house_east": Vector2i(51, -496),
+		"silverhart_middle_ring_house_northeast": Vector2i(51, -536),
+		"silverhart_middle_ring_house_north": Vector2i(8, -538),
+		"silverhart_middle_ring_house_west": Vector2i(-34, -496),
+		"silverhart_middle_ring_house_southwest": Vector2i(-34, -455),
+		"silverhart_middle_ring_house_southeast": Vector2i(20, -452)
+	}
+	for house_id in silverhart_house_doors:
+		var house_definition: Dictionary = registry.get_definition(house_id)
+		var house_state = LOCATION_STATE.new()
+		_check(bool(house_state.configure(house_definition).get("ok", false)), "Silverhart house state must configure: " + house_id)
+		var house_result: Dictionary = FLOOR_BUILDER.build_floor_map(house_definition, 0, house_state)
+		_check(bool(house_result.get("ok", false)), "Silverhart house floor must build: " + house_id)
+		if not bool(house_result.get("ok", false)):
+			continue
+		var house_map: HexMapData = house_result.get("map_data") as HexMapData
+		_check(house_map.is_walkable(silverhart_house_doors[house_id]), "Silverhart house entrance must be walkable: " + house_id)
+		for house_object in house_result.get("tile_objects", []):
+			var house_position: Dictionary = house_object.get("position", {})
+			_check(house_map.is_walkable(Vector2i(int(house_position.get("q", 0)), int(house_position.get("r", 0)))), "Silverhart house fixture must be on walkable floor: " + String(house_object.get("id", "")))
+	var southwest_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(registry.get_definition("silverhart_middle_ring_house_southwest"), 0)
+	var southwest_house_map: HexMapData = southwest_house_result.get("map_data") as HexMapData
+	_check(southwest_house_map.is_walkable(Vector2i(-32, -453)), "Southwest middle-ring house must preserve its source-added floor hex")
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
