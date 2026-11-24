@@ -32,6 +32,10 @@ func _initialize() -> void:
 	_check(float(camp.condition_for("companion_ser_aldric_thorne").social_satisfaction) == 2.0)
 	_check(float(camp.condition_for("companion_nix_sharpear").social_satisfaction) == 2.0)
 
+	bonds.set_relationship("companion_nix_sharpear", "companion_ser_aldric_thorne", {"familiarity": 30.0, "trust": 25.0, "friendship": 25.0})
+	var warm_exchange := SERVICE.build_exchange("companion_ser_aldric_thorne", "companion_nix_sharpear", 1, bonds)
+	_check(String(warm_exchange.lines[1].text) == "Fine. I trust you enough to say this once. Don't make me regret it.", "Established bonds should unlock warmer responses")
+
 	var repeated := SERVICE.record_exchange(bonds, camp, exchange, "test:camp:exchange:1")
 	_check(bool(repeated.get("ok", false)) and not bool(repeated.get("changed", true)))
 	_check(float(bonds.snapshot("companion_ser_aldric_thorne", "companion_nix_sharpear").familiarity) == 1.0)
