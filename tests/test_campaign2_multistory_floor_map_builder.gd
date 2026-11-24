@@ -194,10 +194,8 @@ func _initialize() -> void:
 			var emberlode_building_position: Dictionary = emberlode_building_object.get("position", {})
 			var emberlode_building_hex := Vector2i(int(emberlode_building_position.get("q", 0)), int(emberlode_building_position.get("r", 0)))
 			_check(emberlode_building_map.is_walkable(emberlode_building_hex), "Emberlode building fixture must be walkable: " + String(emberlode_building_object.get("id", "")))
-	if _has_object(FLOOR_BUILDER.build_floor_map(emberlode_building_registry.get_definition("emberlode_foremans_hall"), 0, LOCATION_STATE.new()).get("tile_objects", []), "emberlode_foremans_hall_fireplace"):
-		pass
-	else:
-		_check(false, "Foreman's Hall must retain its source fireplace")
+		if location_id == "emberlode_foremans_hall":
+			_check(_has_object(emberlode_building_result.get("tile_objects", []), "emberlode_foremans_hall_fireplace"), "Foreman's Hall must retain its source fireplace")
 
 	var abandoned_house_registry := REGISTRY.new()
 	var abandoned_house_definition: Dictionary = abandoned_house_registry.get_definition("abandoned_house")
