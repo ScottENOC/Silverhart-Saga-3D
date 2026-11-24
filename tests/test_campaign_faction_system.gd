@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_test_goblin_reputation_spillover()
 	_test_feudal_reputation_cascade()
 	_test_ironbond_autonomous_agenda_and_save()
+	_test_runtime_autoload_integration()
 	if _failures > 0:
 		push_error("%d campaign faction assertion(s) failed." % _failures)
 		quit(1)
@@ -17,6 +18,27 @@ func _initialize() -> void:
 	print("Campaign faction system tests passed.")
 	quit(0)
 
+
+func _test_runtime_autoload_integration() -> void:
+	var runtime := root.get_node_or_null("CampaignFactionRuntime")
+	_check(runtime != null, "Campaign faction runtime autoload is registered")
+	if runtime == null:
+		return
+	var simulation := WorldSimulation.new()
+	simulation.name = "FactionRuntimeRegressionSimulation"
+	simulation.player_character_id = "player"
+	root.add_child(simulation)
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.race = "goblin"
+	simulation.register_character(player)
+	runtime.call("_track_simulation", simulation)
+	runtime.call("_process", 0.0)
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("goblin_tribe"), 5.0), "Runtime seeds faction standings from the live player race")
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("silverhart_kingdom"), -15.0), "Runtime seeds hostile kingdom standing for a greenskin player")
+	simulation.campaign_journal.adjust_faction_reputation("ironbond_company", 20.0, 0.0, "Runtime regression")
+	runtime.call("_on_world_tick", 9000, 3600.0, simulation.get_instance_id())
+	_check(is_equal_approx(simulation.campaign_journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.02), "Runtime advances autonomous agendas from WorldSimulation clock ticks")
+	simulation.queue_free()
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
