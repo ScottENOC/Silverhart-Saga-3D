@@ -16123,7 +16123,92 @@
       "paths": [],
       "npcs": [],
       "creatures": [],
-      "source_note": "Map-only first pass. Named goblin actors, trader, scout note and faction/quest behaviours remain campaign-owned."
+      "source_note": "Map-only exterior pass. The source goblin scout journal now has a physical parchment prop; its readable text/interaction, named goblin actors, trader and faction/quest behaviours remain campaign-owned.",
+      "presentation": {
+        "palette": {
+          "parchment": "#d8c49a",
+          "ink": "#4b3828"
+        },
+        "materials": {
+          "quest_props": {
+            "parchment": "parchment",
+            "ink": "ink"
+          }
+        }
+      },
+      "props": [
+        {
+          "id": "skarn_tooth_goblin_scout_note",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": 204,
+            "r": 21
+          },
+          "parts": [
+            {
+              "name": "Parchment",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.035,
+                "z": 0
+              },
+              "size": {
+                "x": 0.62,
+                "y": 0.035,
+                "z": 0.46
+              },
+              "material": "parchment"
+            },
+            {
+              "name": "InkLineOne",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.057,
+                "z": -0.1
+              },
+              "size": {
+                "x": 0.38,
+                "y": 0.008,
+                "z": 0.018
+              },
+              "material": "ink"
+            },
+            {
+              "name": "InkLineTwo",
+              "type": "box",
+              "position": {
+                "x": 0.025,
+                "y": 0.057,
+                "z": 0
+              },
+              "size": {
+                "x": 0.32,
+                "y": 0.008,
+                "z": 0.018
+              },
+              "material": "ink"
+            },
+            {
+              "name": "InkLineThree",
+              "type": "box",
+              "position": {
+                "x": -0.035,
+                "y": 0.057,
+                "z": 0.1
+              },
+              "size": {
+                "x": 0.25,
+                "y": 0.008,
+                "z": 0.018
+              },
+              "material": "ink"
+            }
+          ],
+          "source": "campaign2World.js:buildGoblinCamp tileObjects[center.q + 1, center.r - 2] journal (goblin_scout_note)"
+        }
+      ]
     },
     {
       "id": "skarnaks_hold",

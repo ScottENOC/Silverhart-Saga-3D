@@ -9,6 +9,7 @@ func _initialize() -> void:
 	_test_empty_chunk_is_valid()
 	_test_hollowmere_location_uses_shared_composer()
 	_test_silverhart_city_composes_all_source_props()
+	_test_goblin_scout_note_composes_as_streamed_prop()
 	print("World settlement feature composer tests passed.")
 	quit(0)
 
@@ -78,6 +79,25 @@ func _test_silverhart_city_composes_all_source_props() -> void:
 	assert(palace_towers == 7, "Palace curtain wall must present its seven source watchtowers")
 	assert(city_towers == 2, "Outer city wall must present both source gate watchtowers")
 	assert(gate_arches == 1, "Outer city gate must present its source arch")
+
+
+func _test_goblin_scout_note_composes_as_streamed_prop() -> void:
+	var terrain = TERRAIN_DATA.new()
+	var camp_entry: Dictionary = {}
+	for entry in terrain.settlement_layouts:
+		if String(entry.get("id", "")) == "skarn_tooth_camp":
+			camp_entry = entry
+			break
+	assert(not camp_entry.is_empty(), "Skarn-tooth Camp canonical layout must be available to the chunk composer")
+	var parent := Node3D.new()
+	var result: Dictionary = COMPOSER.compose_chunk(parent, camp_entry, Vector2i(192, 0), 24, HexGrid.DEFAULT_RADIUS_M)
+	assert(bool(result.get("ok", false)), "Goblin camp chunk must compose without errors: %s" % result)
+	assert(int(result.get("props", 0)) == 1, "Goblin camp chunk must present its single source scout-note prop")
+	var note := parent.get_node_or_null("skarn_tooth_goblin_scout_note")
+	assert(note != null, "Goblin scout note must be emitted by the streamed quest-prop presenter")
+	assert(note.get_node_or_null("Parchment") != null, "Goblin scout note must include its parchment surface")
+	assert(note.get_node_or_null("InkLineOne") != null, "Goblin scout note must include its ink marks")
+	parent.free()
 
 func _definition() -> Dictionary:
 	return {
