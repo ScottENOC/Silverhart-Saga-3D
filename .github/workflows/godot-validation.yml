@@ -100,6 +100,14 @@ jobs:
         run: |
           godot --version
           godot --headless --editor --path . --quit
+      - name: Run body pressure solver regression test
+        run: godot --headless --path . --script res://tests/test_body_pressure_solver.gd
+      - name: Run body pressure controller regression test
+        run: godot --headless --path . --script res://tests/test_body_pressure_controller.gd
+      - name: Run body pressure contact regression test
+        run: godot --headless --path . --script res://tests/test_body_pressure_contact.gd
+      - name: Run canonical anatomy pressure profile regression test
+        run: godot --headless --path . --script res://tests/test_body_pressure_profile_library.gd
       - name: Test MakeHuman target parser
         run: |
           python -m py_compile tools/makehuman/target_format.py
