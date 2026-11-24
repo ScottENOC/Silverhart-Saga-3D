@@ -41,3 +41,54 @@ static func submit_contact(
 	if force > 0.0:
 		controller.apply_pressure(region_id, force)
 	return force
+
+## Resolves a triangle contact against authored, overlapping anatomy channels and
+## submits membership-weighted force to each matching spring. The caller must
+## resolve the collision hit to the three source vertices of the exact mesh surface.
+static func submit_surface_contact(
+    controller: BodyPressureController,
+    surface_regions: CharacterSurfaceRegions,
+    mesh_node_path: NodePath,
+    surface_index: int,
+    triangle_vertex_indices: PackedInt32Array,
+    barycentric_weights: Vector3,
+    penetration_m: float,
+    closing_speed_m_per_s: float,
+    contact_stiffness_n_per_m: float,
+    contact_damping_ns_per_m: float,
+    max_force_n: float = 250.0,
+    minimum_region_weight: float = 0.01
+) -> Dictionary:
+    var submitted: Dictionary = {}
+    if controller == null or surface_regions == null:
+        return submitted
+    var memberships := surface_regions.get_authored_triangle_region_weights(
+        mesh_node_path,
+        surface_index,
+        triangle_vertex_indices,
+        barycentric_weights,
+        minimum_region_weight
+    )
+    if memberships.is_empty():
+        return submitted
+    var contact_force := calculate_force_n(
+        penetration_m,
+        closing_speed_m_per_s,
+        contact_stiffness_n_per_m,
+        contact_damping_ns_per_m,
+        max_force_n
+    )
+    if contact_force <= 0.0:
+        return submitted
+    for region_variant in memberships:
+        var region_id := StringName(str(region_variant))
+        if not controller.has_region(region_id):
+            continue
+        var membership := clampf(float(memberships[region_variant]), 0.0, 1.0)
+        var weighted_force := contact_force * membership
+        if weighted_force <= 0.0:
+            continue
+        controller.apply_pressure(region_id, weighted_force)
+        submitted[String(region_variant)] = weighted_force
+    return submitted
+
