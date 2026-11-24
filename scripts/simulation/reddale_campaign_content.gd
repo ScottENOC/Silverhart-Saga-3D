@@ -104,7 +104,7 @@ static func choices() -> Array[Dictionary]:
 	]
 
 
-static func resolve_cut(journal: CampaignJournal, choice_id: String) -> Dictionary:
+static func resolve_cut(journal: CampaignJournal, choice_id: String, player: CharacterState = null) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
 	var selected: Dictionary = {}
@@ -115,6 +115,8 @@ static func resolve_cut(journal: CampaignJournal, choice_id: String) -> Dictiona
 			break
 	if selected.is_empty():
 		return {"ok": false, "reason": "choice_unavailable"}
+	if int(selected.get("gold_delta", 0)) > 0 and player == null:
+		return {"ok": false, "reason": "missing_player"}
 	var reason := "Reddale's Cut: " + choice_id
 	var faction_changes: Array[Dictionary] = [
 		{
@@ -157,9 +159,14 @@ static func resolve_cut(journal: CampaignJournal, choice_id: String) -> Dictiona
 	var completion := journal.complete_quest(QUEST_ID)
 	if not bool(completion.get("ok", false)):
 		return completion
+	var gold_delta := int(selected["gold_delta"])
+	if gold_delta > 0:
+		player.gold += gold_delta
 	return {
 		"ok": true,
 		"choice": selected.duplicate(true),
-		"gold_delta": int(selected["gold_delta"]),
+		"gold_delta": gold_delta,
+		"gold_awarded": gold_delta,
+		"player_gold": player.gold if player != null else null,
 		"ironbond_influence": ironbond_influence(journal)
 	}
