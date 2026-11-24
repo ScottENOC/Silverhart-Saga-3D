@@ -165,16 +165,24 @@ func property_snapshot(journal: CampaignJournal, player: CharacterState) -> Arra
 		for action_id_value in property.actions:
 			var action_id := String(action_id_value)
 			var definition := action_definition(action_id)
+			var payment_options: Array[Dictionary] = []
+			var payment_methods: Array[String] = ["materials"]
+			if int(definition.get("gold_alternative", -1)) >= 0:
+				payment_methods.append("gold")
 			var preferred_payment := "materials"
-			var material_check := evaluate_action(action_id, journal, player, "materials")
-			if not bool(material_check.get("ok", false)) and int(definition.get("gold_alternative", -1)) >= 0:
-				var gold_check := evaluate_action(action_id, journal, player, "gold")
-				if bool(gold_check.get("ok", false)):
-					preferred_payment = "gold"
-					material_check = gold_check
-			material_check["label"] = String(definition.get("label", action_id))
-			material_check["preferred_payment"] = preferred_payment
-			action_statuses.append(material_check)
+			var action_ready := false
+			for payment_method in payment_methods:
+				var payment_status := evaluate_action(action_id, journal, player, payment_method)
+				payment_status["payment"] = payment_method
+				payment_options.append(payment_status)
+				if bool(payment_status.get("ok", false)) and not action_ready:
+					preferred_payment = payment_method
+					action_ready = true
+			var action_status := evaluate_action(action_id, journal, player, preferred_payment)
+			action_status["label"] = String(definition.get("label", action_id))
+			action_status["preferred_payment"] = preferred_payment
+			action_status["payment_options"] = payment_options
+			action_statuses.append(action_status)
 		property["action_statuses"] = action_statuses
 	return properties
 
