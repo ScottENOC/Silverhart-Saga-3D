@@ -100,9 +100,9 @@ The pinned original `Hex-crpg/campaign2World.js` scene builder has now been exec
 
 | Source runtime measure | Count |
 |---|---:|
-| Unique terrain cells in the resolved source scene | 16,536 |
+| Unique terrain cells in the resolved source scene | 16,566 |
 | Cells touched only by the broad `setupVillageScene` base pass | 5,242 |
-| Cells touched by named feature builders other than the base pass, deduplicated across builders | 11,294 |
+| Cells touched by named feature builders other than the base pass, deduplicated across builders | 11,324 |
 | Base-pass / feature-builder overlap | 326 |
 | Physical tile-object placements | 246 |
 | Interior regions | 72 |
@@ -135,6 +135,7 @@ Source terrain cells touched by each owner builder (these figures overlap and mu
 | Millbrook | 49 |
 | Thieves' Cove Caves | 47 |
 | Old Mac's Farmstead | 39 |
+| Side-quest site geometry (Mirabel's spider ruin) | 37 |
 | Abandoned House | 35 |
 | Hollowmere Guild Den | 25 |
 | Player Cottage Plot | 8 |
