@@ -49,7 +49,9 @@ func _process(_delta: float) -> void:
 		var simulation_id := int(simulation_id_value)
 		var entry: Dictionary = _simulations[simulation_id]
 		var reference: WeakRef = entry.get("reference") as WeakRef
-		var simulation := reference.get_ref() as WorldSimulation if reference != null else null
+		var simulation: WorldSimulation = null
+		if reference != null:
+			simulation = reference.get_ref() as WorldSimulation
 		if simulation == null or not is_instance_valid(simulation):
 			_simulations.erase(simulation_id)
 			continue
@@ -67,7 +69,9 @@ func _on_world_tick(_tick_index: int, world_seconds: float, simulation_id: int) 
 		return
 	var entry: Dictionary = _simulations[simulation_id]
 	var reference: WeakRef = entry.get("reference") as WeakRef
-	var simulation := reference.get_ref() as WorldSimulation if reference != null else null
+	var simulation: WorldSimulation = null
+	if reference != null:
+		simulation = reference.get_ref() as WorldSimulation
 	if simulation == null or not is_instance_valid(simulation):
 		_simulations.erase(simulation_id)
 		return
