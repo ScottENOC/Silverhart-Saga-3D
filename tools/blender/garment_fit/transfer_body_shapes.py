@@ -132,7 +132,7 @@ def find_body_and_garments(meshes, body_names, garment_names):
 
 
 def transfer_shape_keys(body, garment, garment_indices, body_vertices,
-                        body_triangles, tree, max_distance):
+                        body_triangles, tree, max_distance, minimum_mapped_fraction):
     body_keys = body.data.shape_keys
     if body_keys is None or len(body_keys.key_blocks) <= 1:
         raise RuntimeError(f"{body.name} has no body shape keys to transfer")
@@ -142,7 +142,7 @@ def transfer_shape_keys(body, garment, garment_indices, body_vertices,
     if garment.data.shape_keys is None:
         garment.shape_key_add(name="Basis", from_mix=False)
     garment_keys = garment.data.shape_keys
-    existing = {key.name for key in garment_keys.key_blocks}
+    existing = {key.name: key for key in garment_keys.key_blocks}
     garment_basis = garment_keys.key_blocks[0]
     if len(garment_basis.data) != len(garment.data.vertices):
         raise RuntimeError(f"{garment.name} has an invalid garment Basis")
@@ -173,8 +173,11 @@ def transfer_shape_keys(body, garment, garment_indices, body_vertices,
         distances.append(float(distance))
 
     mapped_fraction = len(correspondences) / max(1, len(garment_indices))
-    if mapped_fraction < 0.995:
-        raise RuntimeError(f"Only {mapped_fraction:.3%} garment vertices were mapped")
+    if mapped_fraction < minimum_mapped_fraction:
+        raise RuntimeError(
+            f"Only {mapped_fraction:.3%} garment vertices were mapped; "
+            f"required {minimum_mapped_fraction:.3%}"
+        )
 
     transferred = []
     for source_key in source_keys:
@@ -183,21 +186,21 @@ def transfer_shape_keys(body, garment, garment_indices, body_vertices,
                 f"Body key {source_key.name!r} is relative to "
                 f"{source_key.relative_key.name!r}, not Basis; explicit conversion is required"
             )
-        if source_key.name in existing:
-            raise RuntimeError(
-                f"Garment {garment.name} already has shape key {source_key.name!r}; "
-                "refusing to silently overwrite it"
-            )
-        target_key = garment.shape_key_add(name=source_key.name, from_mix=False)
+        target_key = existing.get(source_key.name)
+        if target_key is None:
+            target_key = garment.shape_key_add(name=source_key.name, from_mix=False)
+            existing[source_key.name] = target_key
+        # Calculate all offsets before writing. This also supports a combined
+        # body+garment mesh where source_key and target_key are the same block.
+        updates = []
         for vertex_index, triangle, weights in correspondences:
             delta_world = Vector((0.0, 0.0, 0.0))
             for body_index, weight in zip(triangle, weights):
                 delta_local = source_key.data[body_index].co - basis.data[body_index].co
                 delta_world += (body_to_world @ delta_local) * weight
-            target_key.data[vertex_index].co = (
-                garment_basis.data[vertex_index].co
-                + world_to_garment @ delta_world
-            )
+            updates.append((vertex_index, world_to_garment @ delta_world))
+        for vertex_index, delta_local in updates:
+            target_key.data[vertex_index].co += delta_local
         transferred.append(source_key.name)
 
     return {
@@ -235,7 +238,8 @@ def main():
         if not indices:
             continue
         result = transfer_shape_keys(
-            body, garment, indices, body_vertices, body_triangles, tree, max_distance
+            body, garment, indices, body_vertices, body_triangles, tree,
+            max_distance, args.minimum_mapped_fraction
         )
         if result["mapped_fraction"] < args.minimum_mapped_fraction:
             raise RuntimeError(
