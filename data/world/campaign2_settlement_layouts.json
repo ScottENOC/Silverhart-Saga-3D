@@ -15904,6 +15904,91 @@
               }
             }
           ]
+        },
+        {
+          "id": "silverhart_commons_market_table",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -521
+          },
+          "parts": [
+            {
+              "name": "TableTop",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.35,
+                "y": 0.16,
+                "z": 0.95
+              },
+              "position": {
+                "x": 0,
+                "y": 0.88,
+                "z": 0
+              }
+            },
+            {
+              "name": "LegNorthWest",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": -0.52,
+                "y": 0.42,
+                "z": -0.34
+              }
+            },
+            {
+              "name": "LegNorthEast",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0.52,
+                "y": 0.42,
+                "z": -0.34
+              }
+            },
+            {
+              "name": "LegSouthWest",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": -0.52,
+                "y": 0.42,
+                "z": 0.34
+              }
+            },
+            {
+              "name": "LegSouthEast",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0.52,
+                "y": 0.42,
+                "z": 0.34
+              }
+            }
+          ]
         }
       ],
       "presentation": {
