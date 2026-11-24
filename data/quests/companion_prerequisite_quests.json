@@ -350,7 +350,8 @@
         }
       },
       "xp": 240,
-      "full_proof_xp_bonus": 60
+      "full_proof_xp_bonus": 60,
+      "ready_description": "You know why Ironbond abandoned Aldric’s position. Talk to Aldric about what should happen next."
     },
     {
       "id": "aldric_measure_of_oath",
@@ -585,7 +586,41 @@
           },
           "description": "Aldric refused the summons without asking release or amendment. He remains with the party, but the unresolved promise sits badly with him."
         }
-      }
+      },
+      "stage_rules": [
+        {
+          "stage": "reckoning",
+          "required_clues": [
+            "hospice_need",
+            "obedience_vow",
+            "adelram_counsel",
+            "service_options"
+          ],
+          "description": "Aldric now knows the Order’s need is real, his old vow genuinely applies, and an honest amendment is possible. Talk to Aldric about what he chooses to promise now."
+        },
+        {
+          "stage": "return_to_preceptor",
+          "required_clues": [
+            "hospice_need",
+            "obedience_vow",
+            "adelram_counsel"
+          ],
+          "description": "Adelram has explained how a vow can be amended honestly. Return to Preceptor Garran Vey and ask whether the hospice needs Aldric permanently or needs a durable plan."
+        },
+        {
+          "stage": "seek_counsel",
+          "required_clues": [
+            "hospice_need",
+            "obedience_vow"
+          ],
+          "description": "The summons is legitimate and Aldric’s obedience vow applies. Speak with High Cleric Adelram about whether keeping a vow always means keeping its original form."
+        },
+        {
+          "stage": "hear_order",
+          "required_clues": [],
+          "description": "Speak with Preceptor Garran Vey at the Grand Cathedral and understand exactly what the Silver Vigil is asking of Aldric."
+        }
+      ]
     }
   ]
 }
