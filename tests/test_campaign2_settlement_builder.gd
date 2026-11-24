@@ -44,6 +44,23 @@ func _initialize() -> void:
 			push_error("Emberlode source feature was not presented in its owning chunk: " + node_name)
 			quit(1)
 			return
+	var emberwood_grove_chunk := Node3D.new()
+	root.add_child(emberwood_grove_chunk)
+	builder.add_settlements_in_chunk(emberwood_grove_chunk, Vector2i(-264, 0), 24)
+	var nessa_actor := emberwood_grove_chunk.get_node_or_null("NPC_elder_nessa_wren_elf_female")
+	if nessa_actor == null:
+		push_error("Elder Nessa Wren must spawn at the source-authored Emberwood Grove clearing.")
+		quit(1)
+		return
+	if String(nessa_actor.get_meta("dialogue_id", "")) != "elder_nessa_wren":
+		push_error("Elder Nessa Wren must retain her source dialogue ID for the druid-grove interaction.")
+		quit(1)
+		return
+	if String(nessa_actor.get_meta("campaign2_npc_id", "")) != "elder_nessa_wren_elf_female":
+		push_error("Elder Nessa Wren must retain the canonical actor ID used by Fenn's chapter consultation route.")
+		quit(1)
+		return
+
 	var emberlode_east_chunk := Node3D.new()
 	root.add_child(emberlode_east_chunk)
 	builder.add_settlements_in_chunk(emberlode_east_chunk, Vector2i(-264, 24), 24)
