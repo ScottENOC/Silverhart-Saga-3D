@@ -1,6 +1,6 @@
 extends SceneTree
 
-const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_SERVICE.gd")
+const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
 
 var _failures := 0
 
