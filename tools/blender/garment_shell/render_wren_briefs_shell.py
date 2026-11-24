@@ -86,13 +86,31 @@ def main():
     # A skinned garment GLB may carry the source body mesh as a dependency.
     # Do not mistake Wren's mouth/eyes/hair materials for the garment: identify
     # the actual garment by its dedicated material name.
-    garment_material_names = {"briefs", "garmentshell"}
-    garment = next((o for o in garment_objects if o.type == "MESH" and any(
-        m and m.name.strip().lower() in garment_material_names for m in o.data.materials)), None)
+    garment_material_tokens = ("brief", "garment", "shell", "bra", "fabric", "lace", "underwear")
+    material_meshes = [
+        o for o in garment_objects
+        if o.type == "MESH" and any(m is not None for m in o.data.materials)
+    ]
+    garment_matches = [
+        o for o in material_meshes
+        if any(m and any(token in m.name.strip().lower() for token in garment_material_tokens)
+               for m in o.data.materials)
+    ]
+    # Bra review fabric is deliberately named for its physical profile rather
+    # than its slot ("Black matte moderate-stretch fabric"). Prefer explicit
+    # garment-like material names, but accept the sole material-bearing mesh
+    # in a garment-only export when the source material uses another label.
+    garment = garment_matches[0] if len(garment_matches) == 1 else (
+        material_meshes[0] if not garment_matches and len(material_meshes) == 1 else None
+    )
     if body is None or garment is None:
         imported_meshes = [(o.name, [m.name if m else None for m in o.data.materials])
                            for o in garment_objects if o.type == "MESH"]
-        raise RuntimeError(f"Could not identify Wren skin mesh and dedicated garment material mesh; imported={imported_meshes}")
+        raise RuntimeError(
+            f"Could not identify Wren skin mesh and dedicated garment material mesh; "
+            f"body_found={body is not None}, garment_material_matches="
+            f"{[o.name for o in garment_matches]}, imported={imported_meshes}"
+        )
     # Hide any body mesh bundled only to satisfy the garment's skin dependency;
     # the canonical Wren body was imported separately above.
     for obj in garment_objects:
