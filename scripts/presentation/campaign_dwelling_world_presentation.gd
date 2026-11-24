@@ -38,8 +38,10 @@ static func _present_cottage(parent: Node3D, state: CampaignDwellingState, radiu
 	var country_house := String(state.upgrades.get("crossroads_cottage", "")) == "upgrade_country_house"
 	var width := 8.2 if country_house else 5.8
 	var depth := 6.4 if country_house else 4.8
-	_build_house(site, width, depth, 3.0 if country_house else 2.6, materials, false, true)
+	_build_house(site, width, depth, 4.5 if country_house else 2.6, materials, false, true)
 	if country_house:
+		_add_box(site, "CountryHouseUpperWindowLeft", Vector3(-width * 0.30, 3.45, depth * 0.5 + 0.11), Vector3(0.62, 0.55, 0.06), materials.glass)
+		_add_box(site, "CountryHouseUpperWindowRight", Vector3(width * 0.30, 3.45, depth * 0.5 + 0.11), Vector3(0.62, 0.55, 0.06), materials.glass)
 		_add_box(site, "CountryHouseRearExtension", Vector3(0.0, 1.1, -depth * 0.42), Vector3(width * 0.72, 2.2, 1.25), materials.wood)
 
 
@@ -58,9 +60,11 @@ static func _present_manor(parent: Node3D, state: CampaignDwellingState, radius:
 	site.position = HexGrid.axial_to_world(Vector2i(39, -502), radius)
 	parent.add_child(site)
 	var fortified := String(state.upgrades.get("silverhart_manor", "")) == "fortify_silverhart_manor"
-	_build_house(site, 10.0, 8.0, 3.2, materials, not fortified, fortified)
+	_build_house(site, 10.0, 8.0, 5.4, materials, not fortified, fortified)
+	_add_box(site, "ManorUpperWindowLeft", Vector3(-3.2, 3.8, 4.11), Vector3(0.72, 0.62, 0.06), materials.glass)
+	_add_box(site, "ManorUpperWindowRight", Vector3(3.2, 3.8, 4.11), Vector3(0.72, 0.62, 0.06), materials.glass)
 	if fortified:
-		_add_box(site, "ManorChimney", Vector3(3.5, 3.9, -2.2), Vector3(0.55, 1.5, 0.55), materials.stone)
+		_add_box(site, "ManorChimney", Vector3(3.5, 6.1, -2.2), Vector3(0.55, 1.5, 0.55), materials.stone)
 
 
 static func _build_house(
