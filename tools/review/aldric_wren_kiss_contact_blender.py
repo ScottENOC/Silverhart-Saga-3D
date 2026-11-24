@@ -249,7 +249,24 @@ def main():
     fill.data.energy = 250
     fill.data.size = 3
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    # Blender 4.x exposes EEVEE Next as BLENDER_EEVEE_NEXT; Blender 5.0
+    # renamed the available engine identifier to BLENDER_EEVEE. Select from
+    # the engines actually registered by this Blender build.
+    available_engines = {
+        item.identifier
+        for item in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items
+    }
+    render_engine = next(
+        (
+            candidate
+            for candidate in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "BLENDER_WORKBENCH")
+            if candidate in available_engines
+        ),
+        None,
+    )
+    if render_engine is None:
+        raise RuntimeError(f"No supported render engine available: {sorted(available_engines)}")
+    scene.render.engine = render_engine
     scene.render.resolution_x = 1400
     scene.render.resolution_y = 1200
     scene.render.resolution_percentage = 100
