@@ -61,6 +61,12 @@ const FLOOR_SIZES := {
 	"abandoned_house": Vector2(7.2, 5.8),
 	"silverhart_manor": Vector2(10.0, 8.0)
 }
+const FLOOR_COUNTS := {
+	"crossroads_cottage": 1,
+	"country_house": 2,
+	"abandoned_house": 1,
+	"silverhart_manor": 2
+}
 
 
 func site_id_for_dwelling(dwelling_id: String) -> String:
@@ -209,11 +215,20 @@ func camp_profile_for(dwelling_id: String) -> Dictionary:
 
 
 
-func floor_size_for(dwelling_id: String) -> Vector2:
-	var key := dwelling_id
+func _layout_key_for(dwelling_id: String) -> String:
 	if dwelling_id == "crossroads_cottage" and String(upgrades.get(dwelling_id, "")) == "upgrade_country_house":
-		key = "country_house"
-	return FLOOR_SIZES.get(key, Vector2.ZERO)
+		return "country_house"
+	return dwelling_id
+
+
+func floor_count_for(dwelling_id: String) -> int:
+	return int(FLOOR_COUNTS.get(_layout_key_for(dwelling_id), 0))
+
+
+func floor_size_for(dwelling_id: String, floor_index: int = 0) -> Vector2:
+	if floor_index < 0 or floor_index >= floor_count_for(dwelling_id):
+		return Vector2.ZERO
+	return FLOOR_SIZES.get(_layout_key_for(dwelling_id), Vector2.ZERO)
 
 
 func furniture_inventory_count(item_id: String) -> int:
@@ -264,7 +279,7 @@ func craft_furniture(item_id: String, player: CharacterState, dwelling_id: Strin
 	return {"ok": true, "item_id": item_id, "quantity": 1, "materials_spent": recipe.duplicate(true)}
 
 
-func place_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int, actor_hex: Vector2i) -> Dictionary:
+func place_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int, actor_hex: Vector2i, floor_index: int = 0) -> Dictionary:
 	if not bool(owned.get(dwelling_id, false)):
 		return {"ok": false, "reason": "dwelling_not_owned"}
 	var site_id := site_id_for_dwelling(dwelling_id)
@@ -282,12 +297,14 @@ func place_furniture(dwelling_id: String, item_id: String, local_position: Vecto
 	if posmod(rotation_degrees, 180) == 90:
 		footprint = Vector2(footprint.y, footprint.x)
 	var candidate := Rect2(position - footprint * 0.5, footprint)
-	var floor_size := floor_size_for(dwelling_id)
+	var floor_size := floor_size_for(dwelling_id, floor_index)
+	if floor_size == Vector2.ZERO:
+		return {"ok": false, "reason": "invalid_floor"}
 	var floor_bounds := Rect2(-floor_size * 0.5, floor_size)
 	if not floor_bounds.encloses(candidate):
 		return {"ok": false, "reason": "outside_floor_bounds", "floor_size": floor_size}
 	for existing_value in placed_furniture.get(dwelling_id, []):
-		if not existing_value is Dictionary:
+		if not existing_value is Dictionary or int(existing_value.get("floor_index", 0)) != floor_index:
 			continue
 		var existing_definition := CampaignFurnitureCatalog.definition(String(existing_value.get("item_id", "")))
 		var existing_footprint: Vector2 = existing_definition.get("footprint", Vector2.ONE)
@@ -299,7 +316,7 @@ func place_furniture(dwelling_id: String, item_id: String, local_position: Vecto
 			return {"ok": false, "reason": "furniture_overlap", "blocking_instance_id": String(existing_value.get("instance_id", ""))}
 	var instance_id := "dwelling_furniture_%06d" % next_furniture_instance_id
 	next_furniture_instance_id += 1
-	var entry := {"instance_id": instance_id, "item_id": item_id, "position": position, "rotation_degrees": posmod(rotation_degrees, 360)}
+	var entry := {"instance_id": instance_id, "item_id": item_id, "position": position, "rotation_degrees": posmod(rotation_degrees, 360), "floor_index": floor_index}
 	var entries: Array = placed_furniture.get(dwelling_id, []).duplicate(true)
 	entries.append(entry)
 	placed_furniture[dwelling_id] = entries
