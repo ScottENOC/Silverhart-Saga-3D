@@ -13,9 +13,45 @@ const STEP_INTERVAL := 0.42
 const MAX_STATION_RADIUS := 5
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
+## Layouts describe where routines gather around the dwelling's world hex.
+## They are staging anchors for the current world-map implementation, not
+## claims that explorable room interiors have been built.
+const LAYOUT_STATION_OFFSETS := {
+	"cottage_one_room": {
+		"hearth": Vector2i(1, 0), "table": Vector2i(0, 1), "threshold": Vector2i(0, -1),
+		"yard": Vector2i(1, 1), "common": Vector2i(-1, 0), "bedroom": Vector2i(-1, -1)
+	},
+	"country_house_three_room": {
+		"hearth": Vector2i(1, 0), "table": Vector2i(0, 1), "workshop": Vector2i(-1, 0),
+		"study": Vector2i(-1, 1), "threshold": Vector2i(0, -1), "yard": Vector2i(1, 1),
+		"common": Vector2i(0, 2), "bedroom": Vector2i(-1, -1)
+	},
+	"restored_roadside_house": {
+		"hearth": Vector2i(1, 0), "table": Vector2i(0, 1), "threshold": Vector2i(0, -1),
+		"yard": Vector2i(1, 1), "workshop": Vector2i(-1, 0), "common": Vector2i(-1, -1)
+	},
+	"silverhart_manor_ruined": {
+		"hearth": Vector2i(1, 0), "table": Vector2i(0, 1), "threshold": Vector2i(0, -1),
+		"yard": Vector2i(1, 1), "workshop": Vector2i(-1, 0), "common": Vector2i(-1, -1)
+	},
+	"silverhart_manor_livable": {
+		"hearth": Vector2i(1, 0), "table": Vector2i(0, 1), "workshop": Vector2i(-1, 0),
+		"study": Vector2i(-1, 1), "threshold": Vector2i(0, -1), "yard": Vector2i(1, 1),
+		"common": Vector2i(0, 2), "bedroom": Vector2i(-1, -1)
+	}
+}
+
+const ACTIVITY_STATION_ROLES := {
+	"cook": "hearth", "repair_gear": "workshop", "study_map": "study",
+	"socialise": "common", "watch": "threshold", "sleep": "bedroom",
+	"gather_wood": "yard", "set_up_tents": "yard", "fetch_water": "yard", "train": "yard"
+}
+
 var simulation: WorldSimulation
 var _actor_lookup: Callable
 var _camp_hex: Vector2i = Vector2i.ZERO
+var _layout_id: String = ""
+var _layout_station_offsets: Dictionary = {}
 var _active_character_ids: Array[String] = []
 var _destination_by_character: Dictionary = {}
 var _activity_by_character: Dictionary = {}
@@ -42,6 +78,9 @@ func begin_camp(site: Dictionary) -> void:
 	if not hex_value is Vector2i:
 		return
 	_camp_hex = hex_value
+	var profile: Dictionary = site.get("dwelling_profile", {})
+	_layout_id = String(profile.get("layout_id", site.get("layout_id", "")))
+	_layout_station_offsets = (LAYOUT_STATION_OFFSETS.get(_layout_id, {}) as Dictionary).duplicate(true)
 	_build_companion_destinations()
 	# Social exchanges remain active even if a tight or obstructed camp site has
 	# no free station for one of the companions.
@@ -57,6 +96,8 @@ func stop() -> void:
 	_step_accumulator = 0.0
 	_social_accumulator = 0.0
 	_exchange_index = 0
+	_layout_id = ""
+	_layout_station_offsets.clear()
 
 
 func is_running() -> bool:
@@ -139,15 +180,6 @@ func _choose_station(activity: String, reserved: Dictionary, character_id: Strin
 		if terrain == "water" and activity != "fetch_water":
 			continue
 		candidates.append(candidate)
-	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		var da := HexGrid.distance(_camp_hex, a)
-		var db := HexGrid.distance(_camp_hex, b)
-		if da != db:
-			return da < db
-		if a.x != b.x:
-			return a.x < b.x
-		return a.y < b.y
-	)
 	if candidates.is_empty():
 		return INVALID_HEX
 	if activity == "gather_wood":
@@ -158,6 +190,22 @@ func _choose_station(activity: String, reserved: Dictionary, character_id: Strin
 		for candidate in candidates:
 			if _adjacent_to_terrain(candidate, "water"):
 				return candidate
+	var station_role := String(ACTIVITY_STATION_ROLES.get(activity, "common"))
+	var station_offset: Vector2i = _layout_station_offsets.get(station_role, _layout_station_offsets.get("common", Vector2i.ZERO))
+	var preferred_hex := _camp_hex + station_offset
+	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var station_distance_a := HexGrid.distance(preferred_hex, a)
+		var station_distance_b := HexGrid.distance(preferred_hex, b)
+		if station_distance_a != station_distance_b:
+			return station_distance_a < station_distance_b
+		var camp_distance_a := HexGrid.distance(_camp_hex, a)
+		var camp_distance_b := HexGrid.distance(_camp_hex, b)
+		if camp_distance_a != camp_distance_b:
+			return camp_distance_a < camp_distance_b
+		if a.x != b.x:
+			return a.x < b.x
+		return a.y < b.y
+	)
 	return candidates[0]
 
 
