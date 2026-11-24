@@ -6,6 +6,8 @@ func _initialize() -> void:
 	_test_separation_has_no_pull()
 	_test_force_is_capped()
 	_test_invalid_contact_is_ignored()
+	_test_contact_drives_region_solver()
+	_test_multiple_contacts_accumulate()
 	print("BODY_PRESSURE_CONTACT_TEST: PASS")
 	quit(0)
 
@@ -29,3 +31,33 @@ func _test_invalid_contact_is_ignored() -> void:
 	var controller := BodyPressureController.new()
 	var submitted := BodyPressureContact.submit_contact(controller, &"missing", 0.01, 0.0, 1000.0, 0.0)
 	assert(is_equal_approx(submitted, 0.0), "Unregistered regions must ignore contacts.")
+
+func _test_contact_drives_region_solver() -> void:
+	var controller := BodyPressureController.new()
+	var profile := BodyRegionProfile.new()
+	profile.stiffness_n_per_m = 700.0
+	profile.damping_ns_per_m = 24.0
+	profile.effective_mass_kg = 0.18
+	profile.max_compression_m = 0.04
+	controller.register_region(&"left_chest", profile)
+	var submitted := BodyPressureContact.submit_contact(
+		controller, &"left_chest", 0.012, 0.0, 1800.0, 35.0, 120.0
+	)
+	assert(submitted > 0.0, "A valid contact should submit compressive force.")
+	for _frame in range(30):
+		# Re-submit each tick while the detected contact remains present.
+		BodyPressureContact.submit_contact(
+			controller, &"left_chest", 0.012, 0.0, 1800.0, 35.0, 120.0
+		)
+		controller.step(1.0 / 60.0)
+	assert(controller.get_compression_m(&"left_chest") > 0.0, "Contact samples should compress the registered region.")
+
+func _test_multiple_contacts_accumulate() -> void:
+	var controller := BodyPressureController.new()
+	var profile := BodyRegionProfile.new()
+	controller.register_region(&"torso", profile)
+	var first := BodyPressureContact.submit_contact(controller, &"torso", 0.005, 0.0, 1000.0, 0.0)
+	var second := BodyPressureContact.submit_contact(controller, &"torso", 0.005, 0.0, 1000.0, 0.0)
+	assert(is_equal_approx(first + second, 10.0), "Independent contact sources should each contribute their force.")
+	controller.step(1.0 / 60.0)
+	assert(controller.get_compression_m(&"torso") > 0.0, "Accumulated contact force should reach the solver.")
