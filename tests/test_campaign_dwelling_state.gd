@@ -7,6 +7,7 @@ func _initialize() -> void:
 	_test_cottage_routes()
 	_test_abandoned_house_quest_gate()
 	_test_manor_reputation_and_fortification()
+	_test_dwelling_camp_lodging()
 	_test_save_restore()
 	if _failures > 0:
 		push_error("%d dwelling assertion(s) failed." % _failures)
@@ -86,3 +87,22 @@ func _test_save_restore() -> void:
 	var restored := CampaignDwellingState.new()
 	_check(restored.from_dict(state.to_dict()), "Dwelling ownership should restore from a save.")
 	_check(restored.to_dict() == state.to_dict(), "Dwelling ownership and improvements should round-trip.")
+
+
+func _test_dwelling_camp_lodging() -> void:
+	var state := CampaignDwellingState.new()
+	var journal := CampaignJournal.new()
+	var player := _player()
+	state.complete_action("build_crossroads_cottage", journal, player)
+	var profile := state.camp_profile_for("crossroads_cottage")
+	var camp := CampSimulation.new()
+	camp.begin_camp({"walkable": true, "dwelling_profile": profile}, ["player", "companion"], {}, {"tents": 0})
+	_check(camp.sleeping_arrangements.size() == 2, "The party should receive one arrangement per member.")
+	_check(String(camp.sleeping_arrangements[0].get("shelter_type", "")) == "dwelling", "The cottage bed should be assigned before open-air sleeping.")
+	_check(String(camp.sleeping_arrangements[1].get("shelter_type", "")) == "open_air", "Party members beyond dwelling capacity should retain ordinary outdoor sleeping.")
+	var result := camp.skip_to_morning()
+	_check(bool(result.get("ok", false)), "A mixed indoor/outdoor night should resolve.")
+	var indoor := result.summary.characters.player
+	var outdoor := result.summary.characters.companion
+	_check(float(indoor.warmth) > float(outdoor.warmth), "Dwelling shelter should improve warmth for its occupant.")
+	_check(float(indoor.security) > float(outdoor.security), "Dwelling shelter should improve security for its occupant.")
