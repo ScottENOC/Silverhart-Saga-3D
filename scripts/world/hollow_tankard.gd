@@ -737,12 +737,18 @@ func _select_camp_site(hex: Vector2i) -> void:
 		"occupied": false,
 		"terrain_id": simulation.map_data.terrain_id_at(hex)
 	}
+	for dwelling_site in DWELLING_WORLD_SERVICE.nearby_sites(hex, 2):
+		var dwelling_id := String(dwelling_site.get("dwelling_id", ""))
+		var dwelling_profile := simulation.campaign_dwellings.camp_profile_for(dwelling_id)
+		if not dwelling_profile.is_empty() and bool(dwelling_profile.get("is_sheltered", false)):
+			site["dwelling_id"] = dwelling_id
+			break
 	var environment := {
 		"trees_nearby": nearby_trees,
 		"water_nearby": water_nearby,
 		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
 	}
-	var result := simulation.begin_camp(site, environment, {})
+	var result := simulation.begin_camp(site, environment, {}, active_character_id)
 	if not bool(result.get("ok", false)):
 		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
 		return
