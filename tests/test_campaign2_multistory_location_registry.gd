@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_aldenreach_embassy","silverhart_city_tunnel","silverhart_clothier","silverhart_commons_inn","silverhart_corvane_embassy","silverhart_dwarven_embassy","silverhart_elven_embassy","silverhart_general_goods","silverhart_grand_cathedral","silverhart_ironbond_office","silverhart_magic_shop","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_aldenreach_embassy","silverhart_city_tunnel","silverhart_clothier","silverhart_commons_inn","silverhart_corvane_embassy","silverhart_dwarven_embassy","silverhart_east_house_four","silverhart_east_house_one","silverhart_east_house_three","silverhart_east_house_two","silverhart_elven_embassy","silverhart_general_goods","silverhart_grand_cathedral","silverhart_ironbond_office","silverhart_magic_shop","silverhart_middle_ring_house_east","silverhart_middle_ring_house_north","silverhart_middle_ring_house_northeast","silverhart_middle_ring_house_southeast","silverhart_middle_ring_house_southwest","silverhart_middle_ring_house_west","silverhart_north_cottage_one","silverhart_north_cottage_three","silverhart_north_cottage_two","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","silverhart_warrens_shack_centre","silverhart_warrens_shack_east","silverhart_warrens_shack_west","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -349,6 +349,41 @@ func _initialize() -> void:
 		"silverhart_commons_inn": {"centre": Vector2i(8, -529), "half_width": 4, "half_height": 3, "door": Vector2i(8, -526)}
 	}
 
+
+	var silverhart_house_specs := {
+		"silverhart_warrens_shack_west": {"centre": Vector2i(2, -433), "half_width": 2, "half_height": 2, "door": Vector2i(2, -431)},
+		"silverhart_warrens_shack_centre": {"centre": Vector2i(5, -427), "half_width": 2, "half_height": 2, "door": Vector2i(5, -429)},
+		"silverhart_warrens_shack_east": {"centre": Vector2i(11, -433), "half_width": 2, "half_height": 2, "door": Vector2i(11, -431)},
+		"silverhart_north_cottage_one": {"centre": Vector2i(35, -507), "half_width": 2, "half_height": 2, "door": Vector2i(37, -507)},
+		"silverhart_north_cottage_two": {"centre": Vector2i(35, -513), "half_width": 2, "half_height": 2, "door": Vector2i(37, -513)},
+		"silverhart_north_cottage_three": {"centre": Vector2i(35, -519), "half_width": 2, "half_height": 2, "door": Vector2i(37, -519)},
+		"silverhart_east_house_one": {"centre": Vector2i(26, -479), "half_width": 2, "half_height": 2, "door": Vector2i(28, -479)},
+		"silverhart_east_house_two": {"centre": Vector2i(32, -480), "half_width": 2, "half_height": 2, "door": Vector2i(34, -480)},
+		"silverhart_east_house_three": {"centre": Vector2i(23, -470), "half_width": 1, "half_height": 2, "door": Vector2i(24, -470)},
+		"silverhart_east_house_four": {"centre": Vector2i(26, -471), "half_width": 1, "half_height": 1, "door": Vector2i(27, -471)},
+		"silverhart_middle_ring_house_east": {"centre": Vector2i(49, -496), "half_width": 2, "half_height": 2, "door": Vector2i(51, -496)},
+		"silverhart_middle_ring_house_northeast": {"centre": Vector2i(49, -536), "half_width": 2, "half_height": 2, "door": Vector2i(51, -536)},
+		"silverhart_middle_ring_house_north": {"centre": Vector2i(8, -536), "half_width": 2, "half_height": 2, "door": Vector2i(8, -538)},
+		"silverhart_middle_ring_house_west": {"centre": Vector2i(-32, -496), "half_width": 2, "half_height": 2, "door": Vector2i(-34, -496)},
+		"silverhart_middle_ring_house_southwest": {"centre": Vector2i(-32, -455), "half_width": 2, "half_height": 2, "door": Vector2i(-34, -455)},
+		"silverhart_middle_ring_house_southeast": {"centre": Vector2i(22, -452), "half_width": 2, "half_height": 2, "door": Vector2i(20, -452)}
+	}
+	for location_id in silverhart_house_specs:
+		var house: Dictionary = silverhart_house_specs[location_id]
+		var house_definition: Dictionary = registry.get_definition(location_id)
+		_check(not house_definition.is_empty(), "Source-authored Silverhart house must be registered: " + location_id)
+		_check(_position_matches(house_definition.get("anchor", {}), house["centre"]), "Silverhart house anchor must match source: " + location_id)
+		var floor := registry.get_floor_definition(location_id, 0)
+		var rooms: Array = floor.get("rooms", [])
+		_check(rooms.size() == 1, "Silverhart house must retain one room: " + location_id)
+		if rooms.is_empty():
+			continue
+		var room: Dictionary = rooms[0]
+		_check(_position_matches(room.get("center", {}), house["centre"]), "Silverhart house room centre must match source: " + location_id)
+		_check(int(room.get("half_width", 0)) == int(house["half_width"]) and int(room.get("half_height", 0)) == int(house["half_height"]), "Silverhart house dimensions must match carveFlatRoom: " + location_id)
+		_check(_has_record(floor.get("tile_objects", []), location_id + ("_north_door" if location_id == "silverhart_warrens_shack_centre" or location_id == "silverhart_middle_ring_house_north" else "_west_door" if location_id == "silverhart_middle_ring_house_west" or location_id == "silverhart_middle_ring_house_southwest" or location_id == "silverhart_middle_ring_house_southeast" else "_south_door" if location_id.begins_with("silverhart_warrens") else "_east_door")), "Silverhart house must retain its source entrance: " + location_id)
+	var southwest_floor := registry.get_floor_definition("silverhart_middle_ring_house_southwest", 0)
+	_check(_has_axial_position(southwest_floor.get("floor_hexes", []), Vector2i(-32, -453)), "Southwest middle-ring house must retain the source wall-notch floor repair")
 	var ironbond_floor := registry.get_floor_definition("silverhart_ironbond_office", 0)
 	_check(_has_axial_position(ironbond_floor.get("floor_hexes", []), Vector2i(4, -457)), "Ironbond office must retain its source-opened corner")
 	_check(_has_axial_position(ironbond_floor.get("wall_hexes", []), Vector2i(5, -458)), "Ironbond office must retain its source-restored outer corner")
