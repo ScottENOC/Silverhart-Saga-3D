@@ -29,6 +29,7 @@ func _test_silverhart_wall_manifest() -> void:
 	var curtain_wall_segments := 0
 	var gate_arches := 0
 	var watchtowers := 0
+	var wall_ladders := 0
 	for prop in props:
 		var prop_id := String(prop.get("id", ""))
 		if prop_id.begins_with("silverhart_city_wall_") and not prop_id.contains("watchtower"):
@@ -39,10 +40,13 @@ func _test_silverhart_wall_manifest() -> void:
 			gate_arches += 1
 		elif prop_id.begins_with("silverhart_city_wall_watchtower_"):
 			watchtowers += 1
+		elif prop_id.begins_with("silverhart_wall_ladder_"):
+			wall_ladders += 1
 	_check(city_wall_segments == 357, "The source-derived outer city wall should retain all 357 palisade segments")
 	_check(curtain_wall_segments == 138, "The palace curtain wall should retain all 138 source-derived segments")
 	_check(gate_arches == 1, "The city wall should retain its authored gate arch")
 	_check(watchtowers == 2, "The city gate should retain both source-authored watchtowers")
+	_check(wall_ladders == 2, "The palace curtain wall should retain both source-authored climbing ladders")
 
 func _test_city_gate_chunk_presentation() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
@@ -73,6 +77,8 @@ func _test_wall_and_gate_traversal() -> void:
 	_check(data.terrain_for_hex(wall_hex) == "palisade_wall", "The outer wall should remain explicitly represented as palisade terrain")
 	_check(data.is_walkable_for_hex(wall_hex), "The source wall should remain climbable rather than becoming an impassable terrain tile")
 	_check(is_equal_approx(data.movement_multiplier_for_hex(wall_hex), 15.0), "Crossing a palisade should retain its high movement cost")
+	_check(is_equal_approx(data.movement_multiplier_for_hex(Vector2i(20, -519)), 2.0), "The source ladder should provide the authored reduced wall-crossing cost")
+	_check(is_equal_approx(data.movement_multiplier_for_hex(Vector2i(-4, -507)), 2.0), "The second source ladder should provide the authored reduced wall-crossing cost")
 	_check(data.terrain_for_hex(gate_hex) == "path", "The city gate opening should remain a road/path cell, not a wall cell")
 	_check(data.is_walkable_for_hex(gate_hex), "The city gate opening should remain traversable")
 
