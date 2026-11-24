@@ -134,6 +134,10 @@ func _new_aldric_quest() -> Dictionary:
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var started: Dictionary = chains.start_prerequisite("aldric_broken_vigil", journal, party_ids, relationships, 2000.0)
 	_check(bool(started.get("ok", false)), "Aldric's Broken Vigil starts when Aldric is in the party")
+	var starting_relationship: Dictionary = relationships.snapshot("ser_aldric_thorne")
+	_check(float(starting_relationship.get("familiarity", 0.0)) == 21.0, "Aldric receives his source-authored rescued-companion familiarity and opening conversation")
+	_check(float(starting_relationship.get("trust", 0.0)) == 30.0, "Aldric starts with the source-authored trust value")
+	_check(float(starting_relationship.get("approval", 0.0)) == 60.0, "Aldric starts with the source-authored approval value")
 	return {"chains":chains,"journal":journal,"relationships":relationships}
 
 
@@ -169,7 +173,8 @@ func _test_aldric_sealed_dispatch_alternative_and_proof_bonus() -> void:
 	var result: Dictionary = chains.resolve_prerequisite("aldric_broken_vigil", "spare_patrol", journal, relationships, 2400.0, player)
 	_check(bool(result.get("ok", false)))
 	_check(bool(result.get("full_proof", false)))
-	_check(float(relationships.snapshot("ser_aldric_thorne").get("trust", 0.0)) == 24.0, "Signed proof adds the source-authored two trust bonus")
+	_check(int(result.get("xp_reward", 0)) == 300, "Signed proof awards the source-authored 300 XP")
+	_check(float(relationships.snapshot("ser_aldric_thorne").get("trust", 0.0)) == 44.0, "Signed proof adds the source-authored two trust bonus to Aldric's start value")
 
 
 func _test_aldric_money_resolution_and_faction_consequences() -> void:
@@ -189,4 +194,6 @@ func _test_aldric_money_resolution_and_faction_consequences() -> void:
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), 6.0), "The money outcome improves Ironbond standing by six")
 	_check(is_equal_approx(float(journal.faction_knowledge.get("ironbond_company", 0.0)), 10.0), "The money outcome records the source knowledge delta")
 	_check(is_equal_approx(float(result.get("world_effects", {}).get("surface_power_delta", 0.0)), 2.0), "The source surface-power consequence is exposed to the world runtime")
+	_check(is_equal_approx(float(journal.quest_state("aldric_broken_vigil").get("world_effects", {}).get("surface_power_delta", 0.0)), 2.0), "The surface-power consequence is retained in the persistent quest record")
+	_check(int(result.get("xp_reward", 0)) == 240, "The ordinary evidence path awards the source-authored 240 XP")
 	_check(String(journal.quest_state("aldric_broken_vigil").get("status", "")) == "completed")
