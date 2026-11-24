@@ -1594,7 +1594,17 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
 func record_companion_interaction(from_id: String, to_id: String, interaction_kind: String, changes: Dictionary, event_key: String = "") -> Dictionary:
 	if not characters.has(from_id) or not characters.has(to_id):
 		return {"ok": false, "reason": "unknown_character"}
-	return companion_bonds.record_interaction(from_id, to_id, interaction_kind, changes, event_key)
+	var result := companion_bonds.record_interaction(from_id, to_id, interaction_kind, changes, event_key)
+	if bool(result.get("ok", false)) and bool(result.get("changed", false)):
+		var satisfaction := 2.0
+		match interaction_kind.to_lower():
+			"flirt", "romantic":
+				satisfaction = 4.0
+			"intimate":
+				satisfaction = 5.0
+		camp_simulation.record_social_interaction(from_id, satisfaction)
+		camp_simulation.record_social_interaction(to_id, satisfaction)
+	return result
 
 
 func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> Dictionary:
