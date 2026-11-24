@@ -880,6 +880,8 @@ func _build_save_snapshot() -> Dictionary:
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
+		"companion_quest_chains": simulation.companion_quest_chains.to_dict(),
+		"companion_relationships": simulation.companion_relationship_state.to_dict(),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
@@ -960,6 +962,13 @@ func _apply_save_data(data: Dictionary) -> void:
 	var journal_data: Variant = data.get("campaign_journal", {})
 	if journal_data is Dictionary:
 		simulation.campaign_journal.load_dict(journal_data)
+	var companion_chain_data: Variant = data.get("companion_quest_chains", {})
+	if companion_chain_data is Dictionary:
+		simulation.companion_quest_chains.from_dict(companion_chain_data)
+	var companion_relationship_data: Variant = data.get("companion_relationships", {})
+	if companion_relationship_data is Dictionary:
+		simulation.companion_relationship_state.load_dict(companion_relationship_data)
+	simulation.companion_quest_chains.register_quest_definitions(simulation.campaign_journal)
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
