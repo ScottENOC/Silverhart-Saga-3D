@@ -70,7 +70,7 @@ def add_arm_ik(actor, side, target, pole_point, report):
     con.use_stretch=False
     pole=add_target("Wren_"+side+"_elbow_pole",pole_point)
     con.pole_target=pole
-    con.pole_angle=math.radians(90)
+    con.pole_angle=math.radians(0)
     report[side+"_ik"]={"created":True,"chain":names,"target_world":[round(v,4) for v in target.location]}
 
 def bounds(actor):
@@ -173,7 +173,7 @@ def main():
     # Imported native Ara Wren faces -Y in this Blender scene. Contact targets
     # are placed from her measured bounds, then checked against the evaluated mesh.
     left_breast=Vector((centre.x+width*0.14,lo.y+depth*0.13,lo.z+height*0.665))
-    right_hip=Vector((centre.x-width*0.22,lo.y+depth*0.25,lo.z+height*0.475))
+    right_hip=Vector((centre.x-width*0.22,lo.y+depth*0.25,lo.z+height*0.51))
     left_target=add_target("Left_hand_contact_target_breast",left_breast)
     right_target=add_target("Right_hand_contact_target_hip",right_hip)
 
@@ -190,7 +190,7 @@ def main():
     # Right arm: shoulder drops and abducts; elbow pole stays outside the hip
     # so the forearm folds inward to the palm-on-hip target.
     add_arm_ik(actor,"right",right_target,
-               Vector((centre.x-width*0.42,centre.y,lo.z+height*0.52)),report["ik"])
+               Vector((centre.x-width*0.42,centre.y,lo.z+height*0.68)),report["ik"])
 
     bpy.context.view_layer.update()
     for _ in range(5): bpy.context.view_layer.update()
