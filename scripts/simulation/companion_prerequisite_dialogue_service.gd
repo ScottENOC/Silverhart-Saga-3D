@@ -36,7 +36,8 @@ static func dialogue_for_companion(
 				"id":"companion_prerequisite_opening_choice",
 				"quest_id":quest_id,
 				"choice_id":String(opening_choice.get("id", "")),
-				"label":String(opening_choice.get("label", "Continue"))
+				"label":String(opening_choice.get("label", "Continue")),
+				"text":String(opening_choice.get("response", ""))
 			})
 	else:
 		body += "\n\n" + String(quest_state.get("description", definition.get("description", "")))
@@ -53,6 +54,8 @@ static func dialogue_for_companion(
 				"unavailable_reason":String(option.get("unavailable_reason", ""))
 			})
 		body += "\n\nThe evidence is gathered. Decide how to resolve this with your companion."
+	if choices.is_empty():
+		choices.append({"id":"continue","label":"Continue","text":""})
 	return {"quest_id":quest_id,"body":body,"choices":choices,"quest_state":quest_state.duplicate(true)}
 
 
