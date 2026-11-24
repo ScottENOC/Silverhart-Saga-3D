@@ -19,6 +19,7 @@ const SOUND_HEARD := 2
 # a separate, bounded long-range check.
 const DEFAULT_VISION_RADIUS := 8
 const DEFAULT_LIGHT_DETECTION_RADIUS := 24
+const LONG_RANGE_LIGHT_AMBIENT_THRESHOLD := 0.18
 
 const DETAIL_THRESHOLDS := {
 	"vague": 0.08,
@@ -51,15 +52,19 @@ static func assess(
 	# Emitted light is the sole exception and has its own hard, bounded radius.
 	var vision_radius := maxi(0, int(environment.get("vision_radius", DEFAULT_VISION_RADIUS)))
 	var light_radius := maxi(vision_radius, int(environment.get("light_detection_radius", DEFAULT_LIGHT_DETECTION_RADIUS)))
+	var ambient_light := clampf(float(environment.get("ambient_light", 1.0)), 0.0, 1.0)
 	var within_vision_radius := distance <= vision_radius
 	var within_light_radius := distance <= light_radius
+	# A distant flame is a useful landmark only once ambient daylight has
+	# fallen to night conditions. Nearby flames still contribute normally.
+	var long_range_light_allowed := ambient_light <= LONG_RANGE_LIGHT_AMBIENT_THRESHOLD
 	var light_visibility := 0.0
-	if emitted_light > 0.0 and within_light_radius:
+	if emitted_light > 0.0 and within_light_radius and (within_vision_radius or long_range_light_allowed):
 		light_visibility = clampf(emitted_light * atmosphere / (1.0 + float(distance) * 0.055), 0.0, 1.0)
 	var ambient_visibility := 0.0
 	if within_vision_radius:
 		ambient_visibility = clampf(
-			(float(environment.get("ambient_light", 1.0)) + lighting * 0.8)
+			(ambient_light + lighting * 0.8)
 			* atmosphere
 			/ (1.0 + float(distance) * 0.11),
 			0.0,
@@ -95,6 +100,7 @@ static func assess(
 		"light_visibility": light_visibility,
 		"within_vision_radius": within_vision_radius,
 		"light_detected": light_visibility >= 0.09,
+		"long_range_light_allowed": long_range_light_allowed,
 		"obstruction": obstruction,
 		"target_hex": target_hex if visual_level >= VISUAL_RECOGNISED else null,
 		"hex_known": visual_level >= VISUAL_RECOGNISED,
