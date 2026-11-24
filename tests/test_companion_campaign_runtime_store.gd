@@ -116,6 +116,9 @@ func _test_wren_personal_conversation_topics() -> void:
 	var familiar_topics := arc.dialogue_topics(relationships, simulation.campaign_journal)
 	_check(familiar_topics.size() == 1 and String(familiar_topics[0].get("id", "")) == "wren_arc_topic:why_stay", "Why Wren stays becomes available at the authored familiarity threshold")
 	_check(not arc.why_stays_line(relationships).is_empty(), "Wren's reason for staying is responsive to relationship and character axes")
+	arc.apply_dialogue_choice("people_do_not_give_up", relationships)
+	_check(arc.dialogue_topics(relationships, simulation.campaign_journal).size() == 1, "The why-stay topic remains available after its first authored response")
+	_check(arc.dialogue_options_for_topic("why_stay").size() == 1, "A repeated why-stay topic becomes a short follow-up rather than awarding effects again")
 
 	_check(simulation.campaign_journal.register_quest_definition({"id":"wren_parents","objectives":[{"id":"resolved","target":1.0}]}).get("ok", false), "Wren's parents quest can be registered for reflection gating")
 	_check(simulation.campaign_journal.start_quest("wren_parents").get("ok", false), "Wren's parents quest starts for reflection test")
@@ -125,6 +128,9 @@ func _test_wren_personal_conversation_topics() -> void:
 	_check(topics_after_parents.size() == 2 and String(topics_after_parents[1].get("id", "")) == "wren_arc_topic:parents_reflection", "Parents reflection appears only after that quest is completed")
 	var reflection_options := arc.dialogue_options_for_topic("parents_reflection")
 	_check(reflection_options.size() == 4, "The parents reflection offers the four authored dialogue responses")
+	arc.apply_dialogue_choice("truth_even_when_it_hurts", relationships)
+	_check(arc.dialogue_topics(relationships, simulation.campaign_journal).size() == 2, "The parents reflection topic remains available after its first response")
+	_check(arc.dialogue_options_for_topic("parents_reflection").size() == 1, "A repeated parents reflection becomes a short follow-up without repeating effects")
 
 
 func _test_companion_chapter_dialogue_flow() -> void:
