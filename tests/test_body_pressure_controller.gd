@@ -54,13 +54,14 @@ func _initialize() -> void:
 		_fail("Right chest pressure shape was not discovered.")
 		return
 
-	controller.apply_pressure(&"left_chest", 35.0)
+	# A contact producer submits force on every physics tick while contact persists.
 	for _frame in range(30):
+		controller.apply_pressure(&"left_chest", 35.0)
 		controller.step(1.0 / 60.0)
 	var left_value := mesh_instance.get_blend_shape_value(0)
 	var right_value := mesh_instance.get_blend_shape_value(1)
 	if left_value <= 0.05:
-		_fail("Left chest blend shape did not respond to pressure.")
+		_fail("Left chest blend shape did not respond to sustained pressure.")
 		return
 	if absf(right_value) > 0.0001:
 		_fail("Left-side pressure incorrectly changed the right-side blend shape.")
@@ -69,6 +70,7 @@ func _initialize() -> void:
 		_fail("Left chest compression was not retained by the solver.")
 		return
 
+	# No force is submitted after contact ends; the region should recover.
 	for _frame in range(180):
 		controller.step(1.0 / 60.0)
 	if mesh_instance.get_blend_shape_value(0) > 0.01:
