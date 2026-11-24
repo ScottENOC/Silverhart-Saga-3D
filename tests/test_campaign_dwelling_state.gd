@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_test_dwelling_camp_lodging()
 	_test_world_integration_and_persistence()
 	_test_save_restore()
+	_test_requirement_reports_and_atomic_payments()
 	if _failures > 0:
 		push_error("%d dwelling assertion(s) failed." % _failures)
 		quit(1)
@@ -129,3 +130,37 @@ func _test_world_integration_and_persistence() -> void:
 	restored.load_dict(saved)
 	_check(bool(restored.campaign_dwellings.owned.get("crossroads_cottage", false)), "World save/load should preserve dwelling ownership.")
 	_check(String(restored.camp_simulation.lodging_profile.get("layout_id", "")) == "cottage_one_room", "World save/load should preserve the active dwelling camp layout.")
+
+func _test_requirement_reports_and_atomic_payments() -> void:
+	var state := CampaignDwellingState.new()
+	var journal := CampaignJournal.new()
+	var player := _player()
+	_check(bool(state.complete_action("build_crossroads_cottage", journal, player).get("ok", false)), "The cottage should be available before testing its upgrade payment.")
+	_add_item(player, "wood", 4)
+	_add_item(player, "wood", 2)
+	_add_item(player, "stone", 3)
+	_add_item(player, "stone", 2)
+	var before_inventory := player.inventory.duplicate(true)
+	var missing_report := state.evaluate_action("upgrade_country_house", journal, player, "materials")
+	_check(not bool(missing_report.get("ok", false)), "A one-stone shortfall should keep the country-house upgrade locked.")
+	var material_requirement: Dictionary = {}
+	for requirement in missing_report.get("requirements", []):
+		if String(requirement.get("id", "")) == "payment:materials":
+			material_requirement = requirement
+	_check(int(material_requirement.get("missing", {}).get("stone", 0)) == 1, "The requirement report should identify the exact missing stone quantity.")
+	var failed_material_payment := state.complete_action("upgrade_country_house", journal, player, "materials")
+	_check(not bool(failed_material_payment.get("ok", false)), "An incomplete material payment must fail.")
+	_check(player.inventory == before_inventory, "A failed payment must not consume any inventory items.")
+	var invalid_payment := state.complete_action("upgrade_country_house", journal, player, "gems")
+	_check(not bool(invalid_payment.get("ok", false)), "An unsupported payment type must fail.")
+	_check(player.inventory == before_inventory, "An unsupported payment type must not consume materials.")
+	_add_item(player, "stone", 1)
+	_check(bool(state.complete_action("upgrade_country_house", journal, player, "materials").get("ok", false)), "Stacked inventory quantities should combine to pay the exact material cost.")
+	_check(player.inventory.is_empty(), "A successful upgrade should deduct exactly six wood and six stone across inventory stacks.")
+	var repeated := state.complete_action("upgrade_country_house", journal, player, "materials")
+	_check(not bool(repeated.get("ok", false)), "Repeating an upgrade must not grant it twice.")
+	_check(player.inventory.is_empty(), "A repeated upgrade must not consume any additional resources.")
+	var properties := state.property_snapshot(journal, player)
+	_check(properties.size() == 3, "The management snapshot should describe the three distinct legacy properties.")
+	_check(String(properties[0].get("id", "")) == "crossroads_cottage", "Property snapshots should use stable property IDs.")
+
