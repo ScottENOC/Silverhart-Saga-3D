@@ -218,6 +218,14 @@ func _initialize() -> void:
 		"reddale_reeve_house": Vector2i(138, 20),
 		"reddale_smithy": Vector2i(137, 32)
 	}
+	var reddale_expected_fixtures := {
+		"reddale_guardhouse": ["guardhouse_fireplace"],
+		"reddale_guildhouse": ["guildhouse_fireplace", "guildhouse_table", "guildhouse_ledgers"],
+		"reddale_inn": ["inn_fireplace"],
+		"reddale_manor": ["manor_fireplace", "manor_table", "baron_tariff_records"],
+		"reddale_reeve_house": [],
+		"reddale_smithy": ["smithy_fireplace", "smithy_bed"]
+	}
 	for location_id in reddale_entrances:
 		var reddale_definition: Dictionary = reddale_registry.get_definition(location_id)
 		var reddale_state = LOCATION_STATE.new()
@@ -228,6 +236,8 @@ func _initialize() -> void:
 			continue
 		var reddale_map: HexMapData = reddale_result.get("map_data") as HexMapData
 		_check(reddale_map.is_walkable(reddale_entrances[location_id]), "Reddale entrance must be walkable: " + location_id)
+		for fixture_id in reddale_expected_fixtures[location_id]:
+			_check(_has_object(reddale_result.get("tile_objects", []), fixture_id), "Reddale source fixture must be presented: " + fixture_id)
 		for reddale_object in reddale_result.get("tile_objects", []):
 			var reddale_position: Dictionary = reddale_object.get("position", {})
 			var reddale_hex := Vector2i(int(reddale_position.get("q", 0)), int(reddale_position.get("r", 0)))
