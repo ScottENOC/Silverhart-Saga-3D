@@ -207,7 +207,8 @@ static func build_exchange(
 	sequence: int,
 	bonds: CompanionBondState,
 	first_name: String = "",
-	second_name: String = ""
+	second_name: String = "",
+	camp_context: Dictionary = {}
 ) -> Dictionary:
 	if first_id.is_empty() or second_id.is_empty() or first_id == second_id:
 		return {}
@@ -222,12 +223,16 @@ static func build_exchange(
 	var second_bond := bonds.snapshot(second_id, first_id) if bonds != null else {}
 	var opener := String(first_profile.openers.get(topic, "We should talk about the road ahead."))
 	var reply := String(second_profile.openers.get(topic, "I had been thinking the same thing."))
+	var dwelling_observation := _dwelling_home_observation(String(camp_context.get("layout_id", ""))) if topic == "home" else ""
+	if not dwelling_observation.is_empty():
+		opener += " " + dwelling_observation
 	if float(second_bond.get("familiarity", 0.0)) < 3.0:
 		reply = String(second_profile.get("guarded_reply", reply))
 	elif float(second_bond.get("friendship", 0.0)) >= 20.0 and float(second_bond.get("trust", 0.0)) >= 15.0:
 		reply = String(second_profile.get("warm_reply", reply))
 	return {
 		"topic": topic,
+		"dwelling_layout_id": String(camp_context.get("layout_id", "")),
 		"first_id": first_id,
 		"second_id": second_id,
 		"lines": [
@@ -405,3 +410,19 @@ static func campaign_memory_event_key(exchange: Dictionary) -> String:
 		String(memory.get("resolution_id", "")),
 		str(int(float(memory.get("completed_at", 0.0))))
 	]
+
+
+static func _dwelling_home_observation(layout_id: String) -> String:
+	match layout_id:
+		"cottage_one_room":
+			return "A modest hearth and one room make everyone part of the same evening."
+		"country_house_three_room":
+			return "There is room here to find a little quiet without leaving everyone behind."
+		"restored_roadside_house":
+			return "A roadside house can become more than shelter if people have a reason to return."
+		"silverhart_manor_ruined":
+			return "These walls promise little shelter until we make them safe."
+		"silverhart_manor_livable":
+			return "A place like this could become a home for the people who pass through."
+		_:
+			return ""
