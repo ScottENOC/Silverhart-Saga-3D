@@ -28,6 +28,8 @@ func _initialize() -> void:
 	_test_dwelling_layout_station_selection()
 	_test_evening_routine_progression()
 	_test_livable_dwelling_avoids_unneeded_tent_setup()
+	_test_world_weather_state_and_camp_integration()
+	_test_dwelling_station_presentation()
 	_test_ara_camp_animation_mapping()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
@@ -209,6 +211,98 @@ func _test_companions_walk_to_camp_stations() -> void:
 	_check(not director.is_running(), "Packing or sleeping should be able to stop autonomous camp movement")
 	director.free()
 	_camp_actor_probes.clear()
+
+
+func _test_world_weather_state_and_camp_integration() -> void:
+	var weather := WorldWeatherState.new(12345)
+	var sample_time := float((6 * 30 + 15) * WorldClock.SECONDS_PER_DAY + 14 * WorldClock.SECONDS_PER_HOUR)
+	var first := weather.conditions_at(sample_time)
+	var second := WorldWeatherState.new(12345).conditions_at(sample_time)
+	_check(first == second, "Weather should be deterministic for a campaign seed and world time.")
+	var summer_time := float((2 * 30 + 15) * WorldClock.SECONDS_PER_DAY + 14 * WorldClock.SECONDS_PER_HOUR)
+	var winter_time := float((9 * 30 + 15) * WorldClock.SECONDS_PER_DAY + 14 * WorldClock.SECONDS_PER_HOUR)
+	var summer := weather.conditions_at(summer_time)
+	var winter := weather.conditions_at(winter_time)
+	_check(float(summer.temperature_c) > float(winter.temperature_c), "The existing seasonal calendar should drive warmer summer and colder winter weather.")
+	var open_weather := weather.conditions_at(sample_time, "grass")
+	var forest_weather := weather.conditions_at(sample_time, "forest")
+	_check(float(forest_weather.wind_speed) < float(open_weather.wind_speed), "Forest cover should reduce the wind companions experience at camp.")
+	_check(bool(weather.update_to(0.0)), "Weather should initialise its first three-hour period.")
+	_check(not weather.update_to(10.0), "Weather should not reroll within the same three-hour period.")
+	_check(bool(weather.update_to(WorldWeatherState.WEATHER_PERIOD_SECONDS)), "Weather should advance at a three-hour boundary.")
+
+	var world := WorldSimulation.new()
+	world.weather_state = WorldWeatherState.new(24680)
+	world.clock.set_world_seconds(WorldWeatherState.WEATHER_PERIOD_SECONDS - 1.0)
+	world.weather_state.update_to(world.clock.world_seconds)
+	var player := CharacterState.new("player", "Player")
+	var companion := CharacterState.new("wren", "Wren", Vector2i(1, 0))
+	companion.side = "player"
+	world.register_character(player)
+	world.register_character(companion)
+	var started := world.begin_camp({"walkable": true, "terrain_id": "forest"}, {}, {"wood": 1, "rations": 2, "water": 2})
+	_check(bool(started.get("ok", false)), "Camp should start with weather supplied by the world simulation.")
+	var expected_start := world.weather_state.conditions_at(world.clock.world_seconds, "forest")
+	_check(String(world.camp_simulation.environment.weather_type) == String(expected_start.weather_type), "Camp should receive the current world weather rather than a hard-coded temperature.")
+	world.advance_real_time(1.0)
+	var expected_after_transition := world.weather_state.conditions_at(world.clock.world_seconds, "forest")
+	_check(String(world.camp_simulation.environment.weather_type) == String(expected_after_transition.weather_type), "An active camp should receive weather changes as the world clock crosses a weather period.")
+	var saved := world.to_dict()
+	var restored := WorldSimulation.new()
+	restored.load_dict(saved)
+	_check(restored.weather_state.seed == world.weather_state.seed, "The campaign weather seed should persist through save and restore.")
+	_check(restored.weather_state.conditions_at(restored.clock.world_seconds) == world.weather_state.conditions_at(world.clock.world_seconds), "Weather should reproduce the same conditions after loading a save.")
+
+	var exposed := CampSimulation.new()
+	exposed.begin_camp(
+		{"walkable": true},
+		["scholar"],
+		{"companion_profiles": {"scholar": {"personality": "scholarly"}}},
+		{"wood": 1, "rations": 1}
+	)
+	exposed.advance_real_time(24.0)
+	_check(String(exposed.assignments.scholar.activity) == "study_map", "A clear exposed camp should allow a scholarly companion to study.")
+	exposed.update_weather({"storm": true, "heavy_rain": true, "wind_speed": 62.0, "rain_intensity": 0.9, "night_temperature_c": 8.0})
+	_check(String(exposed.assignments.scholar.activity) == "socialise", "A new storm should move companions away from exposed activities.")
+	var sheltered := CampSimulation.new()
+	sheltered.begin_camp(
+		{"walkable": true, "dwelling_profile": {"dwelling_id": "silverhart_manor", "layout_id": "silverhart_manor_livable", "sleeping_capacity": 8}},
+		["scholar"],
+		{"storm": true, "heavy_rain": true, "wind_speed": 62.0, "rain_intensity": 0.9, "night_temperature_c": 8.0, "companion_profiles": {"scholar": {"personality": "scholarly"}}},
+		{"wood": 1, "rations": 1}
+	)
+	sheltered.advance_real_time(24.0)
+	_check(String(sheltered.assignments.scholar.activity) == "study_map", "A sheltered manor should retain suitable indoor activities during a storm.")
+
+
+func _test_dwelling_station_presentation() -> void:
+	var manor_presenter := CampWorldPresentation.new()
+	get_root().add_child(manor_presenter)
+	manor_presenter.present_camp(
+		{
+			"hex": Vector2i.ZERO,
+			"position": Vector3.ZERO,
+			"dwelling_profile": {
+				"dwelling_id": "silverhart_manor",
+				"layout_id": "silverhart_manor_livable",
+				"sleeping_capacity": 8
+			}
+		},
+		[],
+		{"fire_lit": true}
+	)
+	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_hearth/HearthStoneBase"), "A manor should present a built hearth rather than a wilderness fire ring.")
+	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_study/StudyDeskTop"), "A manor should visibly present its dedicated study station.")
+	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_workshop/WorkshopBenchTop"), "A manor should visibly present its workshop station.")
+	_check(not manor_presenter.has_node("InWorldCampsite/FireRingStone_00"), "A livable dwelling should not be dressed as a wilderness fire circle.")
+	var manor_nameplate := manor_presenter.get_node_or_null("InWorldCampsite/CampNameplate") as Label3D
+	_check(manor_nameplate != null and manor_nameplate.text == "SILVERHART MANOR", "The dwelling should identify itself as the party's home.")
+	var wilderness_presenter := CampWorldPresentation.new()
+	get_root().add_child(wilderness_presenter)
+	wilderness_presenter.present_camp({"hex": Vector2i.ZERO, "position": Vector3(20.0, 0.0, 0.0)}, [], {"fire_lit": true})
+	_check(wilderness_presenter.has_node("InWorldCampsite/FireRingStone_00"), "A wilderness camp should retain its exposed fire ring.")
+	_check(wilderness_presenter.has_node("InWorldCampsite/CampfireLight"), "A lit wilderness camp should show its campfire light.")
+	_check(not wilderness_presenter.has_node("InWorldCampsite/DwellingStations"), "A wilderness camp should not receive permanent dwelling furniture.")
 
 
 func _test_ara_camp_animation_mapping() -> void:
