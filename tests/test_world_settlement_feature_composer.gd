@@ -2,11 +2,13 @@ extends SceneTree
 
 const COMPOSER = preload("res://scripts/world/world_settlement_feature_composer.gd")
 const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
+const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 
 func _initialize() -> void:
 	_test_chunk_ownership_and_route_clipping()
 	_test_empty_chunk_is_valid()
 	_test_hollowmere_location_uses_shared_composer()
+	_test_silverhart_city_composes_all_source_props()
 	print("World settlement feature composer tests passed.")
 	quit(0)
 
@@ -27,6 +29,55 @@ func _test_hollowmere_location_uses_shared_composer() -> void:
 	assert(parent.get_node_or_null("GeneralStore/StoreSignPresentation") != null)
 	assert(parent.get_node_or_null("Chapel/ChapelBellTowerPresentation") != null)
 	parent.free()
+
+
+func _test_silverhart_city_composes_all_source_props() -> void:
+	var terrain = TERRAIN_DATA.new()
+	var silverhart_entry: Dictionary = {}
+	for entry in terrain.settlement_layouts:
+		if String(entry.get("id", "")) == "silverhart":
+			silverhart_entry = entry
+			break
+	assert(not silverhart_entry.is_empty(), "Silverhart canonical layout must be available to the chunk composer")
+	var buildings := 0
+	var props := 0
+	var curtain_wall_segments := 0
+	var city_wall_segments := 0
+	var palace_towers := 0
+	var city_towers := 0
+	var gate_arches := 0
+	# Cover the complete source layout, including the Warrens beyond the
+	# radius-60 wall. Each feature must be owned by exactly one 24-hex chunk.
+	for chunk_q in range(-3, 3):
+		for chunk_r in range(-24, -17):
+			var parent := Node3D.new()
+			var chunk_min := Vector2i(chunk_q, chunk_r) * 24
+			var result: Dictionary = COMPOSER.compose_chunk(
+				parent, silverhart_entry, chunk_min, 24, HexGrid.DEFAULT_RADIUS_M
+			)
+			assert(bool(result.get("ok", false)), "Silverhart chunk must compose without errors: %s" % result)
+			buildings += int(result.get("buildings", 0))
+			props += int(result.get("props", 0))
+			for child in parent.get_children():
+				var node_name := String(child.name)
+				if node_name.begins_with("silverhart_curtain_wall_"):
+					curtain_wall_segments += 1
+				elif node_name.begins_with("silverhart_city_wall_watchtower_"):
+					city_towers += 1
+				elif node_name.begins_with("silverhart_city_wall_"):
+					city_wall_segments += 1
+				elif node_name.begins_with("silverhart_watchtower_"):
+					palace_towers += 1
+				elif node_name == "silverhart_city_gate_arch":
+					gate_arches += 1
+			parent.free()
+	assert(buildings == 40, "All 40 source Silverhart buildings must be presented once across streamed chunks")
+	assert(props == 513, "All 513 source Silverhart props must be presented once across streamed chunks")
+	assert(curtain_wall_segments == 138, "Palace curtain wall must present all 138 radius-23 palisade segments")
+	assert(city_wall_segments == 357, "Outer city wall must present all 357 segments around its three-cell gate")
+	assert(palace_towers == 7, "Palace curtain wall must present its seven source watchtowers")
+	assert(city_towers == 2, "Outer city wall must present both source gate watchtowers")
+	assert(gate_arches == 1, "Outer city gate must present its source arch")
 
 func _definition() -> Dictionary:
 	return {
