@@ -4,6 +4,7 @@ extends Node
 signal companion_exchange(exchange: Dictionary)
 
 const CAMP_DIALOGUE_SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
+const CAMPAIGN_RUNTIME_STORE := preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 ## Drives visible companion movement for the in-world camp.
 ## Character movement remains authoritative in WorldSimulation; HollowTankard's
 ## existing character_moved signal supplies the normal locomotion animation.
@@ -232,21 +233,41 @@ func _process_social_exchanges(delta: float) -> void:
 	var second_state := simulation.get_character(second_id)
 	if first_state == null or second_state == null:
 		return
-	var exchange := CAMP_DIALOGUE_SERVICE.build_exchange(
+	var quest_chain := CAMPAIGN_RUNTIME_STORE.quest_chain_state_for(simulation)
+	var exchange := CAMP_DIALOGUE_SERVICE.build_campaign_memory_exchange(
 		first_id,
 		second_id,
 		_exchange_index,
 		simulation.companion_bonds,
+		quest_chain,
+		simulation.campaign_journal,
 		first_state.display_name,
 		second_state.display_name
 	)
+	var event_key := CAMP_DIALOGUE_SERVICE.campaign_memory_event_key(exchange)
+	if not exchange.is_empty():
+		var first_bond := simulation.companion_bonds.snapshot(first_id, second_id)
+		var second_bond := simulation.companion_bonds.snapshot(second_id, first_id)
+		var first_events: Array = first_bond.get("applied_event_keys", [])
+		var second_events: Array = second_bond.get("applied_event_keys", [])
+		if first_events.has(event_key) or second_events.has(event_key):
+			exchange = {}
 	if exchange.is_empty():
+		exchange = CAMP_DIALOGUE_SERVICE.build_exchange(
+			first_id,
+			second_id,
+			_exchange_index,
+			simulation.companion_bonds,
+			first_state.display_name,
+			second_state.display_name
+		)
+		event_key = "camp_banter:%s:%d:%d" % [
+			String(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
+			int(simulation.clock.world_seconds),
+			_exchange_index
+		]
+	if exchange.is_empty() or event_key.is_empty():
 		return
-	var event_key := "camp_banter:%s:%d:%d" % [
-		String(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
-		int(simulation.clock.world_seconds),
-		_exchange_index
-	]
 	CAMP_DIALOGUE_SERVICE.record_exchange(
 		simulation.companion_bonds,
 		simulation.camp_simulation,
