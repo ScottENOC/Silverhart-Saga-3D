@@ -81,41 +81,54 @@ def main():
     garment_objects = import_glb(garment_path)
     body = next((o for o in body_objects if o.type == "MESH" and any(
         m and "skin" in m.name.lower() for m in o.data.materials)), None)
-    # The GLB exporter may include the source body as a skinning dependency when
-    # the armature is selected. Never assume the first imported mesh is the garment.
-    # A skinned garment GLB may carry the source body mesh as a dependency.
-    # Do not mistake Wren's mouth/eyes/hair materials for the garment: identify
-    # the actual garment by its dedicated material name.
-    garment_material_tokens = ("brief", "garment", "shell", "bra", "fabric", "lace", "underwear")
-    material_meshes = [
-        o for o in garment_objects
-        if o.type == "MESH" and any(m is not None for m in o.data.materials)
-    ]
-    garment_matches = [
-        o for o in material_meshes
-        if any(m and any(token in m.name.strip().lower() for token in garment_material_tokens)
-               for m in o.data.materials)
-    ]
-    # Bra review fabric is deliberately named for its physical profile rather
-    # than its slot ("Black matte moderate-stretch fabric"). Prefer explicit
-    # garment-like material names, but accept the sole material-bearing mesh
-    # in a garment-only export when the source material uses another label.
-    garment = garment_matches[0] if len(garment_matches) == 1 else (
-        material_meshes[0] if not garment_matches and len(material_meshes) == 1 else None
-    )
-    if body is None or garment is None:
-        imported_meshes = [(o.name, [m.name if m else None for m in o.data.materials])
-                           for o in garment_objects if o.type == "MESH"]
-        raise RuntimeError(
-            f"Could not identify Wren skin mesh and dedicated garment material mesh; "
-            f"body_found={body is not None}, garment_material_matches="
-            f"{[o.name for o in garment_matches]}, imported={imported_meshes}"
-        )
-    # Hide any body mesh bundled only to satisfy the garment's skin dependency;
-    # the canonical Wren body was imported separately above.
+    # Blender's glTF importer can combine several glTF primitives into one
+    # object. In that case the imported object has both Skin and Bra material
+    # slots, and rendering the whole object makes the body occlude the garment.
+    # Isolate faces assigned to the dedicated garment material before review.
+    garment_material_names = {"bra", "briefs"}
+    candidates = []
     for obj in garment_objects:
-        if obj.type == "MESH" and obj is not garment:
+        if obj.type != "MESH":
+            continue
+        for index, material in enumerate(obj.data.materials):
+            if material and material.name.strip().lower() in garment_material_names:
+                candidates.append((obj, index, material))
+    if len(candidates) != 1:
+        details = [(o.name, i, m.name) for o, i, m in candidates]
+        raise RuntimeError(f"Expected one dedicated Bra/Briefs material slot, got {details}")
+
+    source_garment, material_index, garment_material = candidates[0]
+    garment_mesh = source_garment.data.copy()
+    bm = bmesh.new()
+    bm.from_mesh(garment_mesh)
+    bmesh.ops.delete(
+        bm,
+        geom=[face for face in bm.faces if face.material_index != material_index],
+        context="FACES",
+    )
+    loose = [vertex for vertex in bm.verts if not vertex.link_faces]
+    if loose:
+        bmesh.ops.delete(bm, geom=loose, context="VERTS")
+    bm.to_mesh(garment_mesh)
+    bm.free()
+    garment_mesh.materials.clear()
+    garment_mesh.materials.append(garment_material)
+    for polygon in garment_mesh.polygons:
+        polygon.material_index = 0
+    garment = source_garment.copy()
+    garment.data = garment_mesh
+    garment.name = f"{source_garment.name}_{garment_material.name}_isolated"
+    bpy.context.collection.objects.link(garment)
+
+    if body is None:
+        raise RuntimeError("Could not identify canonical body skin mesh")
+    # Hide all meshes imported from the transfer GLB. The isolated garment
+    # above is the only geometry retained from it; the canonical body is
+    # rendered from body_path so there is no duplicate/occluding source body.
+    for obj in garment_objects:
+        if obj.type == "MESH":
             obj.hide_render = True
+    garment.hide_render = False
     armature_mod = next((m for m in body.modifiers if m.type == "ARMATURE" and m.object), None)
     if armature_mod is None or armature_mod.object.data.bones.get("LeftUpLeg") is None:
         raise RuntimeError("Wren rig is missing the LeftUpLeg landmark")
@@ -131,7 +144,7 @@ def main():
         points.extend(evaluated.matrix_world @ Vector(corner) for corner in evaluated.bound_box)
     lo = Vector(tuple(min(p[i] for p in points) for i in range(3)))
     hi = Vector(tuple(max(p[i] for p in points) for i in range(3)))
-    target = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, hip_z - 0.045))
+    # Frame the garment itself. A pelvis-centred camera made the bra comparison\n    # show the wrong part of the body and could not support a fit judgement.\n    garment_eval = garment.evaluated_get(deps)\n    garment_points = [garment_eval.matrix_world @ Vector(corner) for corner in garment_eval.bound_box]\n    garment_lo = Vector(tuple(min(p[i] for p in garment_points) for i in range(3)))\n    garment_hi = Vector(tuple(max(p[i] for p in garment_points) for i in range(3)))\n    target = (garment_lo + garment_hi) * 0.5\n    garment_width = max(garment_hi.x - garment_lo.x, garment_hi.y - garment_lo.y, 0.12)\n    review_scale = max(0.42, garment_width * 2.2)
     scene = bpy.context.scene
     setup_scene(scene)
     views = {
@@ -140,11 +153,11 @@ def main():
         "rear": Vector((0, 1, 0)),
     }
     for name, direction in views.items():
-        render_view(scene, target, direction, 0.72, 0.6, output / f"{name}.png")
+        render_view(scene, target, direction, review_scale, 0.6, output / f"{name}.png")
 
     report = {
         "body": body.name,
-        "garment": garment.name,
+        "garment": garment.name,\n        "source_mesh": source_garment.name,\n        "garment_material": garment_material.name,\n        "garment_bounds_world": [garment_lo[:], garment_hi[:]],\n        "review_scale": review_scale,
         "body_vertices": len(body.data.vertices),
         "garment_vertices": len(garment.data.vertices),
         "garment_faces": len(garment.data.polygons),
