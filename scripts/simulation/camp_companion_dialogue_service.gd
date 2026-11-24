@@ -328,7 +328,7 @@ static func build_campaign_memory_exchange(
 	var partner_key := canonical_id(partner_character_id)
 	var title := String(chapter.get("title", chapter_id))
 	var reason := String(outcome.get("reason", state.get("completion_reason", title)))
-	var opener_template := String(CAMPAIGN_MEMORY_OPENERS.get(owner_id, "I have been thinking about %s. %s."))
+	var opener_template := String(CAMPAIGN_MEMORY_OPENERS.get(owner_key, "I have been thinking about %s. %s."))
 	var opener := opener_template % [title, reason]
 	var stance := String(CAMPAIGN_RESOLUTION_STANCES.get(chapter_id, {}).get(resolution_id, ""))
 	var stance_score := float(CHARACTER_STANCES.get(partner_key, {}).get(stance, 0.0)) if not stance.is_empty() else 0.0
