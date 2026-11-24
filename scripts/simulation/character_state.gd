@@ -118,9 +118,6 @@ var carry_capacity: int = 0
 var movement_mode: String = "ground"
 var temperament: String = ""
 var vision_bonus: int = 0
-## Concealment state is simulation-owned and persists across saves.
-var is_stealthed: bool = false
-var stealth_score: int = 0
 var scent_bonus: int = 0
 var individual_seed: int = 0
 ## Stable links; a mounted rider shares the mount's hex and does not own occupancy.
@@ -454,8 +451,6 @@ func to_dict() -> Dictionary:
         "movement_mode": movement_mode,
         "temperament": temperament,
         "vision_bonus": vision_bonus,
-        "is_stealthed": is_stealthed,
-        "stealth_score": stealth_score,
         "scent_bonus": scent_bonus,
         "individual_seed": individual_seed,
         "mounted_animal_id": mounted_animal_id,
@@ -586,8 +581,6 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.movement_mode = String(data.get("movement_mode", "ground"))
     state.temperament = String(data.get("temperament", ""))
     state.vision_bonus = int(data.get("vision_bonus", 0))
-    state.is_stealthed = bool(data.get("is_stealthed", false))
-    state.stealth_score = int(data.get("stealth_score", 0))
     state.scent_bonus = int(data.get("scent_bonus", 0))
     state.individual_seed = int(data.get("individual_seed", 0))
     state.mounted_animal_id = String(data.get("mounted_animal_id", ""))
