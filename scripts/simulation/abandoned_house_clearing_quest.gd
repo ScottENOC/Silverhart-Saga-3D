@@ -19,7 +19,10 @@ const GUARDIAN_HEXES: Array[Vector2i] = [
 	Vector2i(15, -177),
 	Vector2i(14, -175)
 ]
-const GUARDIAN_HEALTH := 72
+const GUARDIAN_HEALTH := 40
+const REPUTATION_PENALTY := -5
+const REPUTATION_KNOWLEDGE_GAIN := 5
+const REPUTATION_APPLIED_TAG := "abandoned_house_reputation_applied"
 const PARTY_TURN_POINTS := 100.0
 
 
@@ -151,6 +154,35 @@ static func enemies_defeated(simulation: WorldSimulation) -> bool:
 	return guardian_count_remaining(simulation) == 0
 
 
+static func all_necromancer_minions_defeated(simulation: WorldSimulation) -> bool:
+	if simulation == null:
+		return false
+	for value in simulation.character_states():
+		var state: CharacterState = value
+		if state.tags.has("necromancerMinion") and state.can_act():
+			return false
+	return true
+
+
+static func apply_defeat_consequences(journal: CampaignJournal, simulation: WorldSimulation) -> int:
+	if journal == null or simulation == null:
+		return 0
+	var applied_count := 0
+	for guardian_id in GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian == null or guardian.can_act() or guardian.tags.has(REPUTATION_APPLIED_TAG):
+			continue
+		journal.adjust_faction_reputation(
+				"necromancer_cult",
+				float(REPUTATION_PENALTY),
+				float(REPUTATION_KNOWLEDGE_GAIN),
+				"Defeated a necromancer's undead guardian"
+			)
+		guardian.tags.append(REPUTATION_APPLIED_TAG)
+		applied_count += 1
+	return applied_count
+
+
 static func finish_encounter(simulation: WorldSimulation, previous_states: Dictionary) -> void:
 	if simulation == null:
 		return
@@ -180,6 +212,8 @@ static func resolve_clearing(journal: CampaignJournal, simulation: WorldSimulati
 	if not bool(progress.get("ok", false)):
 		return progress
 	if defeated_count >= GUARDIAN_IDS.size():
+		if not all_necromancer_minions_defeated(simulation):
+			return {"ok": true, "completed": false, "defeated": defeated_count, "reason": "other_necromancer_minions_remain"}
 		var completed := journal.complete_quest(QUEST_ID)
 		if not bool(completed.get("ok", false)):
 			return completed
