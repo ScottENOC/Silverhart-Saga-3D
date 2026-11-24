@@ -12,7 +12,6 @@ static func chapter_dialogue_for_companion(simulation: WorldSimulation, companio
 		return {}
 	var canonical_id := companion_id.trim_prefix("companion_")
 	var chain := RUNTIME_STORE.quest_chain_state_for(simulation)
-	var relationships := RUNTIME_STORE.relationship_state_for(simulation)
 	var party_ids: Array[String] = []
 	for value in simulation.get_party_member_ids():
 		party_ids.append(String(value))
@@ -46,6 +45,7 @@ static func chapter_dialogue_for_companion(simulation: WorldSimulation, companio
 		options.append({
 			"id":"companion_chapter_resolve",
 			"chapter_id":chapter_id,
+			"companion_name":String(chapter.get("companion", "Companion")),
 			"resolution_id":String(option.get("id", "")),
 			"label":String(option.get("label", "Choose"))
 		})
