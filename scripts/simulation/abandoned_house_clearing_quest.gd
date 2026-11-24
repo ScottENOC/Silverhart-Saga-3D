@@ -104,7 +104,7 @@ static func guardian_count_remaining(simulation: WorldSimulation) -> int:
 	var remaining := 0
 	for guardian_id in GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
-		if guardian != null and guardian.can_act():
+		if guardian != null and guardian.alive:
 			remaining += 1
 	return remaining
 
@@ -142,7 +142,7 @@ static func start_encounter(simulation: WorldSimulation, party_ids: Array[String
 	var active_enemy_ids: Array[String] = []
 	for guardian_id in GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
-		if guardian == null or not guardian.can_act():
+		if guardian == null or not guardian.alive:
 			continue
 		guardian.side = "enemy"
 		guardian.combat_dormant = false
@@ -176,7 +176,7 @@ static func all_necromancer_minions_defeated(simulation: WorldSimulation) -> boo
 		return false
 	for value in simulation.character_states():
 		var state: CharacterState = value
-		if state.tags.has("necromancerMinion") and state.can_act():
+		if state.tags.has("necromancerMinion") and state.alive:
 			return false
 	return true
 
@@ -187,7 +187,7 @@ static func apply_defeat_consequences(journal: CampaignJournal, simulation: Worl
 	var applied_count := 0
 	for guardian_id in GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
-		if guardian == null or guardian.can_act() or guardian.tags.has(REPUTATION_APPLIED_TAG):
+		if guardian == null or guardian.alive or guardian.tags.has(REPUTATION_APPLIED_TAG):
 			continue
 		journal.adjust_faction_reputation(
 				"necromancer_cult",
