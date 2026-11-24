@@ -1303,6 +1303,23 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		else:
 			_show_dialogue("Property", "That property action is invalid.", [{"id": "continue", "label": "Understood.", "text": ""}])
 		return
+	if choice_id == "abandoned_house_investigate":
+		var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
+		var spawned := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
+		if bool(started.get("ok", false)) and bool(spawned.get("ok", false)):
+			_restore_abandoned_house_guardian_actors()
+			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
+		else:
+			_show_dialogue("Abandoned House", "The house cannot be investigated right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if choice_id == "abandoned_house_finalize":
+		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
+		var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
+		if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
+			_show_dialogue("Abandoned House", "The last of the necromancer's undead minions is gone. The house can now be restored.", [{"id": "continue", "label": "Continue", "text": ""}])
+		else:
+			_show_dialogue("Abandoned House", "The clearing is not yet resolved: %s." % String(clearing.get("reason", "remaining necromancer minions")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
 	if choice_id == "abandoned_house_enter":
 		_begin_abandoned_house_encounter()
 		return
