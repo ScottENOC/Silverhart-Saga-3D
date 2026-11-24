@@ -51,7 +51,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Vessel-Seeker's Crypt | Source-authored three-room floor, connecting corridors and explicit one-cell wall-ring apertures are registered and map-tested |
 | Barrow of Corvin Ashgrave | Source-authored antechamber and sanctum, connecting corridor and door openings are registered and map-tested |
 | Ashveil's Dragon Lair | Source-authored radius-six rocky outcrop and radius-two open cave den now receive chunk-scoped rock dressing; dragon actor and encounter are campaign-owned |
-| Lich Chapterhouse | Chapterhouse layout, necromancer/lich faction content and encounters |
+| Lich Chapterhouse | Source-authored single-floor stone chapterhouse (4-by-3 room), east entrance and central fireplace are registered and map-tested; inquisitor and witch hunters remain campaign actors | Necromancer/lich faction content, encounter behaviour and chapterhouse runtime entry/exit wiring |
 | Emberwood Grove | Terrain clearing, foliage perimeter, spring stone rim and both source herb-patch visuals are ported; inhabitants, gathering and quest behaviour are campaign-owned |
 | Vampire Grave | Grave site, vampire encounter and related content |
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
