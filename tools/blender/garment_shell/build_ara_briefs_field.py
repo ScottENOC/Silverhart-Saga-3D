@@ -15,7 +15,7 @@ import bpy
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from shell_core import axis_parameter
+from shell_core import axis_parameter, curved_leg_limit, curved_trunk_limit
 
 
 def args():
@@ -87,6 +87,9 @@ def main():
     hip_xyz = [float(v) for v in hip]
     neck_xyz = [float(v) for v in neck]
     axis_xyz = [float(v / torso_length) for v in torso_axis]
+    lateral_axis = (left_hip - right_hip).normalized()
+    hip_half_width = max((left_hip - right_hip).length * 0.95, 0.10)
+    leg_half_width = max((left_hip - right_hip).length * 0.55, 0.08)
     dominant_axis = "xyz"[max(range(3), key=lambda i: abs(axis_xyz[i]))]
 
     leg_axes = {}
@@ -121,13 +124,20 @@ def main():
 
         if trunk_weight >= leg_weight and trunk_weight >= options.minimum_region_weight:
             trunk_t = axis_parameter(tuple(point), tuple(hip), tuple(neck))
-            field.append(options.trunk_limit - trunk_t)
+            lateral_distance = (point - hip).dot(lateral_axis)
+            trunk_limit = curved_trunk_limit(
+                lateral_distance, hip_half_width, options.trunk_limit, 0.018
+            )
+            field.append(trunk_limit - trunk_t)
             classifications["trunk"] += 1
         elif leg_weight >= options.minimum_region_weight:
             side = "left" if left_weight >= right_weight else "right"
             head, axis, length_sq = leg_axes[side]
             leg_t = (point - head).dot(axis) / length_sq
-            field.append(options.upperleg_limit - leg_t)
+            outward_axis = lateral_axis if side == "left" else -lateral_axis
+            outwardness = (point - head).dot(outward_axis) / leg_half_width
+            leg_limit = curved_leg_limit(outwardness, options.upperleg_limit, 0.025)
+            field.append(leg_limit - leg_t)
             classifications[side + "_upperleg"] += 1
         else:
             field.append(-1.0)
@@ -150,6 +160,10 @@ def main():
         "torso_length_m": torso_length,
         "trunk_limit": options.trunk_limit,
         "upperleg_limit": options.upperleg_limit,
+        "waistband_side_rise": 0.018,
+        "waistband_hip_half_width_m": hip_half_width,
+        "leg_opening_outer_high_cut": 0.025,
+        "leg_opening_half_width_m": leg_half_width,
         "minimum_region_weight": options.minimum_region_weight,
         "classifications": classifications,
         "covered_vertices": sum(value >= 0 for value in field),
