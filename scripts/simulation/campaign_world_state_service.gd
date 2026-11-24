@@ -9,10 +9,11 @@ static func settlement_context(journal: CampaignJournal, settlement_id: String) 
 	var state := journal.settlement_campaign_state(settlement_id)
 	if state.is_empty():
 		return {}
+	var flags: Dictionary = state.get("flags", {})
 	return {
 		"settlement_id": settlement_id,
 		"values": state.duplicate(true),
-		"flags": (state.get("flags", {}) as Dictionary).duplicate(true)
+		"flags": flags.duplicate(true)
 	}
 
 
