@@ -36,7 +36,7 @@ func _initialize() -> void:
 		var expected_centre: Vector2i = emberlode_centres[location_id]
 		_check(int(emberlode_anchor.get("q", 0)) == expected_centre.x and int(emberlode_anchor.get("r", 0)) == expected_centre.y, "Emberlode building anchor must match buildEmberlode: " + location_id)
 		var emberlode_floor := registry.get_floor_definition(location_id, 0)
-		_check(emberlode_floor.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
+		_check(emberlode_residential_floor_definition.get("rooms", []).size() == 1, "Emberlode building must retain one source room: " + location_id)
 		var emberlode_room: Dictionary = emberlode_floor.get("rooms", [])[0]
 		_check(int(emberlode_room.get("half_width", 0)) == 3 and int(emberlode_room.get("half_height", 0)) == 2, "Emberlode building footprint must match carveBuilding: " + location_id)
 		_check(String(emberlode_room.get("row_shift_mode", "")) == "source_building", "Emberlode building must preserve carveBuilding row shift: " + location_id)
@@ -352,17 +352,17 @@ func _initialize() -> void:
 		"silverhart_outlying_house_3": {"centre": Vector2i(-32, -476), "door": Vector2i(-30, -476), "door_id": "silverhart_outlying_house_3_east_door", "width": 2, "height": 2}
 	}
 	for location_id in silverhart_residential_specs:
-		var expected: Dictionary = silverhart_residential_specs[location_id]
-		var location: Dictionary = registry.get_definition(location_id)
-		_check(_position_matches(location.get("anchor", {}), expected["centre"]), "Silverhart residential centre must match source: " + location_id)
-		var floor := registry.get_floor_definition(location_id, 0)
+		var residential_expected: Dictionary = silverhart_residential_specs[location_id]
+		var residential_location_definition: Dictionary = registry.get_definition(location_id)
+		_check(_position_matches(residential_location_definition.get("anchor", {}), residential_expected["centre"]), "Silverhart residential centre must match source: " + location_id)
+		var residential_floor_definition := registry.get_floor_definition(location_id, 0)
 		_check(floor.get("rooms", []).size() == 1, "Silverhart residential interior must contain one source room: " + location_id)
 		if floor.get("rooms", []).size() == 1:
-			var room: Dictionary = floor.get("rooms", [])[0]
-			_check(_position_matches(room.get("center", {}), expected["centre"]), "Silverhart residential room centre must match source: " + location_id)
-			_check(int(room.get("half_width", 0)) == int(expected["width"]) and int(room.get("half_height", 0)) == int(expected["height"]), "Silverhart residential room dimensions must match source: " + location_id)
-		_check(_has_record(floor.get("tile_objects", []), expected["door_id"]), "Silverhart residential entrance must match source: " + location_id)
-		_check(floor.get("actors", []).is_empty() and floor.get("creatures", []).is_empty(), "Silverhart residential interiors must not duplicate campaign residents: " + location_id)
+			var residential_room: Dictionary = residential_floor_definition.get("rooms", [])[0]
+			_check(_position_matches(residential_room.get("center", {}), residential_expected["centre"]), "Silverhart residential room centre must match source: " + location_id)
+			_check(int(residential_room.get("half_width", 0)) == int(residential_expected["width"]) and int(residential_room.get("half_height", 0)) == int(residential_expected["height"]), "Silverhart residential room dimensions must match source: " + location_id)
+		_check(_has_record(residential_floor_definition.get("tile_objects", []), residential_expected["door_id"]), "Silverhart residential entrance must match source: " + location_id)
+		_check(residential_floor_definition.get("actors", []).is_empty() and residential_floor_definition.get("creatures", []).is_empty(), "Silverhart residential interiors must not duplicate campaign residents: " + location_id)
 	var queen_bedroom := registry.get_floor_definition("silverhart_queens_bedroom", 0)
 	_check(_position_matches(queen_bedroom.get("floor_hexes", [])[0], Vector2i(8, -502)), "Queen's bedroom must preserve its source wall opening to the Grand Hall")
 	_check(_has_record(queen_bedroom.get("tile_objects", []), "silverhart_queens_bedroom_bed_1") and _has_record(queen_bedroom.get("tile_objects", []), "silverhart_queens_bedroom_fireplace_3"), "Queen's bedroom must preserve source bed and fireplace fixtures")
