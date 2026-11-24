@@ -107,6 +107,111 @@ func _test_mask_contract(asset_path: String) -> void:
     assert(overlap_samples.size() == 1 and int(overlap_samples[0]["vertex_index"]) == target_vertex,
         "A single source vertex must be queryable through two overlapping anatomical regions")
 
+    # A triangle hit between source vertices must interpolate each independent
+    # authored channel. The same point can therefore belong to overlapping regions.
+    var surface_arrays := target_mesh.mesh.surface_get_arrays(target_surface)
+    var triangle_indices: PackedInt32Array = surface_arrays[Mesh.ARRAY_INDEX]
+    var triangle_vertices := PackedInt32Array()
+    var target_corner := -1
+    for triangle_start in range(0, triangle_indices.size() - 2, 3):
+        var candidate := PackedInt32Array([
+            triangle_indices[triangle_start],
+            triangle_indices[triangle_start + 1],
+            triangle_indices[triangle_start + 2]
+        ])
+        var candidate_corner := candidate.find(target_vertex)
+        if candidate_corner >= 0:
+            triangle_vertices = candidate
+            target_corner = candidate_corner
+            break
+    assert(triangle_vertices.size() == 3, "Could not find a source triangle containing the synthetic mask vertex")
+    var barycentric := PackedFloat32Array([0.25, 0.50, 0.25])
+    # Put the painted vertex at a non-unit barycentric coordinate to prove
+    # membership is continuous across the triangle rather than a nearest-dot lookup.
+    barycentric = PackedFloat32Array([0.0, 0.0, 0.0])
+    barycentric[target_corner] = 0.25
+    barycentric[(target_corner + 1) % 3] = 0.50
+    barycentric[(target_corner + 2) % 3] = 0.25
+    var triangle_memberships := regions.get_authored_triangle_region_weights(
+        mask.mesh_node_path, target_surface, triangle_vertices, barycentric, 0.10
+    )
+    assert(is_equal_approx(float(triangle_memberships.get(region_id, 0.0)), 0.25),
+        "Fine region weight was not barycentrically interpolated")
+    assert(is_equal_approx(float(triangle_memberships.get(overlap_id, 0.0)), 0.1625),
+        "Overlapping fine region weight was not preserved during interpolation")
+    var pressure_controller := BodyPressureController.new()
+    pressure_controller.register_region(StringName(region_id), BodyRegionProfile.new())
+    pressure_controller.register_region(StringName(overlap_id), BodyRegionProfile.new())
+
+    var vertex_barycentric := PackedFloat32Array([0.0, 0.0, 0.0])
+    vertex_barycentric[target_corner] = 1.0
+    var conserved_forces := BodyPressureContact.submit_surface_contact(
+        pressure_controller,
+        regions,
+        mask.mesh_node_path,
+        target_surface,
+        triangle_vertices,
+        vertex_barycentric,
+        0.10,
+        0.0,
+        1000.0,
+        0.0,
+        100.0,
+        0.10
+    )
+    var combined_force := 0.0
+    for submitted_force in conserved_forces.values():
+        combined_force += float(submitted_force)
+    assert(is_equal_approx(combined_force, 100.0),
+        "Overlapping memberships must not amplify the physical contact force")
+
+    var invalid_triangle := regions.get_authored_triangle_region_weights(
+        mask.mesh_node_path, target_surface, PackedInt32Array([target_vertex, -1, target_vertex]), barycentric
+    )
+    assert(invalid_triangle.is_empty(), "Invalid source triangle indices must be rejected")
+
+    var submitted_forces := BodyPressureContact.submit_surface_contact(
+        pressure_controller,
+        regions,
+        mask.mesh_node_path,
+        target_surface,
+        triangle_vertices,
+        barycentric,
+        0.10,
+        0.0,
+        1000.0,
+        0.0,
+        100.0,
+        0.10
+    )
+    assert(is_equal_approx(float(submitted_forces.get(region_id, 0.0)), 25.0),
+        "Contact force was not weighted by the first interpolated region membership")
+    assert(is_equal_approx(float(submitted_forces.get(overlap_id, 0.0)), 16.25),
+        "Contact force did not preserve the overlapping region membership")
+
+    # Clothing may be in light contact without compressing the body. Its
+    # transient damping must still be mapped across the same overlapping regions.
+    var garment_damping_regions := BodyPressureContact.submit_surface_contact(
+        pressure_controller,
+        regions,
+        mask.mesh_node_path,
+        target_surface,
+        triangle_vertices,
+        vertex_barycentric,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        100.0,
+        0.10,
+        120.0
+    )
+    assert(garment_damping_regions.has(region_id) and garment_damping_regions.has(overlap_id),
+        "Garment-only damping must reach all overlapping registered anatomy regions")
+    assert(is_equal_approx(float(garment_damping_regions[region_id]), 0.0)
+        and is_equal_approx(float(garment_damping_regions[overlap_id]), 0.0),
+        "Damping-only garment contact must not add compression force")
+
     var invalid_regions := CharacterSurfaceRegions.new()
     assert(not invalid_regions.configure(actor_root, body_root, [stale_signature], asset_path),
         "Runtime accepted stale fine mask for " + asset_path)

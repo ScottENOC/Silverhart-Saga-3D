@@ -417,7 +417,10 @@ func _get_region_weights(surface: Dictionary, region_id: String) -> PackedFloat3
 func _get_authored_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
     var fine_weights: Dictionary = surface.get("fine_region_weights", {})
     if fine_weights.has(region_id):
-        return fine_weights[region_id] as PackedFloat32Array
+        # Use a typed assignment rather than `as` for this built-in packed array.
+        # This preserves the authored fine channel and avoids a failed built-in cast.
+        var authored_weights: PackedFloat32Array = fine_weights[region_id]
+        return authored_weights
     return PackedFloat32Array()
 
 
@@ -532,6 +535,59 @@ func _collect_skinned_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
             output.append(mesh_instance)
     for child in node.get_children():
         _collect_skinned_meshes(child, output)
+
+
+## Samples overlapping authored fine-region weights continuously inside one source triangle.
+## The caller supplies the three source vertex indices and their barycentric weights
+## (for example, from a triangle hit on this exact mesh surface). This deliberately
+## does not collapse overlaps to a single "winning" region.
+func get_authored_triangle_region_weights(
+    mesh_node_path: NodePath,
+    surface_index: int,
+    triangle_vertex_indices: PackedInt32Array,
+    barycentric_weights: PackedFloat32Array,
+    minimum_weight: float = 0.0
+) -> Dictionary:
+    var result: Dictionary = {}
+    if not is_configured() or triangle_vertex_indices.size() != 3:
+        return result
+    if barycentric_weights.size() != 3:
+        return result
+    var barycentric_sum := 0.0
+    for weight in barycentric_weights:
+        if not is_finite(weight) or weight < 0.0 or weight > 1.0:
+            return result
+        barycentric_sum += weight
+    if absf(barycentric_sum - 1.0) > 0.001:
+        return result
+
+    for surface in _surfaces:
+        var mesh_instance: MeshInstance3D = surface["mesh_instance"]
+        if _body_root.get_path_to(mesh_instance) != mesh_node_path:
+            continue
+        if int(surface["surface_index"]) != surface_index:
+            continue
+        var vertices: PackedVector3Array = surface["vertices"]
+        for vertex_index in triangle_vertex_indices:
+            if vertex_index < 0 or vertex_index >= vertices.size():
+                return result
+
+        var fine_weights: Dictionary = surface.get("fine_region_weights", {})
+        var threshold := maxf(0.0, minimum_weight)
+        for region_variant in fine_weights:
+            var region_id := String(region_variant)
+            var values: PackedFloat32Array = fine_weights[region_variant]
+            if values.size() != vertices.size():
+                continue
+            var interpolated := (
+                values[triangle_vertex_indices[0]] * barycentric_weights[0]
+                + values[triangle_vertex_indices[1]] * barycentric_weights[1]
+                + values[triangle_vertex_indices[2]] * barycentric_weights[2]
+            )
+            if interpolated > threshold:
+                result[region_id] = clampf(interpolated, 0.0, 1.0)
+        return result
+    return result
 
 
 func _normalise_bone_name(value: String) -> String:
