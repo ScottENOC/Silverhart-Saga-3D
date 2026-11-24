@@ -4,6 +4,7 @@ extends RefCounted
 ## Quest progress and choices live in CampaignJournal so scene changes do not reset them.
 
 const FACTIONS = preload("res://scripts/simulation/campaign_faction_system.gd")
+const VISION = preload("res://scripts/simulation/vision_rules.gd")
 const QUESTS := {
 	"spy_on_guild": {
 		"title":"Eyes on the Guildhouse",
@@ -188,18 +189,93 @@ static func search_evidence(journal: CampaignJournal, quest_id: String, player_h
 	return {"ok":true,"message":"You recover %s. Return to %s without being caught." % [String(QUESTS[quest_id].evidence_text), String(QUESTS[quest_id].giver)]}
 
 
-static func check_guard_detection(journal: CampaignJournal, quest_id: String, player_hex: Vector2i) -> Dictionary:
-	if journal == null or not QUESTS.has(quest_id):
-		return {"ok":false,"reason":"unknown_quest"}
+static func toggle_stealth(
+	journal: CampaignJournal,
+	quest_id: String,
+	player: CharacterState,
+	map_data: HexMapData,
+	light_level: float = 1.0
+) -> Dictionary:
+	if journal == null or player == null or map_data == null or not QUESTS.has(quest_id):
+		return {"ok":false,"reason":"missing_stealth_context"}
+	if player.is_stealthed:
+		player.is_stealthed = false
+		player.stealth_score = 0
+		return {"ok":true,"stealthed":false,"message":"You stop moving stealthily."}
+	var quest: Dictionary = journal.quest_state(quest_id)
+	if String(quest.get("status", "")) != "active":
+		return {"ok":false,"reason":"quest_not_active"}
+	var guard_hex: Vector2i = QUESTS[quest_id].guard_hex
+	var guard := CharacterState.new(String(QUESTS[quest_id].guard_id), "Guard", guard_hex)
+	guard.side = "enemy"
+	if VISION.can_see(map_data, guard, player, false, light_level < 0.8):
+		return {"ok":false,"reason":"currently_seen","message":"The guard can see you; find cover before attempting to hide."}
+	var score := 50
+	if _skill_rank(player, "stealth_agility") > 0:
+		score += 5
+	if _skill_rank(player, "stealth_rogue") > 0:
+		score += 5
+	score -= roundi(clampf(light_level, 0.0, 1.5) * 40.0)
+	var cell: Dictionary = map_data.cells.get(player.axial, {})
+	score += int(cell.get("stealth_bonus", 0))
+	var terrain_id := map_data.terrain_id_at(player.axial)
+	if terrain_id == "foliage" and (_skill_rank(player, "elf_foliage_expertise") > 0 or _skill_rank(player, "druid_foliage_expertise") > 0):
+		score += 20
+	var armour := String(player.equipment.get("armour", player.equipment.get("armor", "")))
+	if armour == "heavy_armor":
+		score -= 30
+	elif armour == "medium_armor":
+		score -= 15
+	player.is_stealthed = true
+	player.stealth_score = score
+	return {"ok":true,"stealthed":true,"stealth_score":score,"message":"You move carefully, keeping to the shadows."}
+
+
+static func check_guard_detection(
+	journal: CampaignJournal,
+	quest_id: String,
+	player: CharacterState,
+	map_data: HexMapData,
+	light_level: float = 1.0,
+	detection_roll: float = -1.0
+) -> Dictionary:
+	if journal == null or not QUESTS.has(quest_id) or player == null or map_data == null:
+		return {"ok":false,"reason":"missing_detection_context"}
 	var state: Dictionary = journal.quest_state(quest_id)
 	if String(state.get("status", "")) != "active" or bool(state.get("evidence_handed_in", false)):
 		return {"ok":true,"detected":false}
-	var guard_hex: Vector2i = QUESTS[quest_id].guard_hex
-	if HexGrid.distance(player_hex, guard_hex) > 1:
-		return {"ok":true,"detected":false}
+	var guard := CharacterState.new(String(QUESTS[quest_id].guard_id), "Guard", QUESTS[quest_id].guard_hex)
+	guard.side = "enemy"
+	if not VISION.can_see(map_data, guard, player, false, light_level < 0.8):
+		return {"ok":true,"detected":false,"visible":false}
+	var spotted := not player.is_stealthed
+	if player.is_stealthed:
+		var distance := HexGrid.distance(guard.axial, player.axial)
+		var distance_bonus := maxi(0, 15 - distance) * 5
+		var perception_bonus := VISION.stealth_detection_bonus(guard)
+		var spot_chance := maxf(5.0, 100.0 - float(player.stealth_score) + float(distance_bonus + perception_bonus))
+		var light_penalty := (1.0 - clampf(light_level, 0.0, 1.0)) * 50.0
+		spot_chance -= light_penalty
+		var roll := detection_roll
+		if roll < 0.0:
+			var rng := RandomNumberGenerator.new()
+			rng.randomize()
+			roll = rng.randf_range(0.0, 100.0)
+		spotted = roll < spot_chance
+	if not spotted:
+		return {"ok":true,"detected":false,"visible":true,"spot_chance":maxf(0.0, 100.0 - float(player.stealth_score) + float(maxi(0, 15 - HexGrid.distance(guard.axial, player.axial)) * 5))}
+	player.is_stealthed = false
+	player.stealth_score = 0
 	journal.fail_quest(quest_id, "guard_detected")
 	FACTIONS.adjust_reputation(journal, String(QUESTS[quest_id].target_faction), FAILURE_STANDING_HIT, KNOWLEDGE_DELTA, "Caught during Reddale espionage")
-	return {"ok":true,"detected":true,"message":"Caught! %s The mission is blown." % String(QUESTS[quest_id].failure_text)}
+	return {"ok":true,"detected":true,"visible":true,"message":"Caught! %s The mission is blown." % String(QUESTS[quest_id].failure_text)}
+
+
+static func _skill_rank(player: CharacterState, skill_id: String) -> int:
+	var value: Variant = player.skills.get(skill_id, 0)
+	if value is Dictionary:
+		return maxi(0, int(value.get("rank", value.get("value", 0))))
+	return maxi(0, int(value))
 
 
 static func _complete_mission(journal: CampaignJournal, quest_id: String, player: CharacterState) -> Dictionary:
