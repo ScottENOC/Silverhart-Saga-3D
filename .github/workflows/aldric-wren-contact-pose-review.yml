@@ -52,14 +52,14 @@ jobs:
       - name: Install Blender
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender xvfb libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy python3-pil xvfb libgl1-mesa-dri
 
       - name: Bake, render and export the paired pose
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          blender --background --python tools/review/aldric_wren_kiss_contact_blender.py 2>&1 | tee build-pose.log
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python tools/review/aldric_wren_kiss_contact_blender.py 2>&1 | tee build-pose.log
           test -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb
           test -s build/aldric-wren-kiss-contact/pose-preview.png
           test -s build/aldric-wren-kiss-contact/pose-report.json
