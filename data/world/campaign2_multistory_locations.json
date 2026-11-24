@@ -4660,10 +4660,54 @@
                 "q": 4,
                 "r": -454
               }
+            },
+            {
+              "id": "silverhart_ironbond_office_table",
+              "type": "table",
+              "position": {
+                "q": 1,
+                "r": -454
+              }
+            },
+            {
+              "id": "silverhart_ironbond_office_bench",
+              "type": "bench",
+              "position": {
+                "q": 2,
+                "r": -454
+              }
             }
           ],
           "actors": [],
-          "creatures": []
+          "creatures": [],
+          "floor_hexes": [
+            {
+              "q": 4,
+              "r": -457
+            }
+          ],
+          "wall_hexes": [
+            {
+              "q": 5,
+              "r": -458
+            },
+            {
+              "q": 5,
+              "r": -457
+            },
+            {
+              "q": 4,
+              "r": -456
+            },
+            {
+              "q": 3,
+              "r": -457
+            },
+            {
+              "q": 3,
+              "r": -458
+            }
+          ]
         }
       ],
       "transitions": [],
