@@ -51,6 +51,15 @@ func _initialize() -> void:
 		"mira_house": Vector2i(12, 9),
 		"oskar_house": Vector2i(-6, 9)
 	}
+	var hollowmere_doors := {
+		"hollowmere_chapel": "hollowmere_chapel_east_door",
+		"hollowmere_general_store": "hollowmere_general_store_north_door",
+		"hollowmere_house": "hollowmere_house_south_door",
+		"hollowmere_store": "hollowmere_store_west_door",
+		"hollowmere_tavern": "hollowmere_tavern_south_door",
+		"mira_house": "mira_house_west_door",
+		"oskar_house": "oskar_house_east_door"
+	}
 	for location_id in hollowmere_centres:
 		var hollowmere_location: Dictionary = registry.get_definition(location_id)
 		var hollowmere_anchor: Dictionary = hollowmere_location.get("anchor", {})
@@ -58,7 +67,7 @@ func _initialize() -> void:
 		_check(int(hollowmere_anchor.get("q", 0)) == expected_centre.x and int(hollowmere_anchor.get("r", 0)) == expected_centre.y, "Hollowmere building anchor must match setupVillageScene: " + location_id)
 		var hollowmere_floor := registry.get_floor_definition(location_id, 0)
 		_check(hollowmere_floor.get("rooms", []).size() == 1, "Hollowmere building must retain one source room: " + location_id)
-		_check(_has_record(hollowmere_floor.get("tile_objects", []), location_id + ("_south_door" if location_id in ["hollowmere_house", "hollowmere_tavern"] else "_north_door" if location_id == "hollowmere_general_store" else "_east_door" if location_id == "hollowmere_chapel" else "_west_door" if location_id in ["hollowmere_store", "mira_house"] else "_east_door")), "Hollowmere building must retain its source entrance: " + location_id)
+		_check(_has_record(hollowmere_floor.get("tile_objects", []), hollowmere_doors[location_id]), "Hollowmere building must retain its source entrance: " + location_id)
 	var tavern_floor := registry.get_floor_definition("hollowmere_tavern", 0)
 	_check(int(tavern_floor.get("rooms", [])[0].get("half_width", 0)) == 6 and int(tavern_floor.get("rooms", [])[0].get("half_height", 0)) == 4, "Tavern floor dimensions must match its source q/r loops")
 	_check(bool(_find_record(tavern_floor.get("tile_objects", []), "hollowmere_tavern_south_door").get("locked", false)), "Tavern entrance must preserve its initially locked state")
