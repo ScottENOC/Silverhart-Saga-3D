@@ -68,6 +68,7 @@ def add_arm_ik(actor, side, target, pole_point, report):
     con.target=target
     con.chain_count=3
     con.use_stretch=False
+    con.use_rotation=False
     pole=add_target("Wren_"+side+"_elbow_pole",pole_point)
     con.pole_target=pole
     con.pole_angle=math.radians(-90)
@@ -129,65 +130,6 @@ def palm_anchor(actor, side):
         return evaluated.matrix_world @ ((pb.head+pb.tail)*0.5),[hand_name]
     return sum(points,Vector())/len(points),used
 
-def optimise_contact_pose(actor, side, target, report):
-    # The IK endpoint alone is not a contact metric. Search wrist orientation and
-    # elbow pole angle, then score the actual palm/finger-base anchor against target.
-    con_name="Wren_"+side+"_contact_IK"
-    hand=actor["arm"].pose.bones[bone_name(actor,["LeftHand","Hand_L"] if side=="left" else ["RightHand","Hand_R"])]
-    con=hand.constraints.get(con_name)
-    if con is None:
-        report[side+"_pose_search"]={"performed":False,"reason":"IK constraint missing"}
-        return
-    pole_name="Wren_"+side+"_elbow_pole"
-    pole=bpy.data.objects.get(pole_name)
-    con.use_rotation=True
-    original_rotation=target.rotation_euler.copy()
-    contact_point=target.location.copy()
-    original_pole_angle=con.pole_angle
-    best=None
-    # Vary IK endpoint (shoulder/elbow configuration), elbow bend plane, and
-    # wrist orientation. Score the palm anchor against the fixed body contact point.
-    target_offsets=[Vector((0,0,0)),Vector((0.015,0,0)),Vector((-0.015,0,0)),
-        Vector((0,0.015,0)),Vector((0,-0.015,0)),Vector((0,0,0.015)),Vector((0,0,-0.015))]
-    for offset in target_offsets:
-        target.location=contact_point+offset
-        for pole_delta_deg in (-60,-30,0,30,60):
-            con.pole_angle=original_pole_angle+math.radians(pole_delta_deg)
-            for rx in (-30,0,30):
-                for ry in (-30,0,30):
-                    for rz in (-30,0,30):
-                        target.rotation_euler=(original_rotation.x+math.radians(rx),
-                            original_rotation.y+math.radians(ry),
-                            original_rotation.z+math.radians(rz))
-                        bpy.context.view_layer.update()
-                        bpy.context.evaluated_depsgraph_get().update()
-                        anchor,bones=palm_anchor(actor,side)
-                        if anchor is None:continue
-                        distance=(anchor-contact_point).length
-                        score=distance+0.00002*(abs(rx)+abs(ry)+abs(rz))+offset.length*0.05
-                        if best is None or score<best["score"]:
-                            best={"score":score,"distance_m":distance,
-                                "wrist_offset_deg":[rx,ry,rz],
-                                "ik_target_offset_m":[round(v,4) for v in offset],
-                                "pole_angle_deg":math.degrees(con.pole_angle),
-                                "palm_anchor_world":[round(v,5) for v in anchor],
-                                "finger_base_bones":bones}
-    if best is not None:
-        offset=Vector(best["ik_target_offset_m"])
-        target.location=contact_point+offset
-        target.rotation_euler=(original_rotation.x+math.radians(best["wrist_offset_deg"][0]),
-            original_rotation.y+math.radians(best["wrist_offset_deg"][1]),
-            original_rotation.z+math.radians(best["wrist_offset_deg"][2]))
-        con.pole_angle=math.radians(best["pole_angle_deg"])
-        bpy.context.view_layer.update()
-        report[side+"_pose_search"]={"performed":True,"candidates_tested":945,
-            "best_palm_target_distance_m":round(best["distance_m"],5),
-            "ik_target_offset_m":best["ik_target_offset_m"],
-            "wrist_offset_deg":best["wrist_offset_deg"],
-            "elbow_pole_angle_deg":round(best["pole_angle_deg"],2),
-            "palm_anchor_world":best["palm_anchor_world"],
-            "finger_base_bones":best["finger_base_bones"],
-            "metric":"distance from average proximal finger-bone heads to fixed body contact point"}
 
 def finger_inventory(actor):
     arm=actor["arm"]
@@ -362,9 +304,13 @@ def main():
 
     bpy.context.view_layer.update()
     for _ in range(5): bpy.context.view_layer.update()
-    report["pose_search"]={}
-    optimise_contact_pose(actor,"left",left_target,report["pose_search"])
-    optimise_contact_pose(actor,"right",right_target,report["pose_search"])
+    # Contact targets are anchored to the actual evaluated body surface.
+    # Do not move IK targets during pose fitting or rotate the wrist to fake contact.
+    for side,target,surface in (("left",left_target,left_breast_surface),
+                                ("right",right_target,right_hip_surface)):
+        point=Vector(surface["surface_point_world"])
+        normal=Vector(surface["surface_normal_world"]).normalized()
+        target.location=point+normal*0.035
     bpy.context.view_layer.update()
     authored_shapes = author_pressure_shapes(actor, surface_centres, report)
     report["bones"]={
@@ -379,6 +325,11 @@ def main():
     report["hand_surface_gaps"]={
         "left_breast":nearest_surface(actor,left_breast),
         "right_hip":nearest_surface(actor,right_hip)}
+    report["contact_target_surface_anchors"]={
+        "left_breast":left_breast_surface,
+        "right_hip":right_hip_surface,
+        "target_clearance_m":0.035,
+        "note":"IK targets are fixed 35 mm along the measured outward surface normal; no target-offset or wrist-rotation search is used."}
     report["hand_target_errors"]={}
     report["palm_target_errors"]={}
     for side,target in (("left",left_target),("right",right_target)):
