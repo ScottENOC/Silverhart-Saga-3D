@@ -1606,7 +1606,7 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
 		var state := value as CharacterState
 		if state != null and state.alive:
 			var previous_tp := state.time_points
-			state.regenerate_time_points()
+			state.regenerate_time_points(camp_simulation.time_point_regeneration_multiplier(state.id))
 			var gained_tp := maxf(0.0, state.time_points - previous_tp)
 			# The source engine advances poison and withering only while the
 			# entity is below the 150 TP cap, using gained TP as the duration.
