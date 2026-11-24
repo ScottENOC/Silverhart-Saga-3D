@@ -598,6 +598,55 @@ func active_chapter_for_actor(actor_id: String, journal: CampaignJournal) -> Dic
 	return {}
 
 
+func next_prerequisite_for_companion(companion_id: String, journal: CampaignJournal, party_ids: Array[String]) -> Dictionary:
+	if journal == null or not _party_contains_companion(party_ids, companion_id):
+		return {}
+	for quest_value in prerequisite_quests.values():
+		var definition: Dictionary = quest_value
+		if String(definition.get("companion_id", "")) != companion_id:
+			continue
+		var quest_id := String(definition.get("id", ""))
+		var quest_state := journal.quest_state(quest_id)
+		if String(quest_state.get("status", "")) == "active":
+			return {"quest":definition.duplicate(true),"quest_state":quest_state.duplicate(true)}
+		if not quest_state.is_empty():
+			continue
+		var previous_id := String(definition.get("previous", ""))
+		if not previous_id.is_empty() and String(journal.quest_state(previous_id).get("status", "")) != "completed":
+			continue
+		return {"quest":definition.duplicate(true),"quest_state":{}}
+	return {}
+
+
+func active_prerequisite_for_actor(actor_id: String, journal: CampaignJournal) -> Dictionary:
+	if actor_id.strip_edges().is_empty() or journal == null:
+		return {}
+	for quest_value in prerequisite_quests.values():
+		var definition: Dictionary = quest_value
+		var quest_id := String(definition.get("id", ""))
+		var quest_state := journal.quest_state(quest_id)
+		if String(quest_state.get("status", "")) != "active":
+			continue
+		var found_clues: Array[Dictionary] = []
+		var known_clues: Dictionary = quest_state.get("clues", {})
+		var clue_definitions: Dictionary = definition.get("clues", {})
+		for clue_id_value in clue_definitions.keys():
+			var clue_id := String(clue_id_value)
+			var clue: Dictionary = clue_definitions[clue_id]
+			if String(clue.get("actor_id", "")) != actor_id or known_clues.has(clue_id):
+				continue
+			found_clues.append({"id":clue_id,"definition":clue.duplicate(true)})
+		if not found_clues.is_empty():
+			return {
+				"quest_id":quest_id,
+				"title":String(definition.get("title", quest_id)),
+				"companion_id":String(definition.get("companion_id", "")),
+				"quest_state":quest_state.duplicate(true),
+				"clues":found_clues
+			}
+	return {}
+
+
 func resolution_options(chapter_id: String) -> Array[Dictionary]:
 	var chapter: Dictionary = chapters.get(chapter_id, {})
 	var resolutions: Dictionary = chapter.get("resolutions", {})
