@@ -135,10 +135,6 @@ static func inspection_for_site(
 					var requirement: Dictionary = requirement_value
 					if not bool(requirement.get("met", false)):
 						lines.append("  • %s (%s)" % [payment_label, _requirement_text(requirement)])
-			if payment_methods.size() == 1 and not bool(status.get("ok", false)):
-				# The action is not currently available; the unmet requirements
-				# above explain exactly what must change before it can be taken.
-				pass
 		if action_available:
 			lines.append("  Ready to proceed.")
 	if choices.is_empty():
@@ -175,7 +171,10 @@ static func _requirement_text(requirement: Dictionary) -> String:
 		"prerequisite_dwelling_not_owned":
 			return "first own %s" % String(requirement.get("required_dwelling", "")).replace("_", " ")
 		"required_quest_incomplete":
-			return "complete the abandoned-house clearing encounter (status: %s)" % String(requirement.get("current", "not started"))
+			var quest_status := String(requirement.get("current", ""))
+			if quest_status.is_empty():
+				quest_status = "not started"
+			return "complete the abandoned-house clearing encounter (status: %s)" % quest_status
 		"insufficient_reputation":
 			return "Silverhart Kingdom reputation %d / %d" % [roundi(float(requirement.get("current", 0.0))), roundi(float(requirement.get("required", 0.0)))]
 		"insufficient_materials":
