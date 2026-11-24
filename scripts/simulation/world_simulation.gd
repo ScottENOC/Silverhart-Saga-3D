@@ -2,7 +2,6 @@ class_name WorldSimulation
 extends Node
 
 var _spell_effect_rules = load("res://scripts/simulation/spell_effect_rules.gd").new()
-const CAMPAIGN_FACTION_SYSTEM = preload("res://scripts/simulation/campaign_faction_system.gd")
 
 signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i)
 signal world_tick(tick_index: int, world_seconds: float)
@@ -1600,7 +1599,6 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
                 state.health_regen_remainder = 0.0
 
     wilderness_resources.advance_time(world_seconds)
-    CAMPAIGN_FACTION_SYSTEM.advance_to_time(campaign_journal, world_seconds)
     world_tick.emit(tick_index, world_seconds)
 
 ## Debug/prototype movement remains free so the M1 movement harness is usable.
