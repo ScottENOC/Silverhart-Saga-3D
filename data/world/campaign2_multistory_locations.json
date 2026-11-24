@@ -4460,7 +4460,7 @@
       ]
     },
     {
-      "id": "silverhart_palace_bedroom",
+      "id": "silverhart_queens_bedroom",
       "name": "Silverhart Palace — Queen's Private Chambers",
       "anchor": {
         "q": 8,
@@ -4474,7 +4474,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_palace_bedroom_room",
+              "id": "silverhart_queens_bedroom_room",
               "center": {
                 "q": 8,
                 "r": -505
@@ -4486,7 +4486,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_palace_bedroom_bed_1",
+              "id": "silverhart_queens_bedroom_bed_1",
               "type": "bed",
               "position": {
                 "q": 8,
@@ -4494,7 +4494,7 @@
               }
             },
             {
-              "id": "silverhart_palace_bedroom_table_2",
+              "id": "silverhart_queens_bedroom_table_2",
               "type": "table",
               "position": {
                 "q": 9,
@@ -4502,7 +4502,7 @@
               }
             },
             {
-              "id": "silverhart_palace_bedroom_fireplace_3",
+              "id": "silverhart_queens_bedroom_fireplace_3",
               "type": "fireplace",
               "position": {
                 "q": 8,
@@ -4572,7 +4572,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_noble_cottage_north_1",
+      "id": "silverhart_north_cottage_1",
       "name": "Silverhart — North Noble Cottage 1",
       "anchor": {
         "q": 35,
@@ -4586,7 +4586,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_noble_cottage_north_1_room",
+              "id": "silverhart_north_cottage_1_room",
               "center": {
                 "q": 35,
                 "r": -507
@@ -4598,7 +4598,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_noble_cottage_north_1_east_door",
+              "id": "silverhart_north_cottage_1_east_door",
               "type": "door_open",
               "position": {
                 "q": 37,
@@ -4607,7 +4607,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_noble_cottage_north_1_table_1",
+              "id": "silverhart_north_cottage_1_table_1",
               "type": "table",
               "position": {
                 "q": 35,
@@ -4624,7 +4624,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_noble_cottage_north_2",
+      "id": "silverhart_north_cottage_2",
       "name": "Silverhart — North Noble Cottage 2",
       "anchor": {
         "q": 35,
@@ -4638,7 +4638,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_noble_cottage_north_2_room",
+              "id": "silverhart_north_cottage_2_room",
               "center": {
                 "q": 35,
                 "r": -513
@@ -4650,7 +4650,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_noble_cottage_north_2_east_door",
+              "id": "silverhart_north_cottage_2_east_door",
               "type": "door_open",
               "position": {
                 "q": 37,
@@ -4659,7 +4659,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_noble_cottage_north_2_table_1",
+              "id": "silverhart_north_cottage_2_table_1",
               "type": "table",
               "position": {
                 "q": 35,
@@ -4676,7 +4676,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_noble_cottage_north_3",
+      "id": "silverhart_north_cottage_3",
       "name": "Silverhart — North Noble Cottage 3",
       "anchor": {
         "q": 35,
@@ -4690,7 +4690,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_noble_cottage_north_3_room",
+              "id": "silverhart_north_cottage_3_room",
               "center": {
                 "q": 35,
                 "r": -519
@@ -4702,7 +4702,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_noble_cottage_north_3_east_door",
+              "id": "silverhart_north_cottage_3_east_door",
               "type": "door_open",
               "position": {
                 "q": 37,
@@ -4711,7 +4711,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_noble_cottage_north_3_table_1",
+              "id": "silverhart_north_cottage_3_table_1",
               "type": "table",
               "position": {
                 "q": 35,
@@ -4728,7 +4728,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_east_quarter_house_1",
+      "id": "silverhart_east_house_1",
       "name": "Silverhart — East Quarter House 1",
       "anchor": {
         "q": 26,
@@ -4742,7 +4742,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_east_quarter_house_1_room",
+              "id": "silverhart_east_house_1_room",
               "center": {
                 "q": 26,
                 "r": -479
@@ -4754,7 +4754,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_east_quarter_house_1_east_door",
+              "id": "silverhart_east_house_1_east_door",
               "type": "door_open",
               "position": {
                 "q": 28,
@@ -4763,7 +4763,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_east_quarter_house_1_fireplace_1",
+              "id": "silverhart_east_house_1_fireplace_1",
               "type": "fireplace",
               "position": {
                 "q": 26,
@@ -4781,7 +4781,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_east_quarter_house_2",
+      "id": "silverhart_east_house_2",
       "name": "Silverhart — East Quarter House 2",
       "anchor": {
         "q": 32,
@@ -4795,7 +4795,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_east_quarter_house_2_room",
+              "id": "silverhart_east_house_2_room",
               "center": {
                 "q": 32,
                 "r": -480
@@ -4807,7 +4807,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_east_quarter_house_2_east_door",
+              "id": "silverhart_east_house_2_east_door",
               "type": "door_open",
               "position": {
                 "q": 34,
@@ -4816,7 +4816,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_east_quarter_house_2_fireplace_1",
+              "id": "silverhart_east_house_2_fireplace_1",
               "type": "fireplace",
               "position": {
                 "q": 32,
@@ -4834,7 +4834,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_east_quarter_house_3",
+      "id": "silverhart_east_house_3",
       "name": "Silverhart — East Quarter House 3",
       "anchor": {
         "q": 23,
@@ -4848,7 +4848,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_east_quarter_house_3_room",
+              "id": "silverhart_east_house_3_room",
               "center": {
                 "q": 23,
                 "r": -470
@@ -4860,7 +4860,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_east_quarter_house_3_east_door",
+              "id": "silverhart_east_house_3_east_door",
               "type": "door_open",
               "position": {
                 "q": 24,
@@ -4869,7 +4869,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_east_quarter_house_3_fireplace_1",
+              "id": "silverhart_east_house_3_fireplace_1",
               "type": "fireplace",
               "position": {
                 "q": 23,
@@ -4887,7 +4887,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_east_quarter_house_4",
+      "id": "silverhart_east_house_4",
       "name": "Silverhart — East Quarter House 4",
       "anchor": {
         "q": 26,
@@ -4901,7 +4901,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_east_quarter_house_4_room",
+              "id": "silverhart_east_house_4_room",
               "center": {
                 "q": 26,
                 "r": -471
@@ -4913,7 +4913,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_east_quarter_house_4_east_door",
+              "id": "silverhart_east_house_4_east_door",
               "type": "door_open",
               "position": {
                 "q": 27,
@@ -4922,7 +4922,7 @@
               "light_radius": 0
             },
             {
-              "id": "silverhart_east_quarter_house_4_fireplace_1",
+              "id": "silverhart_east_house_4_fireplace_1",
               "type": "fireplace",
               "position": {
                 "q": 26,
@@ -4940,7 +4940,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_outlying_house_northeast_1",
+      "id": "silverhart_outlying_house_1",
       "name": "Silverhart — Northeast Outlying House 1",
       "anchor": {
         "q": 23,
@@ -4954,7 +4954,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_outlying_house_northeast_1_room",
+              "id": "silverhart_outlying_house_1_room",
               "center": {
                 "q": 23,
                 "r": -546
@@ -4966,7 +4966,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_outlying_house_northeast_1_south_door",
+              "id": "silverhart_outlying_house_1_south_door",
               "type": "door_open",
               "position": {
                 "q": 23,
@@ -4984,7 +4984,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_outlying_house_northeast_2",
+      "id": "silverhart_outlying_house_2",
       "name": "Silverhart — Northeast Outlying House 2",
       "anchor": {
         "q": 48,
@@ -4998,7 +4998,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_outlying_house_northeast_2_room",
+              "id": "silverhart_outlying_house_2_room",
               "center": {
                 "q": 48,
                 "r": -546
@@ -5010,7 +5010,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_outlying_house_northeast_2_south_door",
+              "id": "silverhart_outlying_house_2_south_door",
               "type": "door_open",
               "position": {
                 "q": 48,
@@ -5028,7 +5028,7 @@
       "source_notes": []
     },
     {
-      "id": "silverhart_outlying_house_west",
+      "id": "silverhart_outlying_house_3",
       "name": "Silverhart — West Outlying House",
       "anchor": {
         "q": -32,
@@ -5042,7 +5042,7 @@
           "terrain": "wood_floor",
           "rooms": [
             {
-              "id": "silverhart_outlying_house_west_room",
+              "id": "silverhart_outlying_house_3_room",
               "center": {
                 "q": -32,
                 "r": -476
@@ -5054,7 +5054,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "silverhart_outlying_house_west_east_door",
+              "id": "silverhart_outlying_house_3_east_door",
               "type": "door_open",
               "position": {
                 "q": -30,
