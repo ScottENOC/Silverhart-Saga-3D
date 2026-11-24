@@ -11,7 +11,7 @@ func configure(world_position_for_hex: Callable) -> void:
 	_world_position_for_hex = world_position_for_hex
 
 
-func present_camp(site: Dictionary, sleeping_arrangements: Array[Dictionary]) -> void:
+func present_camp(site: Dictionary, sleeping_arrangements: Array[Dictionary], environment: Dictionary = {}) -> void:
 	clear_camp()
 	var position := Vector3.ZERO
 	var position_value: Variant = site.get("position", Vector3.ZERO)
@@ -25,7 +25,7 @@ func present_camp(site: Dictionary, sleeping_arrangements: Array[Dictionary]) ->
 	_camp_root.name = "InWorldCampsite"
 	_camp_root.position = position
 	add_child(_camp_root)
-	_create_campfire()
+	_create_campfire(bool(environment.get("fire_lit", false)))
 	_create_tents(sleeping_arrangements)
 	_create_bedrolls(sleeping_arrangements)
 	_create_nameplate()
@@ -77,7 +77,7 @@ func _mesh_cylinder(parent: Node3D, node_name: String, position: Vector3, radius
 	return instance
 
 
-func _create_campfire() -> void:
+func _create_campfire(is_lit: bool) -> void:
 	var stone := _material(Color("#68645b"))
 	var wood := _material(Color("#49301d"))
 	var flame := _material(Color("#ff8a32"), 0.35, Color("#ff5b19"))
@@ -94,22 +94,23 @@ func _create_campfire() -> void:
 		_camp_root.add_child(rock)
 	_mesh_cylinder(_camp_root, "Firewood_A", Vector3(0.0, 0.13, 0.0), 0.095, 1.0, wood, Vector3(0.0, 0.0, deg_to_rad(90.0)))
 	_mesh_cylinder(_camp_root, "Firewood_B", Vector3(0.0, 0.19, 0.0), 0.095, 0.9, wood, Vector3(0.0, deg_to_rad(90.0), deg_to_rad(90.0)))
-	var flame_mesh := SphereMesh.new()
-	flame_mesh.radius = 0.30
-	flame_mesh.height = 0.75
-	var fire := MeshInstance3D.new()
-	fire.name = "CampfireFlame"
-	fire.mesh = flame_mesh
-	fire.position = Vector3(0.0, 0.48, 0.0)
-	fire.material_override = flame
-	_camp_root.add_child(fire)
-	var light := OmniLight3D.new()
-	light.name = "CampfireLight"
-	light.position = Vector3(0.0, 1.1, 0.0)
-	light.light_color = Color("#ff9b50")
-	light.light_energy = 1.1
-	light.omni_range = 9.0
-	_camp_root.add_child(light)
+	if is_lit:
+		var flame_mesh := SphereMesh.new()
+		flame_mesh.radius = 0.30
+		flame_mesh.height = 0.75
+		var fire := MeshInstance3D.new()
+		fire.name = "CampfireFlame"
+		fire.mesh = flame_mesh
+		fire.position = Vector3(0.0, 0.48, 0.0)
+		fire.material_override = flame
+		_camp_root.add_child(fire)
+		var light := OmniLight3D.new()
+		light.name = "CampfireLight"
+		light.position = Vector3(0.0, 1.1, 0.0)
+		light.light_color = Color("#ff9b50")
+		light.light_energy = 1.1
+		light.omni_range = 9.0
+		_camp_root.add_child(light)
 
 
 func _create_tents(arrangements: Array[Dictionary]) -> void:
@@ -134,7 +135,7 @@ func _create_bedrolls(arrangements: Array[Dictionary]) -> void:
 	var bedroll_material := _material(Color("#697b83"))
 	var index := 0
 	for arrangement in arrangements:
-		for _character_id in arrangement.get("character_ids", []):
+		for _character_id in arrangement.get("sleeping_bag_character_ids", []):
 			var angle := TAU * float(index) / 6.0
 			var offset := Vector3(cos(angle) * 2.0, 0.09, sin(angle) * 2.0)
 			var roll := _mesh_box(_camp_root, "Bedroll_%02d" % index, offset, Vector3(0.72, 0.14, 1.35), bedroll_material)
