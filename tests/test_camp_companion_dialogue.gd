@@ -46,6 +46,18 @@ func _initialize() -> void:
 	_check(String(lines[0].get("text", "")).length() > 20)
 	_check(String(lines[1].get("text", "")).length() > 20)
 
+	var cottage_exchange := SERVICE.build_exchange(
+		"companion_ser_aldric_thorne", "companion_nix_sharpear", 2, bonds,
+		"Ser Aldric Thorne", "Nix Sharpear", {"layout_id": "cottage_one_room"}
+	)
+	_check(String(cottage_exchange.lines[0].text).contains("modest hearth"), "Home conversations should acknowledge the one-room cottage layout.")
+	_check(String(cottage_exchange.get("dwelling_layout_id", "")) == "cottage_one_room")
+	var manor_exchange := SERVICE.build_exchange(
+		"companion_ser_aldric_thorne", "companion_nix_sharpear", 2, bonds,
+		"Ser Aldric Thorne", "Nix Sharpear", {"layout_id": "silverhart_manor_livable"}
+	)
+	_check(String(manor_exchange.lines[0].text).contains("people who pass through"), "Home conversations should distinguish a fortified manor from a cottage.")
+
 	var recorded := SERVICE.record_exchange(bonds, camp, exchange, "test:camp:exchange:1")
 	_check(bool(recorded.get("ok", false)) and bool(recorded.get("changed", false)))
 	_check(float(bonds.snapshot("companion_ser_aldric_thorne", "companion_nix_sharpear").familiarity) == 1.0)
