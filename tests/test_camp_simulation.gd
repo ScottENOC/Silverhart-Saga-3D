@@ -27,6 +27,7 @@ func _initialize() -> void:
 	_test_companions_walk_to_camp_stations()
 	_test_dwelling_layout_station_selection()
 	_test_evening_routine_progression()
+	_test_livable_dwelling_avoids_unneeded_tent_setup()
 	_test_ara_camp_animation_mapping()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
@@ -277,3 +278,16 @@ func _test_evening_routine_progression() -> void:
 	_check(restored.routine_stage == 2, "A loaded camp should resume at its saved evening stage.")
 	_check(restored.companion_profiles == camp.companion_profiles, "Companion routine preferences should persist.")
 	_check(initial_assignments.size() == camp.party_ids.size(), "Every companion should receive an initial setup assignment.")
+
+
+
+func _test_livable_dwelling_avoids_unneeded_tent_setup() -> void:
+	var camp := CampSimulation.new()
+	camp.begin_camp(
+		{"walkable": true, "dwelling_profile": {"dwelling_id": "silverhart_manor", "layout_id": "silverhart_manor_livable", "sleeping_capacity": 6}},
+		["player", "wren", "aldric"],
+		{"night_temperature_c": 5.0},
+		{"wood": 2, "rations": 3, "water": 3, "tents": 2}
+	)
+	_check(not camp._has_activity("set_up_tents"), "A livable dwelling with enough indoor beds should not send companions to pitch redundant tents.")
+	_check(camp.plan_sleeping_arrangements(2).size() == 3, "The party should be allocated indoor beds before outdoor tents.")
