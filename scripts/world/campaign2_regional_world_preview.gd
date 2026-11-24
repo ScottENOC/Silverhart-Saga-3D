@@ -674,6 +674,13 @@ func _update_camera() -> void:
 	camera.look_at(target, Vector3.UP)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if dialogue_open:
+		if event is InputEventKey:
+			var dialogue_key := event as InputEventKey
+			if dialogue_key.pressed and not dialogue_key.echo and dialogue_key.keycode in [KEY_ESCAPE, KEY_F]:
+				_close_regional_dialogue()
+				get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey:
 		var key := event as InputEventKey
 		if key.pressed and not key.echo:
