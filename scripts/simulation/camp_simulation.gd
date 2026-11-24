@@ -129,6 +129,31 @@ func condition_for(character_id: String) -> Dictionary:
 	return (conditions.get(character_id, {}) as Dictionary).duplicate(true)
 
 
+func time_point_regeneration_multiplier(character_id: String) -> float:
+	var condition := condition_for(character_id)
+	if condition.is_empty():
+		return 1.0
+	var multiplier := 1.0
+	var fatigue := float(condition.get("fatigue", 0.0))
+	var hunger := float(condition.get("hunger", 0.0))
+	var thirst := float(condition.get("thirst", 0.0))
+	if fatigue >= 75.0:
+		multiplier *= 0.85
+	elif fatigue >= 50.0:
+		multiplier *= 0.95
+	elif fatigue <= 15.0:
+		multiplier *= 1.05
+	if hunger >= 80.0:
+		multiplier *= 0.85
+	elif hunger >= 50.0:
+		multiplier *= 0.95
+	if thirst >= 75.0:
+		multiplier *= 0.80
+	elif thirst >= 45.0:
+		multiplier *= 0.95
+	return clampf(multiplier, 0.55, 1.10)
+
+
 func next_day_effects(character_id: String) -> Dictionary:
 	var condition := condition_for(character_id)
 	if condition.is_empty():
