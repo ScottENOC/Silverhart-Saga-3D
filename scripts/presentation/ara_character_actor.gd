@@ -79,7 +79,8 @@ func apply_body_surface_contact(
     contact_stiffness_n_per_m: float = 1800.0,
     contact_damping_ns_per_m: float = 35.0,
     max_force_n: float = 120.0,
-    minimum_region_weight: float = 0.01
+    minimum_region_weight: float = 0.01,
+    garment_damping_ns_per_m: float = 0.0
 ) -> Dictionary:
     var regions := get_surface_regions()
     if regions == null:
@@ -96,7 +97,39 @@ func apply_body_surface_contact(
         contact_stiffness_n_per_m,
         contact_damping_ns_per_m,
         max_force_n,
-        minimum_region_weight
+        minimum_region_weight,
+        garment_damping_ns_per_m
+    )
+
+
+## Submit a garment's contact with this actor's skinned body. The collision
+## producer supplies the exact body triangle and barycentric hit; garment
+## material/fit determines damping, while compression stiffness remains separate.
+func apply_garment_surface_contact(
+    mesh_node_path: NodePath,
+    surface_index: int,
+    triangle_vertex_indices: PackedInt32Array,
+    barycentric_weights: PackedFloat32Array,
+    penetration_m: float,
+    closing_speed_m_per_s: float,
+    garment_damping_ns_per_m: float,
+    contact_stiffness_n_per_m: float = 1800.0,
+    contact_damping_ns_per_m: float = 35.0,
+    max_force_n: float = 120.0,
+    minimum_region_weight: float = 0.01
+) -> Dictionary:
+    return apply_body_surface_contact(
+        mesh_node_path,
+        surface_index,
+        triangle_vertex_indices,
+        barycentric_weights,
+        penetration_m,
+        closing_speed_m_per_s,
+        contact_stiffness_n_per_m,
+        contact_damping_ns_per_m,
+        max_force_n,
+        minimum_region_weight,
+        garment_damping_ns_per_m
     )
 
 
