@@ -244,6 +244,8 @@ func _configure_location_simulation() -> void:
 		push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
 		return
 	simulation.clock.ticked.connect(_on_world_clock_ticked)
+	if not simulation.weather_changed.is_connected(_on_world_weather_changed):
+		simulation.weather_changed.connect(_on_world_weather_changed)
 	simulation.action_committed.connect(_on_simulation_action_committed)
 	# Materialise the opening area through the same world provider used by the
 	# regional preview. Hollowmere is no longer a bypassed special-case radius.
@@ -262,6 +264,22 @@ func _configure_location_simulation() -> void:
 	simulation.reaction_resolved.connect(_on_reaction_resolved)
 	simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
 	simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
+
+
+func _camp_weather_summary(conditions: Dictionary) -> String:
+	return "%s · %.1f°C · wind %.0f km/h" % [
+		String(conditions.get("weather_label", "Clear")),
+		float(conditions.get("temperature_c", 0.0)),
+		float(conditions.get("wind_speed", 0.0))
+	]
+
+
+func _on_world_weather_changed(conditions: Dictionary) -> void:
+	if simulation == null or camp_status_label == null:
+		return
+	if simulation.camp_simulation.phase != "evening":
+		return
+	camp_status_label.text = "Camp · %s. Companion routines have adjusted to the changing weather." % _camp_weather_summary(conditions)
 
 
 func _on_campaign_world_time_advanced(world_seconds: float) -> void:
@@ -719,7 +737,6 @@ func _select_camp_site(hex: Vector2i) -> void:
 	var environment := {
 		"trees_nearby": nearby_trees,
 		"water_nearby": water_nearby,
-		"night_temperature_c": 8.0,
 		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
 	}
 	var result := simulation.begin_camp(site, environment, {})
@@ -728,7 +745,8 @@ func _select_camp_site(hex: Vector2i) -> void:
 		return
 	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 	camp_activity_director.begin_camp(simulation.camp_simulation.site)
-	camp_status_label.text = "Camp established. The party can continue exploring and working while evening activities unfold."
+	var weather_summary := _camp_weather_summary(simulation.camp_simulation.environment)
+	camp_status_label.text = "Camp established · %s. The party's evening routines will adapt to the conditions." % weather_summary
 	if camp_sleep_button != null:
 		camp_sleep_button.visible = true
 		camp_sleep_button.text = "Sleep until morning"
