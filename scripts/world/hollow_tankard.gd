@@ -1116,7 +1116,10 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			var chain_xp := _award_companion_quest_experience(chain_resolution)
 			if chain_xp > 0:
 				chain_line += "\n\n+%d XP" % chain_xp
-			_show_dialogue(String(choice.get("companion_id", "Companion")), chain_line, [{"id":"continue","label":"Continue","text":""}])
+			var chain_companion_id := String(choice.get("companion_id", ""))
+			var chain_companion := simulation.get_character(chain_companion_id)
+			var chain_speaker := chain_companion.display_name if chain_companion != null else "Companion"
+			_show_dialogue(chain_speaker, chain_line, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(chain_resolution.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
 		return
@@ -1176,7 +1179,10 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			var prerequisite_xp := _award_companion_quest_experience(resolution_result)
 			if prerequisite_xp > 0:
 				outcome_line += "\n\n+%d XP" % prerequisite_xp
-			_show_dialogue(String(choice.get("companion_id", "Companion")), outcome_line, [{"id":"continue","label":"Continue","text":""}])
+			var resolved_companion_id := String(choice.get("companion_id", ""))
+			var resolved_companion := simulation.get_character(resolved_companion_id)
+			var resolved_speaker := resolved_companion.display_name if resolved_companion != null else "Companion"
+			_show_dialogue(resolved_speaker, outcome_line, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
 		return
