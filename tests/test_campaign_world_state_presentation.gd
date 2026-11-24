@@ -90,3 +90,5 @@ func _test_actor_presentation_and_interaction_context() -> void:
 	var settlement_context := WORLD_STATE_SERVICE.settlement_context(journal, "reddale")
 	_check(is_equal_approx(float(settlement_context.get("values", {}).get("public_order", 0.0)), 10.0), "Settlement queries should expose durable public order changes")
 	_check(bool(settlement_context.get("flags", {}).get("reeve_backed_resistance", false)), "Settlement queries should expose decision flags")
+	var ironbond_context := WORLD_STATE_SERVICE.npc_context(journal, "petra_voss", "reddale", "ironbond_company")
+	_check(String(ironbond_context.get("public_status", "")) == "Ironbond influence weakened", "Ironbond NPCs should visibly reflect reduced local faction presence")
