@@ -283,6 +283,21 @@ func _initialize() -> void:
 	_check(old_seam.get("creatures", []).size() == 2, "Old Seam must preserve both source spider placements as campaign-owned spawn data")
 	_check(emberlode_mine.get("transitions", []).size() == 4, "Emberlode Mine must retain reciprocal transitions between all three levels")
 
+	_check(int(thieves_cove.get("anchor", {}).get("q", 0)) == -274 and int(thieves_cove.get("anchor", {}).get("r", 0)) == 40, "Thieves' Cove must retain the source west-road offset")
+	var cove_den := registry.get_floor_definition("thieves_cove", -1)
+	var cove_ledger := _find_record(cove_den.get("tile_objects", []), "sunken_cave_ledger")
+	_check(String(cove_ledger.get("type", "")) == "journal", "Smugglers' Den must retain the source ledger marker type")
+	_check(_position_matches(cove_ledger.get("position", {}), Vector2i(-274, 39)), "Smugglers' Den ledger must retain source position (-274, 39)")
+	var cove_vault := registry.get_floor_definition("thieves_cove", -2)
+	var cache_evidence := _find_record(cove_vault.get("tile_objects", []), "guild_cache_evidence")
+	_check(String(cache_evidence.get("type", "")) == "evidence", "Hidden Vault must retain the source evidence marker type")
+	_check(_position_matches(cache_evidence.get("position", {}), Vector2i(-273, 40)), "Hidden Vault evidence must retain source position (-273, 40)")
+	var cove_junction := registry.get_floor_definition("thieves_cove", -9)
+	var tunnel_junction := _find_record(cove_junction.get("tile_objects", []), "wilderness_tunnel_junction")
+	_check(String(tunnel_junction.get("type", "")) == "tunnel_junction" and tunnel_junction.get("node_id", "") == "wilderness", "Wilderness stub must retain its source tunnel-junction marker")
+	_check(thieves_cove.get("transitions", []).size() == 6, "Thieves' Cove must retain all three reciprocal source stair connections")
+	_check(cove_den.get("actors", []).is_empty() and cove_den.get("creatures", []).is_empty(), "Thieves' Cove map data must not import Rook or bandit actors")
+
 	var chapterhouse: Dictionary = registry.get_definition("lich_chapterhouse")
 	_check(int(chapterhouse.get("anchor", {}).get("q", 0)) == -39 and int(chapterhouse.get("anchor", {}).get("r", 0)) == -346, "Silver Flame Chapterhouse anchor must match buildLichChapterhouse relative to Millbrook")
 	var chapterhouse_floor := registry.get_floor_definition("lich_chapterhouse", 0)
@@ -335,3 +350,11 @@ func _check(condition: bool, message: String) -> void:
 		return
 	failures += 1
 	push_error(message)
+
+
+func _position_matches(value: Variant, expected: Vector2i) -> bool:
+	if value is Vector2i:
+		return value == expected
+	if value is Dictionary:
+		return int(value.get("q", 999999)) == expected.x and int(value.get("r", 999999)) == expected.y
+	return false
