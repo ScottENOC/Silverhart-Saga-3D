@@ -181,6 +181,10 @@ const output = {
   counts: {
     terrainCells: Object.keys(captured.terrain).length,
     terrainByName: terrainCounts,
+    terrainCellsByBuilder: Object.fromEntries(
+      Object.entries(captured.terrainWritesByBuilder).map(([name, cells]) => [name, cells.length])
+    ),
+    terrainWriteCallsByBuilder: captured.terrainWriteCountsByBuilder,
     tileObjectPlacements: Object.keys(captured.tileObjects).length,
     interiorRegions: captured.interiors.length,
     multiStoryBuildings: captured.multiStoryBuildings.length,
