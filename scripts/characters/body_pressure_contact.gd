@@ -93,8 +93,6 @@ static func submit_surface_contact(
 		penetration_m, closing_speed_m_per_s,
 		contact_stiffness_n_per_m, contact_damping_ns_per_m, max_force_n
 	)
-	if contact_force <= 0.0:
-		return submitted
 	# Only registered solver regions participate in normalisation. This keeps
 	# force conservation when callers intentionally register a subset of anatomy.
 	var total_membership := 0.0
