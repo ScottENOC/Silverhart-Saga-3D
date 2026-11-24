@@ -114,6 +114,7 @@ func _capture() -> void:
 		player.seek(sample_time, true)
 		await process_frame
 		await process_frame
+		arm_pose_reference["clips"][clip] = _capture_arm_pose(skeleton, clip, sample_time)
 		RenderingServer.force_draw(false)
 		var screenshot := root.get_texture().get_image()
 		if screenshot.is_empty():
@@ -124,7 +125,37 @@ func _capture() -> void:
 		_check(error == OK, "Screenshot saved: " + destination)
 		print("ARA_VISUAL_CAPTURE=", destination, " size=", screenshot.get_width(), "x", screenshot.get_height())
 
+	_write_arm_pose_reference(output_path)
 	_finish()
+
+
+func _capture_arm_pose(skeleton: Skeleton3D, clip: String, sample_time: float) -> Dictionary:
+	var joints: Dictionary = {}
+	for bone_index in range(skeleton.get_bone_count()):
+		var bone_name := skeleton.get_bone_name(bone_index)
+		var normalized := bone_name.to_lower().replace("_", "").replace("-", "").replace(" ", "")
+		if not (normalized.contains("shoulder") or normalized.contains("clavicle")
+			or normalized.contains("upperarm") or normalized.ends_with("arm")
+			or normalized.contains("forearm") or normalized.contains("lowerarm")
+			or normalized.contains("hand") or normalized.contains("wrist")):
+			continue
+		var rotation := skeleton.get_bone_pose_rotation(bone_index)
+		var position := skeleton.get_bone_pose_position(bone_index)
+		joints[bone_name] = {
+			"rotation_xyzw": [rotation.x, rotation.y, rotation.z, rotation.w],
+			"position": [position.x, position.y, position.z]
+		}
+	return {"sample_time_seconds": sample_time, "joints": joints}
+
+
+func _write_arm_pose_reference(output_path: String) -> void:
+	var file := FileAccess.open(output_path.path_join("ara-arm-pose-reference.json"), FileAccess.WRITE)
+	_check(file != null, "Ara arm pose reference report can be written")
+	if file == null:
+		return
+	file.store_string(JSON.stringify(arm_pose_reference, "\\t"))
+	file.close()
+	print("ARA_ARM_POSE_REFERENCE=", output_path.path_join("ara-arm-pose-reference.json"))
 
 func _setup_stage() -> void:
 	var floor_mesh := PlaneMesh.new()
