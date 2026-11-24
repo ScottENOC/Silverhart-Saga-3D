@@ -281,6 +281,20 @@ func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, jo
 	if clues.has(clue_id):
 		return {"ok":true,"changed":false,"clue":clues[clue_id].duplicate(true)}
 	var clue: Dictionary = clue_definitions[clue_id]
+	var access_any: Array = clue.get("access_any", [])
+	if not access_any.is_empty():
+		var access_granted := false
+		for access_value in access_any:
+			var access_id := String(access_value)
+			match access_id:
+				"ironbond_standing_20":
+					access_granted = journal.faction_standing("ironbond_company") >= 20.0
+				_:
+					access_granted = capabilities.has(access_id)
+			if access_granted:
+				break
+		if not access_granted:
+			return {"ok":false,"reason":"access_gate_not_met","required_access":access_any.duplicate()}
 	var skill_gate := String(clue.get("skill_gate", ""))
 	if skill_gate == "nature_or_perception" and not capabilities.has("nature") and not capabilities.has("perception"):
 		return {"ok":false,"reason":"skill_gate_not_met","required_capability":"nature_or_perception"}
