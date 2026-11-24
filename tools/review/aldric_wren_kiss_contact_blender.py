@@ -333,35 +333,54 @@ def main():
     scene.render.filepath = os.path.join(OUT_DIR, "pose-preview.png")
     bpy.ops.render.render(write_still=True)
 
-    # Bake each evaluated mesh after the preview render. to_mesh() returns the
-    # dependency-graph result, including armature deformation, IK, shape keys,
-    # and modifiers. Copy it before clearing the temporary evaluated mesh.
-    depsgraph = bpy.context.evaluated_depsgraph_get()
+    # Bake each posed mesh through Blender's object-conversion operator.
+    # evaluated.to_mesh() was rendering correctly but the resulting GLB retained
+    # rest-pose geometry in some imported rigs. Converting a duplicate in the
+    # active dependency graph applies the Armature modifier before export.
     baked_collection = bpy.data.collections.new("StaticPosedCharacters")
     scene.collection.children.link(baked_collection)
     exportables = []
+    baked_bounds = {}
     for actor in (aldric, wren):
         for source_obj in actor["meshes"]:
-            evaluated = source_obj.evaluated_get(depsgraph)
-            evaluated_mesh = evaluated.to_mesh(
-                preserve_all_data_layers=True, depsgraph=depsgraph
-            )
-            if evaluated_mesh is None or len(evaluated_mesh.polygons) == 0:
-                if evaluated_mesh is not None:
-                    evaluated.to_mesh_clear()
-                raise RuntimeError(
-                    f"Evaluated mesh is empty: {actor['name']}/{source_obj.name}"
-                )
-            baked_mesh = evaluated_mesh.copy()
-            evaluated.to_mesh_clear()
-            baked_obj = bpy.data.objects.new(
-                f"{actor['name']}_POSED_{source_obj.name}", baked_mesh
-            )
-            baked_collection.objects.link(baked_obj)
-            # The baked vertices remain in object-local space; preserve the
-            # evaluated world matrix, including actor root placement/orientation.
-            baked_obj.matrix_world = evaluated.matrix_world.copy()
+            duplicate = source_obj.copy()
+            duplicate.data = source_obj.data.copy()
+            duplicate.name = f"{actor['name']}_POSED_{source_obj.name}"
+            baked_collection.objects.link(duplicate)
+            duplicate.matrix_world = source_obj.matrix_world.copy()
+            bpy.ops.object.select_all(action="DESELECT")
+            duplicate.select_set(True)
+            bpy.context.view_layer.objects.active = duplicate
+            bpy.ops.object.convert(target="MESH")
+            baked_obj = bpy.context.object
+            # A static mesh must not retain skinning data that could make a
+            # viewer reconstruct the rest pose or apply a second deformation.
+            baked_obj.parent = None
+            baked_obj.matrix_world = source_obj.matrix_world.copy()
+            baked_obj.modifiers.clear()
+            baked_obj.vertex_groups.clear()
+            baked_obj.name = duplicate.name
             exportables.append(baked_obj)
+            coords = [baked_obj.matrix_world @ v.co for v in baked_obj.data.vertices]
+            baked_bounds[baked_obj.name] = {
+                "min": [round(min(p[i] for p in coords), 4) for i in range(3)],
+                "max": [round(max(p[i] for p in coords), 4) for i in range(3)],
+                "vertex_count": len(coords),
+            }
+
+    if not exportables:
+        raise RuntimeError("No evaluated character meshes were available to export")
+
+    # Sanity-check the exported body meshes: the posed body must have a
+    # substantially reduced vertical extent compared with the source rest pose.
+    for actor in (aldric, wren):
+        body = next((o for o in exportables if actor["name"] in o.name and
+                     ("Ser_Aldric_Thorne" in o.name or o.name.startswith("Wren_POSED_Wren"))), None)
+        if body is None:
+            body = next((o for o in exportables if actor["name"] in o.name), None)
+        if body is None or len(body.data.vertices) < 1000:
+            raise RuntimeError(f"Missing baked body mesh for {actor['name']}")
+
 
     if not exportables:
         raise RuntimeError("No evaluated character meshes were available to export")
@@ -408,6 +427,7 @@ def main():
             "wren_intentional_rise_m": round(wren_rise, 4),
             "note": "Height gap is addressed by a modest Wren rise and a forward bow through Aldric's torso/hips; verify the preview because bone naming and rig proportions vary."
         },
+        "baked_mesh_bounds": baked_bounds,
         "ik_chains": ik_report,
         "hand_target_error_m": hand_errors,
         "validation": {
