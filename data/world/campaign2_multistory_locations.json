@@ -3723,6 +3723,16 @@
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tunnelPalaceHex and tunnelPalaceBuilding",
       "floor_generation": "Source-authored one-cell cave floor -9 stub for the palace endpoint of the Thieves' Guild tunnel network",
       "floors": [
+      {
+        "floor": 0,
+        "name": "Palace surface passage anchor (host location surface)",
+        "terrain": "stone_floor",
+        "rooms": [],
+        "corridors": [],
+        "tile_objects": [],
+        "actors": [],
+        "creatures": []
+      },
         {
           "floor": -9,
           "name": "Palace Tunnel Junction",
@@ -3771,6 +3781,16 @@
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tunnelCityHex and tunnelCityBuilding",
       "floor_generation": "Source-authored one-cell cave floor -9 stub for the city endpoint of the Thieves' Guild tunnel network",
       "floors": [
+      {
+        "floor": 0,
+        "name": "City surface passage anchor (host location surface)",
+        "terrain": "wood_floor",
+        "rooms": [],
+        "corridors": [],
+        "tile_objects": [],
+        "actors": [],
+        "creatures": []
+      },
         {
           "floor": -9,
           "name": "City Tunnel Junction",
