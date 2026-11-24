@@ -4,7 +4,7 @@ extends Node
 ## Character movement remains authoritative in WorldSimulation; HollowTankard's
 ## existing character_moved signal supplies the normal locomotion animation.
 
-const STEP_INTERVAL := 0.62
+const STEP_INTERVAL := 0.42
 const MAX_STATION_RADIUS := 5
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
@@ -15,7 +15,6 @@ var _active_character_ids: Array[String] = []
 var _destination_by_character: Dictionary = {}
 var _activity_by_character: Dictionary = {}
 var _step_accumulator: float = 0.0
-var _next_character_index: int = 0
 var _running: bool = false
 
 
@@ -45,7 +44,6 @@ func stop() -> void:
 	_destination_by_character.clear()
 	_activity_by_character.clear()
 	_step_accumulator = 0.0
-	_next_character_index = 0
 
 
 func is_running() -> bool:
@@ -64,14 +62,18 @@ func process_activity_movement(delta: float) -> void:
 	if _active_character_ids.is_empty():
 		stop()
 		return
-	if _next_character_index >= _active_character_ids.size():
-		_next_character_index = 0
-	var character_id := _active_character_ids[_next_character_index]
-	_next_character_index += 1
+	# All companions advance on the same cadence. Round-robin stepping would
+	# make a six-person party wait several seconds between each actor's steps.
+	for character_id in _active_character_ids.duplicate():
+		_process_companion_step(character_id)
+
+
+func _process_companion_step(character_id: String) -> void:
 	var state := simulation.get_character(character_id)
 	if state == null or not state.alive or not state.can_act():
 		_active_character_ids.erase(character_id)
 		_destination_by_character.erase(character_id)
+		_activity_by_character.erase(character_id)
 		return
 	var destination: Vector2i = _destination_by_character.get(character_id, state.axial)
 	if state.axial == destination:
