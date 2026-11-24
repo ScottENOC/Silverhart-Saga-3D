@@ -635,6 +635,13 @@ func active_prerequisite_for_actor(actor_id: String, journal: CampaignJournal) -
 			var clue: Dictionary = clue_definitions[clue_id]
 			if String(clue.get("actor_id", "")) != actor_id or known_clues.has(clue_id):
 				continue
+			var prerequisites_met := true
+			for required_clue_value in clue.get("requires_clues", []):
+				if not known_clues.has(String(required_clue_value)):
+					prerequisites_met = false
+					break
+			if not prerequisites_met:
+				continue
 			found_clues.append({"id":clue_id,"definition":clue.duplicate(true)})
 		if not found_clues.is_empty():
 			return {
