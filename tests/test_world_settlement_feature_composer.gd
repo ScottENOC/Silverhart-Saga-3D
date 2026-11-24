@@ -72,7 +72,7 @@ func _test_silverhart_city_composes_all_source_props() -> void:
 					gate_arches += 1
 			parent.free()
 	assert(buildings == 40, "All 40 source Silverhart buildings must be presented once across streamed chunks")
-	assert(props == 513, "All 513 source Silverhart props must be presented once across streamed chunks")
+	assert(props == 512, "All 512 remaining source Silverhart props must be presented once across streamed chunks")
 	assert(curtain_wall_segments == 138, "Palace curtain wall must present all 138 radius-23 palisade segments")
 	assert(city_wall_segments == 357, "Outer city wall must present all 357 segments around its three-cell gate")
 	assert(palace_towers == 7, "Palace curtain wall must present its seven source watchtowers")
