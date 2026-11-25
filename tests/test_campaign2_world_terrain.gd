@@ -35,6 +35,7 @@ func _initialize() -> void:
 	var unicorn_vale := terrain.encounter_site("unicorn_vale")
 	_check(unicorn_vale.get("kind", "") == "roaming_encounter_area", "Unicorn Vale must resolve through the canonical encounter-site lookup")
 	_check(terrain.encounter_site_at(Vector2i(-286, 24)).get("id", "") == "unicorn_vale", "Unicorn Vale lookup must resolve the source patrol-area anchor")
+	_check(not terrain.is_location_marker_visible(unicorn_vale), "Unicorn Vale must remain an exploration encounter area, not a permanent public map marker")
 	_check(HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX == Vector2i(-59, 204), "The live farm-wolf encounter must use the canonical source den coordinate")
 	_check(terrain.chunk_for_hex(Vector2i(-1, -1)) == Vector2i(-1, -1), "Chunk indexing must floor negative axial coordinates")
 	_check(terrain.terrain_for_hex(Vector2i(150, -200)) == "rocky_outcrop", "Unpainted grassland must use the original Campaign 2 rocky-outcrop clump")
