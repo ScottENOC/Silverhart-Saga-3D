@@ -499,9 +499,9 @@ func _initialize() -> void:
 		"silverhart_east_house_two": {"centre": Vector2i(32, -480), "door": Vector2i(34, -480), "door_id": "silverhart_east_house_two_east_door", "width": 2, "height": 2},
 		"silverhart_east_house_three": {"centre": Vector2i(23, -470), "door": Vector2i(24, -470), "door_id": "silverhart_east_house_three_east_door", "width": 1, "height": 2},
 		"silverhart_east_house_four": {"centre": Vector2i(26, -471), "door": Vector2i(27, -471), "door_id": "silverhart_east_house_four_east_door", "width": 1, "height": 1},
-		"silverhart_outlying_house_1": {"centre": Vector2i(23, -546), "door": Vector2i(23, -544), "door_id": "silverhart_outlying_house_east_south_door", "width": 2, "height": 2},
-		"silverhart_outlying_house_2": {"centre": Vector2i(48, -546), "door": Vector2i(48, -544), "door_id": "silverhart_outlying_house_far_east_south_door", "width": 2, "height": 2},
-		"silverhart_outlying_house_3": {"centre": Vector2i(-32, -476), "door": Vector2i(-30, -476), "door_id": "silverhart_outlying_house_west_east_door", "width": 2, "height": 2}
+		"silverhart_outlying_house_1": {"centre": Vector2i(23, -546), "door": Vector2i(23, -544), "door_id": "silverhart_outlying_house_1_south_door", "width": 2, "height": 2},
+		"silverhart_outlying_house_2": {"centre": Vector2i(48, -546), "door": Vector2i(48, -544), "door_id": "silverhart_outlying_house_2_south_door", "width": 2, "height": 2},
+		"silverhart_outlying_house_3": {"centre": Vector2i(-32, -476), "door": Vector2i(-30, -476), "door_id": "silverhart_outlying_house_3_east_door", "width": 2, "height": 2}
 	}
 	for location_id in silverhart_residential_specs:
 		var residential_expected: Dictionary = silverhart_residential_specs[location_id]
