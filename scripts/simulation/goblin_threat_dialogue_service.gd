@@ -63,6 +63,15 @@ static func select_choice(
 ) -> Dictionary:
     if simulation == null or simulation.campaign_journal == null:
         return {"ok": false, "handled": true, "reason": "missing_simulation"}
+    if npc_id.is_empty():
+        if choice_id.begins_with("skarnub_"):
+            npc_id = "chief_skarnub"
+        elif choice_id.begins_with("nix_"):
+            npc_id = "nix_sharpear"
+        elif choice_id.begins_with("aldric_"):
+            npc_id = "ser_aldric_thorne"
+        elif choice_id.begins_with("grondle_"):
+            npc_id = "grondle"
     if not handles_npc(npc_id):
         return {"ok": false, "handled": false}
     if choice_id in ["skarnub_leave", "nix_leave", "aldric_leave", "grondle_leave"]:
