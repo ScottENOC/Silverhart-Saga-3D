@@ -7,7 +7,8 @@
 - Social contact, flirting and intimacy are not restricted to a camp phase or a dedicated social activity. The interaction system resolves the event and supplies its actual relationship changes.
 - Sleep is an explicit eight-hour skip to morning, not eight hours of accelerated real-time simulation. It advances the authoritative world clock and applies overnight recovery in bulk.
 - Night watch is assigned when sleep begins, not during evening chores.
-- Current limitation: watch assignments reduce the calculated ambush probability and improve security, but that probability is not yet rolled. There is no enemy approach, watcher detection/alarm, night-attack combat hand-off or undetected-attack consequence. Watchers currently remain assigned for the whole night; rotating watches are part of [issue #393](https://github.com/ScottENOC/Silverhart-Saga-3D/issues/393).
+- The simulation now divides the night into three shifts, rotates the watch roster, and persists that roster through saves. It rolls the existing shelter-adjusted ambush chance deterministically and evaluates detection against watcher perception and fatigue, with visibility/weather modifiers. The resolved result records whether an attack occurred, whether it was detected, and which watcher raised the alarm.
+- Remaining integration: a detected/undetected result is currently recorded by the camp simulation but is not yet connected to an authored enemy approach, alarm presentation, or combat start. Undetected attacks do not yet impose combat disadvantage or other consequences. See [issue #393](https://github.com/ScottENOC/Silverhart-Saga-3D/issues/393).
 - Combat and pending reactions take priority over autonomous companion movement.
 
 ## Companion routine presentation
