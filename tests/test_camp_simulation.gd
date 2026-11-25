@@ -152,16 +152,18 @@ func _test_indoor_floor_sleeping_and_security() -> void:
 func _test_general_camp_occupant_registry() -> void:
 	var camp := CampSimulation.new()
 	camp.begin_camp(
-		{"walkable": true},
+		{"walkable": true, "safe_tethering": true},
 		["player", "druid"],
 		{"camp_occupants": [
 			{"occupant_id": "moss", "kind": "animal", "species": "wolf", "bonded_to": "druid", "can_sleep": true, "can_work": false, "needs": ["food", "water", "shelter", "sleep", "safety", "social"]},
+			{"occupant_id": "horse_01", "kind": "animal", "species": "horse", "can_sleep": true, "can_work": false, "needs": ["food", "water", "shelter", "sleep"]},
 			{"occupant_id": "refugee_01", "kind": "follower", "species": "humanoid", "can_sleep": true, "can_work": false},
 			{"occupant_id": "cook_01", "kind": "resident", "species": "humanoid", "can_sleep": true, "can_work": true},
 			{"occupant_id": "traveller_01", "kind": "guest", "species": "humanoid", "staying_overnight": true}
-		]}
+		]},
+		{"water": 3, "fodder": 2}
 	)
-	_check(camp.occupants.size() == 6, "Camp registry should include party members and independent camp occupants")
+	_check(camp.occupants.size() == 7, "Camp registry should include party members and independent camp occupants")
 	_check(camp.party_ids.size() == 2, "Followers, animals, residents and guests must not consume party slots")
 	_check(String(camp.occupant_for("moss").kind) == "animal", "Animal companions should retain their distinct occupant kind")
 	_check(String(camp.occupant_for("moss").species) == "wolf", "Animal occupants should retain species information")
@@ -169,7 +171,18 @@ func _test_general_camp_occupant_registry() -> void:
 	_check(String(camp.occupant_for("cook_01").kind) == "resident", "Household workers should have a resident category")
 	_check(bool(camp.occupant_for("traveller_01").can_sleep), "Overnight guests should be eligible for sleeping allocation")
 	_check(not bool(camp.occupant_for("traveller_01").can_work), "Guests should not default to camp duties")
-	_check(camp.occupants_of_kind("animal").size() == 1, "Occupants should be queryable by category")
+	_check(camp.occupants_of_kind("animal").size() == 2, "Occupants should be queryable by category")
+	_check(not bool(camp.perform_animal_care("moss", "water", "druid").ok), "Horse-specific care must not be applied to a wolf")
+	_check(not bool(camp.perform_animal_care("horse_01", "tether", "druid").ok) == false, "Safe camp tethering should be available at an authored anchor")
+	_check(bool(camp.perform_animal_care("horse_01", "water", "druid").ok), "A capable party member should be able to water a camp horse")
+	_check(bool(camp.perform_animal_care("horse_01", "feed", "druid").ok), "A capable party member should be able to feed a camp horse when fodder is supplied")
+	_check(bool(camp.perform_animal_care("horse_01", "groom", "druid").ok), "A camp horse should be groomable")
+	_check(bool(camp.perform_animal_care("horse_01", "tether", "druid").ok), "A horse should be tetherable at a safe authored anchor")
+	_check(bool(camp.perform_animal_care("horse_01", "rest", "druid").ok), "A horse should be able to settle to rest")
+	_check(bool(camp.horse_care_for("horse_01").get("watered", false)) and bool(camp.horse_care_for("horse_01").get("fed", false)), "Horse care flags should record feeding and watering")
+	_check(bool(camp.horse_care_for("horse_01").get("groomed", false)) and bool(camp.horse_care_for("horse_01").get("tethered", false)) and bool(camp.horse_care_for("horse_01").get("resting", false)), "Horse care should record grooming, tethering and rest")
+	_check(int(camp.resources.water) == 2 and int(camp.resources.fodder) == 1, "Watering and feeding should consume their respective camp supplies")
+	_check(not bool(camp.perform_animal_care("horse_01", "feed", "refugee_01").ok), "A follower without work capability must not be accepted as a care handler")
 	_check(not bool(camp.remove_camp_occupant("player").ok), "Party members cannot be removed through the non-party occupant API")
 	_check(bool(camp.remove_camp_occupant("traveller_01").ok), "Non-party occupants should be removable when they leave")
 	_check(not bool(camp.register_camp_occupant({"occupant_id": "bad", "kind": "spaceship"}).ok), "Unknown occupant kinds should be rejected")
@@ -179,6 +192,7 @@ func _test_general_camp_occupant_registry() -> void:
 	var restored := CampSimulation.new()
 	_check(restored.from_dict(saved), "The full camp occupant registry should survive save/load")
 	_check(restored.occupant_for("moss") == camp.occupant_for("moss"), "Animal identity and care metadata should persist")
+	_check(restored.horse_care_for("horse_01") == camp.horse_care_for("horse_01"), "Horse care state should persist through save/load")
 	_check(restored.occupant_for("cook_01") == camp.occupant_for("cook_01"), "Resident metadata should persist")
 
 
