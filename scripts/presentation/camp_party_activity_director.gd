@@ -319,8 +319,12 @@ func _process_social_exchanges(delta: float) -> void:
 			second_state.display_name,
 			{"layout_id": _layout_id, "dwelling_id": String(simulation.camp_simulation.lodging_profile.get("dwelling_id", ""))}
 		)
+		var camp_hex: Variant = simulation.camp_simulation.site.get("hex", null)
+		var camp_identity := "camp"
+		if camp_hex is Vector2i:
+			camp_identity = "%d,%d" % [camp_hex.x, camp_hex.y]
 		event_key = "camp_banter:%s:%d:%d" % [
-			String(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
+			camp_identity,
 			int(simulation.clock.world_seconds),
 			_exchange_index
 		]
