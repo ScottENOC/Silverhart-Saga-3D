@@ -2,7 +2,7 @@ name: Import approved native companion models
 
 on:
   push:
-    branches: [feature/character-runtime-asset-integration]
+    branches: [dev, feature/character-runtime-asset-integration, feature/unified-female-anatomy-v2]
     paths:
       - ".github/workflows/import-accepted-companions.yml"
 
@@ -24,12 +24,12 @@ jobs:
           ref: ${{ github.ref_name }}
           persist-credentials: true
 
-      - name: Download the accepted Wren build #111
+      - name: Download Wren build #184 with integrated anatomy v2
         uses: actions/download-artifact@v8
         with:
-          name: wren-native-ara-111
+          name: wren-native-ara-184
           repository: ${{ github.repository }}
-          run-id: 44489910457
+          run-id: 45550489788
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: /tmp/accepted-wren
 
@@ -42,12 +42,12 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: /tmp/accepted-aldric
 
-      - name: Download the accepted Dagna build #56
+      - name: Download Dagna build #131 with integrated anatomy v2
         uses: actions/download-artifact@v8
         with:
-          name: dagna-native-ara-56
+          name: dagna-native-ara-131
           repository: ${{ github.repository }}
-          run-id: 44489910404
+          run-id: 45550892688
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: /tmp/accepted-dagna
 
@@ -67,9 +67,9 @@ jobs:
           from pathlib import Path
           root = Path("art/characters/companions")
           sources = {
-              "wren.glb": {"character": "Wren Talbot", "workflow_run": 44489910457, "build": 111, "accepted_source_commit": "912093e383ac802285d7d3491ffd9affed572b51"},
+              "wren.glb": {"character": "Wren Talbot", "workflow_run": 45550489788, "build": 184, "accepted_source_commit": "1fd6d6ab65b2f1e8cd9f6d1f7cfd59d8a8fa8500"},
               "aldric.glb": {"character": "Ser Aldric Thorne", "workflow_run": 44641513062, "build": 125, "accepted_source_commit": "8681bc9f6ad4e2c651d6fd8bf937fdfc95538555"},
-              "dagna.glb": {"character": "Dagna Stoneward", "workflow_run": 44489910404, "build": 56, "accepted_source_commit": "912093e383ac802285d7d3491ffd9affed572b51"},
+              "dagna.glb": {"character": "Dagna Stoneward", "workflow_run": 45550892688, "build": 131, "accepted_source_commit": "768adfcf1db2ded39329e00215c874347d3892f6"},
           }
           manifest = {"schema_version": 1, "assets": {}}
           for filename, provenance in sources.items():
@@ -84,7 +84,7 @@ jobs:
           (root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
           PY
 
-      - name: Install Godot 4.7.2 and import the recovered GLBs
+      - name: Install Godot 4.7.2 and validate the regenerated companion GLBs
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
@@ -100,7 +100,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add art/characters/companions/
-          git commit -m "Install approved Wren, Aldric and Dagna native models"
+          if git diff --cached --quiet; then
+            echo "Companion assets are already current."
+            exit 0
+          fi
+          git commit -m "Install Wren and Dagna with integrated female anatomy v2"
+          git stash push --include-untracked -m "temporary Godot import side effects"
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
