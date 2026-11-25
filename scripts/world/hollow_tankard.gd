@@ -1450,6 +1450,17 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
+	if choice_id == "rescue:ser_aldric_thorne":
+		var rescued := COMPANION_CAMPAIGN_SCRIPT.rescue_aldric(simulation.campaign_journal)
+		if bool(rescued.get("ok", false)):
+			var captive_actor := CampaignNpcInteractionService.actor_for(get_tree(), actor_by_id, "ser_aldric_thorne")
+			if captive_actor != null:
+				captive_actor.set_meta("tied_up", false)
+				captive_actor.set_meta("ambient_enabled", false)
+			_show_companion_dialogue("ser_aldric_thorne")
+		else:
+			_show_dialogue("Ser Aldric Thorne", "The ropes won't give way just now. We need to try again when the camp is secure.", [{"id":"continue","label":"Understood.","text":""}])
+		return
 	if choice_id == "continue":
 		_close_dialogue()
 		return
@@ -1840,9 +1851,10 @@ func _recruit_staged_companion(character_id: String) -> void:
 	if character_id == "companion_fenn_oakheart":
 		COMPANION_CAMPAIGN_SCRIPT.consume_item(player_state.inventory, "herbs", 3)
 		COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "fenn_herb_gathering", "herbs_delivered")
-	var actor := actor_by_id.get(character_id) as Node3D
+	var actor := CampaignNpcInteractionService.actor_for(get_tree(), actor_by_id, character_id)
 	if actor != null:
 		actor.set_meta("ambient_enabled", false)
+		actor.set_meta("tied_up", false)
 	if party_switch_button != null and active_character_id == character_id:
 		party_switch_button.text = "Active: %s  [Tab] Switch" % state.display_name
 	if character_panel != null and active_character_id == character_id:
