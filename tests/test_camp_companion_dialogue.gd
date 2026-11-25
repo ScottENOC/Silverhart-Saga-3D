@@ -72,7 +72,7 @@ func _initialize() -> void:
 
 	bonds.set_relationship("companion_nix_sharpear", "companion_ser_aldric_thorne", {"familiarity": 30.0, "trust": 25.0, "friendship": 25.0})
 	var warm_exchange := SERVICE.build_exchange("companion_ser_aldric_thorne", "companion_nix_sharpear", 1, bonds)
-	_check(String(warm_exchange.lines[1].text) == "Fine. I trust you enough to say this once. Don't make me regret it.", "Established bonds should unlock warmer responses")
+	_check(String(warm_exchange.lines[1].text) == "All right, you've earned a proper answer. Don't let it go to your head.", "Established bonds should unlock warmer responses")
 
 	for first_id in SERVICE.supported_companion_ids():
 		for second_id in SERVICE.supported_companion_ids():
@@ -84,7 +84,7 @@ func _initialize() -> void:
 
 	_check(not SERVICE.build_exchange("companion_warlord_grukk", "companion_nix_sharpear", 3, bonds).is_empty(), "Grukk's actual campaign ID should resolve to his authored profile")
 	_check(SERVICE.canonical_id("companion_dagna") == "dagna", "Dagna's companion actor ID should resolve to her camp dialogue profile")
-	var dagna_exchange := SERVICE.build_exchange("companion_dagna", "companion_nix_sharpear", 2, bonds, "Dagna", "Nix Sharpear")
+	var dagna_exchange := SERVICE.build_exchange("companion_dagna", "companion_nix_sharpear", 0, bonds, "Dagna", "Nix Sharpear")
 	_check(not dagna_exchange.is_empty(), "Dagna should be able to participate in autonomous camp dialogue")
 	_check(String(dagna_exchange.lines[0].text).contains("old travelling blessing"), "Dagna's ambient dialogue should acknowledge her religious upbringing without naming a deity or doctrine")
 	_check(SERVICE.supported_companion_ids().has("dagna"), "Dagna should be included in the supported camp dialogue roster")
