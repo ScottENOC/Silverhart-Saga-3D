@@ -22,14 +22,39 @@ def write(path,doc,binary):
     total=12+8+len(j)+8+len(binary)
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
+def skinned_mesh_node(d, label='source'):
+    """Return the sole mesh node bound to a skin, regardless of its material.
+
+    Garment-only Ara exports contain a skinned garment mesh but deliberately do
+    not contain the body's Skin material. Requiring that material here confuses
+    a valid garment-only export with a missing rig.
+    """
+    hits=[n for n in d.get('nodes',[]) if 'mesh' in n and 'skin' in n]
+    if len(hits)!=1:
+        raise ValueError(f'Expected one skinned {label} mesh node, got {len(hits)}')
+    return hits[0]
+
 def body_node(d):
     hits=[]
-    for n in d['nodes']:
+    skinned=[]
+    for n in d.get('nodes',[]):
         if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
-    return hits[0]
+        mesh=d['meshes'][n['mesh']]
+        names=[d.get('materials',[])[p['material']].get('name','')
+               for p in mesh.get('primitives',[]) if p.get('material') is not None]
+        skinned.append((n,names))
+        if any('skin' in name.casefold() for name in names):
+            hits.append(n)
+    if len(hits)==1:
+        return hits[0]
+    # The native Ara export has changed its material naming between versions.
+    # If there is exactly one skinned mesh node, it is unambiguously the body
+    # mesh even when its material is named Body/BodyMaterial rather than Skin.
+    if not hits and len(skinned)==1:
+        return skinned[0][0]
+    details=[{'node':n.get('name'), 'mesh':n.get('mesh'), 'materials':names}
+             for n,names in skinned]
+    raise ValueError(f'Expected one skinned body mesh; skin-material matches={len(hits)}, skinned nodes={details}')
 
 def append_bytes(target,buf,data,target_type=None):
     buf+=b'\0'*(-len(buf)%4); off=len(buf)
@@ -90,25 +115,40 @@ def add(target,buf,source_path,selector):
     sj=[src['nodes'][i].get('name') for i in src['skins'][0]['joints']]
     if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
     joint_map=[tj.index(name) for name in sj]
-    tn=body_node(target); sn=body_node(src)
+    tn=body_node(target); sn=skinned_mesh_node(src, 'garment')
     target_mesh=target['meshes'][tn['mesh']]
     source_mesh=src['meshes'][sn['mesh']]
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
 
-    # Garment primitives must carry the same morph-target contract as the body.
-    # Ara exports facial blend shapes on every skinned primitive. Leaving the
-    # source target accessor indices untouched makes them point at unrelated
-    # accessors in the destination GLB (often scalar indices), which Blender
-    # then rejects while importing the assembled character.
+    # The destination body defines the canonical morph-target order. Ara's
+    # garment-only export can expose a subset of those targets, so map by name
+    # and insert empty targets for body shapes that the garment does not have.
+    # This keeps the primitive target arrays aligned with the destination mesh
+    # without assigning a facial/body deformation to the wrong shape.
     target_names=target_mesh.get('extras',{}).get('targetNames')
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
+    if source_names is not None and len(source_names) != source_count:
+        raise ValueError(f'Source morph target names/count disagree in {source_path}: names={len(source_names)}, weights={source_count}')
+    if target_names is not None and len(target_names) != target_count:
+        raise ValueError(f'Target morph target names/count disagree in {source_path}: names={len(target_names)}, weights={target_count}')
+    morph_index_map=None
     if source_count != target_count:
-        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+        if source_names is None or target_names is None:
+            raise ValueError(f'Morph target count differs in {source_path} and names are unavailable for safe mapping: source={source_count}, target={target_count}')
+        if len(set(source_names)) != len(source_names) or len(set(target_names)) != len(target_names):
+            raise ValueError(f'Morph target names are not unique in {source_path}; cannot safely map source={source_count}, target={target_count}')
+        source_index={name:index for index,name in enumerate(source_names)}
+        morph_index_map=[source_index.get(name) for name in target_names]
+    elif source_names is not None and target_names is not None:
+        if len(set(source_names)) != len(source_names) or len(set(target_names)) != len(target_names):
+            raise ValueError(f'Morph target names are not unique in {source_path}; cannot safely map')
+        source_index={name:index for index,name in enumerate(source_names)}
+        if set(source_names) != set(target_names):
+            raise ValueError(f'Morph target names differ in {source_path}: source-only={sorted(set(source_names)-set(target_names))}, target-only={sorted(set(target_names)-set(source_names))}')
+        morph_index_map=[source_index[name] for name in target_names]
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -144,17 +184,22 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
-    remapped_targets=[]
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
+    remapped_source_targets=[]
     for target_attrs in source_targets:
         remapped={}
         for attr,old_ai in target_attrs.items():
             target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
             remapped[attr]=new_ai
-        remapped_targets.append(remapped)
-    if source_targets:
-        p['targets']=remapped_targets
+        remapped_source_targets.append(remapped)
+    if morph_index_map is not None:
+        # An empty target means this garment has no authored delta for that
+        # body shape; it still occupies the canonical target slot.
+        p['targets']=[remapped_source_targets[index] if index is not None else {}
+                      for index in morph_index_map]
+    elif source_targets:
+        p['targets']=remapped_source_targets
 
     # Reuse a previously appended material for other primitives that form the
     # same garment (e.g. bikini cups plus several cord sections).
