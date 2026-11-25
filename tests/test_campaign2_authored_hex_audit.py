@@ -132,6 +132,22 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(summary["npc_placements_by_faction"], {"hollowmere": 1})
 
 
+    def test_silverhart_ring_roads_are_closed_source_polylines(self):
+        root = Path(__file__).resolve().parents[1]
+        layout = json.loads((root / "data/world/campaign2_settlement_layouts.json").read_text(encoding="utf-8"))
+        silverhart = next(item for item in layout["settlements"] if item["id"] == "silverhart")
+        routes = {item["id"]: item for item in silverhart["paths"]}
+        for route_id in ("silverhart_outer_ring_road", "silverhart_middle_ring_road"):
+            route = routes[route_id]
+            points = route["points"]
+            self.assertEqual(len(points), 7, route_id)
+            self.assertEqual(points[0], points[-1], route_id)
+            self.assertEqual(len(route["widths"]), len(points), route_id)
+            cells = set()
+            for start, finish in zip(points, points[1:]):
+                cells.update(rasterize_segment(start, finish))
+            self.assertGreater(len(cells), 100, route_id)
+
     def test_strategic_map_matches_source_rules_and_river(self):
         geography = {
             "coordinate_system": {"strategic_grid_dimensions": {"columns": 16, "rows": 16}},
