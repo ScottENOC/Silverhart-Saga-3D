@@ -441,6 +441,18 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(not bool(mixed_event.get("detected", true)), "A weaker later shift must not inherit the earlier shift's higher detection chance")
 	_check(is_equal_approx(float(mixed_event.get("detection_chance", 0.0)), 0.42), "The encounter should report the strongest individual shift chance")
 
+	var short_night := CampSimulation.new()
+	short_night.begin_camp({"walkable": true, "site_id": "short_watch_test"}, ["a", "b"], {"danger": 0.0}, {})
+	short_night.begin_night()
+	var short_result := short_night.resolve_night(6.0)
+	_check(bool(short_result.get("ok", false)), "A shorter sleep duration should still resolve")
+	_check(is_equal_approx(float(short_night.night_watch_schedule[2].get("end_hour", 0.0)), 6.0), "Watch shift boundaries should scale to the actual sleep duration")
+	var short_watch_hours := short_night._watch_hours_by_character(6.0)
+	var total_short_watch_hours := 0.0
+	for watched_hours in short_watch_hours.values():
+		total_short_watch_hours += float(watched_hours)
+	_check(is_equal_approx(total_short_watch_hours, 6.0), "Total scheduled watch hours should equal the resolved night duration")
+
 	var missed_camp := CampSimulation.new()
 	var missed_seed := _find_night_seed(0.38, 0.15, false)
 	_check(missed_seed > 0, "A deterministic seed should be available for an undetected ambush test")
