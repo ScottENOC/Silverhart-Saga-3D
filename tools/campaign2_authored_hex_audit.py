@@ -654,6 +654,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'Unmarked terrain/faction mismatches against the target geography rules: '
             f'{report["strategic_map_validation"]["unmarked_terrain_faction_mismatch_count"]}; '
             f'river path match: {report["strategic_map_validation"]["river_path_matches_geography"]}; '
+            f'all source marker positions match: {report["strategic_map_validation"]["markers_match"]}; '
             f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
         ),
         "",
