@@ -153,7 +153,7 @@ const captureCode = [
   "JSON.stringify({",
   "terrain: window.overrideTerrain,",
   "tileObjects: window.tileObjects,",
-  "npcBaseline: window.entities.filter(entity => entity && entity.isNPC).reduce((baseline, entity, index) => {",
+  "npcBaseline: window.entities.filter(entity => entity && entity.isNPC && !String(entity.name || '').startsWith('Audit ')).reduce((baseline, entity, index) => {",
   "  const key = String(entity.name || entity.id || 'NPC') + '#' + index;",
   "  baseline[key] = { name: String(entity.name || ''), hex: entity.hex || {}, floor: Number(entity.floor || 0), side: String(entity.side || 'neutral'), factionId: String(entity.factionId || ''), race: String(entity.race || ''), dialogueId: String(entity.dialogueId || ''), behaviorType: String(entity.behaviorType || ''), homeHex: entity.homeHex || null, patrolPath: entity.patrolPath || [] };",
   "  return baseline;",
