@@ -824,18 +824,30 @@ func play_walk() -> bool:
 func play_idle() -> bool:
 	return set_moving(false)
 
-func _find_animation_clip(preferred_tokens: Array[String]) -> String:
+func _find_animation_clip(preferred_tokens: Array) -> String:
 	if animation_player == null:
 		return ""
 	var available := animation_player.get_animation_list()
-	for token in preferred_tokens:
+	for token_value in preferred_tokens:
+		var token := _normalise_animation_token(String(token_value))
+		if token.is_empty():
+			continue
 		for animation_name in available:
-			if String(animation_name).to_lower() == token:
+			if _normalise_animation_token(String(animation_name)) == token:
 				return String(animation_name)
 		for animation_name in available:
-			if String(animation_name).to_lower().contains(token):
+			if _normalise_animation_token(String(animation_name)).contains(token):
 				return String(animation_name)
 	return ""
+
+
+## Ara exports may use CamelCase or spaced clip labels while gameplay uses
+## snake_case semantic hints. Compare names independently of separators.
+func _normalise_animation_token(value: String) -> String:
+	var normalized := value.to_lower()
+	for separator in ["_", "-", " ", ".", ":"]:
+		normalized = normalized.replace(separator, "")
+	return normalized
 
 func _play_idle_if_available() -> void:
 	if animation_player == null or not is_instance_valid(animation_player):
