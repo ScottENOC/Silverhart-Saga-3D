@@ -86,9 +86,23 @@ def remove_scene_objects():
 
 def main():
     bpy.ops.preferences.addon_enable(module="bl_ext.user_default.mpfb")
-    from mpfb.services.humanservice import HumanService
-    from mpfb.services.assetservice import AssetService
-    from mpfb.services.targetservice import TargetService
+    # Blender 4.2 installs MPFB2 as an extension package, so its import
+    # namespace is bl_ext.user_default.mpfb rather than top-level "mpfb".
+    # Resolve the already-loaded extension modules the same way as the
+    # upstream base-human smoke test.
+    def dynamic_import(module_suffix, symbol):
+        import importlib
+        import sys
+        for module_name in list(sys.modules):
+            if module_name.endswith(module_suffix):
+                module = importlib.import_module(module_name)
+                if hasattr(module, symbol):
+                    return getattr(module, symbol)
+        raise RuntimeError(f"Could not find MPFB symbol {symbol} in {module_suffix}")
+
+    HumanService = dynamic_import("mpfb.services.humanservice", "HumanService")
+    AssetService = dynamic_import("mpfb.services.assetservice", "AssetService")
+    TargetService = dynamic_import("mpfb.services.targetservice", "TargetService")
 
     AssetService.update_all_asset_lists()
     skins = AssetService.get_asset_list("skins", "mhmat")
