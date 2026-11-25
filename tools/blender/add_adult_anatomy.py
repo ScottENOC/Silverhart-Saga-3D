@@ -674,7 +674,7 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
 
     before = _bmesh_defects(bm)
     path = _TubePath(C, cfg, best_axis, mu, mv, k)
-    cap, new_all, by_depth = list(patch), set(), []
+    cap, new_all, by_depth = list(patch), [], []
     for s in depths:
         # Include the region's edges explicitly. On imported glTF skin meshes,
         # passing faces alone can leave the source patch's internal edges behind
@@ -689,28 +689,41 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
         for v, p in zip(new_verts, path.advance(s, [mw @ v.co for v in new_verts])):
             v.co = inv @ p
         cap = [g for g in geom if isinstance(g, bmesh.types.BMFace) and all(v in nv for v in g.verts)]
-        new_all |= nv
-        by_depth.append((s, new_verts))
+        # BMesh operators may invalidate BMVert wrappers from earlier steps.
+        # Keep plain coordinate snapshots and resolve them against the final mesh.
+        step_coords = [tuple(float(c) for c in v.co) for v in new_verts]
+        new_all.extend(step_coords)
+        by_depth.append((s, step_coords))
     bm.normal_update()
     after = _bmesh_defects(bm)
     if after != before:
         raise RuntimeError(f"{name} changed mesh integrity (boundary, non-manifold) {before} -> {after}")
 
     # deep vertices must not follow the thighs: fade their skin weights to the pelvis bone with depth
+    # Resolve only vertices that survived all subsequent extrusion operations.
+    # Never retain BMVert references across BMesh topology edits.
+    bm.verts.index_update()
+    verts_by_coord = {}
+    for v in bm.verts:
+        key = tuple(round(float(c), 8) for c in v.co)
+        verts_by_coord.setdefault(key, []).append(v)
+
     deform = bm.verts.layers.deform.active
     if hips_gi is not None and deform is not None:
-        for s, vs in by_depth:
+        for s, coords in by_depth:
             f = _ss(0.03 * k, 0.10 * k, s)
             if f <= 0.0:
                 continue
-            for v in vs:
-                d = v[deform]
-                for gi in list(d.keys()):
-                    d[gi] = d[gi] * (1.0 - f)
-                d[hips_gi] = (d[hips_gi] if hips_gi in d else 0.0) + f
+            for co in coords:
+                key = tuple(round(float(c), 8) for c in co)
+                for v in verts_by_coord.get(key, ()):
+                    d = v[deform]
+                    for gi in list(d.keys()):
+                        d[gi] = d[gi] * (1.0 - f)
+                    d[hips_gi] = (d[hips_gi] if hips_gi in d else 0.0) + f
 
-    bm.verts.index_update()
-    idx = sorted(v.index for v in new_all if v.is_valid)
+    idx = sorted({v.index for co in new_all
+                  for v in verts_by_coord.get(tuple(round(float(c), 8) for c in co), ())})
     print(f"{name}: {len(patch)} faces extruded in {len(depths)} steps to {depths[-1] * 1000:.0f} mm, "
           f"centreline tilt {best_axis[0]:.0f} to {best_axis[1]:.0f} deg; "
           f"boundary/non-manifold edges {before} -> {after}")
