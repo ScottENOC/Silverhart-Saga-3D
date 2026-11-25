@@ -126,6 +126,52 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
                     {"id": "leave", "label": "I'll come back when I'm ready.", "text": "I'll be here. Good work takes materials, time, and a bit of patience."}
                 ]
             }
+        "silverhart_general_goods":
+            return {
+                "speaker": display_name,
+                "text": "Ordinary gear, honest prices — swords, shields, a decent helm, nothing fancy. The fancy stuff's a few doors down.",
+                "choices": [
+                    {"id": "stock", "label": "What do travellers need most?", "text": "A sound blade, a shield that hasn't split, a spare helm and enough supplies to get to the next town. Nothing glamorous, but all of it useful."},
+                    {"id": "leave", "label": "Just looking.", "text": "The merchant gives you room to browse."}
+                ]
+            }
+        "silverhart_clothier":
+            return {
+                "speaker": display_name,
+                "text": "Something for court, or something plainer for the road? Either way, it's all just for show — doesn't stop a blade any better than what you're already wearing.",
+                "choices": [
+                    {"id": "court_clothes", "label": "What is suitable for court?", "text": "Something well cut, clean, and restrained. You want the court to notice you arrived, not spend the evening discussing your sleeves."},
+                    {"id": "leave", "label": "Not today.", "text": "The clothier folds the fabric neatly and waits for another customer."}
+                ]
+            }
+        "silverhart_magic_dealer":
+            return {
+                "speaker": display_name,
+                "text": "Every piece here is genuine, and priced like it. Careful browsing — some of these will empty a purse fast.",
+                "choices": [
+                    {"id": "wares", "label": "How do you judge a genuine piece?", "text": "Provenance, workmanship, and whether it still does what its maker intended. Most imitations fail at least two of those tests."},
+                    {"id": "leave", "label": "Just looking.", "text": "The dealer returns the item to its padded case."}
+                ]
+            }
+        "reddale_blacksmith":
+            return {
+                "speaker": display_name,
+                "text": "Reddale's a waypoint, not a city — but the road wears down blades and armour same as anywhere. I keep enough stock to fix you up without a trip back to Hollowmere.",
+                "choices": [
+                    {"id": "repairs", "label": "What can you repair?", "text": "Blades, armour, buckles, hinges — anything that can be made sound again with heat and a hammer. Bring it by in daylight."},
+                    {"id": "leave", "label": "Just looking.", "text": "The smith turns back to the forge."}
+                ]
+            }
+        "silverhart_stablehand":
+            return {
+                "speaker": display_name,
+                "text": "Fine animals, every one — but they're wasted on someone who's never learned to sit a saddle. Come back once you've picked up Riding.",
+                "choices": [
+                    {"id": "riding", "label": "What should I know before buying a horse?", "text": "Learn to ride first. A good horse is worth the price, but a poor rider can ruin a fine animal — or themselves."},
+                    {"id": "barding", "label": "Can horses be armoured?", "text": "Light barding is sensible for the road. Heavy armour has its place, but it changes how a horse moves and tires."},
+                    {"id": "leave", "label": "I'll be back.", "text": "The stablehand nods and returns to the horses."}
+                ]
+            }
         _:
             return {}
 
