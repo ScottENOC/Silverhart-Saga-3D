@@ -1296,12 +1296,18 @@ func _create_dialogue_panel(layer: CanvasLayer) -> void:
 	layer.add_child(dialogue_panel)
 
 
-func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary], expression: String = "neutral") -> void:
+func _show_dialogue(speaker: String, body: String, choices: Array, expression: String = "neutral") -> void:
 	if dialogue_panel == null:
 		return
+	# Dictionary.get() returns an untyped Array. Convert at the UI boundary
+	# rather than requiring every dialogue/quest caller to manufacture one.
+	var typed_choices: Array[Dictionary] = []
+	for choice_value in choices:
+		if choice_value is Dictionary:
+			typed_choices.append(choice_value)
 	dialogue_open = true
 	var speaker_actor := _portrait_actor_for_speaker(speaker)
-	dialogue_panel.present(speaker, body, choices, null, speaker_actor, expression)
+	dialogue_panel.present(speaker, body, typed_choices, null, speaker_actor, expression)
 
 
 func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
@@ -1427,25 +1433,23 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("recruit:"):
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
-	if choice_id == "farm_wolves_accept":
-		var accepted := FARM_WOLVES_QUEST_SCRIPT.accept(simulation.campaign_journal)
-		if bool(accepted.get("ok", false)):
-			_show_dialogue("Old Mac", "Bless you. The fence is broken on the western side of the pasture. I found blood leading into the trees. Their den must be out there somewhere.", [{"id": "continue", "label": "I'll follow the trail.", "text": ""}])
-		else:
-			_show_dialogue("Old Mac", "I cannot ask you to take that on just now.", [{"id": "continue", "label": "All right.", "text": ""}])
-		return
-	if choice_id == "farm_wolves_turn_in":
-		var player := simulation.get_character("player")
-		var reward := FARM_WOLVES_QUEST_SCRIPT.turn_in(simulation.campaign_journal, player)
-		if bool(reward.get("ok", false)):
-			_show_dialogue("Old Mac", "I won't forget what you've done. Take this, and know the farm owes you a favour.", [{"id": "continue", "label": "Thank you.", "text": ""}])
-			resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
-		else:
-			_show_dialogue("Old Mac", "The cattle are not safe yet.", [{"id": "continue", "label": "I'll return.", "text": ""}])
-		return
-	if choice_id == "farm_wolves_continue" or choice_id == "farm_wolves_decline":
-		_show_dialogue("Old Mac", String(choice.get("text", "Take care on the road.")), [{"id": "continue", "label": "Continue", "text": ""}])
-		return
+	if choice_id.begins_with("farm_wolves_"):
+		var farm_result := FARM_WOLVES_QUEST_SCRIPT.resolve_dialogue_choice(
+			simulation.campaign_journal,
+			simulation.get_character("player"),
+			choice_id,
+			String(choice.get("text", "Take care on the road."))
+		)
+		if bool(farm_result.get("handled", false)):
+			var response: Dictionary = farm_result.get("dialogue", {})
+			_show_dialogue(
+				String(response.get("speaker", "Old Mac")),
+				String(response.get("text", "")),
+				response.get("choices", [])
+			)
+			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
+			return
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
