@@ -514,6 +514,8 @@ func _initialize() -> void:
 		_check(home_map.is_walkable(new_outlying_home_doors[location_id]), "Additional outlying home entrance must be walkable: " + location_id)
 		_check(home_result.get("actors", []).is_empty() and home_result.get("creatures", []).is_empty(), "Outlying home must not duplicate campaign-owned residents: " + location_id)
 
+	_test_every_registered_floor_map(registry)
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
@@ -536,6 +538,27 @@ func _has_walkable_path(map_data: HexMapData, start: Vector2i, goal: Vector2i) -
 			visited[neighbour] = true
 			queue.append(neighbour)
 	return false
+
+func _test_every_registered_floor_map(registry: Campaign2MultiStoryLocationRegistry) -> void:
+	# A source-to-target inventory sweep: every registered physical location and
+	# every one of its floors must produce a logical map, not just the hand-picked
+	# high-profile interiors asserted above.
+	var checked_floors := 0
+	for location_id in registry.location_ids():
+		var location_definition: Dictionary = registry.get_definition(location_id)
+		var location_state = LOCATION_STATE.new()
+		_check(bool(location_state.configure(location_definition).get("ok", false)), "Every registered location must configure: " + location_id)
+		for floor_definition in location_definition.get("floors", []):
+			var floor_number := int(floor_definition.get("floor", 0))
+			var result: Dictionary = FLOOR_BUILDER.build_floor_map(location_definition, floor_number, location_state)
+			_check(bool(result.get("ok", false)), "Every registered source floor must build: %s floor %d" % [location_id, floor_number])
+			var map_data := result.get("map_data") as HexMapData
+			_check(map_data != null, "Every registered source floor must return HexMapData: %s floor %d" % [location_id, floor_number])
+			if map_data != null:
+				_check(not map_data.cells.is_empty(), "Every registered source floor must contain physical map cells: %s floor %d" % [location_id, floor_number])
+			checked_floors += 1
+	_check(checked_floors == 89, "The current source-authored registry should validate all 89 registered floor maps, got %d" % checked_floors)
+
 
 func _has_object(objects: Array, object_id: String) -> bool:
 	for object in objects:
