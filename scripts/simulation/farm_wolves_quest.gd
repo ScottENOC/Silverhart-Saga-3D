@@ -91,3 +91,42 @@ static func turn_in(journal: CampaignJournal, player: CharacterState) -> Diction
 	player.experience += REWARD_EXPERIENCE
 	journal.adjust_npc_reputation("old_mac", REWARD_REPUTATION, 20.0, "Protected Old Mac's cattle")
 	return {"ok": true, "gold": REWARD_GOLD, "experience": REWARD_EXPERIENCE, "reputation": REWARD_REPUTATION}
+
+
+static func resolve_dialogue_choice(
+	journal: CampaignJournal,
+	player: CharacterState,
+	choice_id: String,
+	choice_text: String = ""
+) -> Dictionary:
+	## Resolves Old Mac's dialogue choices here, keeping quest-specific dialogue
+	## and rewards out of the location/presentation script.
+	var response: Dictionary = {}
+	var completed := false
+	match choice_id:
+		"farm_wolves_accept":
+			var result := accept(journal)
+			if bool(result.get("ok", false)):
+				response = _response("Bless you. The fence is broken on the western side of the pasture. I found blood leading into the trees. Their den must be out there somewhere.", "I'll follow the trail.")
+			else:
+				response = _response("I cannot ask you to take that on just now.", "All right.")
+		"farm_wolves_turn_in":
+			var reward := turn_in(journal, player)
+			if bool(reward.get("ok", false)):
+				response = _response("I won't forget what you've done. Take this, and know the farm owes you a favour.", "Thank you.")
+				completed = true
+			else:
+				response = _response("The cattle are not safe yet.", "I'll return.")
+		"farm_wolves_continue", "farm_wolves_decline":
+			response = _response(choice_text if not choice_text.is_empty() else "Take care on the road.", "Continue")
+		_:
+			return {"handled": false}
+	return {"handled": true, "dialogue": response, "quest_completed": completed}
+
+
+static func _response(body: String, choice_label: String) -> Dictionary:
+	return {
+		"speaker": "Old Mac",
+		"text": body,
+		"choices": [{"id": "continue", "label": choice_label, "text": ""}]
+	}
