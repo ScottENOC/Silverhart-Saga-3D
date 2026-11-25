@@ -2,6 +2,17 @@
 
 This is a map-only audit. NPC definitions, dialogue, quests, encounters, schedules, services, factions and combat behaviour are campaign-owned and are not ported by this workstream.
 
+## Source fidelity rule: preserve authored layout, not random decoration
+
+The migration distinguishes deliberately authored layout from procedural wilderness dressing:
+
+- **Preserve and verify the layout-producing source logic:** settlement and town plans, building footprints, road/ring-road routes, walls, gates, bridges, defensive works, farm/field/fence layouts, authored clearings, landmarks, dungeon/ruin geometry, deliberate prop placements and gameplay/story-critical environmental features.
+- **Preserve authored placement where it carries meaning:** entrances, clues, graves, quest props, named landmarks and other distinctive set dressing.
+- **Do not require coordinate parity for random/procedural decoration:** randomly scattered trees, rocks, shrubs, grass, undergrowth and similar wilderness dressing need only retain the biome, broad woodland/open-ground character, density and gameplay readability. Silverhart may generate these differently using its own deterministic terrain-aware systems.
+- **Do not count procedural decoration differences as migration gaps.** The source's broad random/base scene pass is not a cell-by-cell parity target. Audit it for landscape character and coverage, not identical individual placements.
+
+When uncertain, classify a feature by its source-generation method and gameplay/story role before deciding whether exact geometry parity is required. A hand-authored grove, landmark rock formation or deliberate quest clue remains authored even if it resembles ordinary wilderness dressing.
+
 ## Silverhart: retain the authored city, defer procedural infill
 
 The canonical Silverhart baseline currently contains:
@@ -92,8 +103,8 @@ The source feature-builder inventory identifies the largest authored geometry ow
 
 1. **Visual review:** Headless tests validate geometry records, map cells, anchors and chunk ownership; they do not establish that every building, wall, road, interior or wilderness prop looks right in the Godot camera. Review scale, roof/material appearance, wall continuity and clutter in-engine.
    - The first automated 28-view capture (`campaign2-map-visual-review`, workflow run 45560807836) proves the preview scene can stream and render the selected views, but it is not visual sign-off: the Silverhart centre/ring captures show buildings, ribbons and wall features against a largely unrendered dark ground; the Kragmoor capture is effectively empty apart from a tiny marker. Rework the capture/ground presentation and inspect the actual in-game camera before accepting visual parity.
-2. **Exact terrain parity:** Build a cell-by-cell comparison for each source feature builder against the combined target JSON and GDScript terrain providers. Do not compare the 11,324 source feature-cell total directly with the 4,730 target JSON-only total.
-3. **Base wilderness terrain:** The broad source `setupVillageScene` pass touches 5,568 cells. The target uses deterministic regional terrain rules, but exact source base-pass cell parity, elevation and vegetation-density parity have not been demonstrated.
+2. **Authored geometry parity:** Build a cell-by-cell comparison for layout-producing source builders (settlements, roads, walls, bridges, farms, authored clearings, landmarks and deliberate physical-site features) against the combined target JSON and GDScript providers. Exclude random/procedural tree, rock, shrub, grass and undergrowth placements from coordinate parity. Do not compare the 11,324 source feature-cell total directly with the 4,730 target JSON-only total.
+3. **Wilderness character:** The broad source `setupVillageScene` pass touches 5,568 cells. Exact cell parity is intentionally not required for random trees, rocks and undergrowth. Review biome identity, woodland boundaries, density, clearings, sightlines and terrain-aware distribution instead. Elevation and hydrology remain separate geometry/terrain concerns and still require validation.
 4. **Hydrology and elevation:** Existing tests check strategic river waypoints, local water/fort waterway continuity, deterministic elevation and sample chunk seams. An exhaustive seam/continuity sweep across all streamed chunks remains outstanding.
 5. **Full runtime city traversal:** The stream uses 24-hex chunks and the tests exercise settlement chunks, palace/Warrens ownership and the regional/campaign stream contracts. A visual traversal from palace through all districts to the Warrens, including unload/reload while crossing chunk boundaries, remains an in-engine check.
 6. **Exterior/interior transitions:** Source floor maps and door cells are registered and floor-tested. Full runtime door entry/exit wiring is still incomplete at several settlements and interiors; track each connection separately from the geometry itself.
