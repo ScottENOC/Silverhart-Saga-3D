@@ -15,6 +15,8 @@ This is a prioritised index, not a claim that every item is currently being impl
 
 ## Immediate queue
 
+- [ ] **Extract the shared encounter/combat runtime from location controllers.** Follow [ADR 0003](adr/0003-shared-encounter-runtime.md) and [issue #401](https://github.com/ScottENOC/Silverhart-Saga-3D/issues/401): migrate existing tavern encounters first, then farm/wolf and camp ambushes. Location scripts must not own generic combat turns, AI dispatch, roster lifecycle or HUD orchestration.
+
 - [ ] **Keep the current integration queue healthy.** Resolve the Godot 4.7.2 test/type-inference failure tracked by [PR #388](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/388), then validate active PRs against the latest `dev`. Merge only after exact-head checks pass.
 - [ ] **Finish the current campaign dialogue/quest slices.** Review and validate [PR #384](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/384) (Ironbond courier), [PR #385](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/385) (quest-dialogue service), and [PR #387](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/387) (Hollowmere NPC and ambient dialogue). Preserve the original source choices and consequences.
 - [ ] **Complete the morning camp routine integration.** Validate [PR #386](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/386). Follow up on actual armour removal/re-equipping, dedicated morning animations, visible fire extinguishing, and physical camp-prop cleanup; these are not all implemented by the first staged routine.
