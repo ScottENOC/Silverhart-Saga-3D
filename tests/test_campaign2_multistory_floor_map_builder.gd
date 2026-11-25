@@ -8,6 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_test_silverhart_palace_floors(registry)
+	_test_silverhart_restored_source_floor_cells(registry)
 	var definition: Dictionary = registry.get_definition("kragmoor")
 	_check(not definition.is_empty(), "Kragmoor source floor definition must be available")
 	var state = LOCATION_STATE.new()
@@ -530,6 +531,28 @@ func _has_object(objects: Array, object_id: String) -> bool:
 			return true
 	return false
 
+
+
+func _test_silverhart_restored_source_floor_cells(registry) -> void:
+	var source_floor_cells := {
+		"silverhart_palace_wizard_tower": [Vector2i(-7, -485)],
+		"silverhart_stables": [Vector2i(-19, -501), Vector2i(-19, -503), Vector2i(-19, -504), Vector2i(-19, -505)],
+		"silverhart_general_goods": [Vector2i(-19, -491), Vector2i(-19, -492), Vector2i(-19, -493)],
+		"silverhart_clothier": [Vector2i(-29, -504), Vector2i(-30, -503), Vector2i(-32, -499), Vector2i(-32, -500), Vector2i(-32, -501)],
+		"silverhart_magic_shop": [Vector2i(-32, -487), Vector2i(-32, -488), Vector2i(-32, -489)],
+		"silverhart_ironbond_office": [Vector2i(-2, -451), Vector2i(-1, -451), Vector2i(0, -451)]
+	}
+	for location_id in source_floor_cells:
+		var definition: Dictionary = registry.get_definition(location_id)
+		var state = LOCATION_STATE.new()
+		_check(bool(state.configure(definition).get("ok", false)), "Source floor repair state must configure: " + location_id)
+		var result: Dictionary = FLOOR_BUILDER.build_floor_map(definition, 0, state)
+		_check(bool(result.get("ok", false)), "Source floor repair map must build: " + location_id)
+		if not bool(result.get("ok", false)):
+			continue
+		var map_data: HexMapData = result.get("map_data") as HexMapData
+		for source_hex in source_floor_cells[location_id]:
+			_check(map_data.is_walkable(source_hex), "Source-authored interior floor must remain walkable at %s in %s" % [source_hex, location_id])
 
 func _test_silverhart_palace_floors(registry) -> void:
 	var palace_definition: Dictionary = registry.get_definition("silverhart_palace")
