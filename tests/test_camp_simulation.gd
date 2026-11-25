@@ -429,17 +429,24 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(float(missed_event.get("detection_chance", 1.0)) < 0.2, "Exhaustion should materially reduce detection chance")
 
 	var world := WorldSimulation.new()
+	world.player_character_id = "a"
+	var watch_leader := CharacterState.new("a", "Watch Leader", Vector2i(0, 0))
+	watch_leader.side = "player"
+	world.register_character(watch_leader)
+	watch_leader.skills["keen_perception"] = 10
+	var watch_partner := CharacterState.new("b", "Watch Partner", Vector2i(1, 0))
+	watch_partner.side = "player"
+	world.register_character(watch_partner)
 	_camp_night_events = 0
 	world.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
-	world.camp_simulation.begin_camp(
+	var world_camp := world.begin_camp(
 		{"walkable": true, "site_id": "world_watch_test"},
-		["a", "b"],
-		{"danger": 1.0, "night_seed": detected_seed, "companion_profiles": {
-			"a": {"perception": 10.0}, "b": {"perception": 0.0}
-		}},
+		{"danger": 1.0, "night_seed": detected_seed},
 		{}
 	)
-	world.camp_simulation.skip_to_morning()
+	_check(bool(world_camp.get("ok", false)), "WorldSimulation should begin a camp with registered party members")
+	_check(float(world.camp_simulation.companion_profiles["a"].get("perception", 0.0)) == 10.0, "WorldSimulation should pass the authored keen perception skill into camp profiles")
+	world.skip_camp_to_morning()
 	_check(_camp_night_events == 1, "WorldSimulation should publish a detected night attack for encounter presentation")
 	world.free()
 
