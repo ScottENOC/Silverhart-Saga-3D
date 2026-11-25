@@ -5194,7 +5194,8 @@
               "position": {
                 "q": 26,
                 "r": -479
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5244,7 +5245,8 @@
               "position": {
                 "q": 32,
                 "r": -480
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5294,7 +5296,8 @@
               "position": {
                 "q": 23,
                 "r": -470
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5344,7 +5347,8 @@
               "position": {
                 "q": 26,
                 "r": -471
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5426,8 +5430,8 @@
               "id": "silverhart_middle_ring_house_northeast_east_door",
               "type": "door_open",
               "position": {
-                "q": 51,
-                "r": -536
+                "q": 49,
+                "r": -538
               }
             }
           ],
@@ -5914,7 +5918,7 @@
       "id": "silverhart_outlying_house_east",
       "name": "Silverhart — Outlying Eastern House",
       "anchor": {
-        "q": 63,
+        "q": 23,
         "r": -546
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
@@ -5927,7 +5931,7 @@
             {
               "id": "silverhart_outlying_house_east_room",
               "center": {
-                "q": 63,
+                "q": 23,
                 "r": -546
               },
               "half_width": 2,
@@ -5940,7 +5944,7 @@
               "id": "silverhart_outlying_house_east_south_door",
               "type": "door_open",
               "position": {
-                "q": 63,
+                "q": 23,
                 "r": -544
               }
             }
@@ -5956,7 +5960,7 @@
       "id": "silverhart_outlying_house_far_east",
       "name": "Silverhart — Outlying Far-Eastern House",
       "anchor": {
-        "q": 88,
+        "q": 48,
         "r": -546
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
@@ -5969,7 +5973,7 @@
             {
               "id": "silverhart_outlying_house_far_east_room",
               "center": {
-                "q": 88,
+                "q": 48,
                 "r": -546
               },
               "half_width": 2,
@@ -5982,7 +5986,7 @@
               "id": "silverhart_outlying_house_far_east_south_door",
               "type": "door_open",
               "position": {
-                "q": 88,
+                "q": 48,
                 "r": -544
               }
             }
@@ -5998,7 +6002,7 @@
       "id": "silverhart_outlying_house_west",
       "name": "Silverhart — Outlying Western House",
       "anchor": {
-        "q": 20,
+        "q": -32,
         "r": -476
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
@@ -6011,7 +6015,7 @@
             {
               "id": "silverhart_outlying_house_west_room",
               "center": {
-                "q": 20,
+                "q": -32,
                 "r": -476
               },
               "half_width": 2,
@@ -6024,7 +6028,7 @@
               "id": "silverhart_outlying_house_west_east_door",
               "type": "door_open",
               "position": {
-                "q": 22,
+                "q": -30,
                 "r": -476
               }
             }
@@ -6351,890 +6355,6 @@
       ],
       "transitions": [],
       "quest_gates": []
-    },
-    {
-      "id": "silverhart_warrens_shack_1",
-      "name": "Silverhart Warrens — West Shack",
-      "anchor": {
-        "q": 2,
-        "r": -433
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "West Shack",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_warrens_shack_1_room",
-              "center": {
-                "q": 2,
-                "r": -433
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_warrens_shack_1_south_door",
-              "type": "door_open",
-              "position": {
-                "q": 2,
-                "r": -431
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_warrens_shack_2",
-      "name": "Silverhart Warrens — Centre Shack",
-      "anchor": {
-        "q": 5,
-        "r": -427
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Centre Shack",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_warrens_shack_2_room",
-              "center": {
-                "q": 5,
-                "r": -427
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_warrens_shack_2_north_door",
-              "type": "door_open",
-              "position": {
-                "q": 5,
-                "r": -429
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_warrens_shack_3",
-      "name": "Silverhart Warrens — East Shack",
-      "anchor": {
-        "q": 11,
-        "r": -433
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "East Shack",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_warrens_shack_3_room",
-              "center": {
-                "q": 11,
-                "r": -433
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_warrens_shack_3_south_door",
-              "type": "door_open",
-              "position": {
-                "q": 11,
-                "r": -431
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_middle_ring_house_1",
-      "name": "Silverhart — East Middle-Ring House",
-      "anchor": {
-        "q": 49,
-        "r": -496
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "East Middle-Ring House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_middle_ring_house_1_room",
-              "center": {
-                "q": 49,
-                "r": -496
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_middle_ring_house_1_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 51,
-                "r": -496
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_middle_ring_house_2",
-      "name": "Silverhart — Northeast Middle-Ring House",
-      "anchor": {
-        "q": 49,
-        "r": -536
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Northeast Middle-Ring House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_middle_ring_house_2_room",
-              "center": {
-                "q": 49,
-                "r": -536
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_middle_ring_house_2_north_door",
-              "type": "door_open",
-              "position": {
-                "q": 49,
-                "r": -538
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_middle_ring_house_3",
-      "name": "Silverhart — Northwest Middle-Ring House",
-      "anchor": {
-        "q": 8,
-        "r": -536
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Northwest Middle-Ring House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_middle_ring_house_3_room",
-              "center": {
-                "q": 8,
-                "r": -536
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_middle_ring_house_3_north_door",
-              "type": "door_open",
-              "position": {
-                "q": 8,
-                "r": -538
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_middle_ring_house_4",
-      "name": "Silverhart — West Middle-Ring House",
-      "anchor": {
-        "q": -32,
-        "r": -496
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "West Middle-Ring House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_middle_ring_house_4_room",
-              "center": {
-                "q": -32,
-                "r": -496
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_middle_ring_house_4_west_door",
-              "type": "door_open",
-              "position": {
-                "q": -34,
-                "r": -496
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_middle_ring_house_5",
-      "name": "Silverhart — Southwest Middle-Ring House",
-      "anchor": {
-        "q": -32,
-        "r": -455
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Southwest Middle-Ring House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_middle_ring_house_5_room",
-              "center": {
-                "q": -32,
-                "r": -455
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_middle_ring_house_5_west_door",
-              "type": "door_open",
-              "position": {
-                "q": -34,
-                "r": -455
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": [],
-          "floor_hexes": [
-            {
-              "q": -32,
-              "r": -453
-            }
-          ]
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "Preserve source's southwest middle-ring house correction: the stray wall at centre + (0,2) is repainted Wood Floor and removed from the wall ring."
-      ]
-    },
-    {
-      "id": "silverhart_middle_ring_house_6",
-      "name": "Silverhart — Southeast Middle-Ring House",
-      "anchor": {
-        "q": 22,
-        "r": -452
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Southeast Middle-Ring House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_middle_ring_house_6_room",
-              "center": {
-                "q": 22,
-                "r": -452
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_middle_ring_house_6_west_door",
-              "type": "door_open",
-              "position": {
-                "q": 20,
-                "r": -452
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_queens_bedroom",
-      "name": "Silverhart Palace — Queen's Private Chambers",
-      "anchor": {
-        "q": 8,
-        "r": -505
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart Palace — Queen's Private Chambers",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_queens_bedroom_room",
-              "center": {
-                "q": 8,
-                "r": -505
-              },
-              "half_width": 3,
-              "half_height": 3
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_queens_bedroom_bed_1",
-              "type": "bed",
-              "position": {
-                "q": 8,
-                "r": -505
-              }
-            },
-            {
-              "id": "silverhart_queens_bedroom_table_2",
-              "type": "table",
-              "position": {
-                "q": 9,
-                "r": -505
-              }
-            },
-            {
-              "id": "silverhart_queens_bedroom_fireplace_3",
-              "type": "fireplace",
-              "position": {
-                "q": 8,
-                "r": -506
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": [],
-          "floor_hexes": [
-            {
-              "q": 8,
-              "r": -502
-            }
-          ]
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": [
-        "The bedroom is reached through the Grand Hall's rear door at (8,-501). Its south wall gap at (8,-502) is plain floor, not a second door object, matching the source sealRoom/openWallGap sequence."
-      ]
-    },
-    {
-      "id": "silverhart_neighbor_house",
-      "name": "Silverhart — Petra Ashfield's Neighbour House",
-      "anchor": {
-        "q": 45,
-        "r": -502
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — Petra Ashfield's Neighbour House",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_neighbor_house_room",
-              "center": {
-                "q": 45,
-                "r": -502
-              },
-              "half_width": 3,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_neighbor_house_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 48,
-                "r": -502
-              },
-              "light_radius": 0
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_north_cottage_1",
-      "name": "Silverhart — North Noble Cottage 1",
-      "anchor": {
-        "q": 35,
-        "r": -507
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — North Noble Cottage 1",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_north_cottage_1_room",
-              "center": {
-                "q": 35,
-                "r": -507
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_north_cottage_1_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 37,
-                "r": -507
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_north_cottage_1_table_1",
-              "type": "table",
-              "position": {
-                "q": 35,
-                "r": -507
-              }
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_north_cottage_2",
-      "name": "Silverhart — North Noble Cottage 2",
-      "anchor": {
-        "q": 35,
-        "r": -513
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — North Noble Cottage 2",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_north_cottage_2_room",
-              "center": {
-                "q": 35,
-                "r": -513
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_north_cottage_2_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 37,
-                "r": -513
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_north_cottage_2_table_1",
-              "type": "table",
-              "position": {
-                "q": 35,
-                "r": -513
-              }
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_north_cottage_3",
-      "name": "Silverhart — North Noble Cottage 3",
-      "anchor": {
-        "q": 35,
-        "r": -519
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — North Noble Cottage 3",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_north_cottage_3_room",
-              "center": {
-                "q": 35,
-                "r": -519
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_north_cottage_3_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 37,
-                "r": -519
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_north_cottage_3_table_1",
-              "type": "table",
-              "position": {
-                "q": 35,
-                "r": -519
-              }
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_east_house_1",
-      "name": "Silverhart — East Quarter House 1",
-      "anchor": {
-        "q": 26,
-        "r": -479
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — East Quarter House 1",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_east_house_1_room",
-              "center": {
-                "q": 26,
-                "r": -479
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_east_house_1_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 28,
-                "r": -479
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_east_house_1_fireplace_1",
-              "type": "fireplace",
-              "position": {
-                "q": 26,
-                "r": -479
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_east_house_2",
-      "name": "Silverhart — East Quarter House 2",
-      "anchor": {
-        "q": 32,
-        "r": -480
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — East Quarter House 2",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_east_house_2_room",
-              "center": {
-                "q": 32,
-                "r": -480
-              },
-              "half_width": 2,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_east_house_2_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 34,
-                "r": -480
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_east_house_2_fireplace_1",
-              "type": "fireplace",
-              "position": {
-                "q": 32,
-                "r": -480
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_east_house_3",
-      "name": "Silverhart — East Quarter House 3",
-      "anchor": {
-        "q": 23,
-        "r": -470
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — East Quarter House 3",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_east_house_3_room",
-              "center": {
-                "q": 23,
-                "r": -470
-              },
-              "half_width": 1,
-              "half_height": 2
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_east_house_3_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 24,
-                "r": -470
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_east_house_3_fireplace_1",
-              "type": "fireplace",
-              "position": {
-                "q": 23,
-                "r": -470
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
-    },
-    {
-      "id": "silverhart_east_house_4",
-      "name": "Silverhart — East Quarter House 4",
-      "anchor": {
-        "q": 26,
-        "r": -471
-      },
-      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
-      "floors": [
-        {
-          "floor": 0,
-          "name": "Silverhart — East Quarter House 4",
-          "terrain": "wood_floor",
-          "rooms": [
-            {
-              "id": "silverhart_east_house_4_room",
-              "center": {
-                "q": 26,
-                "r": -471
-              },
-              "half_width": 1,
-              "half_height": 1
-            }
-          ],
-          "corridors": [],
-          "tile_objects": [
-            {
-              "id": "silverhart_east_house_4_east_door",
-              "type": "door_open",
-              "position": {
-                "q": 27,
-                "r": -471
-              },
-              "light_radius": 0
-            },
-            {
-              "id": "silverhart_east_house_4_fireplace_1",
-              "type": "fireplace",
-              "position": {
-                "q": 26,
-                "r": -471
-              },
-              "light_radius": 6
-            }
-          ],
-          "actors": [],
-          "creatures": []
-        }
-      ],
-      "transitions": [],
-      "quest_gates": [],
-      "source_notes": []
     },
     {
       "id": "silverhart_outlying_house_1",
