@@ -8,11 +8,15 @@ const FEATURES = preload("res://data/world/regions/silverhart_heartland/features
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_dragon_lair_presentation_arguments"}
+	var site := terrain_data.encounter_site("ashveil_lair")
+	if site.is_empty() or String(site.get("kind", "")) != "dragon_lair":
+		return {"ok": false, "reason": "missing_source_ashveil_lair_anchor"}
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
 	var placements: Array[Vector2i] = []
-	for q in range(FEATURES.DRAGON_LAIR_CENTRE.x - FEATURES.DRAGON_LAIR_OUTER_RADIUS, FEATURES.DRAGON_LAIR_CENTRE.x + FEATURES.DRAGON_LAIR_OUTER_RADIUS + 1):
-		for r in range(FEATURES.DRAGON_LAIR_CENTRE.y - FEATURES.DRAGON_LAIR_OUTER_RADIUS, FEATURES.DRAGON_LAIR_CENTRE.y + FEATURES.DRAGON_LAIR_OUTER_RADIUS + 1):
+	for q in range(centre.x - FEATURES.DRAGON_LAIR_OUTER_RADIUS, centre.x + FEATURES.DRAGON_LAIR_OUTER_RADIUS + 1):
+		for r in range(centre.y - FEATURES.DRAGON_LAIR_OUTER_RADIUS, centre.y + FEATURES.DRAGON_LAIR_OUTER_RADIUS + 1):
 			var hex := Vector2i(q, r)
-			var distance := _axial_distance(hex, FEATURES.DRAGON_LAIR_CENTRE)
+			var distance := _axial_distance(hex, centre)
 			if distance < FEATURES.DRAGON_LAIR_DEN_RADIUS + 1 or distance > FEATURES.DRAGON_LAIR_OUTER_RADIUS:
 				continue
 			if terrain_data.terrain_for_hex(hex) != "rocky_outcrop" or not _contains(hex, chunk_min, chunk_size):
@@ -22,7 +26,7 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 			placements.append(hex)
 	for hex in placements:
 		_add_outcrop_rock(parent, terrain_data, hex, hex_radius)
-	return {"ok": true, "rock_count": placements.size()}
+	return {"ok": true, "rock_count": placements.size(), "anchor": centre}
 
 static func _add_outcrop_rock(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, radius: float) -> void:
 	var root := Node3D.new()

@@ -27,7 +27,8 @@ func _test_source_entrances() -> void:
 		_check(expected.has(entrance_id), "Every presented cave entrance must have a source-backed test record")
 		if not expected.has(entrance_id):
 			continue
-		var hex: Vector2i = entrance["hex"]
+		var hex: Vector2i = _source_door_hex(data, entrance)
+		_check(hex == expected[entrance_id]["hex"], "%s door must retain its source offset from the canonical POI" % entrance_id)
 		var chunk_min := Vector2i(floori(float(hex.x) / 24.0) * 24, floori(float(hex.y) / 24.0) * 24)
 		var parent := Node3D.new()
 		root.add_child(parent)
@@ -52,7 +53,7 @@ func _test_source_entrances() -> void:
 func _test_chunk_ownership() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
 	for entrance in PRESENTATION.ENTRANCES:
-		var hex: Vector2i = entrance["hex"]
+		var hex: Vector2i = _source_door_hex(data, entrance)
 		var owning_min := Vector2i(floori(float(hex.x) / 24.0) * 24, floori(float(hex.y) / 24.0) * 24)
 		var unrelated_min := owning_min + Vector2i(24, 24)
 		var parent := Node3D.new()
@@ -61,6 +62,19 @@ func _test_chunk_ownership() -> void:
 		_check(bool(result.get("ok", false)), "Unrelated chunks should remain valid")
 		_check(int(result.get("features", -1)) == 0 and parent.get_child_count() == 0, "Cave entrance dressing must remain chunk-owned")
 		parent.free()
+
+func _source_door_hex(data: Campaign2WorldTerrainData, entrance: Dictionary) -> Vector2i:
+	var entrance_id := String(entrance.get("id", ""))
+	var location: Dictionary = {}
+	for candidate in data.locations:
+		if candidate is Dictionary and String(candidate.get("id", "")) == entrance_id:
+			location = candidate
+			break
+	assert(not location.is_empty(), "%s must exist in canonical geography" % entrance_id)
+	var centre := Vector2i(int(location.get("q", 0)), int(location.get("r", 0)))
+	var door_offset: Vector2i = entrance["door_offset"]
+	return centre + door_offset
+
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
