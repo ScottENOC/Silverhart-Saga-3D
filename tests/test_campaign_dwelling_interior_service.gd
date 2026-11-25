@@ -51,6 +51,13 @@ func _test_crossroads_cottage() -> void:
 		_check(runtime.has_floor_object(0, "crossroads_cottage_player_bed"), "The cottage must present its source player bed")
 		_check(runtime.has_floor_object(0, "crossroads_cottage_fireplace"), "The cottage must present its source fireplace")
 		_check(runtime.has_floor_object(0, "crossroads_cottage_storage_chest"), "The cottage must present its source storage chest")
+		var floor_group := runtime.floor_groups.get(0) as Node3D
+		var bed_prop := floor_group.get_node_or_null("crossroads_cottage_player_bed") as Node3D
+		_check(bed_prop != null and bed_prop.get_node_or_null("BedFrame") is MeshInstance3D and bed_prop.get_node_or_null("Mattress") is MeshInstance3D and bed_prop.get_node_or_null("Pillow") is MeshInstance3D, "The bed must render as a frame, mattress and pillow rather than a generic cube")
+		var chest_prop := floor_group.get_node_or_null("crossroads_cottage_storage_chest") as Node3D
+		_check(chest_prop != null and chest_prop.get_node_or_null("ChestBody") is MeshInstance3D and chest_prop.get_node_or_null("ChestLid") is MeshInstance3D, "The storage chest must have a distinct body and lid")
+		var door_prop := floor_group.get_node_or_null("crossroads_cottage_south_door") as Node3D
+		_check(door_prop != null and door_prop.get_node_or_null("DoorFrameLeft") is MeshInstance3D and door_prop.get_node_or_null("DoorPanel") is MeshInstance3D, "The doorway must render as a frame and open door panel")
 		_check(runtime.definition.get("anchor", {}) == {"q": 13, "r": 27}, "The cottage must use the surveyed plot's exact source anchor")
 		_check(runtime.definition.get("id", "") == "dwelling_crossroads_cottage", "The dwelling interior needs a stable save identity separate from the world plot")
 	_check(simulation.map_data.is_walkable(Vector2i(13, 27)), "The cottage bed hex must be walkable")
@@ -74,6 +81,11 @@ func _test_country_house_upgrade() -> void:
 		_check(runtime.has_floor_object(0, "crossroads_country_house_south_door"), "The upgraded house must move its doorway one source hex south")
 		_check(runtime.has_floor_object(0, "crossroads_country_house_table"), "The upgraded house must present its source table")
 		_check(runtime.has_floor_object(0, "crossroads_country_house_bench"), "The upgraded house must present its source bench")
+		var floor_group := runtime.floor_groups.get(0) as Node3D
+		var table_prop := floor_group.get_node_or_null("crossroads_country_house_table") as Node3D
+		_check(table_prop != null and table_prop.get_node_or_null("TableTop") is MeshInstance3D and table_prop.get_child_count() == 5, "The country-house table must render a top and four legs")
+		var bench_prop := floor_group.get_node_or_null("crossroads_country_house_bench") as Node3D
+		_check(bench_prop != null and bench_prop.get_node_or_null("BenchSeat") is MeshInstance3D and bench_prop.get_child_count() == 5, "The country-house bench must render a seat and four legs")
 		_check(not runtime.has_floor_object(0, "crossroads_cottage_storage_chest"), "The source upgrade replaces the cottage chest hex with its table")
 		_check(runtime.get_floor_tile_count(0) > 20, "The upgraded house must use the larger 3-by-3 source-building footprint")
 	parent.free()
