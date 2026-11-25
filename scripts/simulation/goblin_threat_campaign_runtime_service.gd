@@ -7,7 +7,7 @@ const CONTENT_SCRIPT = preload("res://scripts/simulation/goblin_threat_campaign_
 const FOLLOWUP_SCRIPT = preload("res://scripts/simulation/goblin_threat_followup_content.gd")
 const WORLD_EFFECT_SERVICE = preload("res://scripts/simulation/campaign_world_effect_service.gd")
 const CHARACTER_FACTORY = preload("res://scripts/simulation/campaign_character_factory.gd")
-const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const QUEST_DEFINITION_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
 const SCOUT_NOTE_QUEST_ID := "goblin_scout_note"
 
 
@@ -89,7 +89,7 @@ static func rescue_aldric(
 	if simulation == null or simulation.campaign_journal == null:
 		return {"ok": false, "reason": "missing_simulation"}
 	var journal := simulation.campaign_journal
-	COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(journal)
+	QUEST_DEFINITION_REGISTRY.register_all(journal)
 	var quest := journal.quest_state("aldric_rescue")
 	if quest.is_empty():
 		var started := journal.start_quest("aldric_rescue")
