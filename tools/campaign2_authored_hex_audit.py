@@ -243,6 +243,26 @@ def source_floor_cells_by_level(runtime: dict[str, Any]) -> dict[int, set[str]]:
     return dict(result)
 
 
+
+def source_road_parity_report(runtime: dict[str, Any], target_road_cells: set[str]) -> dict[str, Any]:
+    """Compare the target strategic road manifest with the original paintRoad cell set."""
+    builder_cells = runtime.get("terrainCellsByBuilder", {})
+    source_values = builder_cells.get("paintRoad", []) if isinstance(builder_cells, dict) else []
+    source_cells = {str(value) for value in source_values}
+    missing = sorted(source_cells - target_road_cells)
+    extra = sorted(target_road_cells - source_cells)
+    return {
+        "source_cells": len(source_cells),
+        "target_cells": len(target_road_cells),
+        "matching_cells": len(source_cells & target_road_cells),
+        "source_only_cells": len(missing),
+        "target_only_cells": len(extra),
+        "source_only_samples": missing[:20],
+        "target_only_samples": extra[:20],
+        "matches_source": not missing and not extra,
+    }
+
+
 def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, Any]) -> dict[str, Any]:
     """Compare authored target walkable floor coordinates with the captured source floor coordinates."""
     target = target_floor_cells_by_level(multistory)
@@ -700,6 +720,11 @@ def build_report(
         if source_runtime_data is not None
         else None
     )
+    source_road_validation = (
+        source_road_parity_report(source_runtime_data, road_cells)
+        if source_runtime_data is not None
+        else None
+    )
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -742,6 +767,7 @@ def build_report(
         "source_runtime": source_runtime_report,
         "strategic_map_validation": strategic_map_validation,
         "interior_floor_validation": interior_floor_validation,
+        "source_road_validation": source_road_validation,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
