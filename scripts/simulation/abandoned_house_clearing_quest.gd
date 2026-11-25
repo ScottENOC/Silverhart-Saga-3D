@@ -191,6 +191,11 @@ static func finish_encounter(simulation: WorldSimulation, previous_states: Dicti
 	if simulation == null:
 		return
 	COMBAT_ENCOUNTER_SERVICE.finish(simulation, {"previous_states": previous_states})
+	for guardian_id in GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian != null:
+			guardian.side = "enemy"
+			guardian.combat_dormant = true
 
 
 static func resolve_clearing(journal: CampaignJournal, simulation: WorldSimulation) -> Dictionary:
