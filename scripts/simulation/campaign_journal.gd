@@ -265,6 +265,21 @@ func adjust_npc_standing(npc_id: String, amount: int, reason: String = "") -> Di
 	return {"ok": true, "previous": previous, "current": next_value}
 
 
+func set_npc_standing(npc_id: String, standing: float, reason: String = "") -> Dictionary:
+	if npc_id.strip_edges().is_empty() or not is_finite(standing):
+		return {"ok":false,"reason":"invalid_npc_standing"}
+	var previous := float(npc_standings.get(npc_id, 0.0))
+	var next_value := clampf(standing, -100.0, 100.0)
+	npc_standings[npc_id] = next_value
+	_emit_event("npc_standing_changed", {
+		"npc_id": npc_id,
+		"previous": previous,
+		"standing": next_value,
+		"reason": reason
+	})
+	return {"ok":true,"npc_id":npc_id,"previous":previous,"standing":next_value}
+
+
 func npc_standing(npc_id: String) -> float:
 	return float(npc_standings.get(npc_id, 0.0))
 
