@@ -45,7 +45,7 @@ func _run() -> void:
     assert(region_queries._get_authored_region_weights(mixed_channels, "calf_left").is_empty(),
         "Authored-only queries must not mistake broad rig weights for fine masks")
     mixed_channels["fine_region_weights"] = {"calf_left": PackedFloat32Array([0.6])}
-    assert(region_queries._get_region_weights(mixed_channels, "calf_left")[0] == 0.6,
+    assert(is_equal_approx(region_queries._get_region_weights(mixed_channels, "calf_left")[0], 0.6),
         "Authored fine weights must take precedence over broad rig weights")
     assert(painter_script.get_script_method_list().any(func(method: Dictionary): return method["name"] == "_inspect_at"),
         "Painter must expose barycentric multi-region point inspection")
