@@ -81,15 +81,13 @@ func handle_directional_key(keycode: int) -> bool:
 func process_movement(delta: float) -> void:
 	if simulation == null:
 		return
-	if simulation.is_in_combat:
-		return
 	path_step_accumulator += delta
 	if path_step_accumulator < PATH_STEP_INTERVAL:
 		return
 	path_step_accumulator = 0.0
 	if active_path.size() >= 2:
 		_advance_path_step()
-	if is_group_movement_enabled():
+	if is_group_movement_enabled() and not simulation.is_in_combat:
 		_advance_group_followers()
 
 func get_active_path() -> Array[Vector2i]:
@@ -102,13 +100,15 @@ func _advance_path_step() -> void:
 		clear_path()
 		return
 	if simulation.is_in_combat:
-		return
+		var active_turn := simulation.get_current_turn_character()
+		if active_turn == null or active_turn.id != active_character_id:
+			return
 	var next_hex := active_path[1]
 	var active_state := simulation.get_character(active_character_id)
 	if active_state == null:
 		clear_path()
 		return
-	if active_state.time_points < simulation.movement_cost(active_character_id, next_hex):
+	if not simulation.is_in_combat and active_state.time_points < simulation.movement_cost(active_character_id, next_hex):
 		return
 	if not simulation.try_move_character_step(active_character_id, next_hex):
 		var destination := active_path[active_path.size() - 1]
