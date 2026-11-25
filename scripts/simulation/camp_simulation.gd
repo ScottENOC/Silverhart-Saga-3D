@@ -29,6 +29,8 @@ var party_ids: Array[String] = []
 ## All entities present at camp. Party membership is a capability, not a
 ## prerequisite for being represented here.
 var occupants: Dictionary = {}
+## Per-animal camp care state, keyed by the animal occupant ID.
+var animal_care: Dictionary = {}
 var environment: Dictionary = {}
 var resources: Dictionary = {}
 var assignments: Dictionary = {}
@@ -65,6 +67,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	party_ids = validated_ids
 	environment = environment_data.duplicate(true)
 	occupants.clear()
+	animal_care.clear()
 	for character_id in party_ids:
 		register_camp_occupant({
 			"occupant_id": character_id, "kind": "party_member", "species": "humanoid",
@@ -82,7 +85,8 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 		"water": maxi(0, int(resource_data.get("water", 0))),
 		"tents": maxi(0, int(resource_data.get("tents", 0))),
 		"sleeping_bags": maxi(0, int(resource_data.get("sleeping_bags", 0))),
-		"repair_kits": maxi(0, int(resource_data.get("repair_kits", 0)))
+		"repair_kits": maxi(0, int(resource_data.get("repair_kits", 0))),
+		"fodder": maxi(0, int(resource_data.get("fodder", 0)))
 	}
 	assignments.clear()
 	_default_assignments.clear()
@@ -102,7 +106,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	_plan_initial_activities()
 	plan_sleeping_arrangements(resources.tents)
 	camp_started.emit(site.duplicate(true))
-	return {"ok": true, "party_size": party_ids.size(), "assignments": assignments.duplicate(true)}
+	return {"ok": true, "party_size": party_ids.size(), "occupant_count": occupants.size(), "assignments": assignments.duplicate(true)}
 
 
 const OCCUPANT_KINDS: Array[String] = [
@@ -139,7 +143,68 @@ func register_camp_occupant(data: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": "invalid_occupant_needs"}
 	clean["needs"] = needs.duplicate()
 	occupants[occupant_id] = clean
+	if kind == "animal" and String(clean.get("species", "")).to_lower() in ["horse", "equine"]:
+		_ensure_horse_care_state(occupant_id)
 	return {"ok": true, "occupant": clean.duplicate(true)}
+
+
+## Initialise persistent care flags for a registered horse without assuming it
+## has already been fed, watered or safely tethered.
+func _ensure_horse_care_state(occupant_id: String) -> void:
+	if not animal_care.has(occupant_id):
+		animal_care[occupant_id] = {
+			"watered": false, "fed": false, "groomed": false,
+			"tethered": false, "resting": false,
+			"last_care": "", "handler_id": ""
+		}
+
+
+## Resolve one deliberate camp-care action. Feed and water consume only the
+## explicitly supplied fodder/water stores; grooming and resting do not invent
+## consumable items. Tethering requires an authored safe anchor at the site.
+func perform_animal_care(occupant_id: String, action: String, handler_id: String = "") -> Dictionary:
+	if phase != "evening":
+		return {"ok": false, "reason": "camp_not_in_evening"}
+	var animal: Dictionary = occupant_for(occupant_id)
+	if animal.is_empty() or String(animal.get("kind", "")) != "animal":
+		return {"ok": false, "reason": "animal_not_in_camp"}
+	if String(animal.get("species", "")).to_lower() not in ["horse", "equine"]:
+		return {"ok": false, "reason": "unsupported_care_species"}
+	if not handler_id.is_empty():
+		var handler: Dictionary = occupant_for(handler_id)
+		if handler.is_empty() or not bool(handler.get("can_work", false)):
+			return {"ok": false, "reason": "handler_cannot_work"}
+	_ensure_horse_care_state(occupant_id)
+	var state: Dictionary = animal_care[occupant_id].duplicate(true)
+	match action:
+		"water":
+			if int(resources.get("water", 0)) <= 0:
+				return {"ok": false, "reason": "no_water"}
+			resources["water"] = int(resources.water) - 1
+			state["watered"] = true
+		"feed":
+			if int(resources.get("fodder", 0)) <= 0:
+				return {"ok": false, "reason": "no_fodder"}
+			resources["fodder"] = int(resources.fodder) - 1
+			state["fed"] = true
+		"groom":
+			state["groomed"] = true
+		"tether":
+			if not bool(site.get("safe_tethering", environment.get("safe_tethering", false))):
+				return {"ok": false, "reason": "no_safe_tethering_anchor"}
+			state["tethered"] = true
+		"rest":
+			state["resting"] = true
+		_:
+			return {"ok": false, "reason": "unknown_animal_care_action"}
+	state["last_care"] = action
+	state["handler_id"] = handler_id
+	animal_care[occupant_id] = state
+	return {"ok": true, "animal_id": occupant_id, "care": state.duplicate(true), "resources_remaining": resources.duplicate(true)}
+
+
+func horse_care_for(occupant_id: String) -> Dictionary:
+	return (animal_care.get(occupant_id, {}) as Dictionary).duplicate(true)
 
 
 func remove_camp_occupant(occupant_id: String) -> Dictionary:
@@ -148,6 +213,7 @@ func remove_camp_occupant(occupant_id: String) -> Dictionary:
 	if party_ids.has(occupant_id):
 		return {"ok": false, "reason": "cannot_remove_party_member"}
 	occupants.erase(occupant_id)
+	animal_care.erase(occupant_id)
 	return {"ok": true}
 
 
@@ -729,7 +795,7 @@ func to_dict() -> Dictionary:
 		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true),
 		"routine_stage": routine_stage, "preparations_completed": _preparations_completed,
 		"companion_profiles": companion_profiles.duplicate(true),
-		"occupants": occupants.duplicate(true)
+		"occupants": occupants.duplicate(true), "animal_care": animal_care.duplicate(true)
 	}
 
 
@@ -744,6 +810,9 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_lodging: Variant = data.get("lodging_profile", data.get("site", {}).get("dwelling_profile", {}))
 	var saved_profiles: Variant = data.get("companion_profiles", data.get("environment", {}).get("companion_profiles", {}))
 	var saved_occupants: Variant = data.get("occupants", {})
+	var saved_animal_care: Variant = data.get("animal_care", {})
+	if not saved_animal_care is Dictionary:
+		return false
 	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary or not saved_profiles is Dictionary or not saved_occupants is Dictionary:
 		return false
 	var ids: Array[String] = []
@@ -788,6 +857,11 @@ func from_dict(data: Dictionary) -> bool:
 	_preparations_completed = bool(data.get("preparations_completed", false))
 	companion_profiles = saved_profiles.duplicate(true)
 	occupants = saved_occupants.duplicate(true)
+	animal_care = saved_animal_care.duplicate(true)
+	for occupant_id in occupants:
+		var occupant: Dictionary = occupants[occupant_id]
+		if String(occupant.get("kind", "")) == "animal" and String(occupant.get("species", "")).to_lower() in ["horse", "equine"]:
+			_ensure_horse_care_state(String(occupant_id))
 	if occupants.is_empty() and not party_ids.is_empty():
 		for character_id in party_ids:
 			register_camp_occupant({
