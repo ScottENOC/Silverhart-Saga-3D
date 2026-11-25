@@ -789,6 +789,26 @@ def render_markdown(report: dict[str, Any]) -> str:
         ),
         "",
         "",
+    if report.get("interior_floor_validation") is not None:
+        interior = report["interior_floor_validation"]
+        lines.extend([
+            "",
+            "## Interior floor source-coordinate comparison",
+            "",
+            f'Source interior regions: {interior["source_interior_regions"]}; '
+            f'regions with explicit floor masks: {interior["source_interior_regions_with_explicit_floor_hexes"]}; '
+            f'explicit source floor hexes: {interior["source_explicit_interior_floor_hexes"]}. '
+            f'Target location definitions: {interior["target_locations"]}.',
+            "",
+            "| Floor | Source floor cells | Target floor cells | Matching | Source-only | Target-only |",
+            "|---:|---:|---:|---:|---:|---:|",
+        ])
+        for level, item in interior["levels"].items():
+            lines.append(
+                f'| {level} | {item["source_cells"]:,} | {item["target_cells"]:,} '
+                f'| {item["matching_cells"]:,} | {item["source_only_cells"]:,} | {item["target_only_cells"]:,} |'
+            )
+        lines.extend(["", interior["note"], ""])
         "## Strategic map source parity",
         "",
         "No strategic map was captured." if report.get("strategic_map_validation") is None else (
