@@ -66,6 +66,3 @@ static func _material(colour: Color) -> StandardMaterial3D:
 	material.albedo_color = colour
 	material.roughness = 1.0
 	return material
-
-static func _contains(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
-	return hex.x >= chunk_min.x and hex.x < chunk_min.x + chunk_size and hex.y >= chunk_min.y and hex.y < chunk_min.y + chunk_size
