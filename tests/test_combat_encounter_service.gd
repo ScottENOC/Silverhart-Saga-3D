@@ -2,6 +2,7 @@ extends SceneTree
 
 const ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 const DIRE_WOLF_ENCOUNTER = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
+const HOLLOWMERE_ENCOUNTER = preload("res://scripts/simulation/hollowmere_encounter.gd")
 
 var _failures: int = 0
 
@@ -10,6 +11,7 @@ func _initialize() -> void:
 	_test_begin_and_restore_all_participants()
 	_test_reject_invalid_rosters_without_mutation()
 	_test_dire_wolf_domain_uses_shared_lifecycle()
+	_test_ironbond_domain_uses_shared_lifecycle()
 	if _failures > 0:
 		push_error("%d combat encounter service assertion(s) failed." % _failures)
 		quit(1)
@@ -92,4 +94,40 @@ func _test_dire_wolf_domain_uses_shared_lifecycle() -> void:
 	DIRE_WOLF_ENCOUNTER.finish(simulation, ["player"], previous_states)
 	_check(not simulation.is_in_combat, "Finishing the dire wolf encounter should end combat.")
 	_check(not bystander.combat_dormant, "The dire wolf encounter should restore unrelated characters afterwards.")
+	simulation.free()
+
+func _test_ironbond_domain_uses_shared_lifecycle() -> void:
+	var simulation := WorldSimulation.new()
+	var all_ids: Array[String] = HOLLOWMERE_ENCOUNTER.COMBAT_ALLY_IDS.duplicate()
+	all_ids.append_array(HOLLOWMERE_ENCOUNTER.ENEMY_IDS)
+	all_ids.append("companion_aldric")
+	all_ids.append("bystander")
+	var index := 0
+	for character_id in all_ids:
+		var state := CharacterState.new(character_id, character_id, Vector2i(index, 0))
+		if HOLLOWMERE_ENCOUNTER.PLAYER_CONTROLLED_IDS.has(character_id):
+			state.side = "player"
+		if character_id == "bystander":
+			state.combat_dormant = false
+		simulation.register_character(state)
+		index += 1
+
+	var started: Dictionary = HOLLOWMERE_ENCOUNTER.start(simulation, ["companion_aldric"])
+	_check(bool(started.get("ok", false)), "The Ironbond encounter should start through the shared lifecycle.")
+	_check(simulation.is_in_combat, "The Ironbond encounter should activate WorldSimulation combat.")
+	var party_ids: Array = started.get("party_ids", [])
+	var controlled_ids: Array = started.get("controlled_ids", [])
+	_check(party_ids.has("companion_aldric"), "Additional campaign party members should join the Ironbond encounter.")
+	_check(controlled_ids.has("companion_aldric"), "Additional party members should retain player control.")
+	_check(not controlled_ids.has("garrick_holt"), "Encounter allies should remain AI-controlled.")
+	var bystander := simulation.get_character("bystander")
+	_check(bystander.combat_dormant, "The shared lifecycle should suspend unrelated characters during Ironbond combat.")
+	for enemy_id in HOLLOWMERE_ENCOUNTER.ENEMY_IDS:
+		var enemy := simulation.get_character(enemy_id)
+		_check(enemy.side == "enemy" and not enemy.combat_dormant, "Ironbond soldiers should be active enemies.")
+	var previous_states: Dictionary = started.get("previous_states", {})
+	HOLLOWMERE_ENCOUNTER.finish(simulation, previous_states)
+	_check(not simulation.is_in_combat, "Finishing Ironbond should end combat.")
+	_check(not bystander.combat_dormant, "Ironbond cleanup should restore unrelated characters.")
+	_check(simulation.get_character("garrick_holt").side == "neutral", "Ironbond cleanup should restore defender side assignments.")
 	simulation.free()
