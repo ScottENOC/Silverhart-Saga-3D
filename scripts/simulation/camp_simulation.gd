@@ -756,7 +756,7 @@ func _routine_activity_for(character_id: String, stage: int) -> String:
 	var fatigue := maxf(float(profile.get("fatigue", 0.0)), float(condition.get("fatigue", 0.0)))
 	var injured := bool(profile.get("injured", false))
 	var personality := String(profile.get("personality", "")).to_lower()
-	var has_dwelling := bool(lodging_profile.get("is_sheltered", true))
+	var has_dwelling := not lodging_profile.is_empty() and bool(lodging_profile.get("is_sheltered", true))
 	var severe_weather := _weather_is_severe()
 	if int(resources.water) < party_ids.size() and bool(environment.get("water_nearby", false)):
 		return "fetch_water"
