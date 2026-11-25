@@ -291,6 +291,12 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 			if bool(context.get("orc_trust_active", false)):
 				return {"speaker": display_name, "text": "That troll still denning east of here? Deal with it and we'll talk properly.", "choices": [{"id": "troll", "label": "Where is its den?", "text": "East of the stockade, in the rocks. It has been picking off scouts and cattle. Bring proof that it is dead."}, {"id": "leave", "label": "I'm working on it.", "text": "Grukk folds his arms."}]}
 			return {"speaker": display_name, "text": "Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", "choices": [{"id": "troll", "label": "What do you know about the troll?", "text": "It denns east of the stockade, in the rocks. It has been taking scouts and cattle. Deal with it and you'll have earned a proper welcome."}, {"id": "leave", "label": "Not interested.", "text": "Grukk's expression hardens."}]}
+		"guild_investigator":
+			return {"speaker": display_name, "text": "Three of our men went missing near here a while back. Left enough behind that we know what happened, at least — small mercy compared to some. Keep your eyes open, will you?", "choices": [{"id": "leave", "label": "I will.", "text": "The investigator studies you briefly, then moves on."}]}
+		"bone_trader":
+			return {"speaker": display_name, "text": "Everything here came off someone who isn't using it anymore. Coin's coin, and I don't ask questions — you shouldn't either.", "choices": [{"id": "wares", "label": "Let me see your wares.", "text": "The trader gestures to the shelves of salvaged goods. His prices are not for the faint-hearted."}, {"id": "leave", "label": "Just looking.", "text": "The trader returns to sorting his stock."}]}
+		"farm_sheep":
+			return {"speaker": display_name, "text": "Baa.", "choices": [{"id": "leave", "label": "...", "text": "The sheep returns to grazing."}]}
 		"hollowmere_beggar":
 			return {"speaker": display_name, "text": "Spare a coin? Times are hard in Hollowmere just now. Wasn't always like this.", "choices": [{"id": "give_coin", "label": "Give 2 gold.", "text": "The beggar thanks you quietly."}, {"id": "leave", "label": "Sorry, nothing to spare.", "text": "The beggar lowers his eyes and lets you pass."}]}
 		"hollowmere_peddler":
