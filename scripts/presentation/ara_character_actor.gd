@@ -71,30 +71,23 @@ func configure(glb_path: String) -> bool:
 		_collect_meshes(carrier_root, carrier_meshes)
 		for mesh in carrier_meshes:
 			mesh.visible = false
-		animation_source_root = carrier_root
-		animation_source_root.name = "AraAnimationSource"
-		add_child(animation_source_root)
-		model_root = body_root
-		model_root.name = "AraModel"
-		add_child(model_root)
 		skeleton_retargeter = ARA_SKELETON_RETARGETER.new() as SkeletonModifier3D
 		skeleton_retargeter.name = "AraAnimationRetargeter"
 		var mapped_bones: int = skeleton_retargeter.configure(carrier_skeleton, body_skeleton)
 		if mapped_bones >= 20:
+			animation_source_root = carrier_root
+			animation_source_root.name = "AraAnimationSource"
+			add_child(animation_source_root)
+			model_root = body_root
+			model_root.name = "AraModel"
+			add_child(model_root)
 			body_skeleton.add_child(skeleton_retargeter)
 			animation_player = carrier_animation_player
 			retargeted = true
 		else:
 			push_warning("Ara character '%s' only maps %d animation bones; leaving its native rig unmodified." % [glb_path, mapped_bones])
-			body_skeleton.remove_child(skeleton_retargeter)
 			skeleton_retargeter.free()
 			skeleton_retargeter = null
-			remove_child(model_root)
-			model_root.free()
-			model_root = null
-			remove_child(animation_source_root)
-			animation_source_root.free()
-			animation_source_root = null
 	if not retargeted:
 		if carrier_root != null and is_instance_valid(carrier_root) and carrier_root.get_parent() == null:
 			carrier_root.free()
