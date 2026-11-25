@@ -451,8 +451,39 @@ func remove_camp_occupant(occupant_id: String) -> Dictionary:
 		return {"ok": false, "reason": "occupant_not_found"}
 	if party_ids.has(occupant_id):
 		return {"ok": false, "reason": "cannot_remove_party_member"}
+	var removed: Dictionary = occupants[occupant_id]
+	var removed_kind := String(removed.get("kind", ""))
+	var affected_animals: Dictionary = {}
+	if removed_kind == "animal":
+		_restore_horse_care_handler(occupant_id)
+		animal_care_tasks = animal_care_tasks.filter(
+			func(task: Dictionary) -> bool: return String(task.get("animal_id", "")) != occupant_id
+		)
+		animal_care.erase(occupant_id)
+	else:
+		for task in animal_care_tasks:
+			if String(task.get("handler_id", "")) == occupant_id and String(task.get("status", "")) in ["pending", "in_progress"]:
+				affected_animals[String(task.get("animal_id", ""))] = true
+				if String(task.get("status", "")) == "in_progress":
+					task["status"] = "pending"
+					task["blocked_reason"] = "handler_departed"
+				task["handler_id"] = ""
+		assignments.erase(occupant_id)
+		_default_assignments.erase(occupant_id)
+	conditions.erase(occupant_id)
+	companion_profiles.erase(occupant_id)
 	occupants.erase(occupant_id)
-	animal_care.erase(occupant_id)
+	for animal_id_value in affected_animals:
+		var animal_id := String(animal_id_value)
+		var replacement_handler := _select_horse_care_handler({})
+		for index in range(animal_care_tasks.size()):
+			var task: Dictionary = animal_care_tasks[index]
+			if String(task.get("animal_id", "")) != animal_id or String(task.get("status", "")) in ["completed", "blocked"]:
+				continue
+			task["handler_id"] = replacement_handler
+			animal_care_tasks[index] = task
+		if not replacement_handler.is_empty():
+			_activate_next_horse_care_task(animal_id)
 	return {"ok": true}
 
 
