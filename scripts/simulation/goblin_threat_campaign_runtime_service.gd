@@ -260,6 +260,10 @@ static func read_scout_note(simulation: WorldSimulation) -> Dictionary:
 	)
 	if not bool(applied.get("ok", false)):
 		return applied
+	var completed := journal.complete_quest(SCOUT_NOTE_QUEST_ID)
+	if not bool(completed.get("ok", false)):
+		return completed
+	result["quest_completed"] = true
 	result["world_effects"] = applied
 	return result
 
