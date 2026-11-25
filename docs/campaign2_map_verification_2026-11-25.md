@@ -65,7 +65,7 @@ Map presentation deliberately does not spawn wolves, dragons, druids, undead, in
 
 ## Source terrain and geometry audit (step 5)
 
-The source-runtime extractor and authored-hex audit completed successfully against pinned Hex-CRPG commit `4de96f16889d43cae91e03832c8eb1c1b4b00e42`. It found no missing source builder symbols.
+The source-runtime extractor and authored-hex audit completed successfully against pinned Hex-CRPG commit `4de96f16889d43cae91e03832c8eb1c1b4b00e42`. The audit checked seven named builder symbols (Emberlode, Farmstead, Goblin Camp, Millbrook, Orc Stronghold, Reddale and Silverhart Palace) and found none missing; it does not claim to have symbol-checked every builder in the runtime inventory.
 
 Source runtime inventory:
 
