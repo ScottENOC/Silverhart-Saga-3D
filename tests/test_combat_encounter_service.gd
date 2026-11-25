@@ -131,7 +131,9 @@ func _test_ironbond_domain_uses_shared_lifecycle() -> void:
 	HOLLOWMERE_ENCOUNTER.finish(simulation, previous_states)
 	_check(not simulation.is_in_combat, "Finishing Ironbond should end combat.")
 	_check(not bystander.combat_dormant, "Ironbond cleanup should restore unrelated characters.")
-	_check(simulation.get_character("garrick_holt").side == "neutral", "Ironbond cleanup should restore defender side assignments.")
+	_check(simulation.get_character("garrick_holt").side == "neutral" and simulation.get_character("garrick_holt").combat_dormant, "Ironbond cleanup should restore defenders to neutral and dormant.")
+	_check(simulation.get_character("dray_coltayne").side == "enemy" and simulation.get_character("dray_coltayne").combat_dormant, "Ironbond cleanup should preserve the soldiers as dormant enemies.")
+	_check(player.side == "player" and not player.combat_dormant, "Ironbond cleanup should leave the player active on the player side.")
 	simulation.free()
 
 func _test_abandoned_house_uses_shared_lifecycle() -> void:
