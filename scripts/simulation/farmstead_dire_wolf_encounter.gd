@@ -65,3 +65,37 @@ static func party_defeated(simulation: WorldSimulation, party_ids: Array[String]
 static func dire_wolf_defeated(simulation: WorldSimulation) -> bool:
 	var wolf := simulation.get_character(DIRE_WOLF_ID) if simulation != null else null
 	return wolf == null or not wolf.can_act()
+
+static func resolve_combat(
+	simulation: WorldSimulation,
+	journal: CampaignJournal,
+	party_ids: Array[String],
+	session: Dictionary
+) -> Dictionary:
+	if simulation == null:
+		return {"ok": false, "resolved": false, "reason": "missing_simulation"}
+	if party_defeated(simulation, party_ids):
+		finish(simulation, party_ids, session.get("previous_states", {}))
+		return {
+			"ok": true,
+			"resolved": true,
+			"outcome": "defeat",
+			"speaker": "Reyna Fletcher",
+			"message": "The dire wolf drives you back. It is still stalking the farmstead. Tessa is safe for now, but we cannot leave the beast alive. We can try again when we're ready.",
+			"choice_label": "Continue."
+		}
+	if not dire_wolf_defeated(simulation):
+		return {"ok": true, "resolved": false}
+	finish(simulation, party_ids, session.get("previous_states", {}))
+	var objective_result := CompanionCampaignContent.complete_objective(journal, "reyna_dire_wolf_hunt", "dire_wolf_slain")
+	return {
+		"ok": bool(objective_result.get("ok", false)),
+		"resolved": true,
+		"outcome": "victory",
+		"speaker": "Reyna Fletcher",
+		"message": "Tessa is safe. Old Mac's farm can breathe again.",
+		"choice_label": "Continue.",
+		"remove_actor_ids": [DIRE_WOLF_ID],
+		"speech_bubble_character_id": "companion_reyna_fletcher",
+		"companion_dialogue_id": "companion_reyna_fletcher"
+	}
