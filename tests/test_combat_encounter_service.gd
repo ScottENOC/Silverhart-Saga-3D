@@ -19,6 +19,7 @@ func _initialize() -> void:
 	_test_ironbond_domain_uses_shared_lifecycle()
 	_test_abandoned_house_uses_shared_lifecycle()
 	_test_farm_wolf_resolution_is_domain_owned()
+	_test_farm_wolf_retreat_is_domain_owned()
 	_test_ironbond_resolution_is_domain_owned()
 	_test_abandoned_house_resolution_is_domain_owned()
 	if _failures > 0:
@@ -248,7 +249,8 @@ func _test_abandoned_house_resolution_is_domain_owned() -> void:
 	var session := {"previous_states": started.get("previous_states", {})}
 	var result: Dictionary = ABANDONED_HOUSE_QUEST.resolve_combat(simulation, journal, party_ids, session)
 	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "The abandoned-house quest should own its victory decision.")
-	_check(bool(result.get("status_text", "").contains("Quest complete")), "The abandoned-house resolver should return its quest presentation result.")
+	var status_text := String(result.get("status_text", ""))
+	_check(status_text.contains("Quest complete"), "The abandoned-house resolver should return its quest presentation result.")
 	_check(String(journal.quest_state(ABANDONED_HOUSE_QUEST.QUEST_ID).get("status", "")) == "completed", "The abandoned-house resolver should complete the quest.")
 	_check(not simulation.is_in_combat, "The abandoned-house resolver should end simulation combat.")
 	simulation.free()
@@ -274,6 +276,33 @@ func _test_dire_wolf_resolution_is_domain_owned() -> void:
 	var result: Dictionary = DIRE_WOLF_ENCOUNTER.resolve_combat(simulation, journal, party_ids, session)
 	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "The dire-wolf service should own its victory decision.")
 	_check(String(journal.quest_state("reyna_dire_wolf_hunt").get("status", "")) == "completed", "Dire-wolf victory should complete Reyna's authored objective.")
-	_check((result.get("remove_actor_ids", []) as Array).has(DIRE_WOLF_ENCOUNTER.DIRE_WOLF_ID), "Dire-wolf victory should return its presentation cleanup request.")
+	var remove_actor_ids: Array = result.get("remove_actor_ids", [])
+	_check(remove_actor_ids.has(DIRE_WOLF_ENCOUNTER.DIRE_WOLF_ID), "Dire-wolf victory should return its presentation cleanup request.")
 	_check(not simulation.is_in_combat, "Dire-wolf domain resolution should end simulation combat.")
+	simulation.free()
+
+func _test_farm_wolf_retreat_is_domain_owned() -> void:
+	var simulation := WorldSimulation.new()
+	var journal := simulation.campaign_journal
+	journal.register_quest_definition(FARM_WOLVES_QUEST.definition())
+	journal.start_quest(FARM_WOLVES_QUEST.QUEST_ID)
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.side = "player"
+	simulation.register_character(player)
+	for wolf_id in FARM_WOLVES_QUEST.WOLF_IDS:
+		simulation.register_character(CharacterState.new(wolf_id, "Wolf", Vector2i(1, 0)))
+	var party_ids: Array[String] = ["player"]
+	var started: Dictionary = FARM_WOLVES_QUEST.start_encounter(simulation, party_ids)
+	_check(bool(started.get("ok", false)), "The farm wolf encounter should start before retreat resolution.")
+	player.alive = false
+	player.health = 0
+	var result: Dictionary = FARM_WOLVES_QUEST.resolve_combat(
+		simulation,
+		journal,
+		party_ids,
+		started.get("session", {})
+	)
+	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "defeat", "The farm wolf quest should own the retreat decision.")
+	_check(not simulation.is_in_combat, "The farm wolf retreat resolver should end simulation combat.")
+	_check(String(journal.quest_state(FARM_WOLVES_QUEST.QUEST_ID).get("status", "")) == "active", "Retreat should not incorrectly complete or fail the farm quest.")
 	simulation.free()
