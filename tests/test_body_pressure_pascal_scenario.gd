@@ -6,10 +6,8 @@ extends SceneTree
 const CONTROLLER = preload("res://scripts/characters/body_pressure_controller.gd")
 const PROFILE_LIBRARY = preload("res://scripts/characters/body_pressure_profile_library.gd")
 
-const BUTTOCK_PRESSURE_PA := 10000.0 # 10 kPa; experimental, not a tissue measurement.
-const KNEE_PRESSURE_PA := 2000.0 # 2 kPa; experimental, not a tissue measurement.
-const BUTTOCK_CONTACT_AREA_M2 := 0.0025 # 25 cm^2 assumed patch.
-const KNEE_CONTACT_AREA_M2 := 0.001 # 10 cm^2 assumed patch.
+const APPLIED_PRESSURE_PA := 1000.0 # 1 kPa; experimental, not a tissue measurement.
+const CONTACT_AREA_M2 := 0.001 # Same assumed 10 cm^2 patch for both regions.
 const HOLD_SECONDS := 5.0
 const STEP_SECONDS := 1.0 / 60.0
 
@@ -32,8 +30,8 @@ func _initialize() -> void:
 		_fail("Synthetic left knee pressure shape was not bound.")
 		return
 
-	var buttock_force_n := BUTTOCK_PRESSURE_PA * BUTTOCK_CONTACT_AREA_M2
-	var knee_force_n := KNEE_PRESSURE_PA * KNEE_CONTACT_AREA_M2
+	var buttock_force_n := APPLIED_PRESSURE_PA * CONTACT_AREA_M2
+	var knee_force_n := APPLIED_PRESSURE_PA * CONTACT_AREA_M2
 	var frame_count := int(round(HOLD_SECONDS / STEP_SECONDS))
 	for _frame in range(frame_count):
 		controller.apply_pressure(&"buttock_left", buttock_force_n)
@@ -48,13 +46,13 @@ func _initialize() -> void:
 	print("SYNTHETIC_PASCAL_PRESSURE_SCENARIO: ", JSON.stringify({
 		"inputs": {
 			"buttock_left": {
-				"pressure_pa": BUTTOCK_PRESSURE_PA,
-				"contact_area_m2": BUTTOCK_CONTACT_AREA_M2,
+				"pressure_pa": APPLIED_PRESSURE_PA,
+				"contact_area_m2": CONTACT_AREA_M2,
 				"force_n": buttock_force_n
 			},
 			"knee_left": {
-				"pressure_pa": KNEE_PRESSURE_PA,
-				"contact_area_m2": KNEE_CONTACT_AREA_M2,
+				"pressure_pa": APPLIED_PRESSURE_PA,
+				"contact_area_m2": CONTACT_AREA_M2,
 				"force_n": knee_force_n
 			},
 			"hold_seconds": HOLD_SECONDS
@@ -67,8 +65,8 @@ func _initialize() -> void:
 		}
 	}))
 
-	if buttock_compression <= knee_compression * 5.0:
-		_fail("Buttock should deform substantially more than the knee in this contrast scenario.")
+	if buttock_compression <= knee_compression * 4.0:
+		_fail("With identical pressure and contact area, the softer buttock profile should compress at least 4x as much as the stiffer knee profile.")
 		return
 	if buttock_shape_value <= knee_shape_value:
 		_fail("Buttock blend-shape response should exceed the knee response.")
@@ -86,7 +84,7 @@ func _initialize() -> void:
 		_fail("Knee region did not recover after pressure release.")
 		return
 
-	print("BODY_PRESSURE_PASCAL_SCENARIO_TEST: PASS (Pa-to-N conversion, independent regional response, relative deformation, recovery)")
+	print("BODY_PRESSURE_PASCAL_SCENARIO_TEST: PASS (identical Pa and contact area, stiffness contrast, independent regional response, recovery)")
 	quit(0)
 
 
