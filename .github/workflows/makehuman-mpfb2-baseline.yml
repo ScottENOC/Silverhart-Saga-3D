@@ -1,4 +1,4 @@
-name: MakeHuman MPFB2 garment baseline
+name: MakeHuman MPFB2 character and garment fitting validation
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  mpfb2-garment-baseline:
+  mpfb2-character-garment-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -82,7 +82,7 @@ jobs:
           PY
           find "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data" -name '*.mhclo' -print -o -name '*.mhmat' -print | sed -n '1,30p'
 
-      - name: Run the upstream garment fitting smoke test
+      - name: Build and render the upstream base human
         run: |
           set -euo pipefail
           blender -b --factory-startup --python-exit-code 1 --python tools/makehuman/mpfb2_garment_smoke.py
