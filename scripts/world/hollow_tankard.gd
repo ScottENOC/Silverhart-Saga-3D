@@ -1713,13 +1713,34 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if dialogue_id == "silverhart_queen":
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var content := PERSISTENT_DIALOGUE_CONTENT.new()
-		var conversation := CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting_for_npc(dialogue_id, target_state, actor, simulation)
+		var journal := simulation.campaign_journal
+		var context := {
+			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+			"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
+			"goblin_standing": journal.faction_standing("goblin_tribe"),
+			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+			"necromancer_standing": journal.faction_standing("necromancer_cult")
+		}
+		var queen_conversation: Dictionary = content.seraphine_greeting(context, relationships)
+		if bool(queen_conversation.get("ok", false)):
+			var supported_choices: Array[Dictionary] = []
+			for choice_value in queen_conversation.get("choices", []):
+				var choice: Dictionary = choice_value
+				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
+					supported_choices.append(choice)
+			_show_dialogue(String(queen_conversation.get("speaker", target_state.display_name)), String(queen_conversation.get("text", "")), supported_choices)
+		else:
+			_show_dialogue(String(queen_conversation.get("speaker", target_state.display_name)), String(queen_conversation.get("text", "The Queen has no audience for you.")), queen_conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
+		return
+	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(target_state.id):
+		_show_companion_dialogue(target_state.id)
+		return
+	var conversation := CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting_for_npc(dialogue_id, target_state, actor, simulation)
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		if choice_value is Dictionary:
 			choices.append(choice_value.duplicate(true))
 	_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), choices)
-
 
 func _player_has_item(item_id: String) -> bool:
 	var player := simulation.get_character(simulation.player_character_id)
