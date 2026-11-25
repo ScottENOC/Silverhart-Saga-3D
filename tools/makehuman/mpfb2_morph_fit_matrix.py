@@ -208,7 +208,7 @@ def main():
         bpy.context.view_layer.objects.active = human
         bpy.ops.export_scene.gltf(
             filepath=result["glb"], export_format="GLB", use_selection=True,
-            export_cameras=False, export_lights=False, export_apply=True,
+            export_cameras=False, export_lights=False,
             export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
         )
         # Re-import the actual GLB into an empty scene and render that result.
