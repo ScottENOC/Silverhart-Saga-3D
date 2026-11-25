@@ -2,7 +2,7 @@ name: Generate procedural tavern NPC sample
 
 on:
   push:
-    branches: [feature/procedural-tavern-npcs-and-garment-fit]
+    branches: [feature/procedural-tavern-npcs-and-garment-fit, feature/unified-female-anatomy-v2]
     paths:
       - "tools/ara/generate_tavern_npc_profiles.py"
       - "tools/ara/build_hollowmere_npcs.py"
