@@ -4,6 +4,7 @@ extends RefCounted
 ## CampaignJournal owns world state and the consequence idempotency record.
 
 const ALDRIC_ID := "ser_aldric_thorne"
+const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 
 
 static func apply_effects(
@@ -77,6 +78,9 @@ static func apply_effects(
         player.gold += gold_delta
 
     if rescues_aldric:
+        var rescue_result := _complete_aldric_rescue(journal)
+        if not bool(rescue_result.get("ok", false)):
+            return rescue_result
         var aldric := simulation.get_character(ALDRIC_ID)
         if aldric != null:
             aldric.side = "neutral"
@@ -130,6 +134,21 @@ static func _validate_effects(effects: Dictionary) -> Dictionary:
 
 static func _is_finite_number(value: Variant) -> bool:
     return (value is int or value is float) and is_finite(float(value))
+
+
+static func _complete_aldric_rescue(journal: CampaignJournal) -> Dictionary:
+    COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(journal)
+    var quest := journal.quest_state("aldric_rescue")
+    if quest.is_empty():
+        var started := journal.start_quest("aldric_rescue")
+        if not bool(started.get("ok", false)):
+            return started
+        quest = journal.quest_state("aldric_rescue")
+    if String(quest.get("status", "")) == "completed":
+        return {"ok": true, "already_completed": true}
+    if String(quest.get("status", "")) != "active":
+        return {"ok": false, "reason": "aldric_rescue_quest_not_active"}
+    return COMPANION_CAMPAIGN_SCRIPT.complete_objective(journal, "aldric_rescue", "freed")
 
 
 static func _sync_aldric_actor(scene_tree: SceneTree, local_actor_by_id: Dictionary, departed: bool) -> void:
