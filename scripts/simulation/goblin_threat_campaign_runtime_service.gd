@@ -6,6 +6,8 @@ extends RefCounted
 const CONTENT_SCRIPT = preload("res://scripts/simulation/goblin_threat_campaign_content.gd")
 const FOLLOWUP_SCRIPT = preload("res://scripts/simulation/goblin_threat_followup_content.gd")
 const WORLD_EFFECT_SERVICE = preload("res://scripts/simulation/campaign_world_effect_service.gd")
+const CHARACTER_FACTORY = preload("res://scripts/simulation/campaign_character_factory.gd")
+const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const SCOUT_NOTE_QUEST_ID := "goblin_scout_note"
 
 
@@ -73,6 +75,75 @@ static func resolve_favour(
         return {"ok": false, "reason": "world_effect_application_failed", "detail": applied, "favour": favour}
     result["world_effects"] = applied
     return result
+
+
+static func rescue_aldric(
+    simulation: WorldSimulation,
+    scene_tree: SceneTree = null,
+    local_actor_by_id: Dictionary = {}
+) -> Dictionary:
+    if simulation == null or simulation.campaign_journal == null:
+        return {"ok": false, "reason": "missing_simulation"}
+    var journal := simulation.campaign_journal
+    COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(journal)
+    var quest := journal.quest_state("aldric_rescue")
+    if quest.is_empty():
+        var started := journal.start_quest("aldric_rescue")
+        if not bool(started.get("ok", false)):
+            return started
+        quest = journal.quest_state("aldric_rescue")
+    if String(quest.get("status", "")) == "failed":
+        return {"ok": false, "reason": "aldric_rescue_quest_failed"}
+    var decisions: Dictionary = quest.get("decisions", {})
+    if not decisions.has("freed"):
+        var decision := journal.record_decision("aldric_rescue", "freed", "aldric_free")
+        if not bool(decision.get("ok", false)):
+            return decision
+    return WORLD_EFFECT_SERVICE.apply_effects(
+        journal, simulation, "aldric_rescue", "freed", {"rescue_aldric": true}, scene_tree, local_actor_by_id
+    )
+
+
+static func recruit_nix(simulation: WorldSimulation) -> Dictionary:
+    if simulation == null:
+        return {"ok": false, "reason": "missing_simulation"}
+    var journal := simulation.campaign_journal
+    var quest: Dictionary = journal.quest_state(CONTENT_SCRIPT.QUEST_ID)
+    var context := {
+        "quest_resolution": String(quest.get("decisions", {}).get("resolution", "")),
+        "nix_recruited": simulation.is_party_member(FOLLOWUP_SCRIPT.NIX_ID)
+    }
+    var recruitment: Dictionary = FOLLOWUP_SCRIPT.new().nix_recruitment(context)
+    if not bool(recruitment.get("ok", false)):
+        return recruitment
+    var existing := simulation.get_character(FOLLOWUP_SCRIPT.NIX_ID)
+    if existing != null:
+        return simulation.recruit_companion(FOLLOWUP_SCRIPT.NIX_ID)
+    var player := simulation.get_character(simulation.player_character_id)
+    if player == null:
+        return {"ok": false, "reason": "missing_player"}
+    var profile: Dictionary = recruitment.get("character", {}).duplicate(true)
+    profile["party"] = {"starts_in_party": true}
+    var spawn_hex := Vector2i(999999, 999999)
+    for candidate in HexGrid.neighbors(player.axial):
+        if not simulation.occupied_hexes.has(candidate):
+            spawn_hex = candidate
+            break
+    if spawn_hex == Vector2i(999999, 999999):
+        return {"ok": false, "reason": "no_open_companion_spawn"}
+    var state := CHARACTER_FACTORY.create_npc_state(
+        FOLLOWUP_SCRIPT.NIX_ID,
+        "Nix Sharpear",
+        spawn_hex,
+        profile,
+        CHARACTER_FACTORY.load_starting_loadouts()
+    )
+    if state == null:
+        return {"ok": false, "reason": "nix_character_creation_failed"}
+    simulation.register_character(state)
+    if not simulation.is_party_member(FOLLOWUP_SCRIPT.NIX_ID):
+        return {"ok": false, "reason": "nix_party_registration_failed"}
+    return {"ok": true, "reason": "new_companion_recruited", "character_id": FOLLOWUP_SCRIPT.NIX_ID}
 
 
 static func read_scout_note(simulation: WorldSimulation) -> Dictionary:
