@@ -789,10 +789,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         ),
         "",
         "",
+    ])
     if report.get("interior_floor_validation") is not None:
         interior = report["interior_floor_validation"]
         lines.extend([
-            "",
             "## Interior floor source-coordinate comparison",
             "",
             f'Source interior regions: {interior["source_interior_regions"]}; '
@@ -809,6 +809,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f'| {item["matching_cells"]:,} | {item["source_only_cells"]:,} | {item["target_only_cells"]:,} |'
             )
         lines.extend(["", interior["note"], ""])
+    lines.extend([
         "## Strategic map source parity",
         "",
         "No strategic map was captured." if report.get("strategic_map_validation") is None else (
