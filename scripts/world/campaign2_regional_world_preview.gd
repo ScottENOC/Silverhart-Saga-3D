@@ -17,6 +17,7 @@ const VAMPIRE_GRAVE_PRESENTATION = preload("res://scripts/world/world_vampire_gr
 const UNICORN_TRACK_PRESENTATION = preload("res://scripts/world/world_unicorn_track_presentation.gd")
 const WOLF_DEN_PRESENTATION = preload("res://scripts/world/world_wolf_den_presentation.gd")
 const CAVE_ENTRANCE_PRESENTATION = preload("res://scripts/world/world_cave_entrance_presentation.gd")
+const ABANDONED_HOUSE_APPROACH = preload("res://scripts/world/world_abandoned_house_approach_presentation.gd")
 const MULTISTORY_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 const CANOPY_PRESENTATION = preload("res://scripts/world/world_canopy_settlement_presentation.gd")
 const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
@@ -384,6 +385,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	var cave_entrance_presentation: Dictionary = CAVE_ENTRANCE_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
 	if not bool(cave_entrance_presentation.get("ok", false)):
 		push_warning("Regional source cave entrance presentation failed: %s" % cave_entrance_presentation)
+	var abandoned_house_approach: Dictionary = ABANDONED_HOUSE_APPROACH.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(abandoned_house_approach.get("ok", false)):
+		push_warning("Regional abandoned-house approach presentation failed: %s" % abandoned_house_approach)
 	var elven_capital: Dictionary = multistory_registry.get_definition("silthandriel")
 	var canopy_presentation: Dictionary = CANOPY_PRESENTATION.present_chunk(root, elven_capital, chunk_min, CHUNK_SIZE, HEX_RADIUS)
 	if not bool(canopy_presentation.get("ok", false)):
