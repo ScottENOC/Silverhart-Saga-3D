@@ -28,6 +28,7 @@ func _test_source_entrances() -> void:
 		if not expected.has(entrance_id):
 			continue
 		var hex: Vector2i = _source_door_hex(data, entrance)
+		_check(hex == expected[entrance_id]["hex"], "%s door must retain its source offset from the canonical POI" % entrance_id)
 		var chunk_min := Vector2i(floori(float(hex.x) / 24.0) * 24, floori(float(hex.y) / 24.0) * 24)
 		var parent := Node3D.new()
 		root.add_child(parent)
