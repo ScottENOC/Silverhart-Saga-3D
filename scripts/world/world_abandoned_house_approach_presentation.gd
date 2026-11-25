@@ -5,6 +5,7 @@ extends RefCounted
 
 const WAYPOINT := Vector2i(8, -176)
 const DOORWAY := Vector2i(11, -176)
+# Source loop: q = waypoint.q + 1; q < doorHex.q. The endpoints are not Path cells.
 const PATH_HEXES: Array[Vector2i] = [
 	Vector2i(9, -176),
 	Vector2i(10, -176)
