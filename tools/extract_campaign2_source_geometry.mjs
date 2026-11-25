@@ -144,7 +144,7 @@ if (worldMapSourceText) {
     }
     windowState.loadWorldMap();
   } catch (error) {
-    process.stderr.write("Strategic map extraction failed: " + error.stack + "\\n");
+    process.stderr.write("Strategic map extraction failed: " + error.stack + "\n");
     process.exit(1);
   }
 }
