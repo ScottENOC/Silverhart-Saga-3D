@@ -1,0 +1,139 @@
+name: Build Wren bikini diagnostic GLB
+
+on:
+  push:
+    branches: [feature/wren-bikini-fit-review-20261125]
+    paths:
+      - ".github/workflows/build-wren-bikini-review.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: wren-bikini-review
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download the available custom Wren build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native build/wren-bikini
+          gh run download 45550489788 --name wren-native-ara-184 --dir build/wren-native
+          test -s build/wren-native/Wren.glb
+          echo "Source Wren build: run 184 (45550489788), commit 1fd6d6ab65b2f1e8cd9f6d1f7cfd59d8a8fa8500" > build/wren-bikini/BUILD_INFO.txt
+
+      - name: Validate modular garment source and scripts
+        run: |
+          set -euo pipefail
+          test -s art/characters/ara_runtime/ara_person_modular_underwear.glb
+          python -m py_compile tools/ara/assemble_modular_glb.py tools/blender/garment_fit/fit_glb.py tools/blender/garment_fit/solver_core.py tools/review/render_wren_briefs_fit.py
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Assemble Ara triangle bikini top and string briefs
+        run: |
+          set -euo pipefail
+          python tools/ara/assemble_modular_glb.py \
+            build/wren-native/Wren.glb \
+            build/wren-bikini/wren-bikini-source.glb \
+            art/characters/ara_runtime/ara_person_modular_underwear.glb "Triangle bikini top" \
+            art/characters/ara_runtime/ara_person_modular_underwear.glb "Triangle bikini strings" \
+            art/characters/ara_runtime/ara_person_modular_underwear.glb "String bikini bottom" \
+            art/characters/ara_runtime/ara_person_modular_underwear.glb "String bikini strings"
+          test -s build/wren-bikini/wren-bikini-source.glb
+
+      - name: Fit bikini pieces to Wren without modifying her body
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          fit_status=0
+          blender --background --python-exit-code 1 \
+            --python tools/blender/garment_fit/fit_glb.py -- \
+            --input build/wren-bikini/wren-bikini-source.glb \
+            --output build/wren-bikini/Wren_Bikini.glb \
+            --report build/wren-bikini/fit-report.json \
+            --fit-mode existing \
+            --skin-material Skin_Anatomy \
+            --garment-material "Triangle bikini top" \
+            --garment-material "Triangle bikini strings" \
+            --garment-material "String bikini bottom" \
+            --garment-material "String bikini strings" || fit_status=$?
+          test -s build/wren-bikini/Wren_Bikini.glb
+          test -s build/wren-bikini/fit-report.json
+          echo "FIT_STATUS=$fit_status" >> "$GITHUB_ENV"
+          cp build/wren-bikini/fit-report.json build/wren-bikini/fit-quality-status.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path("build/wren-bikini/fit-report.json")
+          report=json.loads(p.read_text())
+          report["workflow_exit_status"]=int(os.environ.get("FIT_STATUS","1"))
+          report["fit_gate_passed"]=report.get("status")=="PASS" and report["workflow_exit_status"]==0
+          p.write_text(json.dumps(report,indent=2)+"\\n")
+          PY
+
+      - name: Render front, side and rear bikini review
+        run: |
+          set -euo pipefail
+          cat > build/wren-bikini/render_bikini.py <<'PY'
+          import sys
+          sys.path.insert(0, "tools/review")
+          import render_wren_briefs_fit as review
+          review.OUTFITS["bikini"] = {
+              "Triangle bikini top", "Triangle bikini strings",
+              "String bikini bottom", "String bikini strings",
+          }
+          review.main()
+          PY
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python build/wren-bikini/render_bikini.py -- \
+            build/wren-bikini/Wren_Bikini.glb build/wren-bikini/review bikini
+          for view in front side rear; do
+            test -s "build/wren-bikini/review/bikini/$view.png"
+          done
+          test -s build/wren-bikini/review/bikini/report.json
+
+      - name: Record build provenance
+        if: always()
+        run: |
+          {
+            echo
+            echo "Garments: Ara Triangle bikini top + Triangle bikini strings + String bikini bottom + String bikini strings."
+            echo "Body source: successful custom Wren native Ara run 184."
+            echo "The fitting step only moves garment vertices; it does not modify Wren's body mesh."
+            echo "Fit exit status: ${FIT_STATUS:-not-run}"
+          } >> build/wren-bikini/BUILD_INFO.txt
+
+      - name: Upload standalone GLB and visual diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-bikini-diagnostic
+          path: |
+            build/wren-bikini/Wren_Bikini.glb
+            build/wren-bikini/fit-report.json
+            build/wren-bikini/BUILD_INFO.txt
+            build/wren-bikini/review/
+          if-no-files-found: error
+          retention-days: 30
