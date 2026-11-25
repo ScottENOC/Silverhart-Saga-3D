@@ -68,11 +68,11 @@ func nix_recruitment(context: Dictionary) -> Dictionary:
 		"character":{
 			"id":NIX_ID,
 			"display_name":"Nix Sharpear",
-			"race":"human",
+			"race":"goblin",
 			"body_variant":"male",
 			"height_scale":0.90,
 			"build_scale":0.84,
-			"progression":{"race":"human","class_levels":["rogue"],"skill_picks":["dagger_hit","dagger_dmg","stealth_rogue","stealth_agility"]},
+			"progression":{"race":"goblin","class_levels":["rogue"],"skill_picks":["dagger_hit","dagger_dmg","stealth_rogue","stealth_agility"]},
 			"extra_inventory":["dagger","light_armor"],
 			"equip_items":["dagger","light_armor"],
 			"faction_id":"goblin_tribe",
