@@ -834,7 +834,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             f'Source interior regions: {interior["source_interior_regions"]}; '
             f'regions with explicit floor masks: {interior["source_interior_regions_with_explicit_floor_hexes"]}; '
-            f'explicit source floor hexes: {interior["source_explicit_interior_floor_hexes"]}. '
+            f'explicit source floor hexes: {interior["source_explicit_interior_floor_hexes"]}; '
+            f'large open fort regions excluded: {interior["source_open_fort_regions_excluded"]}. '
             f'Target location definitions: {interior["target_locations"]}.',
             "",
             "| Floor | Source floor cells | Target floor cells | Matching | Source-only | Target-only |",
