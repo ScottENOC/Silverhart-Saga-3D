@@ -137,6 +137,7 @@ func _test_character(asset_path: String, label: String, check_face_rests: bool) 
 		if not target_skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
 			changed_bones += 1
 	print("ARA_RETARGET_DIAGNOSTIC label=%s clip=%s source_changed=%d modifier_calls=%d target_changed=%d source_root=%s" % [label, player.current_animation, changed_source_bones, actor.skeleton_retargeter.process_call_count - modifier_calls_before, changed_bones, player.root_node])
+	print("ARA_RETARGET_WRITE_DIAGNOSTIC label=%s writes=%d changed_writes=%d source_pose=%s output_pose=%s readback_pose=%s" % [label, actor.skeleton_retargeter.write_count, actor.skeleton_retargeter.changed_write_count, actor.skeleton_retargeter.last_source_pose, actor.skeleton_retargeter.last_written_pose, actor.skeleton_retargeter.last_readback_pose])
 	_check(changed_source_bones >= 5,
 		label + " locomotion animates the benchmark source skeleton (%d changed bones)" % changed_source_bones)
 	_check(actor.skeleton_retargeter.process_call_count > modifier_calls_before,
