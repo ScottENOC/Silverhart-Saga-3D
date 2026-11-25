@@ -233,13 +233,14 @@ def main():
         if image.source == "FILE" and image.has_data and not image.packed_file:
             image.pack()
     export_objects = [obj for obj in bpy.data.objects if obj.type == "MESH" and obj.name in keep]
+    export_object_names = [obj.name for obj in export_objects]
     bpy.ops.object.select_all(action="DESELECT")
     for obj in export_objects:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = basemesh
     bpy.ops.export_scene.gltf(
         filepath=glb_path, export_format="GLB", use_selection=True,
-        export_cameras=False, export_lights=False, export_apply=True,
+        export_cameras=False, export_lights=False,
         export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
     )
 
@@ -263,7 +264,7 @@ def main():
         "skin_asset_label": skin_label,
         "skin_asset_path": skin_path,
         "phenotype": macro,
-        "exported_mesh_objects": [obj.name for obj in export_objects],
+        "exported_mesh_objects": export_object_names,
         "packed_image_count": sum(1 for image in bpy.data.images if image.packed_file),
         "glb_roundtrip_mesh_objects": [obj.name for obj in roundtrip_meshes],
         "asset_inventory": {
