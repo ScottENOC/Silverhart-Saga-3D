@@ -66,6 +66,16 @@ Prioritise self-contained dialogue and quest content that can become playable ea
 
 Architecture contract: `WorldRoot` owns the shared `WorldSimulation`; campaign identity and persistent state remain outside presentation chunks. Campaign and map streams must coordinate changes to shared files such as `WorldSimulation`, `SimulationEvent`, `WorldRoot` and `Campaign2LocationLoader`.
 
+## Creature model and animation production
+
+**Status: Tracked separately in the creature asset register**
+
+- [ ] Build, rig, animate and integrate the missing source enemy roster.
+- [ ] Audit the actual animation clips in the existing Quaternius animal assets.
+- [ ] Prioritise the Skarnak's Hold troll encounter, then goblin/orc campaign enemies.
+
+See [CREATURE_ASSET_AND_ANIMATION_REGISTER.md](CREATURE_ASSET_AND_ANIMATION_REGISTER.md) for the 35-entry source roster, existing model inventory, animation acceptance checklists and per-asset tracking template.
+
 ## Character presentation and model integration
 
 **Status: Active parallel work; accepted assets should be reused, not recreated**
