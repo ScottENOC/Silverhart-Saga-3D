@@ -469,6 +469,7 @@ func _test_night_watch_rotation_and_detection() -> void:
 	var missed_event: Dictionary = missed_result.summary.get("night_encounter", {})
 	_check(bool(missed_event.get("attacked", false)), "The second deterministic danger roll should produce an attack")
 	_check(not bool(missed_event.get("detected", true)), "An exhausted novice watch should be capable of missing an attack")
+	_check(not String(missed_event.get("watcher_id", "")).is_empty(), "An undetected attack should still identify the strongest watcher who tried to spot it")
 	_check(float(missed_event.get("detection_chance", 1.0)) < 0.2, "Exhaustion should materially reduce detection chance")
 
 	var world := WorldSimulation.new()
