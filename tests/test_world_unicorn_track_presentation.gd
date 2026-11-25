@@ -61,5 +61,16 @@ func _initialize() -> void:
 		var actual: Dictionary = PRESENTATION.TRACKS[index]
 		assert(actual.get("hex") == EXPECTED_TRACKS[index][0], "Unicorn hoofprint %d must retain its exact source axial coordinate" % index)
 		assert(actual.get("direction") == EXPECTED_TRACKS[index][1], "Unicorn hoofprint %d must retain its exact source travel direction" % index)
+	# Moving the canonical POI must move its entire source hoofprint loop,
+	# rather than leaving the physical trail behind at the old hard-coded anchor.
+	terrain.encounter_sites_by_id["unicorn_vale"]["q"] = -285
+	var shifted_parent := Node3D.new()
+	var shifted_result: Dictionary = PRESENTATION.present_chunk(
+		shifted_parent, terrain, Vector2i(-288, 24), 24, HexGrid.DEFAULT_RADIUS_M
+	)
+	assert(bool(shifted_result.get("ok", false)), "A corrected canonical vale anchor should still present")
+	assert(shifted_result.get("vale_center") == Vector2i(-285, 24), "The trail should report a corrected canonical vale anchor")
+	assert(shifted_parent.get_node_or_null("UnicornHoofprints_-273_24") != null, "The first hoofprint must move with the corrected vale anchor")
+	shifted_parent.free()
 	print("Wild Unicorn source hoofprint trail presentation tests passed.")
 	quit(0)
