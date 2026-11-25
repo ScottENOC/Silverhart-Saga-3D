@@ -140,6 +140,9 @@ static func recruit_nix(simulation: WorldSimulation) -> Dictionary:
 	)
 	if state == null:
 		return {"ok": false, "reason": "nix_character_creation_failed"}
+	for item_id_value in profile.get("equip_items", []):
+		var instance_id := "start_%s_extra_%s" % [FOLLOWUP_SCRIPT.NIX_ID, String(item_id_value)]
+		state.equip_inventory_item(instance_id)
 	simulation.register_character(state)
 	if not simulation.is_party_member(FOLLOWUP_SCRIPT.NIX_ID):
 		return {"ok": false, "reason": "nix_party_registration_failed"}
