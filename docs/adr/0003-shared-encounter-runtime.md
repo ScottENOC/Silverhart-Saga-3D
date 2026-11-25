@@ -87,6 +87,9 @@ The first incremental slice is now present:
 - Those location/domain paths retain encounter-specific spawn, character profile, presentation and quest outcome work; they no longer duplicate generic participant side/dormancy setup or restoration.
 - The Ironbond encounter passes its eligible additional party members into the encounter service and receives its actual player-control roster from the domain service.
 - The abandoned-house quest service retains guardian creation and quest/reputation consequences while delegating participant lifecycle and restoration to the shared service.
+- All four encounter types now expose a common domain-resolution contract. The location holds a resolver callable and a session, then presents the returned outcome; it no longer branches on encounter kind to decide victory/defeat or apply quest consequences.
+- Farm-wolf encounter setup now also lives in the farm quest service. `HollowTankard` retains only the location-specific wolf spawn/actor presentation and the common combat roster handed to the shared runtime.
+- The presentation layer consumes simple descriptors from domain resolution (dialogue, status text, actor removal, companion dialogue) without owning quest completion/failure.
 
 This is not yet the target architecture. The service does not yet own spawn/remove requests, encounter identity, save/load serialization or surprise modifiers. The tavern Ironbond/abandoned-house encounters and other farm encounters still need migration, and `HollowTankard` still owns encounter rosters and a resolution dispatcher. Those gaps remain explicit work, not implied as complete.
 
