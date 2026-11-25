@@ -1,0 +1,61 @@
+name: Campaign 2 map visual review
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'data/world/**'
+      - 'data/settlements/**'
+      - 'scripts/world/campaign2_*.gd'
+      - 'scripts/world/world_*presentation.gd'
+      - 'scripts/world/world_settlement_feature_composer.gd'
+      - 'tests/test_campaign2_*.gd'
+      - 'tests/test_world_*presentation.gd'
+      - 'tests/capture_campaign2_map_review.gd'
+      - '.github/workflows/campaign2-map-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campaign2-map-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Capture streamed Campaign 2 map views
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2 (standard)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify engine version
+        run: godot --version
+
+      - name: Import project resources
+        run: godot --headless --editor --path . --quit
+
+      - name: Install virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Capture streamed settlement and wilderness views
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_campaign2_map_review.gd
+
+      - name: Upload map review images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: campaign2-map-visual-review
+          path: artifacts/campaign2-map-review/*.png
+          if-no-files-found: warn
+          retention-days: 14
