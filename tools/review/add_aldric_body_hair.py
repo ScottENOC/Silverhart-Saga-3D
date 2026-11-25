@@ -219,6 +219,8 @@ def main():
         densities.update({"armpits": 300, "chest": 260, "snail_trail": 350, "scrotum": 260, "pubic": 650})
         if "pubic" not in masks:
             densities.pop("pubic", None)
+    # A missing optional UV island is removed from masks above; never index it later.
+    densities = {region: count for region, count in densities.items() if region in masks}
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
