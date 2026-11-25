@@ -14,6 +14,7 @@ function parseArgs(argv) {
   for (let i = 2; i < argv.length; i += 1) {
     if (argv[i] === "--source") result.source = argv[++i];
     else if (argv[i] === "--out") result.out = argv[++i];
+    else if (argv[i] === "--world-map-source") result.worldMapSource = argv[++i];
     else throw new Error("Unknown argument: " + argv[i]);
   }
   if (!result.source || !result.out) {
@@ -24,12 +25,14 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv);
 const sourceText = fs.readFileSync(args.source, "utf8");
+const worldMapSourceText = args.worldMapSource ? fs.readFileSync(args.worldMapSource, "utf8") : "";
 const overrideTerrain = {};
 const terrainCellsByBuilder = {};
 const terrainWriteCallsByBuilder = {};
 const terrainCellsByWriter = {};
 const terrainWriteCallsByWriter = {};
 const windowState = {
+  currentCampaign: "2",
   overrideTerrain,
   tileObjects: {},
   entities: [],
@@ -96,7 +99,7 @@ const windowState = {
   wireSharedInventory() {},
   placeSecretStash() {},
   placeSecretDoor() {},
-  buildNPC(spec) { return { ...spec, alive: true, inventory: [], side: spec.side || "neutral" }; },
+  buildNPC(spec) { return { ...spec, isNPC: true, alive: true, inventory: [], side: spec.side || "neutral" }; },
   createCharacterData(race, characterClass, name, gender) {
     return { race, class: characterClass, name, gender,
       attributes: { agility: 10, wildcard: 3 }, skills: {}, hp: 10, maxHp: 10 };
@@ -130,11 +133,33 @@ const sandbox = {
   clearTimeout() {},
 };
 vm.createContext(sandbox);
+if (worldMapSourceText) {
+  try {
+    vm.runInContext(worldMapSourceText, sandbox, {
+      filename: path.basename(args.worldMapSource),
+      timeout: 10000,
+    });
+    if (typeof windowState.loadWorldMap !== "function") {
+      throw new Error("worldMap.js did not expose loadWorldMap");
+    }
+    windowState.loadWorldMap();
+  } catch (error) {
+    process.stderr.write("Strategic map extraction failed: " + error.stack + "\n");
+    process.exit(1);
+  }
+}
 const captureCode = [
   "setupVillageScene(true);",
   "JSON.stringify({",
   "terrain: window.overrideTerrain,",
   "tileObjects: window.tileObjects,",
+  "npcBaseline: window.entities.filter(entity => entity && entity.isNPC && !String(entity.name || '').startsWith('Audit ')).reduce((baseline, entity, index) => {",
+  "  const key = String(entity.name || entity.id || 'NPC') + '#' + index;",
+  "  baseline[key] = { name: String(entity.name || ''), hex: entity.hex || {}, floor: Number(entity.floor || 0), side: String(entity.side || 'neutral'), factionId: String(entity.factionId || ''), race: String(entity.race || ''), dialogueId: String(entity.dialogueId || ''), behaviorType: String(entity.behaviorType || ''), homeHex: entity.homeHex || null, patrolPath: entity.patrolPath || [] };",
+  "  return baseline;",
+  "}, {}),",
+  "worldMapData: window.worldMapData,",
+  "worldRiverPath: window.worldRiverPath || [],",
   "interiors: window.interiorRegions,",
   "multiStoryBuildings: window.multiStoryBuildings,",
   "terrainBaseline: window._campaign2TerrainBaseline,",
@@ -184,6 +209,7 @@ const output = {
     repository: "ScottENOC/Hex-crpg",
     commit: process.env.HEX_CRPG_SOURCE_COMMIT || "unspecified",
     file: path.basename(args.source),
+    strategicMapFile: args.worldMapSource ? path.basename(args.worldMapSource) : null,
     builder: "setupVillageScene(true)",
   },
   classification: {
@@ -192,6 +218,8 @@ const output = {
     tileObjects: "source_scene_physical_object_placements",
     interiors: "source_scene_interior_regions",
     multiStoryBuildings: "source_scene_multistory_definitions",
+    worldMapData: "source_strategic_map_cells_after_campaign2_bootstrap",
+    worldRiverPath: "source_strategic_river_waypoints",
   },
   counts: {
     terrainCells: Object.keys(captured.terrain).length,
@@ -207,6 +235,12 @@ const output = {
     interiorRegions: captured.interiors.length,
     multiStoryBuildings: captured.multiStoryBuildings.length,
     unicornPatrolWaypoints: captured.patrolPath.length,
+    strategicMapRows: Array.isArray(captured.worldMapData) ? captured.worldMapData.length : 0,
+    strategicMapColumns: Array.isArray(captured.worldMapData) && captured.worldMapData.length ? captured.worldMapData[0].length : 0,
+    strategicMapCells: Array.isArray(captured.worldMapData) ? captured.worldMapData.reduce((sum, row) => sum + row.length, 0) : 0,
+    strategicRiverWaypoints: Array.isArray(captured.worldRiverPath) ? captured.worldRiverPath.length : 0,
+    strategicMapMarkers: Array.isArray(captured.worldMapData) ? captured.worldMapData.flat().filter(cell => cell && cell.n).length : 0,
+    npcBaselineEntries: Object.keys(captured.npcBaseline || {}).length,
   },
   ...captured,
 };

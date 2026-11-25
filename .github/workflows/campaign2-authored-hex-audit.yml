@@ -34,7 +34,9 @@ jobs:
           path: Hex-crpg
           fetch-depth: 1
           sparse-checkout-cone-mode: false
-          sparse-checkout: /campaign2World.js
+          sparse-checkout: |
+            /campaign2World.js
+            /worldMap.js
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -45,6 +47,7 @@ jobs:
         run: |
           node tools/extract_campaign2_source_geometry.mjs \
             --source Hex-crpg/campaign2World.js \
+            --world-map-source Hex-crpg/worldMap.js \
             --out artifacts/campaign2_source_runtime_geometry.json
       - name: Set up Python
         uses: actions/setup-python@v5

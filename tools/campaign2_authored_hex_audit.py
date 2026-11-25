@@ -173,6 +173,42 @@ def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
     for record in runtime.get("tileObjects", {}).values():
         if isinstance(record, dict):
             object_types[str(record.get("type", "unknown"))] += 1
+    npc_baseline = runtime.get("npcBaseline", {})
+    npc_placements: list[dict[str, Any]] = []
+    npc_by_side: dict[str, int] = defaultdict(int)
+    npc_by_faction: dict[str, int] = defaultdict(int)
+    npc_by_race: dict[str, int] = defaultdict(int)
+    npc_missing_hex = 0
+    if isinstance(npc_baseline, dict):
+        for npc_name, npc in npc_baseline.items():
+            if not isinstance(npc, dict):
+                continue
+            hex_value = npc.get("hex", {})
+            if not isinstance(hex_value, dict) or "q" not in hex_value or "r" not in hex_value:
+                npc_missing_hex += 1
+                hex_value = {}
+            side = str(npc.get("side", "neutral"))
+            faction = str(npc.get("factionId", ""))
+            race = str(npc.get("race", ""))
+            npc_by_side[side] += 1
+            if faction:
+                npc_by_faction[faction] += 1
+            if race:
+                npc_by_race[race] += 1
+            npc_placements.append({
+                "name": str(npc.get("name", npc_name)),
+                "q": int(hex_value.get("q", 0)) if hex_value else None,
+                "r": int(hex_value.get("r", 0)) if hex_value else None,
+                "floor": int(npc.get("floor", 0)),
+                "side": side,
+                "faction_id": faction,
+                "race": race,
+                "dialogue_id": str(npc.get("dialogueId", "")),
+                "behavior_type": str(npc.get("behaviorType", "")),
+                "home_hex": npc.get("homeHex"),
+                "patrol_path": npc.get("patrolPath", []),
+            })
+    npc_placements.sort(key=lambda item: item["name"].casefold())
     floors = 0
     for building in runtime.get("multiStoryBuildings", []):
         if not isinstance(building, dict):
@@ -180,8 +216,40 @@ def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
         for floor in building.get("floors", []):
             if isinstance(floor, dict) and isinstance(floor.get("terrain"), dict):
                 floors += 1
+    world_grid = runtime.get("worldMapData", [])
+    world_markers = []
+    terrain_counts: dict[str, int] = defaultdict(int)
+    faction_counts: dict[str, int] = defaultdict(int)
+    for row_index, row in enumerate(world_grid if isinstance(world_grid, list) else []):
+        if not isinstance(row, list):
+            continue
+        for column_index, cell in enumerate(row):
+            if not isinstance(cell, dict):
+                continue
+            terrain_counts[str(cell.get("t", "unknown"))] += 1
+            faction = str(cell.get("o", ""))
+            faction_counts[faction or "unclaimed"] += 1
+            if str(cell.get("n", "")).strip():
+                world_markers.append({
+                    "name": str(cell.get("n", "")),
+                    "row": row_index,
+                    "column": column_index,
+                    "shape": str(cell.get("f", "")),
+                    "faction": faction,
+                })
+    world_map_summary = {
+        "rows": len(world_grid) if isinstance(world_grid, list) else 0,
+        "columns": len(world_grid[0]) if isinstance(world_grid, list) and world_grid and isinstance(world_grid[0], list) else 0,
+        "cells": sum(len(row) for row in world_grid if isinstance(row, list)) if isinstance(world_grid, list) else 0,
+        "terrain_counts": dict(sorted(terrain_counts.items())),
+        "faction_counts": dict(sorted(faction_counts.items())),
+        "markers": world_markers,
+        "river_waypoints": len(runtime.get("worldRiverPath", [])),
+        "river_path": runtime.get("worldRiverPath", []),
+    }
     return {
         "terrain_cells": int(runtime.get("counts", {}).get("terrainCells", 0)),
+        "strategic_map": world_map_summary,
         "terrain_by_name": runtime.get("counts", {}).get("terrainByName", {}),
         "base_setup_builder_cells": len(base_cells),
         "feature_builder_cells_unique": len(feature_cells),
@@ -198,9 +266,195 @@ def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
         "interior_regions": int(runtime.get("counts", {}).get("interiorRegions", 0)),
         "multi_story_buildings": int(runtime.get("counts", {}).get("multiStoryBuildings", 0)),
         "multi_story_floor_maps": floors,
+        "npc_placement_count": len(npc_placements),
+        "npc_placements_missing_hex": npc_missing_hex,
+        "npc_placements_by_side": dict(sorted(npc_by_side.items())),
+        "npc_placements_by_faction": dict(sorted(npc_by_faction.items())),
+        "npc_placements_by_race": dict(sorted(npc_by_race.items())),
+        "npc_placements": npc_placements,
         "unicorn_patrol_waypoints": int(runtime.get("counts", {}).get("unicornPatrolWaypoints", 0)),
         "source_commit": runtime.get("source", {}).get("commit"),
         "warning": "Feature-builder cells overlap one another and the base setup; counts by builder must not be summed. The unique feature-builder union excludes setupVillageScene and is not a target parity percentage.",
+    }
+
+
+def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, Any]) -> dict[str, Any]:
+    """Compare the extracted source 16x16 map with the target's explicit source-derived rules."""
+    world_grid = runtime.get("worldMapData", [])
+    geo = geography.get("geography", {})
+    dimensions = geography.get("coordinate_system", {}).get("strategic_grid_dimensions", {})
+    expected_columns = int(dimensions.get("columns", 0))
+    expected_rows = int(dimensions.get("rows", 0))
+    ocean_columns = set(int(value) for value in geo.get("ocean_columns", []))
+    human_lands = geo.get("human_lands", {})
+    orc_lands = geo.get("orc_lands", {})
+    dwarven = geo.get("dwarven_mountains", {})
+    elven = geo.get("elven_forest", {})
+    variation = geo.get("terrain_variation", {})
+    hash_rule = variation.get("strategic_hash", {})
+    mountain_threshold = float(variation.get("orc_mountain_threshold", 0.8))
+    hills_threshold = float(variation.get("orc_hills_threshold", 0.6))
+    overrides = geo.get("faction_overrides", [])
+
+    mismatches: list[dict[str, Any]] = []
+    for row in range(expected_rows):
+        for column in range(expected_columns):
+            if row >= len(world_grid) or not isinstance(world_grid[row], list) or column >= len(world_grid[row]):
+                mismatches.append({"row": row, "column": column, "reason": "missing_source_cell"})
+                continue
+            cell = world_grid[row][column]
+            if not isinstance(cell, dict):
+                mismatches.append({"row": row, "column": column, "reason": "invalid_source_cell"})
+                continue
+            is_ocean = column in ocean_columns
+            is_mountain = (
+                int(dwarven.get("columns", [expected_columns, expected_columns - 1])[0])
+                <= column <= int(dwarven.get("columns", [expected_columns, expected_columns - 1])[1])
+                and int(dwarven.get("rows", [0, -1])[0]) <= row <= int(dwarven.get("rows", [0, -1])[1])
+            )
+            is_forest = (
+                not is_ocean
+                and int(elven.get("columns", [1, 0])[0]) <= column <= int(elven.get("columns", [1, 0])[1])
+                and int(elven.get("rows", [1, 0])[0]) <= row <= int(elven.get("rows", [1, 0])[1])
+            )
+            is_orc = (
+                int(orc_lands.get("columns", [expected_columns, expected_columns - 1])[0])
+                <= column <= int(orc_lands.get("columns", [expected_columns, expected_columns - 1])[1])
+            )
+            terrain = "G"
+            if is_ocean:
+                terrain = "W"
+            elif is_mountain:
+                terrain = "M"
+            elif is_forest:
+                terrain = "F"
+            elif is_orc:
+                hash_x = column * float(hash_rule.get("x_scale", 1.0)) + float(hash_rule.get("x_offset", 0.0))
+                hash_y = row * float(hash_rule.get("y_scale", 1.0)) + float(hash_rule.get("y_offset", 0.0))
+                rough = math.sin(hash_x * 12.9898 + hash_y * 78.233) * 43758.5453
+                rough -= math.floor(rough)
+                if rough > mountain_threshold:
+                    terrain = "M"
+                elif rough > hills_threshold:
+                    terrain = "H"
+
+            faction = "" if is_ocean else ("d" if is_mountain else ("e" if is_forest else ("o" if is_orc else "h")))
+            for override in overrides:
+                columns = override.get("columns", [])
+                rows = override.get("rows", [])
+                if columns and rows and int(columns[0]) <= column <= int(columns[1]) and int(rows[0]) <= row <= int(rows[1]):
+                    faction = {"dwarves": "d", "orcs": "o", "humans": "h", "elves": "e"}.get(str(override.get("faction", "")), faction)
+
+            # Source location markers deliberately replace the base terrain/faction
+            # record at their cell; compare the underlying rules only on unmarked cells.
+            if not str(cell.get("n", "")).strip():
+                if str(cell.get("t", "")) != terrain or str(cell.get("o", "")) != faction:
+                    mismatches.append({
+                        "row": row,
+                        "column": column,
+                        "expected_terrain": terrain,
+                        "actual_terrain": str(cell.get("t", "")),
+                        "expected_faction": faction,
+                        "actual_faction": str(cell.get("o", "")),
+                    })
+
+    expected_river = geo.get("river_path", [])
+    actual_river = [
+        [int(point.get("x", -999)), int(point.get("y", -999))]
+        for point in runtime.get("worldRiverPath", [])
+        if isinstance(point, dict)
+    ]
+    markers = []
+    for row_index, row in enumerate(world_grid if isinstance(world_grid, list) else []):
+        if not isinstance(row, list):
+            continue
+        for column_index, cell in enumerate(row):
+            if isinstance(cell, dict) and str(cell.get("n", "")).strip():
+                markers.append({"name": str(cell["n"]), "row": row_index, "column": column_index})
+
+    marker_validation_performed = bool(geography.get("strategic_markers"))
+    marker_mismatches: list[dict[str, Any]] = []
+    if marker_validation_performed:
+        coordinate_system = geography.get("coordinate_system", {})
+        origin = coordinate_system.get("origin", {})
+        scale = int(coordinate_system.get("local_hexes_per_strategic_cell", 0))
+        locations_by_id = {
+            str(location.get("id", "")): location
+            for location in geography.get("locations", [])
+            if isinstance(location, dict)
+        }
+        occupied: set[tuple[int, int]] = set()
+        expected_markers: dict[str, tuple[int, int]] = {}
+        for marker in geography.get("strategic_markers", []):
+            if not isinstance(marker, dict):
+                continue
+            marker_id = str(marker.get("id", ""))
+            location = locations_by_id.get(marker_id)
+            if not location or scale <= 0:
+                marker_mismatches.append({"id": marker_id, "reason": "missing_location_or_scale"})
+                continue
+            local_q = int(location.get("q", 0))
+            local_r = int(location.get("r", 0))
+            desired_column = int(origin.get("column", 0)) + math.floor((local_q - int(origin.get("local_q", 0))) / scale + 0.5)
+            desired_row = int(origin.get("row", 0)) + math.floor((local_r - int(origin.get("local_r", 0))) / scale + 0.5)
+            candidates = [
+                (desired_column, desired_row),
+                (desired_column + 1, desired_row),
+                (desired_column, desired_row + 1),
+                (desired_column - 1, desired_row),
+                (desired_column, desired_row - 1),
+            ]
+            chosen = (desired_column, desired_row)
+            for candidate in candidates:
+                column, row = candidate
+                if column < 0 or column >= expected_columns or row < 0 or row >= expected_rows or candidate in occupied:
+                    continue
+                chosen = candidate
+                break
+            occupied.add(chosen)
+            source_name = str(marker.get("source_name", location.get("name", marker_id)))
+            expected_markers[source_name] = chosen
+        actual_markers = {
+            str(marker.get("name", "")): (int(marker.get("column", -1)), int(marker.get("row", -1)))
+            for marker in markers
+        }
+        for name, expected_cell in expected_markers.items():
+            if actual_markers.get(name) != expected_cell:
+                marker_mismatches.append({
+                    "name": name,
+                    "expected_cell": expected_cell,
+                    "actual_cell": actual_markers.get(name),
+                })
+        for name, actual_cell in actual_markers.items():
+            if name not in expected_markers:
+                marker_mismatches.append({"name": name, "actual_cell": actual_cell, "reason": "unexpected_source_marker"})
+
+    return {
+        "expected_dimensions": {"rows": expected_rows, "columns": expected_columns},
+        "actual_dimensions": {
+            "rows": len(world_grid) if isinstance(world_grid, list) else 0,
+            "columns": len(world_grid[0]) if isinstance(world_grid, list) and world_grid and isinstance(world_grid[0], list) else 0,
+        },
+        "dimensions_match": (
+            isinstance(world_grid, list)
+            and len(world_grid) == expected_rows
+            and all(isinstance(row, list) and len(row) == expected_columns for row in world_grid)
+        ),
+        "unmarked_terrain_faction_mismatch_count": len(mismatches),
+        "mismatch_samples": mismatches[:20],
+        "river_path_matches_geography": actual_river == expected_river,
+        "expected_river_waypoints": len(expected_river),
+        "actual_river_waypoints": len(actual_river),
+        "marker_count": len(markers),
+        "markers": markers,
+        "marker_validation_performed": marker_validation_performed,
+        "markers_match": (len(marker_mismatches) == 0) if marker_validation_performed else None,
+        "marker_mismatch_count": len(marker_mismatches),
+        "marker_mismatch_samples": marker_mismatches[:20],
+        "hollowmere_marker_at_origin": (
+            len(world_grid) > 6 and isinstance(world_grid[6], list) and len(world_grid[6]) > 6
+            and str(world_grid[6][6].get("n", "")) == "Hollowmere"
+        ),
     }
 
 
@@ -302,7 +556,13 @@ def build_report(
         "prop_anchor_on_other_geometry": len(prop_union & (road_cells | building_union | path_union)),
     }
     floor_total, floor_unique = floor_room_cells(multistory)
-    source_runtime_report = source_runtime_summary(read_json(source_runtime_path)) if source_runtime_path else None
+    source_runtime_data = read_json(source_runtime_path) if source_runtime_path else None
+    source_runtime_report = source_runtime_summary(source_runtime_data) if source_runtime_data else None
+    strategic_map_validation = (
+        strategic_map_parity_report(source_runtime_data, geography)
+        if source_runtime_data is not None and source_runtime_data.get("worldMapData")
+        else None
+    )
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -343,6 +603,7 @@ def build_report(
         },
         "source": source_validation,
         "source_runtime": source_runtime_report,
+        "strategic_map_validation": strategic_map_validation,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
@@ -421,8 +682,23 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'{report["source_runtime"]["base_feature_overlap_cells"]:,} overlaps. '
             f'The scene also produced {report["source_runtime"]["tile_object_placements"]:,} physical object placements, '
             f'{report["source_runtime"]["interior_regions"]:,} interior regions and '
-            f'{report["source_runtime"]["multi_story_buildings"]:,} multi-storey definitions. '
+            f'{report["source_runtime"]["multi_story_buildings"]:,} multi-storey definitions, and '
+            f'{report["source_runtime"]["npc_placement_count"]:,} NPC/creature baseline placements. '
             "These are source-side runtime totals, not target coverage."
+        ),
+        "",
+        "",
+        "## Strategic map source parity",
+        "",
+        "No strategic map was captured." if report.get("strategic_map_validation") is None else (
+            f'Source map dimensions: {report["strategic_map_validation"]["actual_dimensions"]["columns"]}×{report["strategic_map_validation"]["actual_dimensions"]["rows"]}; '
+            f'{report["strategic_map_validation"]["marker_count"]} named markers; '
+            f'{report["strategic_map_validation"]["actual_river_waypoints"]} river waypoints. '
+            f'Unmarked terrain/faction mismatches against the target geography rules: '
+            f'{report["strategic_map_validation"]["unmarked_terrain_faction_mismatch_count"]}; '
+            f'river path match: {report["strategic_map_validation"]["river_path_matches_geography"]}; '
+            f'all source marker positions match: {report["strategic_map_validation"]["markers_match"]}; '
+            f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
         ),
         "",
         "| Source terrain builder | Unique cells touched |",
@@ -470,6 +746,16 @@ def main() -> int:
     print(rendered_markdown)
     if args.source_root and report["source"]["missing_builder_symbols"]:
         print("Missing source builder symbols:", ", ".join(report["source"]["missing_builder_symbols"]))
+        return 1
+    map_check = report.get("strategic_map_validation")
+    if map_check is not None and (
+        not map_check["dimensions_match"]
+        or map_check["unmarked_terrain_faction_mismatch_count"] > 0
+        or not map_check["river_path_matches_geography"]
+        or not map_check["hollowmere_marker_at_origin"]
+        or map_check["markers_match"] is False
+    ):
+        print("Strategic map parity validation failed:", json.dumps(map_check, indent=2))
         return 1
     return 0
 

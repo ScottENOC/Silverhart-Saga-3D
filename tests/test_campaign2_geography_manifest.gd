@@ -77,7 +77,34 @@ func _initialize() -> void:
 		"Exploration locations must remain unmarked until discovered")
 
 	var markers: Array = MAP_DATA.strategic_locations()
-	assert(markers.size() == 6, "Strategic marker selection must be manifest-authored")
+	assert(markers.size() == 12, "All source-authored strategic markers must be represented")
+	var marker_cells: Dictionary = {}
+	var marker_ids: Dictionary = {}
+	for marker in markers:
+		var marker_id := String(marker.get("id", ""))
+		var marker_cell: Vector2i = marker.get("cell", Vector2i(-1, -1))
+		assert(not marker_ids.has(marker_id), "Strategic marker ids must be unique: " + marker_id)
+		assert(not marker_cells.has(marker_cell), "Source marker collision resolution must give each marker a distinct strategic cell: " + marker_id)
+		marker_ids[marker_id] = true
+		marker_cells[marker_cell] = marker_id
+	var expected_marker_cells := {
+		"hollowmere": Vector2i(6, 6),
+		"old_mac_farmstead": Vector2i(6, 7),
+		"skarn_tooth_camp": Vector2i(8, 6),
+		"millbrook": Vector2i(6, 3),
+		"silverhart": Vector2i(6, 2),
+		"emberlode": Vector2i(4, 6),
+		"reddale": Vector2i(7, 6),
+		"northwatch_fort": Vector2i(9, 6),
+		"ridgehold_fort": Vector2i(10, 6),
+		"skarnaks_hold": Vector2i(9, 7),
+		"kragmoor": Vector2i(13, 1),
+		"silthandriel": Vector2i(4, 13)
+	}
+	for marker in markers:
+		var marker_id := String(marker.get("id", ""))
+		assert(marker.get("cell") == expected_marker_cells[marker_id], "Strategic marker must preserve source position and collision order: " + marker_id)
+	assert(String(markers[7].get("source_marker_name", "")) == "Northwatch Fort (Under Siege)")
 	var grid: Array = MAP_DATA.generate_grid()
 	assert(grid.size() == 16 and grid[0].size() == 16, "Strategic grid dimensions must come from the manifest")
 	assert(grid[0][0]["terrain"] == "ocean")

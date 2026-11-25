@@ -63,13 +63,35 @@ static func strategic_locations() -> Array[Dictionary]:
 	for location in _manifest_data().get("locations", []):
 		locations_by_id[String(location.get("id", ""))] = location
 	var result: Array[Dictionary] = []
+	var occupied_cells: Dictionary = {}
+	var dimensions := strategic_grid_size()
 	for marker in _manifest_data().get("strategic_markers", []):
 		var id := String(marker.get("id", ""))
 		if not locations_by_id.has(id):
 			continue
 		var location: Dictionary = locations_by_id[id].duplicate(true)
 		location["short"] = String(marker.get("short", ""))
-		location["cell"] = world_cell_from_local_hex(Vector2i(int(location.get("q", 0)), int(location.get("r", 0))))
+		location["source_marker_name"] = String(marker.get("source_name", location.get("name", id)))
+		var desired := world_cell_from_local_hex(Vector2i(int(location.get("q", 0)), int(location.get("r", 0))))
+		# Mirror Hex-crpg's setWorldMapMarker collision policy: retain the
+		# source cell where possible, otherwise try east, south, west, then north.
+		var candidates: Array[Vector2i] = [
+			desired,
+			Vector2i(desired.x + 1, desired.y),
+			Vector2i(desired.x, desired.y + 1),
+			Vector2i(desired.x - 1, desired.y),
+			Vector2i(desired.x, desired.y - 1)
+		]
+		var placed := desired
+		for candidate in candidates:
+			if candidate.x < 0 or candidate.x >= dimensions.x or candidate.y < 0 or candidate.y >= dimensions.y:
+				continue
+			if occupied_cells.has(candidate):
+				continue
+			placed = candidate
+			break
+		location["cell"] = placed
+		occupied_cells[placed] = id
 		result.append(location)
 	return result
 

@@ -523,19 +523,27 @@
   ],
   "strategic_markers": [
     {
-      "id": "silverhart",
-      "short": "K"
+      "id": "hollowmere",
+      "short": "V"
+    },
+    {
+      "id": "old_mac_farmstead",
+      "short": "F"
+    },
+    {
+      "id": "skarn_tooth_camp",
+      "short": "S"
     },
     {
       "id": "millbrook",
       "short": "V"
     },
     {
-      "id": "emberlode",
-      "short": "V"
+      "id": "silverhart",
+      "short": "K"
     },
     {
-      "id": "hollowmere",
+      "id": "emberlode",
       "short": "V"
     },
     {
@@ -543,8 +551,25 @@
       "short": "T"
     },
     {
-      "id": "old_mac_farmstead",
+      "id": "northwatch_fort",
+      "short": "F",
+      "source_name": "Northwatch Fort (Under Siege)"
+    },
+    {
+      "id": "ridgehold_fort",
       "short": "F"
+    },
+    {
+      "id": "skarnaks_hold",
+      "short": "K"
+    },
+    {
+      "id": "kragmoor",
+      "short": "K"
+    },
+    {
+      "id": "silthandriel",
+      "short": "K"
     }
   ]
 }
