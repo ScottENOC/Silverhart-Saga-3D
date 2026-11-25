@@ -1713,49 +1713,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if dialogue_id == "silverhart_queen":
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var content := PERSISTENT_DIALOGUE_CONTENT.new()
-		var journal := simulation.campaign_journal
-		var context := {
-			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
-			"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
-			"goblin_standing": journal.faction_standing("goblin_tribe"),
-			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
-			"necromancer_standing": journal.faction_standing("necromancer_cult")
-		}
-		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
-		if bool(conversation.get("ok", false)):
-			var supported_choices: Array[Dictionary] = []
-			for choice_value in conversation.get("choices", []):
-				var choice: Dictionary = choice_value
-				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
-					supported_choices.append(choice)
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
-		else:
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
-		return
-	var journal := simulation.campaign_journal
-	var guild_favor_state := journal.quest_state("guild_favor")
-	var wizard_vendetta_state := journal.quest_state("wizard_vendetta")
-	var dragon_state := journal.quest_state("millbrook_dragon")
-	var goblin_state := journal.quest_state("goblin_threat")
-	var goblin_decisions: Dictionary = goblin_state.get("decisions", {})
-	var context := {
-		"guild_favor_active": String(guild_favor_state.get("status", "")) == "active",
-		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
-		"ironbond_standing": journal.faction_standing("ironbond_company"),
-		"wizard_resolution": String(wizard_vendetta_state.get("resolution", "")),
-		"wizard_standing": journal.npc_standing("court_wizard_thessaly"),
-		"millbrook_dragon_active": String(dragon_state.get("status", "")) == "active",
-		"millbrook_dragon_completed": String(dragon_state.get("status", "")) == "completed",
-		"goblin_resolution": String(goblin_state.get("resolution", goblin_decisions.get("resolution", "")))
-	}
-	var conversation := CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting(dialogue_id, target_state.display_name, context)
-	if conversation.is_empty():
-		conversation = CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.role_greeting(
-			target_state.id,
-			target_state.display_name,
-			String(actor.get_meta("title", "")),
-			String(actor.get_meta("ambient_role", "civilian"))
-		)
+		var conversation := CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting_for_npc(dialogue_id, target_state, actor, simulation)
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		if choice_value is Dictionary:
