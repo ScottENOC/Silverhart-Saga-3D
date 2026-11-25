@@ -14,8 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FEMALE_PLAN_TOOL = ROOT / "tools" / "blender" / "plan_female_anatomy_subdivision.py"
-FEMALE_TOOL = ROOT / "tools" / "blender" / "add_female_anatomy_surface.py"
+FEMALE_TOOL = ROOT / "tools" / "blender" / "add_adult_anatomy.py"
 MALE_TOOL = ROOT / "tools" / "blender" / "add_male_anatomy.py"
 ADULT_AGE_THRESHOLD = 0.34375
 
@@ -28,48 +27,21 @@ def run_blender(script: Path, *arguments: str) -> None:
     subprocess.run(command, cwd=ROOT, check=True)
 
 
-def apply_female_anatomy(source: Path, output: Path, shared_plan: Path) -> None:
-    report = output.with_name(output.stem + ".female-anatomy-report.json")
-    try:
-        run_blender(
-            FEMALE_TOOL,
-            "--input", str(source),
-            "--output", str(output),
-            "--report", str(report),
-            "--subdivision-plan", str(shared_plan),
-            "--adult",
-            "--deformation-scale", "1.65",
-        )
-    except subprocess.CalledProcessError:
-        # Ara female exports normally share identical source topology. If a
-        # future generator change breaks that assumption, safely create a
-        # character-specific plan rather than applying mismatched edge indices.
-        local_plan = output.with_name(output.stem + ".female-anatomy-plan.json")
-        print(
-            f"Shared female subdivision plan did not fit {source.name}; "
-            "building a character-specific plan.",
-            flush=True,
-        )
-        run_blender(
-            FEMALE_PLAN_TOOL,
-            "--input", str(source),
-            "--output", str(local_plan),
-        )
-        run_blender(
-            FEMALE_TOOL,
-            "--input", str(source),
-            "--output", str(output),
-            "--report", str(report),
-            "--subdivision-plan", str(local_plan),
-            "--adult",
-            "--deformation-scale", "1.65",
-        )
-        local_plan.unlink(missing_ok=True)
-    if not report.is_file() or '"clothing_operations": "not run"' not in report.read_text():
-        raise SystemExit(f"Female anatomy report failed validation: {report}")
-    report.unlink()
-
-
+def apply_female_anatomy(source: Path, output: Path) -> None:
+    """Apply the validated integrated v2 external sculpt to a fresh female Ara GLB."""
+    run_blender(
+        FEMALE_TOOL,
+        "--input", str(source),
+        "--output", str(output),
+        "--profile", "female",
+        "--adult",
+        "--method", "integrated",
+        "--deformation-scale", "1.65",
+        "--no-canal",
+        "--no-anus",
+    )
+    if not output.is_file() or output.stat().st_size < 100_000:
+        raise SystemExit(f"Female anatomy integration did not produce a valid GLB: {output}")
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", type=Path, required=True)
@@ -81,66 +53,46 @@ def main() -> None:
     manifest = json.loads(manifest_path.read_text())
     processed = 0
     skipped = 0
-    female_plan = Path("/tmp/hollowmere-female-anatomy-subdivision-plan.json")
-    female_plan.unlink(missing_ok=True)
-    female_plan_ready = False
-    try:
-        for character in manifest.get("characters", []):
-            character_id = str(character["id"])
-            params = character.get("params", {})
-            age = float(params.get("age", 0.0))
-            if age < ADULT_AGE_THRESHOLD:
-                print(f"Skipping anatomy for non-adult profile: {character_id} (age slider {age:.3f})", flush=True)
-                skipped += 1
-                continue
-            source = directory / str(character.get("model", f"{character_id}.glb"))
-            if not source.is_file():
-                raise SystemExit(f"Missing generated NPC model: {source}")
-            output = source.with_name(source.stem + ".anatomy.glb")
-            if int(params.get("gender", 0)) == 1:
-                male_arguments = [
-                    "--input", str(source),
-                    "--output", str(output),
-                    "--adult",
-                    "--profile-name", character_id,
-                ]
-                authored_size = character.get("anatomy_size", {})
-                if isinstance(authored_size, dict) and authored_size:
-                    # Explicit sizes are sampled by the profile generator or
-                    # authored for named characters (e.g. Aldric); bake them once.
-                    male_arguments.extend([
-                        "--length-scale", str(authored_size.get("length_scale", 1.0)),
-                        "--girth-scale", str(authored_size.get("girth_scale", 1.0)),
-                        "--variation-strength", "0",
-                    ])
-                else:
-                    # Use the profile's own seed when available. This makes the
-                    # anatomy draw stable for a generated profile, and changing
-                    # the generic NPC generator seed produces a fresh population.
-                    variation_seed = str(params.get("seed", character_id))
-                    male_arguments.extend([
-                        "--variation-seed", variation_seed,
-                        "--variation-strength", "1.0",
-                    ])
-                run_blender(MALE_TOOL, *male_arguments)
+    for character in manifest.get("characters", []):
+        character_id = str(character["id"])
+        params = character.get("params", {})
+        age = float(params.get("age", 0.0))
+        if age < ADULT_AGE_THRESHOLD:
+            print(f"Skipping anatomy for non-adult profile: {character_id} (age slider {age:.3f})", flush=True)
+            skipped += 1
+            continue
+        source = directory / str(character.get("model", f"{character_id}.glb"))
+        if not source.is_file():
+            raise SystemExit(f"Missing generated NPC model: {source}")
+        output = source.with_name(source.stem + ".anatomy.glb")
+        if int(params.get("gender", 0)) == 1:
+            male_arguments = [
+                "--input", str(source),
+                "--output", str(output),
+                "--adult",
+                "--profile-name", character_id,
+            ]
+            authored_size = character.get("anatomy_size", {})
+            if isinstance(authored_size, dict) and authored_size:
+                male_arguments.extend([
+                    "--length-scale", str(authored_size.get("length_scale", 1.0)),
+                    "--girth-scale", str(authored_size.get("girth_scale", 1.0)),
+                    "--variation-strength", "0",
+                ])
             else:
-                if not female_plan_ready:
-                    run_blender(
-                        FEMALE_PLAN_TOOL,
-                        "--input", str(source),
-                        "--output", str(female_plan),
-                    )
-                    if not female_plan.is_file() or female_plan.stat().st_size == 0:
-                        raise SystemExit("Female anatomy subdivision plan was not produced.")
-                    female_plan_ready = True
-                apply_female_anatomy(source, output, female_plan)
-            if not output.is_file() or output.stat().st_size < 100_000:
-                raise SystemExit(f"Anatomy integration did not produce a valid GLB: {output}")
-            os.replace(output, source)
-            processed += 1
-            print(f"Integrated anatomy: {character_id} ({'male' if int(params.get('gender', 0)) == 1 else 'female'})", flush=True)
-    finally:
-        female_plan.unlink(missing_ok=True)
+                variation_seed = str(params.get("seed", character_id))
+                male_arguments.extend([
+                    "--variation-seed", variation_seed,
+                    "--variation-strength", "1.0",
+                ])
+            run_blender(MALE_TOOL, *male_arguments)
+        else:
+            apply_female_anatomy(source, output)
+        if not output.is_file() or output.stat().st_size < 100_000:
+            raise SystemExit(f"Anatomy integration did not produce a valid GLB: {output}")
+        os.replace(output, source)
+        processed += 1
+        print(f"Integrated anatomy v2: {character_id} ({'male' if int(params.get('gender', 0)) == 1 else 'female'})", flush=True)
     print(f"Integrated current gender-specific anatomy into {processed} adult Hollowmere models; skipped {skipped} non-adult models.", flush=True)
 
 
