@@ -1017,6 +1017,8 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 	if bool(environment.get("fog", false)) or bool(environment.get("heavy_rain", false)):
 		visibility *= 0.7
 	for shift in night_watch_schedule:
+		var shift_detection := 0.0
+		var shift_watcher := ""
 		for watcher_value in shift.get("watcher_ids", []):
 			var watcher_id := String(watcher_value)
 			var profile: Dictionary = companion_profiles.get(watcher_id, {})
@@ -1024,12 +1026,13 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 			var perception := float(profile.get("perception", skills.get("keen_perception", skills.get("perception", skills.get("awareness", 0.0)))))
 			var fatigue := float(conditions.get(watcher_id, {}).get("fatigue", 40.0))
 			var chance := clampf((0.35 + perception * 0.05 - fatigue * 0.002) * visibility, 0.05, 0.9)
-			if chance > best_detection:
-				best_detection = chance
-				detecting_watcher = watcher_id
+			if chance > shift_detection:
+				shift_detection = chance
+				shift_watcher = watcher_id
+		best_detection = maxf(best_detection, shift_detection)
 		var detection_roll := rng.randf()
-		if detection_roll < best_detection:
-			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": best_detection, "watcher_id": detecting_watcher, "seed": seed_value}
+		if detection_roll < shift_detection:
+			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "seed": seed_value}
 	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "seed": seed_value}
 
 
