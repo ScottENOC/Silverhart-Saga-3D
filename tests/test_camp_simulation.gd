@@ -270,6 +270,25 @@ func _test_scheduled_horse_care_routine() -> void:
 	_check(String(restored.assignments.get("stablehand_01", {}).get("activity", "")) != "care_horse_tether", "The worker should return to their prior routine after completing horse care")
 
 
+	var waiting := CampSimulation.new()
+	waiting.begin_camp(
+		{"walkable": true, "safe_tethering": true},
+		["player", "wren"],
+		{"player_character_id": "player", "water_nearby": true, "camp_occupants": [
+			{"occupant_id": "horse_waiting", "kind": "animal", "species": "horse"},
+			{"occupant_id": "stablehand_waiting", "kind": "resident", "occupation": "stablehand", "can_work": true}
+		]},
+		{"water": 0, "fodder": 1}
+	)
+	var waiting_schedule := waiting.horse_care_schedule_for("horse_waiting")
+	_check(String(waiting_schedule[0].get("status", "")) == "pending", "Horse watering should wait when camp water has not yet been collected")
+	waiting.advance_real_time(24.0)
+	_check(int(waiting.resources.water) == 2, "The existing fetch-water preparation should replenish camp water")
+	waiting.advance_real_time(1.0)
+	waiting_schedule = waiting.horse_care_schedule_for("horse_waiting")
+	_check(String(waiting_schedule[0].get("status", "")) == "in_progress", "A waiting horse watering task should resume when water becomes available")
+
+
 func _test_night_resolution_and_save_load() -> void:
 	var camp := CampSimulation.new()
 	camp.begin_camp(
