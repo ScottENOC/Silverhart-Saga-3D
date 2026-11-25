@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tools.campaign2_authored_hex_audit import (
     building_cells,
+    build_report,
     floor_room_cells,
     polygon_cells,
     rasterize_segment,
@@ -19,6 +20,15 @@ from tools.campaign2_authored_hex_audit import (
 
 
 class Campaign2AuthoredHexAuditTests(unittest.TestCase):
+    def test_parity_scope_excludes_random_wilderness_decoration(self):
+        root = Path(__file__).resolve().parents[1]
+        report = build_report(root)
+        excluded = " ".join(report["method"]["excludes"]).lower()
+        parity_scope = " ".join(report["method"]["parity_scope"]).lower()
+        self.assertIn("random/procedural tree", excluded)
+        self.assertIn("layout-producing source logic", parity_scope)
+        self.assertIn("gameplay/story-critical placements", parity_scope)
+
     def test_building_footprint_includes_both_edges(self):
         cells = building_cells({
             "center": {"q": 2, "r": -3},
