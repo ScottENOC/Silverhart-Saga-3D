@@ -2,6 +2,22 @@ extends RefCounted
 ## Source-authored hoofprint trail around the Wild Unicorn's patrol vale.
 ## The unicorn actor, patrol AI, discovery checks and dialogue remain campaign-owned.
 
+## Source spawnWildUnicorn: Druid Grove centre (-266,10), then
+## vale centre (-286,24), radius 12, eight equally spaced hex-rounded
+## patrol waypoints. The living actor/patrol scheduler remains campaign-owned.
+const VALE_CENTER := Vector2i(-286, 24)
+const PATROL_RADIUS := 12.0
+const PATROL_WAYPOINTS: Array[Vector2i] = [
+	Vector2i(-274, 24),
+	Vector2i(-277, 32),
+	Vector2i(-286, 36),
+	Vector2i(-294, 32),
+	Vector2i(-298, 24),
+	Vector2i(-295, 16),
+	Vector2i(-286, 12),
+	Vector2i(-278, 16)
+]
+
 const TRACKS := [
 	{"hex": Vector2i(-274, 24), "direction": Vector2i(-3, 8)},
 	{"hex": Vector2i(-275, 27), "direction": Vector2i(-3, 8)},
