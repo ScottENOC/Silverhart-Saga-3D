@@ -363,43 +363,61 @@ func _restore_horse_care_handler(animal_id: String) -> void:
 func _advance_animal_care_tasks(world_delta: float) -> void:
 	if world_delta <= 0.0:
 		return
-	var active_animals: Dictionary = {}
-	for task_index in range(animal_care_tasks.size()):
-		var task: Dictionary = animal_care_tasks[task_index]
-		if String(task.get("status", "")) != "in_progress":
-			continue
-		var animal_id := String(task.get("animal_id", ""))
+	var animal_ids: Dictionary = {}
+	for task in animal_care_tasks:
+		animal_ids[String(task.get("animal_id", ""))] = true
+	for animal_id_value in animal_ids:
+		_advance_horse_care_sequence(String(animal_id_value), world_delta)
+
+
+func _advance_horse_care_sequence(animal_id: String, world_delta: float) -> void:
+	var remaining_world_seconds := world_delta
+	var safety_counter := 0
+	while remaining_world_seconds > 0.0 and safety_counter < animal_care_tasks.size() + 2:
+		safety_counter += 1
+		var active_index := -1
+		for index in range(animal_care_tasks.size()):
+			var candidate: Dictionary = animal_care_tasks[index]
+			if String(candidate.get("animal_id", "")) == animal_id and String(candidate.get("status", "")) == "in_progress":
+				active_index = index
+				break
+		if active_index < 0:
+			_activate_next_horse_care_task(animal_id)
+			for index in range(animal_care_tasks.size()):
+				var candidate: Dictionary = animal_care_tasks[index]
+				if String(candidate.get("animal_id", "")) == animal_id and String(candidate.get("status", "")) == "in_progress":
+					active_index = index
+					break
+		if active_index < 0:
+			return
+		var task: Dictionary = animal_care_tasks[active_index]
 		var handler_id := String(task.get("handler_id", ""))
-		var action := String(task.get("action", ""))
 		var handler_assignment: Dictionary = assignments.get(handler_id, {})
 		if not bool(handler_assignment.get("animal_care_task", false)) or String(handler_assignment.get("animal_id", "")) != animal_id:
-			if not bool(handler_assignment.get("player_override", false)):
-				_activate_horse_care_task_for_handler(animal_id, handler_id)
+			if bool(handler_assignment.get("player_override", false)):
+				return
+			_activate_horse_care_task_for_handler(animal_id, handler_id)
 			handler_assignment = assignments.get(handler_id, {})
 			if not bool(handler_assignment.get("animal_care_task", false)):
-				continue
-		task["elapsed_world_seconds"] = minf(
-			float(task.get("duration_world_seconds", 0.0)),
-			float(task.get("elapsed_world_seconds", 0.0)) + world_delta
-		)
-		if float(task.get("elapsed_world_seconds", 0.0)) >= float(task.get("duration_world_seconds", 0.0)):
-			var result := perform_animal_care(animal_id, action, handler_id)
-			if bool(result.get("ok", false)):
-				task["status"] = "completed"
-				task["blocked_reason"] = ""
-			else:
-				task["status"] = "blocked"
-				task["blocked_reason"] = String(result.get("reason", "care_failed"))
-		animal_care_tasks[task_index] = task
-		active_animals[animal_id] = true
-	for animal_id in active_animals:
-		var still_active := false
-		for task in animal_care_tasks:
-			if String(task.get("animal_id", "")) == String(animal_id) and String(task.get("status", "")) == "in_progress":
-				still_active = true
-				break
-		if not still_active:
-			_activate_next_horse_care_task(String(animal_id))
+				return
+		var duration := float(task.get("duration_world_seconds", 0.0))
+		var elapsed := float(task.get("elapsed_world_seconds", 0.0))
+		var needed := maxf(0.0, duration - elapsed)
+		var spent := minf(remaining_world_seconds, needed)
+		task["elapsed_world_seconds"] = elapsed + spent
+		remaining_world_seconds -= spent
+		if float(task.get("elapsed_world_seconds", 0.0)) + 0.0001 < duration:
+			animal_care_tasks[active_index] = task
+			return
+		var result := perform_animal_care(animal_id, String(task.get("action", "")), handler_id)
+		if bool(result.get("ok", false)):
+			task["status"] = "completed"
+			task["blocked_reason"] = ""
+		else:
+			task["status"] = "blocked"
+			task["blocked_reason"] = String(result.get("reason", "care_failed"))
+		animal_care_tasks[active_index] = task
+		_activate_next_horse_care_task(animal_id)
 
 
 func horse_care_schedule_for(occupant_id: String) -> Array[Dictionary]:
