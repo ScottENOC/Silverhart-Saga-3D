@@ -272,7 +272,8 @@ func _verify_all_silverhart_buildings_stream(builder: Campaign2SettlementBuilder
 			expected_by_chunk[chunk_min] = []
 		expected_by_chunk[chunk_min].append(String(building.get("id", "")))
 	var streamed := 0
-	for chunk_min in expected_by_chunk:
+	for chunk_variant in expected_by_chunk:
+		var chunk_min: Vector2i = chunk_variant
 		var parent := Node3D.new()
 		root.add_child(parent)
 		builder.add_settlements_in_chunk(parent, chunk_min, 24)
