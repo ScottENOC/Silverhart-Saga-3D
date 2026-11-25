@@ -3,7 +3,7 @@ name: Build Dagna native Ara character
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, feature/unified-female-anatomy-v2]
     paths:
       - "character-preview/dagna-ara.json"
       - "tools/review/add_aldric_body_hair.py"
@@ -11,7 +11,7 @@ on:
       - "tools/review/dagna_native_preview.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
-      -   pull_request:
+  pull_request:
     branches: [dev]
     paths:
       - "character-preview/dagna-ara.json"
