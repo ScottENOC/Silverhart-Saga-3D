@@ -71,7 +71,10 @@ static func apply_effects(
 		journal.apply_world_campaign_flags(flags)
 
 	if effects.has("aldric_attitude"):
-		journal.adjust_npc_standing(ALDRIC_ID, int(effects["aldric_attitude"]), "goblin_campaign:%s" % decision_id)
+		if aldric_leaves and float(effects["aldric_attitude"]) == 0.0:
+			journal.set_npc_standing(ALDRIC_ID, 0.0, "goblin_campaign:%s" % decision_id)
+		else:
+			journal.adjust_npc_standing(ALDRIC_ID, int(effects["aldric_attitude"]), "goblin_campaign:%s" % decision_id)
 
 	if player != null:
 		player.experience += experience_delta
@@ -86,8 +89,13 @@ static func apply_effects(
 			aldric.side = "neutral"
 			aldric.combat_dormant = false
 		_sync_aldric_actor(scene_tree, local_actor_by_id, false)
-	if aldric_leaves and simulation.is_party_member(ALDRIC_ID):
-		simulation.dismiss_companion(ALDRIC_ID, true)
+	if aldric_leaves:
+		var aldric_departing := simulation.get_character(ALDRIC_ID)
+		if simulation.is_party_member(ALDRIC_ID):
+			simulation.dismiss_companion(ALDRIC_ID, true)
+		if aldric_departing != null:
+			aldric_departing.side = "neutral"
+			aldric_departing.combat_dormant = false
 		_sync_aldric_actor(scene_tree, local_actor_by_id, true)
 
 	return {
