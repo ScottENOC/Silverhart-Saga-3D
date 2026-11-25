@@ -4,6 +4,7 @@ on:
   push:
     branches: [dev]
     paths:
+      - ".github/actions/character-build-setup/action.yml"
       - "character-preview/mirabel-ara.json"
       - ".github/workflows/build-mirabel-native-ara.yml"
       - "tools/review/mirabel_native_preview.gd"
@@ -30,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-mirabel-native-ara
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
