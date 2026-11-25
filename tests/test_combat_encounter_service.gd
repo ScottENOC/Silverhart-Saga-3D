@@ -123,6 +123,7 @@ func _test_ironbond_domain_uses_shared_lifecycle() -> void:
 		index += 1
 
 	var started: Dictionary = HOLLOWMERE_ENCOUNTER.start(simulation, ["companion_aldric"])
+	var player := simulation.get_character("player")
 	_check(bool(started.get("ok", false)), "The Ironbond encounter should start through the shared lifecycle.")
 	_check(simulation.is_in_combat, "The Ironbond encounter should activate WorldSimulation combat.")
 	var party_ids: Array = started.get("party_ids", [])
