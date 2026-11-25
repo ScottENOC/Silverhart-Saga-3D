@@ -12,6 +12,9 @@ var faction_knowledge: Dictionary = {}
 var npc_standings: Dictionary = {}
 var npc_knowledge: Dictionary = {}
 var merchant_influence: Dictionary = {}
+var world_consequences: Dictionary = {}
+var region_campaign_states: Dictionary = {}
+var world_campaign_flags: Dictionary = {}
 
 
 func register_quest_definition(definition: Dictionary) -> Dictionary:
@@ -267,6 +270,74 @@ func npc_standing(npc_id: String) -> float:
 
 
 
+## Record a consequence against a decision already stored in the journal. This
+## gives effect application a durable idempotency key across save/load.
+func record_world_consequence(consequence_id: String, quest_id: String, decision_id: String, value: Dictionary) -> Dictionary:
+    var stable_id := consequence_id.strip_edges()
+    if stable_id.is_empty() or quest_id.strip_edges().is_empty() or decision_id.strip_edges().is_empty() or value.is_empty():
+        return {"ok": false, "reason": "missing_consequence_identity"}
+    if not quests.has(quest_id):
+        return {"ok": false, "reason": "quest_not_started"}
+    var decisions: Dictionary = quests[quest_id].get("decisions", {})
+    if not decisions.has(decision_id):
+        return {"ok": false, "reason": "source_decision_not_recorded"}
+    var existing: Variant = world_consequences.get(stable_id)
+    if existing is Dictionary:
+        if String(existing.get("quest_id", "")) == quest_id and String(existing.get("decision_id", "")) == decision_id and existing.get("value", {}) == value:
+            return {"ok": true, "already_recorded": true, "consequence_id": stable_id}
+        return {"ok": false, "reason": "consequence_id_conflict"}
+    world_consequences[stable_id] = {
+        "quest_id": quest_id,
+        "decision_id": decision_id,
+        "value": value.duplicate(true)
+    }
+    _emit_event("world_consequence_recorded", {
+        "consequence_id": stable_id,
+        "quest_id": quest_id,
+        "decision_id": decision_id
+    })
+    return {"ok": true, "already_recorded": false, "consequence_id": stable_id}
+
+
+func apply_region_campaign_state(region_id: String, deltas: Dictionary) -> Dictionary:
+    var stable_id := region_id.strip_edges()
+    if stable_id.is_empty() or deltas.is_empty():
+        return {"ok": false, "reason": "invalid_region_update"}
+    var state: Dictionary = region_campaign_states.get(stable_id, {})
+    for key_value in deltas.keys():
+        var key := String(key_value).strip_edges()
+        var value: Variant = deltas[key_value]
+        if key.is_empty() or not (value is int or value is float) or not is_finite(float(value)):
+            return {"ok": false, "reason": "invalid_region_delta"}
+    for key_value in deltas.keys():
+        var key := String(key_value)
+        state[key] = clampf(float(state.get(key, 0.0)) + float(deltas[key_value]), -100.0, 100.0)
+    region_campaign_states[stable_id] = state
+    _emit_event("region_campaign_state_changed", {"region_id": stable_id, "state": state.duplicate(true)})
+    return {"ok": true, "region_id": stable_id, "state": state.duplicate(true)}
+
+
+func region_campaign_state(region_id: String) -> Dictionary:
+    var state: Variant = region_campaign_states.get(region_id, {})
+    return state.duplicate(true) if state is Dictionary else {}
+
+
+func apply_world_campaign_flags(flags: Dictionary) -> Dictionary:
+    for key_value in flags.keys():
+        var key := String(key_value).strip_edges()
+        var value: Variant = flags[key_value]
+        if key.is_empty() or not (value is bool or value is String):
+            return {"ok": false, "reason": "invalid_world_flag"}
+    for key_value in flags.keys():
+        world_campaign_flags[String(key_value)] = flags[key_value]
+    _emit_event("world_campaign_flags_changed", {"flags": flags.duplicate(true)})
+    return {"ok": true, "flags": world_campaign_flags.duplicate(true)}
+
+
+func world_campaign_flag(flag_id: String, default_value: Variant = false) -> Variant:
+    return world_campaign_flags.get(flag_id, default_value)
+
+
 func quest_state(quest_id: String) -> Dictionary:
     if not quests.has(quest_id):
         return {}
@@ -281,7 +352,10 @@ func to_dict() -> Dictionary:
         "npc_standings": npc_standings.duplicate(true),
         "faction_knowledge": faction_knowledge.duplicate(true),
         "npc_knowledge": npc_knowledge.duplicate(true),
-        "merchant_influence": merchant_influence.duplicate(true)
+        "merchant_influence": merchant_influence.duplicate(true),
+        "world_consequences": world_consequences.duplicate(true),
+        "region_campaign_states": region_campaign_states.duplicate(true),
+        "world_campaign_flags": world_campaign_flags.duplicate(true)
     }
 
 
@@ -292,6 +366,9 @@ func load_dict(data: Dictionary) -> void:
     faction_knowledge.clear()
     npc_knowledge.clear()
     merchant_influence.clear()
+    world_consequences.clear()
+    region_campaign_states.clear()
+    world_campaign_flags.clear()
     var saved_quests: Variant = data.get("quests", {})
     if saved_quests is Dictionary:
         for quest_id_value in saved_quests.keys():
@@ -315,6 +392,24 @@ func load_dict(data: Dictionary) -> void:
     if saved_npc_knowledge is Dictionary:
         for npc_id_value in saved_npc_knowledge.keys():
             npc_knowledge[String(npc_id_value)] = float(saved_npc_knowledge[npc_id_value])
+
+    var saved_consequences: Variant = data.get("world_consequences", {})
+    if saved_consequences is Dictionary:
+        for consequence_id in saved_consequences:
+            var saved_record: Variant = saved_consequences[consequence_id]
+            if saved_record is Dictionary and saved_record.get("value", {}) is Dictionary:
+                world_consequences[String(consequence_id)] = saved_record.duplicate(true)
+    var saved_regions: Variant = data.get("region_campaign_states", {})
+    if saved_regions is Dictionary:
+        for region_id in saved_regions:
+            if saved_regions[region_id] is Dictionary:
+                region_campaign_states[String(region_id)] = saved_regions[region_id].duplicate(true)
+    var saved_flags: Variant = data.get("world_campaign_flags", {})
+    if saved_flags is Dictionary:
+        for flag_id in saved_flags:
+            var flag_value: Variant = saved_flags[flag_id]
+            if flag_value is bool or flag_value is String:
+                world_campaign_flags[String(flag_id)] = flag_value
     var saved_influence: Variant = data.get("merchant_influence", {})
     if saved_influence is Dictionary:
         for faction_id_value in saved_influence.keys():
