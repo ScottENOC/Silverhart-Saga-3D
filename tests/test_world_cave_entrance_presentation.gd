@@ -50,7 +50,7 @@ func _test_chunk_ownership() -> void:
 	for entrance in PRESENTATION.ENTRANCES:
 		var hex: Vector2i = entrance["hex"]
 		var owning_min := Vector2i(floori(float(hex.x) / 24.0) * 24, floori(float(hex.y) / 24.0) * 24)
-		var unrelated_min := owning_min + Vector2i(24, 0)
+		var unrelated_min := owning_min + Vector2i(24, 24)
 		var parent := Node3D.new()
 		root.add_child(parent)
 		var result := PRESENTATION.present_chunk(parent, data, unrelated_min, 24, HexGrid.DEFAULT_RADIUS_M)
