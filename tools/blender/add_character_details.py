@@ -43,6 +43,24 @@ def find_skin():
     return skin
 
 
+def skin_material_indices(skin):
+    """Return only material slots explicitly named as skin.
+
+    Ara can combine skin, hair and other surfaces into one mesh object. Object
+    selection alone is not a skin-only guarantee: every projection BVH must
+    filter polygons by their assigned skin material.
+    """
+    indices = {
+        index for index, slot in enumerate(skin.material_slots)
+        if slot.material and "skin" in slot.material.name.lower()
+    }
+    if not indices:
+        raise RuntimeError(
+            f"No skin material slots found on {skin.name!r}; refusing to project details"
+        )
+    return indices
+
+
 def make_material(name, hex_colour, metallic=0.0, roughness=0.8):
     colour = hex_colour.lstrip("#")
     srgb = tuple(int(colour[i:i+2], 16) / 255.0 for i in (0, 2, 4))
@@ -75,7 +93,12 @@ def make_projection_trees(skin):
     vertices = [world @ vertex.co for vertex in mesh.vertices]
     front_faces, back_faces = [], []
     front_sources, back_sources = [], []
+    allowed_materials = skin_material_indices(skin)
     for polygon in mesh.polygons:
+        # Critical: a combined Ara mesh may contain hair/clothing polygons.
+        # Never let those surfaces participate in tattoo projection.
+        if polygon.material_index not in allowed_materials:
+            continue
         normal = (normal_matrix @ polygon.normal).normalized()
         face = tuple(polygon.vertices)
         if normal.y < -0.12:
@@ -197,8 +220,22 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
         if name == "mirabel_arcane":
             back = back_y
             front = front_y
-            shoulder_z = centre.z + height * 0.29
-            mid_z = centre.z + height * 0.12
+            # Keep the back sigil below the long-hair curtain and add a matching
+            # chest-side mark where it is visibly on skin rather than hair.
+            shoulder_z = centre.z + height * 0.17
+            mid_z = centre.z + height * 0.05
+            chest_z = centre.z + height * 0.20
+            path([Vector((centre.x, front, chest_z + height * .035)),
+                  Vector((centre.x - width * .045, front, chest_z)),
+                  Vector((centre.x, front, chest_z - height * .040)),
+                  Vector((centre.x + width * .045, front, chest_z)),
+                  Vector((centre.x, front, chest_z + height * .035))],
+                 height * .0038, False)
+            for side in (-1.0, 1.0):
+                path([Vector((centre.x + side * width * .045, front, chest_z)),
+                      Vector((centre.x + side * width * .075, front, chest_z + height * .020)),
+                      Vector((centre.x + side * width * .095, front, chest_z - height * .015))],
+                     height * .0030, False)
             path([Vector((centre.x, back, shoulder_z)),
                   Vector((centre.x - width * .08, back, shoulder_z - height * .035)),
                   Vector((centre.x, back, mid_z)),
@@ -318,12 +355,10 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     else:
         orientation = socket_matrix.to_quaternion()
         centre += normal * 0.0012
-    # Ara long hair can cover the ear socket from the front. Place the hoop
-    # slightly forward (the imported Blender scene faces -Y) so it remains
-    # visible without moving the attachment away from the earlobe.
-    if name.startswith("Piercing_SOCKET_Earring_"):
-        side = -1.0 if name.endswith("_L") else 1.0
-        centre += Vector((side * 0.022, -0.035, -0.006))
+    # The socket is on the ear surface. Move the hoop laterally outward just
+    # enough for its outer half to clear the lobe, with only a tiny front offset.
+    # This keeps the piercing attached to the earlobe instead of floating in front.
+    # Earring sockets are already surface-anchored; do not add a second lateral offset.
     world.translation = centre
     bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
@@ -339,30 +374,70 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     print(f"BAKED_PIERCING {name} socket={socket.name}")
 
 
-def add_barbell(socket, material):
-    matrix = socket.matrix_world.copy()
-    centre = matrix.translation
-    normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
-    tangent = (matrix.to_3x3() @ Vector((1, 0, 0))).normalized()
-    location = centre + normal * 0.007
-    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0022, depth=0.016,
-                                        location=location)
+def make_skin_surface_tree(skin):
+    """Build a world-space BVH of the final sculpted skin for surface-anchored piercings."""
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    vertices = [skin.matrix_world @ vertex.co for vertex in mesh.vertices]
+    allowed_materials = skin_material_indices(skin)
+    polygons = [
+        list(poly.vertices) for poly in mesh.polygons
+        if poly.material_index in allowed_materials
+    ]
+    if not polygons:
+        evaluated.to_mesh_clear()
+        raise RuntimeError(
+            f"No skin-material polygons available for surface anchoring on {skin.name!r}"
+        )
+    tree = BVHTree.FromPolygons(vertices, polygons, all_triangles=False)
+    evaluated.to_mesh_clear()
+    return tree
+
+
+def add_barbell(socket, material, surface_tree):
+    """Place the clitoral barbell on the visible front skin, not inside the sculpt."""
+    socket_position = socket.matrix_world.translation.copy()
+    hit, _normal, _face_index, distance = surface_tree.ray_cast(
+        Vector((socket_position.x, -2.0, socket_position.z)),
+        Vector((0.0, 1.0, 0.0)),
+        4.0,
+    )
+    if hit is None:
+        raise RuntimeError(
+            "Clitoral piercing socket did not intersect the front skin surface: "
+            f"socket={tuple(round(v, 4) for v in socket_position)}"
+        )
+    # Ara's imported Blender scene faces -Y. Place the bar just clear of the
+    # actual sculpted surface, with its shaft running horizontally across X.
+    front = Vector((0.0, -1.0, 0.0))
+    tangent = Vector((1.0, 0.0, 0.0))
+    location = hit + front * 0.003
+    # As with the nipple barbell, use an X-stretched sphere for the shaft.
+    # A rotated cylinder exported with Ara's rig axes appeared vertical despite
+    # its two end beads being horizontally aligned.
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12,
+                                         radius=0.0018, location=location)
     bar = bpy.context.object
     bar.name = "Piercing_SOCKET_ClitoralHood_Bar"
-    bar.rotation_mode = "QUATERNION"
-    bar.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(tangent)
+    bar.scale = (6.0, 1.0, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bar.data.materials.append(material)
     parent_preserve(bar, socket, bar.matrix_world.copy())
     bar["character_detail_type"] = "piercing"
     for side in (-1.0, 1.0):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
-                                             radius=0.0038, location=location + tangent * side * 0.009)
+                                             radius=0.0038,
+                                             location=location + tangent * side * 0.009)
         bead = bpy.context.object
         bead.name = "Piercing_SOCKET_ClitoralHood_Bead"
         bead.data.materials.append(material)
         parent_preserve(bead, socket, bead.matrix_world.copy())
         bead["character_detail_type"] = "piercing"
-    print(f"BAKED_PIERCING clitoral barbell socket={socket.name}")
+    print(
+        "BAKED_PIERCING clitoral barbell on front skin "
+        f"socket={socket.name} surface_distance={distance:.4f}"
+    )
 
 
 def add_nipple_barbell(socket, material):
@@ -398,38 +473,40 @@ def add_nipple_barbell(socket, material):
         bead["character_detail_type"] = "piercing"
     print(f"BAKED_PIERCING Piercing_SOCKET_Nipple_L horizontal barbell socket={socket.name}")
 
-def add_piercings(entries):
+def add_piercings(entries, skin):
     material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
     sockets = {obj.name: obj for obj in bpy.context.scene.objects}
+    surface_tree = make_skin_surface_tree(skin) if any(entry in entries for entry in ("clit", "earrings")) else None
     count = 0
     for entry in entries:
         if entry == "earrings":
             for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
                 socket = sockets.get(name)
                 if socket:
-                    lo, hi = world_bounds(find_skin())
-                    size = hi - lo
-                    centre = (lo + hi) * 0.5
-                    pos = socket.matrix_world.translation.copy()
-                    # Ara's imported Blender scene is Z-up and faces -Y.
-                    # The old check used Y (depth) as height and consequently
-                    # classified valid ear sockets as shoulder-level.
-                    zn = (pos.z - lo.z) / max(size.z, 1e-6)
-                    xn = abs(pos.x - centre.x) / max(size.x, 1e-6)
-                    print(f"SOCKET_DIAGNOSTIC {name} world={tuple(round(v,4) for v in pos)} normalized_z={zn:.3f} normalized_x={xn:.3f}")
-                    # Ear sockets belong high on the head, lateral to the face.
-                    # The exported Ara ear sockets are misplaced at shoulder height
-                    # in this profile (the old envelope test accepted them because
-                    # their normalised height happened to look plausible). Always
-                    # anchor the hoops to the visible ear-lobe envelope instead.
-                    side = -1.0 if name.endswith("_L") else 1.0
-                    fallback = Vector((centre.x + side * size.x * 0.10,
-                                       lo.y + size.y * 0.10,
-                                       lo.z + size.z * 0.88))
-                    print(f"EAR_SOCKET_REPOSITION {name} from={tuple(round(v,4) for v in pos)} to={tuple(round(v,4) for v in fallback)}")
+                    # Ara's named earring socket is the anatomical landmark.
+                    # Snap only to the nearest skin-material polygon; do not use
+                    # a percentage-of-body-height gate, which rejected valid ear
+                    # skin on Mirabel because her ear sits below that guessed
+                    # threshold. A tight distance limit prevents a shoulder or
+                    # other remote skin surface from being accepted instead.
+                    socket_origin = socket.matrix_world.translation.copy()
+                    hit, normal, _face, distance = surface_tree.find_nearest(
+                        socket_origin, 0.05
+                    )
+                    if hit is None or distance > 0.03:
+                        raise RuntimeError(
+                            f"Could not anchor {name} to nearby ear skin: "
+                            f"socket={tuple(round(v,4) for v in socket_origin)}, "
+                            f"nearest={tuple(round(v,4) for v in hit) if hit else None}, "
+                            f"distance={distance:.3f}; expected within 0.03m"
+                        )
                     socket_world = socket.matrix_world.copy()
-                    socket_world.translation = fallback
+                    socket_world.translation = hit + normal * 0.002
                     socket.matrix_world = socket_world
+                    print(
+                        f"EAR_SOCKET_SURFACE_ANCHOR {name} "
+                        f"world={tuple(round(v,4) for v in socket.matrix_world.translation)}"
+                    )
                     add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True)
                     count += 1
                 else:
@@ -444,7 +521,7 @@ def add_piercings(entries):
         elif entry == "clit":
             socket = sockets.get("SOCKET_ClitoralHood")
             if socket:
-                add_barbell(socket, material)
+                add_barbell(socket, material, surface_tree)
                 count += 1
             else:
                 print("WARNING: Ara socket SOCKET_ClitoralHood not found; piercing omitted")
@@ -467,7 +544,7 @@ def main():
     bpy.ops.object.delete(use_global=False)
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.input))
     skin = find_skin()
-    piercing_count = add_piercings(piercings)
+    piercing_count = add_piercings(piercings, skin)
     tattoo_vertices = add_tattoo_mesh(skin, tattoos, ink)
 
     bpy.ops.object.select_all(action="DESELECT")
