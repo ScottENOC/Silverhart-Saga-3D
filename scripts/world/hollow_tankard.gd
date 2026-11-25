@@ -118,6 +118,7 @@ var active_combat_kind: String = "ironbond"
 var active_enemy_ids: Array[String] = []
 var active_party_ids: Array[String] = []
 var active_combat_controlled_ids: Array[String] = []
+var active_combat_session: Dictionary = {}
 var nearby_interaction_panel: PanelContainer
 var nearby_interaction_box: VBoxContainer
 var nearby_interaction_refresh: float = 0.0
@@ -2309,21 +2310,19 @@ func _start_farm_wolf_encounter() -> void:
 	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
 	active_party_ids.clear()
 	active_combat_controlled_ids.clear()
-	for party_id in simulation.get_party_member_ids():
-		active_party_ids.append(String(party_id))
-		active_combat_controlled_ids.append(String(party_id))
-	for value in simulation.character_states():
-		var state: CharacterState = value
-		state.combat_dormant = true
-		if active_party_ids.has(state.id):
-			state.side = "player"
-			state.combat_dormant = false
-			state.time_points = 100.0
-		elif active_enemy_ids.has(state.id):
-			state.side = "enemy"
-			state.combat_dormant = false
-			state.time_points = state.max_time_points
-	simulation.start_combat()
+	for party_id_value in simulation.get_party_member_ids():
+		var party_id := String(party_id_value)
+		var member := simulation.get_character(party_id)
+		if member == null or not member.can_act():
+			continue
+		active_party_ids.append(party_id)
+		active_combat_controlled_ids.append(party_id)
+	var begin_result: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, active_party_ids, active_enemy_ids)
+	if not bool(begin_result.get("ok", false)):
+		farm_wolves_retry_armed = true
+		push_error("Could not start farm wolf encounter: %s" % begin_result)
+		return
+	active_combat_session = begin_result.get("session", {})
 	encounter_active = true
 	if not active_party_ids.has(active_character_id):
 		active_character_id = "player"
