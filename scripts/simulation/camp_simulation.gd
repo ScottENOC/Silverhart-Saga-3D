@@ -122,6 +122,8 @@ func register_camp_occupant(data: Dictionary) -> Dictionary:
 	var participates_in_party := bool(data.get("participates_in_party", kind == "party_member"))
 	if participates_in_party and not party_ids.has(occupant_id):
 		return {"ok": false, "reason": "party_member_not_in_party"}
+	if participates_in_party != (kind == "party_member"):
+		return {"ok": false, "reason": "party_member_kind_mismatch"}
 	if not participates_in_party and party_ids.has(occupant_id):
 		return {"ok": false, "reason": "party_member_kind_mismatch"}
 	var clean := data.duplicate(true)
@@ -132,7 +134,10 @@ func register_camp_occupant(data: Dictionary) -> Dictionary:
 	clean["participates_in_party"] = participates_in_party
 	clean["can_sleep"] = bool(data.get("can_sleep", kind != "guest" or bool(data.get("staying_overnight", false))))
 	clean["can_work"] = bool(data.get("can_work", kind in ["party_member", "follower", "resident"]))
-	clean["needs"] = data.get("needs", ["food", "water", "shelter", "sleep", "safety"]).duplicate() if data.get("needs", []) is Array else []
+	var needs: Variant = data.get("needs", ["food", "water", "shelter", "sleep", "safety"])
+	if not needs is Array:
+		return {"ok": false, "reason": "invalid_occupant_needs"}
+	clean["needs"] = needs.duplicate()
 	occupants[occupant_id] = clean
 	return {"ok": true, "occupant": clean.duplicate(true)}
 
@@ -761,6 +766,12 @@ func from_dict(data: Dictionary) -> bool:
 			return false
 		if bool(occupant.get("participates_in_party", false)) != ids.has(String(occupant_id)):
 			return false
+		if (String(occupant.get("kind", "")) == "party_member") != ids.has(String(occupant_id)):
+			return false
+	if not saved_occupants.is_empty():
+		for character_id in ids:
+			if not saved_occupants.has(character_id):
+				return false
 	phase = saved_phase
 	site = data.get("site", {}).duplicate(true)
 	lodging_profile = saved_lodging.duplicate(true)
