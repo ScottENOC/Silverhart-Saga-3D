@@ -244,6 +244,41 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 		"corvane_ambassador":
 			return {"speaker": display_name, "text": "Corvane sent me to watch the greenskin trouble on Silverhart's border and report back. So far: it's trouble, and it's on the border. If you hear anything real out that way — anything I could actually put in a dispatch — I'd owe you.", "choices": [{"id": "border", "label": "What have you learned so far?", "text": "Not enough to write home with confidence. The camp west of Hollowmere is the centre of it, and the reports change with every traveller."}, {"id": "leave", "label": "I'll let you know.", "text": "The ambassador nods and makes a note."}]}
 
+
+		"chief_skarnub":
+			var resolution := String(context.get("goblin_resolution", ""))
+			if not resolution.is_empty() and resolution != "goblin_alliance":
+				return {"speaker": display_name, "text": "We have nothing left to discuss.", "choices": [{"id": "leave", "label": "...", "text": "Skarnub turns away."}]}
+			if resolution == "goblin_alliance":
+				if String(context.get("goblin_mine_raid_status", "")) == "completed":
+					return {"speaker": display_name, "text": "We're settled here, thanks to you. That mine haul didn't hurt either.", "choices": [{"id": "leave", "label": "Good.", "text": "Skarnub gives a short nod."}]}
+				return {"speaker": display_name, "text": "Since you've let us stay... there's a mining camp down the west road. Rich pickings, if you're willing to lead us there.", "choices": [{"id": "mine_raid", "label": "What is at the mining camp?", "text": "Emberlode's gold mine. A good haul would keep the tribe fed and armed. We can talk about it when the time is right."}, {"id": "leave", "label": "Not yet.", "text": "Skarnub waits, patient for a goblin."}]}
+			if float(context.get("goblin_standing", 0.0)) >= 40.0:
+				return {"speaker": display_name, "text": "You've done right by us. Truth told, this land's more trouble than it's worth — humans always come eventually. Guarantee us safe passage and supplies, and we'll move on. No more blood spilled, on either side.", "choices": [{"id": "passage", "label": "What would safe passage require?", "text": "Supplies enough to reach new ground, and a promise your people won't hunt us along the way. No more than that."}, {"id": "leave", "label": "Not yet.", "text": "Skarnub folds his arms and waits."}]}
+			return {"speaker": display_name, "text": "Another human, come to gawk or to fight? Speak quick.", "choices": [{"id": "goblin_favour", "label": "I could help you, for the right price.", "text": "Hah. A human with sense. Bring me what I ask, and we'll get along fine."}, {"id": "read_chief", "label": "Try to read him.", "text": "Skarnub watches your hands more than your face. He is weighing whether you came empty-handed."}, {"id": "threaten", "label": "Leave this land, or face us.", "text": "Skarnub bares his teeth. "Face us, then — see how far that gets you.""}, {"id": "leave", "label": "Just looking.", "text": "Skarnub turns his attention back to the camp."}]}
+		"nix_sharpear":
+			var goblin_resolution := String(context.get("goblin_resolution", ""))
+			if goblin_resolution == "goblin_alliance":
+				if bool(context.get("nix_recruited", false)):
+					return {"speaker": display_name, "text": "Still watching your back. What is it?", "choices": [{"id": "leave", "label": "Nothing, carry on.", "text": "Nix scans the edge of the camp."}]}
+				return {"speaker": display_name, "text": "We're not going anywhere now — you saw to that. Skarnub speaks for us, but I never much liked sitting still watching a road. You're headed for more trouble than this camp's seen in years. Room for one more?", "choices": [{"id": "nix_story", "label": "Why did you want the tribe to move on?", "text": "Because a camp this close to a human village only ends one way. I wanted our people alive when the fighting started."}, {"id": "leave", "label": "Not yet.", "text": "Nix nods, neither offended nor surprised."}]}
+			if not goblin_resolution.is_empty():
+				return {"speaker": display_name, "text": "We're already gone from here, or will be soon enough.", "choices": [{"id": "leave", "label": "Good.", "text": "Nix gives a curt nod."}]}
+			return {"speaker": display_name, "text": "Something you need? Speak quick, this isn't a place for wandering humans.", "choices": [{"id": "why_watch", "label": "Why are you really this close to the village?", "text": "You think Skarnub chose this ground? We were told to sit here, watch the roads, count what comes and goes. Somebody's paying close attention to your precious Hollowmere, and it isn't us. I've said too much — forget I spoke."}, {"id": "leave", "label": "Just passing through.", "text": "Nix turns away, keeping one eye on you."}]}
+		"goblin_trader":
+			if float(context.get("goblin_standing", 0.0)) < 20.0:
+				return {"speaker": display_name, "text": "Nothing for you here, human.", "choices": [{"id": "leave", "label": "...", "text": "The trader returns to sorting his goods."}]}
+			return {"speaker": display_name, "text": "Ha! Ally's coin spends same as anyone's. Look, take, pay.", "choices": [{"id": "wares", "label": "What do you trade?", "text": "Axes, spears, armour, shields, torches and a few healing draughts. Nothing fancy, but it keeps a tribe alive."}, {"id": "leave", "label": "Just looking.", "text": "The trader grins and waits."}]}
+		"orc_warlord":
+			if bool(context.get("orc_trust_completed", false)):
+				return {"speaker": display_name, "text": "Skarnak's Hold remembers who dealt with the troll. Kesh will trade with you properly now.", "choices": [{"id": "leave", "label": "Good to know.", "text": "Grukk gives a short, approving nod."}]}
+			if bool(context.get("orc_trust_active", false)):
+				return {"speaker": display_name, "text": "That troll still denning east of here? Deal with it and we'll talk properly.", "choices": [{"id": "troll", "label": "Where is its den?", "text": "East of the stockade, in the rocks. It has been picking off scouts and cattle. Bring proof that it is dead."}, {"id": "leave", "label": "I'm working on it.", "text": "Grukk folds his arms."}]}
+			return {"speaker": display_name, "text": "Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", "choices": [{"id": "troll", "label": "What do you know about the troll?", "text": "It denns east of the stockade, in the rocks. It has been taking scouts and cattle. Deal with it and you'll have earned a proper welcome."}, {"id": "leave", "label": "Not interested.", "text": "Grukk's expression hardens."}]}
+		"orc_trader":
+			if float(context.get("orc_standing", 0.0)) < 20.0:
+				return {"speaker": display_name, "text": "Nothing for you here, human.", "choices": [{"id": "leave", "label": "...", "text": "Kesh turns back to his wares."}]}
+			return {"speaker": display_name, "text": "Coin's coin. What do you need?", "choices": [{"id": "wares", "label": "What do you trade?", "text": "Axes, spears, clubs, medium armour, shields, torches and healing potions. Pay fair and we get along."}, {"id": "leave", "label": "Just looking.", "text": "Kesh nods once."}]}
 		_:
 			return {}
 
