@@ -15,7 +15,7 @@ const TENT_COMFORTABLE_CAPACITY := 3
 const TENT_MAX_CAPACITY := 5
 const PLAYER_OVERRIDE_SECONDS := 10.0
 const ROUTINE_STAGE_THRESHOLDS := [120.0, 360.0]
-const MORNING_STAGE_THRESHOLDS := [15.0, 35.0, 65.0, 110.0]
+const MORNING_STAGE_THRESHOLDS := [15.0, 35.0, 65.0, 110.0, 145.0]
 const WEATHER_CONTEXT_KEYS: Array[String] = [
 	"weather_type", "weather_label", "season", "month_index", "temperature_c",
 	"night_temperature_c", "wind_speed", "rain_intensity", "storm", "heavy_rain",
@@ -25,7 +25,7 @@ const ACTIVITY_IDS: Array[String] = [
 	"gather_wood", "set_up_tents", "fetch_water", "cook", "repair_gear",
 	"study_map", "train", "socialise", "watch", "sleep",
 	"care_horse_water", "care_horse_feed", "care_horse_groom", "care_horse_tether",
-	"wake", "dress", "breakfast", "extinguish_fire", "pack_camp"
+	"wake", "dress", "breakfast", "extinguish_fire", "pack_camp", "depart"
 ]
 
 var phase: String = "inactive"
@@ -1119,7 +1119,12 @@ func _begin_morning_stage(stage: int) -> void:
 				_set_assignment(character_id, "extinguish_fire" if character_id == fire_handler else "pack_camp")
 			return
 		4:
-			activity = "pack_camp"
+			activity = "depart"
+			for character_id in party_ids:
+				_set_assignment(character_id, "depart")
+			return
+		5:
+		5:
 			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
 				environment["fire_extinguished"] = true
 				environment["fire_lit"] = false
