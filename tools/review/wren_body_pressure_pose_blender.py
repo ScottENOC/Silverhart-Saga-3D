@@ -304,7 +304,113 @@ def author_pressure_shapes(actor, surface_centres, report):
     report["authored_pressure_shapes"] = authored
     return authored
 
+def _displacement_summary(distances):
+    values = sorted(float(value) for value in distances)
+    if not values:
+        return {"vertex_count": 0, "max_displacement_mm": 0.0,
+                "mean_displacement_mm": 0.0, "rms_displacement_mm": 0.0,
+                "vertices_over_0_1mm": 0, "vertices_over_1mm": 0,
+                "vertices_over_5mm": 0}
+    count = len(values)
+    mean = sum(values) / count
+    rms = math.sqrt(sum(value * value for value in values) / count)
+    return {
+        "vertex_count": count,
+        "max_displacement_mm": round(values[-1] * 1000.0, 4),
+        "mean_displacement_mm": round(mean * 1000.0, 4),
+        "rms_displacement_mm": round(rms * 1000.0, 4),
+        "vertices_over_0_1mm": sum(value > 0.0001 for value in values),
+        "vertices_over_1mm": sum(value > 0.001 for value in values),
+        "vertices_over_5mm": sum(value > 0.005 for value in values)
+    }
+
+
+def measure_pressure_shape_displacement(actor, active_regions):
+    """Measure evaluated world-space vertex movement with pressure keys off/on."""
+    deps = bpy.context.evaluated_depsgraph_get()
+    per_shape_distances = {}
+    combined_distances = []
+    mesh_reports = []
+
+    # Start from a clean baseline so unrelated shape-key values cannot contaminate it.
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is not None:
+            for key in keys.key_blocks:
+                if key.name.lower().startswith("pressure_"):
+                    key.value = 0.0
+    bpy.context.view_layer.update()
+
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is None:
+            continue
+        evaluated = source.evaluated_get(deps)
+        base_mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=deps)
+        base_matrix = evaluated.matrix_world.copy()
+        baseline = [base_matrix @ vertex.co for vertex in base_mesh.vertices]
+        evaluated.to_mesh_clear()
+
+        source_report = {"mesh": source.name, "vertex_count": len(baseline), "shapes": {}}
+        pressure_keys = [key for key in keys.key_blocks
+                         if key.name.lower().startswith("pressure_")]
+        for key in pressure_keys:
+            key.value = 1.0
+            bpy.context.view_layer.update()
+            evaluated = source.evaluated_get(deps)
+            active_mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=deps)
+            active_matrix = evaluated.matrix_world.copy()
+            if len(active_mesh.vertices) != len(baseline):
+                raise RuntimeError("Shape key changed vertex count on %s/%s" %
+                                   (source.name, key.name))
+            distances = [(active_matrix @ vertex.co - baseline[index]).length
+                         for index, vertex in enumerate(active_mesh.vertices)]
+            evaluated.to_mesh_clear()
+            key.value = 0.0
+            bpy.context.view_layer.update()
+            summary = _displacement_summary(distances)
+            source_report["shapes"][key.name] = summary
+            per_shape_distances.setdefault(key.name.lower(), []).extend(distances)
+
+        # Measure the requested combination separately; multiple keys may overlap.
+        for key in pressure_keys:
+            key.value = 1.0 if key.name.lower() in active_regions else 0.0
+        bpy.context.view_layer.update()
+        evaluated = source.evaluated_get(deps)
+        active_mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=deps)
+        active_matrix = evaluated.matrix_world.copy()
+        if len(active_mesh.vertices) != len(baseline):
+            raise RuntimeError("Combined pressure shapes changed vertex count on %s" % source.name)
+        combined = [(active_matrix @ vertex.co - baseline[index]).length
+                    for index, vertex in enumerate(active_mesh.vertices)]
+        evaluated.to_mesh_clear()
+        combined_distances.extend(combined)
+        source_report["combined_active_shapes"] = _displacement_summary(combined)
+        mesh_reports.append(source_report)
+
+    # Leave the actor with all pressure shapes reset; the preview caller sets its
+    # own intended combination immediately afterwards.
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is not None:
+            for key in keys.key_blocks:
+                if key.name.lower().startswith("pressure_"):
+                    key.value = 0.0
+    bpy.context.view_layer.update()
+
+    return {
+        "measurement": "Evaluated world-space mesh vertex displacement from all-pressure-shapes-off baseline",
+        "active_regions": sorted(active_regions),
+        "combined": _displacement_summary(combined_distances),
+        "per_shape": {name: _displacement_summary(values)
+                      for name, values in sorted(per_shape_distances.items())},
+        "meshes": mesh_reports,
+        "caveat": "This measures geometric shape-key output, not force-driven runtime deformation or collision response."
+    }
+
+
 def render_pressure_preview(actor, output_name, active_regions, report):
+    report["measured_pressure_deformation"] = measure_pressure_shape_displacement(actor, active_regions)
     for source in actor["meshes"]:
         keys = source.data.shape_keys
         if keys is None:
@@ -368,6 +474,7 @@ def render_scene(actor, lo, hi):
 
 def render_buttock_pressure_preview(actor, lo, hi, report):
     shape_name = "pressure_buttock_right"
+    report["measured_buttock_deformation"] = measure_pressure_shape_displacement(actor, {shape_name})
     for source in actor["meshes"]:
         keys = source.data.shape_keys
         if keys is None:
