@@ -1,5 +1,7 @@
+import json
 import math
 import unittest
+from pathlib import Path
 
 from tools.campaign2_authored_hex_audit import (
     building_cells,
