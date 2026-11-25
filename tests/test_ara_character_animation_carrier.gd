@@ -215,8 +215,8 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 			var mesh_skeleton := mesh.get_node_or_null(mesh.skeleton) as Skeleton3D
 			_check(mesh_skeleton == source_skeleton,
 				"%s skinned mesh %s is bound to the primary source skeleton (resolved=%s path=%s)" % [
-					label, str(source_root.get_path_to(mesh)),
-					str(mesh_skeleton.get_path()) if mesh_skeleton != null else "<unresolved>",
+					label, str(mesh.name),
+					str(mesh_skeleton.name) if mesh_skeleton != null else "<unresolved>",
 					str(mesh.skeleton)
 				])
 			continue
@@ -225,7 +225,7 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 			if ancestor is BoneAttachment3D:
 				bone_attached_unskinned_count += 1
 				_check(false, "%s has unskinned mesh %s attached beneath bone %s; flattening would lose its bone attachment" % [
-					label, str(source_root.get_path_to(mesh)), (ancestor as BoneAttachment3D).bone_name
+					label, str(mesh.name), (ancestor as BoneAttachment3D).bone_name
 				])
 				break
 			ancestor = ancestor.get_parent()
