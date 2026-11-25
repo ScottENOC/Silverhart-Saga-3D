@@ -267,7 +267,7 @@ jobs:
           ARA_INPUT="/tmp/ara-generated/${VARIANT}.glb" \
             ARA_OUTPUT="/tmp/${VARIANT}_anatomy.glb" \
             ARA_PROFILE=female ARA_ADULT=1 \
-            blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py
+            blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --no-canal --no-anus
           mkdir -p art/characters/ara
           mv "/tmp/${VARIANT}_anatomy.glb" "art/characters/ara/${VARIANT}.glb"
           test -s "art/characters/ara/${VARIANT}.glb"
