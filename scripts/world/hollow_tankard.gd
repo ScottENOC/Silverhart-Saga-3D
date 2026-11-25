@@ -13,6 +13,7 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const GOBLIN_DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
+const CAMPAIGN_QUEST_EVENT_ROUTER_SCRIPT = preload("res://scripts/simulation/campaign_quest_event_router.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
@@ -130,6 +131,7 @@ var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
 var camp_presentation: CampWorldPresentation
 var camp_activity_director: CampPartyActivityDirector
+var campaign_quest_event_router: CampaignQuestEventRouter
 var camp_selection_mode: bool = false
 var camp_button: Button
 var camp_sleep_button: Button
@@ -154,6 +156,8 @@ func _ready() -> void:
 	movement_controller.configure(simulation, self, tile_mesh, path_material, Callable(self, "_hex_world_position"), active_character_id)
 	_create_wilderness_gatherable_grove()
 	_create_characters()
+	campaign_quest_event_router = CAMPAIGN_QUEST_EVENT_ROUTER_SCRIPT.new() as CampaignQuestEventRouter
+	campaign_quest_event_router.bind(simulation, get_tree(), actor_by_id)
 	_create_reyna_shelter()
 	_capture_initial_character_baselines()
 	_create_camera()
