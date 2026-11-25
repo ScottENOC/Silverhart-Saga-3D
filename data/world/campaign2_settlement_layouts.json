@@ -16733,7 +16733,8 @@
           ],
           "source": "campaign2World.js:buildGoblinCamp tileObjects[center.q + 1, center.r - 2] journal (goblin_scout_note)"
         }
-      ]
+      ],
+      "note": "Exterior settlement layout populated with Chief Skarnub, Nix Sharpear, Gralk, Grondle, three guards and captive Ser Aldric; faction and campaign resolution effects remain campaign-owned."
     },
     {
       "id": "skarnaks_hold",
@@ -17279,7 +17280,8 @@
         }
       ],
       "creatures": [],
-      "source_note": "Map-only exterior pass. Warlord, Kesh the trader, orc guards, troll, faction relations and trust quest remain campaign-owned."
+      "source_note": "Map-only exterior pass. Warlord, Kesh the trader, orc guards, troll, faction relations and trust quest remain campaign-owned.",
+      "note": "Exterior settlement layout populated with Warlord Grukk, Kesh and four orc guards; the denning troll encounter and faction/trust quest effects remain campaign-owned."
     }
   ]
 }
