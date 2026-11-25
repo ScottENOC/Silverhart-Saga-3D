@@ -31,6 +31,7 @@ static func dialogue_for_npc(
             var quest := journal.quest_state(CONTENT_SCRIPT.QUEST_ID)
             var context := {
                 "goblin_standing": journal.faction_standing("goblin_tribe"),
+                "player_gold": simulation.get_character(simulation.player_character_id).gold if simulation.get_character(simulation.player_character_id) != null else 0,
                 "quest_resolution": String(quest.get("decisions", {}).get("resolution", "")),
                 "goblin_scout_note_read": bool(journal.world_campaign_flag("goblin_scout_note_read", false)),
                 "mine_raid_started": bool(journal.world_campaign_flag("goblin_mine_raid_started", false)),
@@ -65,7 +66,16 @@ static func select_choice(
 
     var result: Dictionary = {}
     if npc_id == "chief_skarnub":
-        if choice_id == "skarnub_offer_favour":
+        if choice_id == "skarnub_give_gift":
+            result = RUNTIME_SERVICE.give_chief_gift(simulation, relationships)
+            if bool(result.get("ok", false)):
+                result = {
+                    "ok": true,
+                    "speaker": "Chief Skarnub",
+                    "text": String(result.get("text", "The chief accepts your gift.")),
+                    "choices": [{"id": "continue", "label": "You're welcome."}]
+                }
+        elif choice_id == "skarnub_offer_favour":
             result = RUNTIME_SERVICE.begin_favour_negotiation(simulation)
         elif choice_id == "skarnub_offer_favours":
             result = {
