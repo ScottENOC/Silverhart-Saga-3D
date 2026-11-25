@@ -103,6 +103,7 @@ static func resolve_dialogue_choice(
 	## and rewards out of the location/presentation script.
 	var response: Dictionary = {}
 	var completed := false
+	var reward_data: Dictionary = {}
 	match choice_id:
 		"farm_wolves_accept":
 			var result := accept(journal)
@@ -113,6 +114,7 @@ static func resolve_dialogue_choice(
 		"farm_wolves_turn_in":
 			var reward := turn_in(journal, player)
 			if bool(reward.get("ok", false)):
+				reward_data = reward
 				response = _response("I won't forget what you've done. Take this, and know the farm owes you a favour.", "Thank you.")
 				completed = true
 			else:
@@ -121,7 +123,7 @@ static func resolve_dialogue_choice(
 			response = _response(choice_text if not choice_text.is_empty() else "Take care on the road.", "Continue")
 		_:
 			return {"handled": false}
-	return {"handled": true, "dialogue": response, "quest_completed": completed}
+	return {"handled": true, "dialogue": response, "quest_completed": completed, "reward": reward_data}
 
 
 static func _response(body: String, choice_label: String) -> Dictionary:
