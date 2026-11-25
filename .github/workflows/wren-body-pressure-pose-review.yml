@@ -47,7 +47,7 @@ jobs:
           test -s build/wren-body-pressure-pose/wren-body-pressure-preview.png
           test -s build/wren-body-pressure-pose/wren-body-pressure-pose.glb
           test -s build/wren-body-pressure-pose/wren-body-pressure-report.json
-          test -s build/wren-body-pressure-pose/wren-body-pressure-compressed-preview.png
+          test -s build/wren-body-pressure-pose/wren-body-pressure-compressed-preview.png\n          test -s build/wren-body-pressure-pose/wren-buttock-pressure-preview.png
           test -s build/wren-body-pressure-pose/wren-buttock-stiffness-sweep.glb
           test -s build/wren-body-pressure-pose/wren-stiffness-sweep-preview.png
           python - <<'PY'
@@ -60,7 +60,7 @@ jobs:
           assert report["validation"]["posed_glb_exported"]
           assert report["validation"]["pressure_shapes_authored"], report.get("authored_pressure_shapes", [])
           assert any(shape["region_id"] == "buttock_right" and shape["affected_vertices"] > 0 for shape in report["authored_pressure_shapes"]), report.get("authored_pressure_shapes", [])
-          assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})
+          assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})\n          assert report["validation"]["buttock_pressure_preview_rendered"], report.get("buttock_pressure_preview", {})\n          assert "pressure_buttock_right" in report["buttock_pressure_preview"]["active_regions"]
           assert report["validation"]["stiffness_sweep_glb_exported"], report.get("stiffness_sweep", {})
           assert report["validation"]["stiffness_sweep_preview_rendered"], report.get("stiffness_sweep", {})
           assert len(report["stiffness_sweep"]["cases"]) == 4
@@ -70,7 +70,7 @@ jobs:
           assert all(report["palm_target_errors"].get(side) is not None for side in ("left","right"))
           print("Wren-only pose and localized pressure-shape package passed structural checks.")
           print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
-          print("Stiffness sweep GLB:", report["stiffness_sweep"])
+          print("Stiffness sweep GLB:", report["stiffness_sweep"])\n          print("Posterior buttock deformation preview:", report["buttock_pressure_preview"])
           print("Palm-anchor-to-selected-surface gaps (m):", json.dumps(report.get("palm_anchor_surface_gaps", {})))
           print("This verifies a bone-based palm proxy, not final hand-mesh collision or anatomical-region membership.")
           print("Selected surface anchors:", json.dumps(report["contact_target_surface_anchors"]))
