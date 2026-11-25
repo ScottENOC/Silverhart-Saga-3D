@@ -6,8 +6,7 @@ on:
     paths:
       - ".github/workflows/build-player-ara-bodies.yml"
       - "character-preview/wren-ara.json"
-      - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_male_anatomy.py"
       - "scripts/presentation/ara_character_actor.gd"
       - "scripts/presentation/campaign_character_actor_factory.gd"
@@ -115,26 +114,18 @@ jobs:
             cp "$raw" "build/player-ara/$variant/raw.glb"
           done
 
-      - name: Apply accepted surface-following female anatomy
+      - name: Apply validated integrated female anatomy v2 to player female base
         shell: bash
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \
-            --input build/player-ara/female/raw.glb \
-            --output build/player-ara/female/subdivision-plan.json
-          test -s build/player-ara/female/subdivision-plan.json
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
+            --python tools/blender/add_adult_anatomy.py -- \
             --input build/player-ara/female/raw.glb \
             --output build/player-ara/female/ara_player_female_body.glb \
-            --report build/player-ara/female/anatomy-report.json \
-            --subdivision-plan build/player-ara/female/subdivision-plan.json \
-            --adult --deformation-scale 1.65
+            --profile female --adult --method integrated --deformation-scale 1.65 \
+            --no-canal --no-anus
           test -s build/player-ara/female/ara_player_female_body.glb
-          grep -q '"clothing_operations": "not run"' build/player-ara/female/anatomy-report.json
-
       - name: Apply dedicated male anatomy to the male Ara base
         shell: bash
         run: |
