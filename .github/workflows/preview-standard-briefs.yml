@@ -1,0 +1,103 @@
+name: Preview standard Ara briefs on the canonical Ara body
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/preview-standard-briefs.yml"
+      - "tools/review/render_modular_outfits.py"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/ara/extract_garment_glb.py"
+      - "tools/blender/add_adult_anatomy.py"
+      - "art/characters/ara_runtime/ara_person_body_anatomy.glb"
+      - "art/characters/ara_runtime/ara_person_modular_underwear.glb"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate the existing Ara asset inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s art/characters/ara_runtime/ara_person_body_anatomy.glb
+          test -s art/characters/ara_runtime/ara_person_modular_underwear.glb
+          python -m py_compile tools/ara/assemble_modular_glb.py tools/ara/extract_garment_glb.py
+          mkdir -p build/standard-briefs
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Assemble the existing standard Briefs garment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ara/assemble_modular_glb.py \
+            art/characters/ara_runtime/ara_person_body_anatomy.glb \
+            build/standard-briefs/ara-body-with-standard-briefs-source.glb \
+            art/characters/ara_runtime/ara_person_modular_underwear.glb "Briefs"
+          test -s build/standard-briefs/ara-body-with-standard-briefs-source.glb
+
+      - name: Fit the briefs to existing integrated Ara anatomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_adult_anatomy.py -- \
+            --input build/standard-briefs/ara-body-with-standard-briefs-source.glb \
+            --output build/standard-briefs/ara-standard-briefs-preview.glb \
+            --profile none --adult --fit-existing
+          test -s build/standard-briefs/ara-standard-briefs-preview.glb
+
+      - name: Export the fitted briefs as an independent skinned garment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ara/extract_garment_glb.py \
+            --strip-input build/standard-briefs/ara-standard-briefs-preview.glb \
+            --keep-material "Briefs" \
+            --output build/standard-briefs/female_standard_briefs.glb
+          test -s build/standard-briefs/female_standard_briefs.glb
+
+      - name: Render front, side and rear fit review
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python tools/review/render_modular_outfits.py -- \
+            build/standard-briefs/ara-standard-briefs-preview.glb \
+            build/standard-briefs/review standard_briefs
+          for view in front side rear; do
+            test -s "build/standard-briefs/review/standard_briefs/$view.png"
+          done
+          test -s build/standard-briefs/review/standard_briefs/report.json
+
+      - name: Verify source body asset was not changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- art/characters/ara_runtime/ara_person_body_anatomy.glb
+          git diff --exit-code -- art/characters/ara_runtime/ara_person_modular_underwear.glb
+
+      - name: Upload standard briefs preview and independent garment
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-standard-briefs-fit-review
+          path: build/standard-briefs/
+          if-no-files-found: error
+          retention-days: 30
