@@ -71,6 +71,7 @@ static func apply_effects(
 		journal.apply_world_campaign_flags(flags)
 
 	if effects.has("aldric_attitude"):
+		journal.seed_npc_reputation(ALDRIC_ID, 60.0)
 		if aldric_leaves and float(effects["aldric_attitude"]) == 0.0:
 			journal.set_npc_standing(ALDRIC_ID, 0.0, "goblin_campaign:%s" % decision_id)
 		else:
@@ -154,9 +155,11 @@ static func _complete_aldric_rescue(journal: CampaignJournal) -> Dictionary:
 			return started
 		quest = journal.quest_state("aldric_rescue")
 	if String(quest.get("status", "")) == "completed":
+		journal.seed_npc_reputation(ALDRIC_ID, 60.0)
 		return {"ok": true, "already_completed": true}
 	if String(quest.get("status", "")) != "active":
 		return {"ok": false, "reason": "aldric_rescue_quest_not_active"}
+	journal.seed_npc_reputation(ALDRIC_ID, 60.0)
 	return COMPANION_CAMPAIGN_SCRIPT.complete_objective(journal, "aldric_rescue", "freed")
 
 
