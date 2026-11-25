@@ -462,12 +462,14 @@ func remove_camp_occupant(occupant_id: String) -> Dictionary:
 		animal_care.erase(occupant_id)
 	else:
 		for task in animal_care_tasks:
-			if String(task.get("handler_id", "")) == occupant_id and String(task.get("status", "")) in ["pending", "in_progress"]:
+			if String(task.get("handler_id", "")) != occupant_id:
+				continue
+			if String(task.get("status", "")) in ["pending", "in_progress"]:
 				affected_animals[String(task.get("animal_id", ""))] = true
 				if String(task.get("status", "")) == "in_progress":
 					task["status"] = "pending"
 					task["blocked_reason"] = "handler_departed"
-				task["handler_id"] = ""
+			task["handler_id"] = ""
 		assignments.erase(occupant_id)
 		_default_assignments.erase(occupant_id)
 	conditions.erase(occupant_id)
