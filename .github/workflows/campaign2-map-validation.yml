@@ -48,7 +48,7 @@ jobs:
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_cell_loader.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_definition_registry.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_source_adapters.gd
-          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_definition_validator.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_validator.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
