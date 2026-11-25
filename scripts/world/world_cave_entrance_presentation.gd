@@ -20,7 +20,7 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 	var door_hexes: Dictionary = {}
 	for entrance in ENTRANCES:
 		var entrance_id := String(entrance["id"])
-		var location := _location_by_id(terrain_data, entrance_id)
+		var location := terrain_data.encounter_site(entrance_id)
 		if location.is_empty():
 			return {"ok": false, "reason": "missing_source_cave_location:%s" % entrance_id}
 		var centre := Vector2i(int(location.get("q", 0)), int(location.get("r", 0)))
@@ -34,12 +34,6 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 		count += 1
 	return {"ok": true, "features": count, "entrances": presented, "door_hexes": door_hexes}
 
-
-static func _location_by_id(terrain_data: Campaign2WorldTerrainData, location_id: String) -> Dictionary:
-	for location in terrain_data.locations:
-		if location is Dictionary and String(location.get("id", "")) == location_id:
-			return location.duplicate(true)
-	return {}
 
 static func _add_entrance(parent: Node3D, terrain_data: Campaign2WorldTerrainData, definition: Dictionary, hex: Vector2i, radius: float) -> void:
 	var root := Node3D.new()
