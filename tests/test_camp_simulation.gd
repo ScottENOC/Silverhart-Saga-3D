@@ -198,6 +198,25 @@ func _test_general_camp_occupant_registry() -> void:
 	_check(not bool(camp.perform_animal_care("horse_02", "feed", "druid").ok), "Feeding another horse without fodder must fail")
 	_check(not bool(camp.remove_camp_occupant("player").ok), "Party members cannot be removed through the non-party occupant API")
 	_check(bool(camp.remove_camp_occupant("traveller_01").ok), "Non-party occupants should be removable when they leave")
+	var departure := CampSimulation.new()
+	departure.begin_camp(
+		{"walkable": true, "safe_tethering": true},
+		["player"],
+		{"camp_occupants": [
+			{"occupant_id": "horse_departing", "kind": "animal", "species": "horse"},
+			{"occupant_id": "stablehand_departing", "kind": "resident", "occupation": "stablehand", "can_work": true},
+			{"occupant_id": "backup_handler", "kind": "follower", "can_work": true}
+		]},
+		{"water": 1, "fodder": 1}
+	)
+	_check(bool(departure.remove_camp_occupant("stablehand_departing").ok), "A departing care handler should be removable")
+	var reassigned_schedule := departure.horse_care_schedule_for("horse_departing")
+	_check(String(reassigned_schedule[0].get("handler_id", "")) == "backup_handler", "An active horse-care queue should be reassigned when its handler leaves")
+	_check(String(departure.assignments.get("backup_handler", {}).get("activity", "")) == "care_horse_water", "The replacement handler should receive the active care activity")
+	_check(bool(departure.remove_camp_occupant("horse_departing").ok), "A departing horse should be removable")
+	_check(departure.horse_care_schedule_for("horse_departing").is_empty(), "Removing a horse should prune its queued chores")
+	_check(not departure.animal_care.has("horse_departing"), "Removing a horse should prune its care state")
+	_check(departure.from_dict(departure.to_dict()), "Removing camp occupants should leave a valid save snapshot")
 	_check(not bool(camp.register_camp_occupant({"occupant_id": "bad", "kind": "spaceship"}).ok), "Unknown occupant kinds should be rejected")
 	_check(not bool(camp.register_camp_occupant({"occupant_id": "player", "kind": "follower"}).ok), "A party member cannot be reclassified as a non-party follower")
 
