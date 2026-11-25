@@ -197,6 +197,44 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(report["unmarked_terrain_faction_mismatch_count"], 1)
         self.assertFalse(report["river_path_matches_geography"])
 
+    def test_strategic_marker_positions_follow_source_collision_order(self):
+        geography = {
+            "coordinate_system": {
+                "strategic_grid_dimensions": {"columns": 3, "rows": 3},
+                "local_hexes_per_strategic_cell": 10,
+                "origin": {"local_q": 0, "local_r": 0, "column": 0, "row": 0},
+            },
+            "geography": {
+                "ocean_columns": [],
+                "orc_lands": {"columns": [3, 2], "rows": [0, 2]},
+                "dwarven_mountains": {"columns": [3, 2], "rows": [0, -1]},
+                "elven_forest": {"columns": [3, 2], "rows": [0, -1]},
+                "river_path": [],
+                "faction_overrides": [],
+                "terrain_variation": {"strategic_hash": {}, "orc_mountain_threshold": 0.8, "orc_hills_threshold": 0.6},
+            },
+            "locations": [
+                {"id": "first", "name": "First", "q": 0, "r": 0},
+                {"id": "second", "name": "Second", "q": 1, "r": 0},
+            ],
+            "strategic_markers": [
+                {"id": "first", "short": "V"},
+                {"id": "second", "short": "F"},
+            ],
+        }
+        grid = [[{"t": "G", "o": "h", "n": ""} for _ in range(3)] for _ in range(3)]
+        grid[0][0]["n"] = "First"
+        grid[0][1]["n"] = "Second"
+        runtime = {
+            "worldMapData": grid,
+            "worldRiverPath": [],
+        }
+        report = strategic_map_parity_report(runtime, geography)
+        self.assertTrue(report["markers_match"])
+        grid[0][1]["n"] = "Wrong Cell"
+        report = strategic_map_parity_report(runtime, geography)
+        self.assertFalse(report["markers_match"])
+
 
 if __name__ == "__main__":
     unittest.main()
