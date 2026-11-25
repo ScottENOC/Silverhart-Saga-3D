@@ -301,13 +301,22 @@ func _select_horse_care_handler(already_assigned: Dictionary) -> String:
 
 
 func _activate_next_horse_care_task(animal_id: String) -> void:
+	var preferred_handler := ""
+	for task in animal_care_tasks:
+		if String(task.get("animal_id", "")) == animal_id and not String(task.get("handler_id", "")).is_empty():
+			preferred_handler = String(task.get("handler_id", ""))
+			break
+	_activate_horse_care_task_for_handler(animal_id, preferred_handler)
+
+
+func _activate_horse_care_task_for_handler(animal_id: String, preferred_handler: String) -> void:
 	for index in range(animal_care_tasks.size()):
 		var task: Dictionary = animal_care_tasks[index]
 		if String(task.get("animal_id", "")) != animal_id:
 			continue
 		if String(task.get("status", "")) in ["completed", "blocked"]:
 			continue
-		var handler_id := String(task.get("handler_id", ""))
+		var handler_id := String(task.get("handler_id", preferred_handler))
 		if handler_id.is_empty():
 			task["status"] = "blocked"
 			task["blocked_reason"] = "no_available_handler"
@@ -348,7 +357,6 @@ func _restore_horse_care_handler(animal_id: String) -> void:
 			var fallback: Dictionary = _default_assignments.get(handler_id, {"activity": "socialise", "player_override": false, "override_remaining": 0.0})
 			assignments[handler_id] = fallback.duplicate(true)
 			activity_assigned.emit(handler_id, String(fallback.get("activity", "socialise")))
-			_default_assignments.erase(handler_id)
 		return
 
 
@@ -365,7 +373,11 @@ func _advance_animal_care_tasks(world_delta: float) -> void:
 		var action := String(task.get("action", ""))
 		var handler_assignment: Dictionary = assignments.get(handler_id, {})
 		if not bool(handler_assignment.get("animal_care_task", false)) or String(handler_assignment.get("animal_id", "")) != animal_id:
-			continue
+			if not bool(handler_assignment.get("player_override", false)):
+				_activate_horse_care_task_for_handler(animal_id, handler_id)
+			handler_assignment = assignments.get(handler_id, {})
+			if not bool(handler_assignment.get("animal_care_task", false)):
+				continue
 		task["elapsed_world_seconds"] = minf(
 			float(task.get("duration_world_seconds", 0.0)),
 			float(task.get("elapsed_world_seconds", 0.0)) + world_delta
@@ -715,6 +727,8 @@ func update_weather(weather_data: Dictionary) -> void:
 	for character_id in party_ids:
 		var current: Dictionary = assignments.get(character_id, {})
 		var next_activity := _routine_activity_for(character_id, routine_stage)
+		if bool(current.get("animal_care_task", false)):
+			continue
 		if bool(current.get("player_override", false)):
 			_default_assignments[character_id] = {
 				"activity": next_activity, "player_override": false, "override_remaining": 0.0
@@ -1040,6 +1054,12 @@ func from_dict(data: Dictionary) -> bool:
 		if not ["water", "feed", "groom", "tether", "rest"].has(String(task.get("action", ""))):
 			return false
 		if not ["pending", "in_progress", "completed", "blocked"].has(String(task.get("status", ""))):
+			return false
+		var task_animal: Dictionary = saved_occupants[String(task.get("animal_id", ""))]
+		if String(task_animal.get("kind", "")) != "animal" or String(task_animal.get("species", "")).to_lower() not in ["horse", "equine"]:
+			return false
+		var task_handler := String(task.get("handler_id", ""))
+		if not task_handler.is_empty() and (not saved_occupants.has(task_handler) or not bool(saved_occupants[task_handler].get("can_work", false))):
 			return false
 	for care_id in saved_animal_care:
 		if not saved_occupants.has(care_id) or not saved_animal_care[care_id] is Dictionary:
