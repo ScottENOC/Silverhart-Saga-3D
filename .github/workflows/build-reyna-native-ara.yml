@@ -2,7 +2,7 @@ name: Build Reyna native Ara character
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, feature/unified-female-anatomy-v2]
     paths:
       - "character-preview/reyna-ara.json"
       - ".github/workflows/build-reyna-native-ara.yml"
