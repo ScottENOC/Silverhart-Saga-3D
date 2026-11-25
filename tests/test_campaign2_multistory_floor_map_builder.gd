@@ -284,6 +284,20 @@ func _initialize() -> void:
 		_check(_has_object(barrow_result.get("tile_objects", []), "barrow_entrance_door") and _has_object(barrow_result.get("tile_objects", []), "lich_sanctum_door"), "Both source door openings must be emitted")
 		_check(barrow_result.get("actors", []).is_empty() and barrow_result.get("creatures", []).is_empty(), "Map-only barrow floor must leave encounters to campaign systems")
 
+	# The Lich Chapterhouse is a source-authored wilderness building, not just a POI marker.
+	var chapterhouse_definition: Dictionary = registry.get_definition("lich_chapterhouse")
+	var chapterhouse_state = LOCATION_STATE.new()
+	_check(bool(chapterhouse_state.configure(chapterhouse_definition).get("ok", false)), "Lich Chapterhouse floor state must configure")
+	var chapterhouse_result: Dictionary = FLOOR_BUILDER.build_floor_map(chapterhouse_definition, 0, chapterhouse_state)
+	_check(bool(chapterhouse_result.get("ok", false)), "Lich Chapterhouse source floor must build")
+	if bool(chapterhouse_result.get("ok", false)):
+		var chapterhouse_map: HexMapData = chapterhouse_result.get("map_data") as HexMapData
+		_check(chapterhouse_map.is_walkable(Vector2i(-36, -346)), "Chapterhouse east entrance must be walkable")
+		_check(chapterhouse_map.is_walkable(Vector2i(-39, -346)), "Chapterhouse fireplace must sit on its walkable floor")
+		_check(_has_object(chapterhouse_result.get("tile_objects", []), "chapterhouse_east_door"), "Chapterhouse must retain its source east doorway")
+		_check(_has_object(chapterhouse_result.get("tile_objects", []), "chapterhouse_fireplace"), "Chapterhouse must retain its source fireplace")
+		_check(chapterhouse_result.get("actors", []).is_empty() and chapterhouse_result.get("creatures", []).is_empty(), "Map-only chapterhouse floor must leave inquisitor and witch hunters to campaign systems")
+
 	var elven_definition: Dictionary = registry.get_definition("silthandriel")
 	var elven_state = LOCATION_STATE.new()
 	_check(bool(elven_state.configure(elven_definition).get("ok", false)), "Sil'thandriel traversal state must configure")
