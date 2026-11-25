@@ -29,7 +29,7 @@ def dynamic_import(module_suffix: str, symbol: str):
 
 def main():
     # MPFB2 is installed from its upstream source checkout by the workflow.
-    bpy.ops.preferences.addon_enable(module="mpfb")
+    bpy.ops.preferences.addon_enable(module="bl_ext.user_default.mpfb")
 
     HumanService = dynamic_import("mpfb.services.humanservice", "HumanService")
     AssetService = dynamic_import("mpfb.services.assetservice", "AssetService")
