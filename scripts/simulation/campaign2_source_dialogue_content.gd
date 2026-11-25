@@ -4,6 +4,42 @@ extends RefCounted
 ## This content layer owns authored words and conversational branches only;
 ## quest, faction, inventory and shop effects remain with their campaign services.
 
+static func greeting_for_npc(dialogue_id: String, character: CharacterState, actor: Node3D, simulation: WorldSimulation) -> Dictionary:
+	if character == null or simulation == null:
+		return {}
+	var journal := simulation.campaign_journal
+	var guild_favor_state := journal.quest_state("guild_favor")
+	var wizard_vendetta_state := journal.quest_state("wizard_vendetta")
+	var dragon_state := journal.quest_state("millbrook_dragon")
+	var goblin_state := journal.quest_state("goblin_threat")
+	var goblin_decisions: Dictionary = goblin_state.get("decisions", {})
+	var goblin_mine_state := journal.quest_state("goblin_mine_raid")
+	var orc_trust_state := journal.quest_state("orc_stronghold_trust")
+	var nix_state := simulation.get_character("nix_sharpear")
+	var context := {
+		"guild_favor_active": String(guild_favor_state.get("status", "")) == "active",
+		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+		"ironbond_standing": journal.faction_standing("ironbond_company"),
+		"wizard_resolution": String(wizard_vendetta_state.get("resolution", "")),
+		"wizard_standing": journal.npc_standing("court_wizard_thessaly"),
+		"millbrook_dragon_active": String(dragon_state.get("status", "")) == "active",
+		"millbrook_dragon_completed": String(dragon_state.get("status", "")) == "completed",
+		"goblin_resolution": String(goblin_state.get("resolution", goblin_decisions.get("resolution", ""))),
+		"goblin_standing": journal.faction_standing("goblin_tribe"),
+		"goblin_mine_raid_status": String(goblin_mine_state.get("status", "")),
+		"orc_standing": journal.faction_standing("orc_raiders"),
+		"orc_trust_active": String(orc_trust_state.get("status", "")) == "active",
+		"orc_trust_completed": String(orc_trust_state.get("status", "")) == "completed",
+		"nix_recruited": nix_state != null and nix_state.side == "player"
+	}
+	var conversation := greeting(dialogue_id, character.display_name, context)
+	if conversation.is_empty():
+		var title := String(actor.get_meta("title", "")) if actor != null else ""
+		var ambient_role := String(actor.get_meta("ambient_role", "civilian")) if actor != null else "civilian"
+		conversation = role_greeting(character.id, character.display_name, title, ambient_role)
+	return conversation
+
+
 static func greeting(dialogue_id: String, display_name: String, context: Dictionary = {}) -> Dictionary:
 	match dialogue_id:
 		"palace_chancellor":
