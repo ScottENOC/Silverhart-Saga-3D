@@ -42,6 +42,10 @@ func _test_source_entrances() -> void:
 			_check(cave.get_node_or_null("LeftJamb") != null and cave.get_node_or_null("RightJamb") != null, "%s should have a two-sided rock frame" % entrance_id)
 			var expected_position := HexGrid.axial_to_world(hex, HexGrid.DEFAULT_RADIUS_M, data.elevation_for_hex(hex))
 			_check(cave.position.distance_to(expected_position) < 0.001, "%s must use its source entrance coordinate" % entrance_id)
+			var outside := HexGrid.axial_to_world(hex + Vector2i(-1, 0), HexGrid.DEFAULT_RADIUS_M)
+			var centre := HexGrid.axial_to_world(hex, HexGrid.DEFAULT_RADIUS_M)
+			var expected_outward := (outside - centre).normalized()
+			_check(cave.global_transform.basis.z.normalized().dot(expected_outward) > 0.999, "%s cave mouth must face its source west doorway" % entrance_id)
 		_check(parent.get_node_or_null("Wolf") == null and parent.get_node_or_null("Malachar") == null, "Map dressing must not spawn encounter actors")
 		parent.free()
 
