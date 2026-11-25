@@ -193,6 +193,7 @@ func _test_world_integration_and_persistence() -> void:
 	var wrong_site := world.claim_dwelling("build_crossroads_cottage", "materials", "abandoned_house", "companion")
 	_check(not bool(wrong_site.get("ok", false)), "World simulation must reject a site ID that does not match the interacting character's location.")
 	_check(bool(world.claim_dwelling("build_crossroads_cottage", "materials", "crossroads_plot", "companion").get("ok", false)), "An active companion at the surveyed plot should be able to claim it.")
+	companion.axial = Vector2i(14, 27)
 	player.axial = Vector2i(13, 27)
 	var started_without_location := world.begin_camp({"walkable": true, "dwelling_id": "crossroads_cottage"}, {}, {"tents": 0})
 	_check(not bool(started_without_location.get("ok", false)), "A dwelling must not provide shelter when the camp is not at its site.")
