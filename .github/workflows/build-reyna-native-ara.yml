@@ -10,7 +10,7 @@ on:
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
-      -       - "tools/blender/add_abdominal_definition.py"
+      - "tools/blender/add_abdominal_definition.py"
       - "tools/blender/add_character_details.py"
       - "tools/review/add_aldric_body_hair.py"
   pull_request:
@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/reyna-ara.json >/dev/null
-          tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py tools/blender/add_adult_anatomy.py
+          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py tools/blender/add_adult_anatomy.py
 
       - name: Prepare cached Ara and Blender toolchain
         uses: ./.github/actions/character-build-setup
