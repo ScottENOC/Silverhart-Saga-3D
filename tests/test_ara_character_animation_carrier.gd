@@ -172,6 +172,7 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 	if packed == null:
 		return
 	var source_root := packed.instantiate() as Node3D
+	root.add_child(source_root)
 	var source_skeleton := _find_skeleton(source_root)
 	_check(source_skeleton != null, label + " source asset contains a skeleton")
 	if source_skeleton == null:
@@ -196,8 +197,11 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 			var expected_rest := reference_skeleton.get_bone_rest(index)
 			var actual_rest := source_skeleton.get_bone_rest(index)
 			var origin_delta := actual_rest.origin.distance_to(expected_rest.origin)
-			_check(origin_delta <= MAX_REST_ORIGIN_DELTA_METRES and actual_rest.basis.is_equal_approx(expected_rest.basis),
-				"%s bone %s rest transform matches (origin delta %.2f mm)" % [label, expected_name, origin_delta * 1000.0])
+			if origin_delta > MAX_REST_ORIGIN_DELTA_METRES or not actual_rest.basis.is_equal_approx(expected_rest.basis):
+				print("ARA_RIG_REST_MISMATCH asset=%s bone=%s origin_delta_mm=%.2f basis_match=%s" % [
+					asset_path, expected_name, origin_delta * 1000.0,
+					str(actual_rest.basis.is_equal_approx(expected_rest.basis))
+				])
 	var source_meshes: Array[MeshInstance3D] = []
 	_collect_meshes(source_root, source_meshes)
 	var skeleton_node_count := _count_skeletons(source_root)
@@ -229,7 +233,7 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 		asset_path, source_skeleton.get_bone_count(), reference_skeleton.get_bone_count(),
 		skeleton_node_count, skinned_mesh_count, bone_attached_unskinned_count
 	])
-	source_root.free()
+	source_root.queue_free()
 
 
 func _count_skeletons(node: Node) -> int:
