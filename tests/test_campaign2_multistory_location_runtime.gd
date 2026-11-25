@@ -101,6 +101,12 @@ func _run() -> void:
 		_check(palace_runtime.has_floor_object(0, "queen_chambers_fireplace"), "Queen's private chambers must present their fireplace")
 		_check(palace_runtime.is_floor_visible(0) and not palace_runtime.is_floor_visible(1), "Only the Grand Hall may be visible on entry")
 		_check(palace_runtime.has_floor_object(0, "throne"), "The source throne must be presented in the Grand Hall")
+		var throne_model := palace_runtime.floor_groups[0].get_node_or_null("throne") as Node3D
+		var table_model := palace_runtime.floor_groups[0].get_node_or_null("hall_table_1") as Node3D
+		var bed_model := palace_runtime.floor_groups[0].get_node_or_null("queen_chambers_bed") as Node3D
+		_check(throne_model != null and throne_model.get_child_count() >= 4, "The throne must render as a multi-part seat, back and arms rather than a generic block")
+		_check(table_model != null and table_model.get_child_count() >= 5, "Source tables must render a top and four supporting legs")
+		_check(bed_model != null and bed_model.get_child_count() >= 3, "The Queen's bed must render a frame, mattress and pillow")
 		_check(palace_runtime.has_floor_object(0, "grand_hall_front_door"), "The source Grand Hall entrance must be retained")
 		_check(palace_runtime.has_floor_actor(0, "queen_seraphine_corrin"), "Queen Seraphine must be presented inside the Grand Hall")
 		_check(palace_runtime.has_floor_actor(0, "royal_guard_denna"), "Royal Guard Denna must be presented beside the throne")
