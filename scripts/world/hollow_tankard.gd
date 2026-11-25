@@ -1746,7 +1746,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(target_state.id):
 		_show_companion_dialogue(target_state.id)
 		return
-	var conversation := CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting_for_npc(dialogue_id, target_state, actor, simulation)
+	var conversation: Dictionary = CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting_for_npc(dialogue_id, target_state, actor, simulation)
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		if choice_value is Dictionary:
