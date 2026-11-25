@@ -386,7 +386,7 @@ func _initialize() -> void:
 	_check(_has_axial_position(southwest_floor.get("floor_hexes", []), Vector2i(-32, -453)), "Southwest middle-ring house must retain the source wall-notch floor repair")
 
 
-	# Source buildSilverhartPalace contains 40 ground-floor interior regions.
+	# The existing 40 ground-floor regions plus three additional source outlying homes make 43.
 	# Rectangular rooms are represented as room records; the manor and Hallis
 	# polygon are represented by explicit floor masks. Supplemental masks on
 	# otherwise rectangular rooms do not count as additional interiors.
@@ -400,7 +400,7 @@ func _initialize() -> void:
 		silverhart_ground_floor_regions += surface_rooms.size()
 		if surface_rooms.is_empty() and not surface_floor.get("floor_hexes", []).is_empty():
 			silverhart_ground_floor_regions += 1
-	_check(silverhart_ground_floor_regions == 40, "All 40 source-authored Silverhart ground-floor interior regions must be registered")
+	_check(silverhart_ground_floor_regions == 43, "All 43 source-authored Silverhart ground-floor interior regions must be registered")
 	var silverhart_noble_homes := {
 		"silverhart_noble_neighbor_house": {"centre": Vector2i(45, -502), "half_width": 3, "half_height": 2, "door": Vector2i(48, -502)},
 		"silverhart_outlying_house_east": {"centre": Vector2i(63, -546), "half_width": 2, "half_height": 2, "door": Vector2i(63, -544)},
