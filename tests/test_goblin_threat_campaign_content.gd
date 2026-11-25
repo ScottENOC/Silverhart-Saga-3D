@@ -1,6 +1,6 @@
 extends SceneTree
 
-const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const QUEST_DEFINITION_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
 
 var _failures: int = 0
 
@@ -164,7 +164,7 @@ func _test_favour_consequences() -> void:
 func _test_resolution_with_registered_companion_quest() -> void:
 	for resolution in ["goblin_diplomacy", "goblin_alliance", "assault", "stealth_succession", "betrayal"]:
 		var journal := CampaignJournal.new()
-		COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(journal)
+		QUEST_DEFINITION_REGISTRY.register_all(journal)
 		if resolution == "goblin_diplomacy":
 			journal.seed_faction_reputation("goblin_tribe", 45.0)
 		var relationships := PersistentCharacterRelationshipState.new()
