@@ -90,6 +90,8 @@ jobs:
           test -s makehuman-baseline/makehuman-base-human.glb
           test -s makehuman-baseline/base-human-front.png
           test -s makehuman-baseline/base-human-side.png
+          test -s makehuman-baseline/base-human-glb-roundtrip-front.png
+          test -s makehuman-baseline/base-human-glb-roundtrip-side.png
 
       - name: Run controlled body-morph garment fit matrix
         run: |
@@ -102,6 +104,9 @@ jobs:
           test -s makehuman-morph-fit/neutral.png
           test -s makehuman-morph-fit/lean_muscular.png
           test -s makehuman-morph-fit/heavier_less_muscular.png
+          test -s makehuman-morph-fit/neutral_glb_roundtrip.png
+          test -s makehuman-morph-fit/lean_muscular_glb_roundtrip.png
+          test -s makehuman-morph-fit/heavier_less_muscular_glb_roundtrip.png
 
       - name: Upload baseline diagnostics
         if: always()
