@@ -571,7 +571,8 @@ def main():
         "pressure_shapes_authored":len(authored_shapes) >= 4 and all(x["affected_vertices"] > 0 for x in authored_shapes),
         "pressure_compressed_preview_rendered":pressure_preview_rendered,
         "stiffness_sweep_glb_exported":stiffness_sweep_exported,
-        "stiffness_sweep_preview_rendered":report["stiffness_sweep"]["preview_rendered"],\n        "buttock_pressure_preview_rendered":buttock_preview_rendered}
+        "stiffness_sweep_preview_rendered":report["stiffness_sweep"]["preview_rendered"],
+        "buttock_pressure_preview_rendered":buttock_preview_rendered}
     with open(os.path.join(OUT_DIR,"wren-body-pressure-report.json"),"w",encoding="utf-8") as f: json.dump(report,f,indent=2)
     print("WREN_BODY_PRESSURE_REPORT="+json.dumps(report))
 
