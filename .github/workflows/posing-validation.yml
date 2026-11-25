@@ -11,12 +11,13 @@ on:
       - "docs/posing/**"
       - ".github/workflows/posing-validation.yml"
   push:
-    branches: [dev, physics]
+    branches: [dev, physics, "feature/**", "feat/**"]
     paths:
       - "scripts/posing/**"
       - "data/posing/**"
       - "tests/posing_*.gd"
       - "tests/test_posing_*.gd"
+      - ".github/workflows/posing-validation.yml"
   workflow_dispatch:
 
 permissions:
