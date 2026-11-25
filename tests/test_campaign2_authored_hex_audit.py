@@ -152,7 +152,7 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
                 elif is_forest:
                     terrain = "F"
                 elif is_orc:
-                    rough = math.sin(column * 2.3 + 5 + row * 1.7 + 3) * 43758.5453
+                    rough = math.sin((column * 2.3 + 5) * 12.9898 + (row * 1.7 + 3) * 78.233) * 43758.5453
                     rough -= math.floor(rough)
                     if rough > 0.8:
                         terrain = "M"
