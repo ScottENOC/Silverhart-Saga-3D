@@ -7,11 +7,15 @@ const FEATURES = preload("res://data/world/regions/silverhart_heartland/features
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_spider_ruin_presentation_arguments"}
+	var site := terrain_data.encounter_site("mirabel_spider_ruin")
+	if site.is_empty() or String(site.get("kind", "")) != "quest_site":
+		return {"ok": false, "reason": "missing_source_mirabel_spider_ruin_anchor"}
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
 	var count := 0
-	for q in range(FEATURES.MIRABEL_SPIDER_RUIN_CENTRE.x - FEATURES.MIRABEL_SPIDER_RUIN_RADIUS, FEATURES.MIRABEL_SPIDER_RUIN_CENTRE.x + FEATURES.MIRABEL_SPIDER_RUIN_RADIUS + 1):
-		for r in range(FEATURES.MIRABEL_SPIDER_RUIN_CENTRE.y - FEATURES.MIRABEL_SPIDER_RUIN_RADIUS, FEATURES.MIRABEL_SPIDER_RUIN_CENTRE.y + FEATURES.MIRABEL_SPIDER_RUIN_RADIUS + 1):
+	for q in range(centre.x - FEATURES.MIRABEL_SPIDER_RUIN_RADIUS, centre.x + FEATURES.MIRABEL_SPIDER_RUIN_RADIUS + 1):
+		for r in range(centre.y - FEATURES.MIRABEL_SPIDER_RUIN_RADIUS, centre.y + FEATURES.MIRABEL_SPIDER_RUIN_RADIUS + 1):
 			var hex := Vector2i(q, r)
-			var distance := _axial_distance(hex, FEATURES.MIRABEL_SPIDER_RUIN_CENTRE)
+			var distance := _axial_distance(hex, centre)
 			if distance < 1 or distance > FEATURES.MIRABEL_SPIDER_RUIN_RADIUS:
 				continue
 			if terrain_data.terrain_for_hex(hex) != "rocky_outcrop" or not _contains(hex, chunk_min, chunk_size):
@@ -20,7 +24,7 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 				continue
 			_add_rubble(parent, terrain_data, hex, hex_radius)
 			count += 1
-	return {"ok": true, "rubble_count": count}
+	return {"ok": true, "rubble_count": count, "anchor": centre}
 
 static func _add_rubble(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, radius: float) -> void:
 	var root := Node3D.new()

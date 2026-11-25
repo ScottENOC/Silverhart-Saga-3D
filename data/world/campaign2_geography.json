@@ -407,6 +407,16 @@
       "r": 24,
       "visibility": "exploration_site",
       "source": "Emberwood Grove centre minus 20 q plus 14 r; eight-waypoint unicorn patrol loop with radius 12"
+    },
+    {
+      "id": "mirabel_spider_ruin",
+      "name": "Mirabel's Spider-Infested Ruin",
+      "kind": "quest_site",
+      "region": "human",
+      "q": 160,
+      "r": 24,
+      "visibility": "quest_site",
+      "source": "Reddale Ironbond Guildhouse centre plus (14,-10); buildSideQuestContent in campaign2World.js"
     }
   ],
   "connections": [

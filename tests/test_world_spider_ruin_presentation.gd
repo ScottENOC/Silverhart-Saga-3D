@@ -18,8 +18,12 @@ func _initialize() -> void:
 	quit(0)
 
 func _test_source_ruin_footprint() -> void:
-	var centre: Vector2i = FEATURES.MIRABEL_SPIDER_RUIN_CENTRE
-	_check(centre == Vector2i(160, 24), "Mirabel's ruin must retain the source-derived Reddale offset anchor")
+	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
+	var site := data.encounter_site("mirabel_spider_ruin")
+	_check(String(site.get("kind", "")) == "quest_site", "Mirabel's ruin must be registered as a canonical quest site")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	_check(centre == FEATURES.MIRABEL_SPIDER_RUIN_CENTRE, "Canonical geography and the source-derived Reddale offset anchor must agree")
+	_check(data.encounter_site_at(centre).get("id", "") == "mirabel_spider_ruin", "The spider ruin must resolve by its source axial coordinate")
 	_check(FEATURES.MIRABEL_SPIDER_RUIN_RADIUS == 3, "Mirabel's ruin must retain the source radius-three footprint")
 	var authored_cells := 0
 	for q in range(centre.x - 3, centre.x + 4):
@@ -39,12 +43,14 @@ func _test_source_ruin_footprint() -> void:
 
 func _test_spider_ruin_rubble() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.MIRABEL_SPIDER_RUIN_CENTRE
+	var site := data.encounter_site("mirabel_spider_ruin")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)
 	var result := PRESENTATION.present_chunk(parent, data, chunk_min, 24, HexGrid.DEFAULT_RADIUS_M)
 	_check(bool(result.get("ok", false)), "Spider ruin presentation should succeed")
+	_check(result.get("anchor") == centre, "Spider ruin dressing must use the canonical POI anchor")
 	_check(int(result.get("rubble_count", 0)) >= 3, "The small radius-three ruin should receive visible collapsed masonry")
 	_check(parent.get_child_count() == int(result.get("rubble_count", 0)), "Each rubble cluster should have one stable root")
 	for child in parent.get_children():
@@ -61,7 +67,8 @@ func _test_spider_ruin_rubble() -> void:
 
 func _test_chunk_scoping() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.MIRABEL_SPIDER_RUIN_CENTRE
+	var site := data.encounter_site("mirabel_spider_ruin")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24 + 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)

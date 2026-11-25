@@ -7,7 +7,7 @@ This register distinguishes the **world map** from the **playable authored conte
 The current Campaign 2 world foundation contains:
 
 - The source-derived 16×16 strategic geography and faction/biome relationships.
-- 24 named global axial location anchors and 22 strategic connections.
+- 25 named global axial location anchors and 22 strategic connections.
 - Source-derived strategic road traces and a macro-world preview.
 - A continuous local axial coordinate frame, deterministic regional terrain, chunk loading and a regional streamed preview.
 - A canonical settlement definition registry and shared chunk presenter.
@@ -25,7 +25,7 @@ The canonical settlement registry currently contains eight definitions (includin
 | Hollowmere | Seven authored buildings, routes, bridge, fields/crops/fences, props, actor placements and terrain/ecology inputs; all seven source-authored starting-village interiors plus the Guild Den have registered floor maps. The source player-cottage plot spur (eight path cells) and 3D plot marker at (13,27) are now presented | Full visual/gameplay review, interior entry/exit wiring, Elder Locket item placement, guild contact, recruitment/services, remaining source events and persistence parity; cottage construction interaction remains campaign-owned |
 | Millbrook | Source-positioned house, road spur and two named NPC profiles/placements; source-authored 3-by-3 house interior, east door and fireplace are registered and floor-tested | Visual review, exterior-to-interior entry/exit wiring and services/interactions |
 | Emberlode | Foreman's hall and bunkhouse now have source-authored interior floor maps, source row shifts and walkable doors; mine entrance and two road approaches; source-authored three-floor mine stack with surface ledger, reciprocal stairs, gold and blue-gem ore nodes, and two Old Seam spider placement coordinates | Exterior-to-interior entry/exit wiring and visual review; creature spawning and ore interactions remain outside map scope |
-| Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; all six source-authored interiors now have floor maps, correct building row shifts, walkable doors and their source fixtures/evidence; three road approaches and twelve town NPCs; Mirabel Quill placed at the source-authored rocky outcrop ruin to the east | Spider defenders still need a 3D spider asset and actor-kind support; visual review, exterior-to-interior entry/exit wiring, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
+| Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; all six source-authored interiors now have floor maps, correct building row shifts, walkable doors and their source fixtures/evidence; three road approaches and twelve town NPCs; Mirabel Quill placed at the source-authored rocky outcrop ruin to the east; the ruin itself is now a named canonical quest-site POI at guildhouse + (14,-10), with chunk-owned collapsed-masonry dressing | Spider defenders still need a 3D spider asset and actor-kind support; visual review, exterior-to-interior entry/exit wiring, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
 | Kragmoor | Source-derived floors 0 to -5, validated walkable/wall HexMapData, generic 3D floor presentation, authored stair traversal, quest-journal gate bridge and campaign save/load state | Named Ara NPC/creature actors and behaviour, dialogue/trader/runesmith/mining/journal interactions, detailed dressing/lighting, and connection to campaign travel |
 | Old Mac's Farmstead | **Accepted as complete for this milestone.** Source farmhouse exterior and road spur, pasture, fence/broken-fence clue, blood evidence and Old Mac placement are accepted; the farmhouse's source-authored 3-by-2 interior and east entrance are now registered and floor-tested; cows are an acceptable livestock substitute for source sheep. Reyna Fletcher is placed at source-derived position (6,198), relative to farmstead centre (0,194), and removed from Hollowmere's opening roster to prevent duplicate actors. | Visual review and farmhouse entry/exit wiring; Reyna's dialogue/recruitment state and persistent CharacterState integration still need runtime wiring; the wolf-den encounter remains a separate wilderness site |
 | Skarn-tooth Camp | Source-authored chief's hut, five surrounding huts and central campfire at (203,23); reusable hut/campfire archetypes; source road endpoint retained | Visual scale/material review in Godot; actors, dialogue, faction and quest behaviour are outside map scope |
@@ -35,7 +35,7 @@ The shared chunk presenter renders source-authored exterior buildings and map-ow
 
 ## Remaining source-authored world locations
 
-The 24-anchor geography manifest has six canonical settlement definitions above; Kragmoor and Emberlode Mine are additionally registered as separate multi-story sites. The following 18 other anchors have partial or no playable site implementations:
+The 25-anchor geography manifest has six canonical settlement definitions above; Kragmoor and Emberlode Mine are additionally registered as separate multi-story sites. The following 19 other anchors have partial or no playable site implementations:
 
 | Location | Source content still to port |
 |---|---|
