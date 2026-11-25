@@ -320,7 +320,7 @@ func _process_social_exchanges(delta: float) -> void:
 			{"layout_id": _layout_id, "dwelling_id": String(simulation.camp_simulation.lodging_profile.get("dwelling_id", ""))}
 		)
 		event_key = "camp_banter:%s:%d:%d" % [
-			String(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
+			str(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
 			int(simulation.clock.world_seconds),
 			_exchange_index
 		]
