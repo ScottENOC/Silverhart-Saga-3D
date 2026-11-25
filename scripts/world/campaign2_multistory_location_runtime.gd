@@ -328,6 +328,23 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 				material.albedo_color = Color(0.42, 0.19, 0.10) if object_type == "fireplace" else Color(0.42, 0.25, 0.16)
 				material.emission_enabled = true
 				material.emission = Color(0.65, 0.19, 0.04) if object_type == "fireplace" else Color(0.30, 0.12, 0.04)
+			"ore_node":
+				var ore_mesh := CylinderMesh.new()
+				ore_mesh.top_radius = HEX_RADIUS * 0.12
+				ore_mesh.bottom_radius = HEX_RADIUS * 0.34
+				ore_mesh.height = 0.9
+				ore_mesh.radial_segments = 6
+				_add_floor_object_piece(marker, "Ore", ore_mesh, Vector3(0.0, 0.45, 0.0), material)
+				var ore_type := String(object_data.get("ore_type", ""))
+				if ore_type == "ore_gold":
+					material.albedo_color = Color(0.78, 0.55, 0.16)
+					material.metallic = 0.55
+					material.roughness = 0.34
+				else:
+					material.albedo_color = Color(0.16, 0.48, 0.86)
+					material.emission_enabled = true
+					material.emission = Color(0.06, 0.19, 0.42)
+					material.roughness = 0.28
 			"throne":
 				material.albedo_color = Color(0.35, 0.26, 0.17)
 				_add_box_piece(marker, "Seat", Vector3(HEX_RADIUS * 0.72, 0.18, HEX_RADIUS * 0.68), Vector3(0.0, 0.48, 0.0), material)
