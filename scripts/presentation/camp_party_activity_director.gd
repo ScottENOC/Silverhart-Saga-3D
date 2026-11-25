@@ -48,7 +48,7 @@ const ACTIVITY_STATION_ROLES := {
 	"care_horse_water": "yard", "care_horse_feed": "yard",
 	"care_horse_groom": "yard", "care_horse_tether": "yard",
 	"wake": "bedroom", "dress": "bedroom", "breakfast": "table",
-	"extinguish_fire": "hearth", "pack_camp": "yard"
+	"extinguish_fire": "hearth", "pack_camp": "yard", "depart": "threshold"
 }
 
 var simulation: WorldSimulation
@@ -88,7 +88,7 @@ func begin_camp(site: Dictionary) -> void:
 	_build_companion_destinations()
 	# Social exchanges remain active even if a tight or obstructed camp site has
 	# no free station for one of the companions.
-	_running = simulation.camp_simulation.phase == "evening"
+	_running = simulation.camp_simulation.phase in ["evening", "morning"]
 
 
 func stop() -> void:
@@ -110,6 +110,9 @@ func is_running() -> bool:
 
 func process_activity_movement(delta: float) -> void:
 	if not _running or simulation == null or delta <= 0.0:
+		return
+	if simulation.camp_simulation.phase == "resolved":
+		stop()
 		return
 	if simulation.is_in_combat or simulation.has_pending_reaction() or simulation.clock.paused:
 		return
