@@ -7,7 +7,7 @@ This register distinguishes the **world map** from the **playable authored conte
 The current Campaign 2 world foundation contains:
 
 - The source-derived 16×16 strategic geography and faction/biome relationships.
-- 24 named global axial location anchors and 22 strategic connections.
+- 25 named global axial location anchors and 22 strategic connections.
 - Source-derived strategic road traces and a macro-world preview.
 - A continuous local axial coordinate frame, deterministic regional terrain, chunk loading and a regional streamed preview.
 - A canonical settlement definition registry and shared chunk presenter.
@@ -35,7 +35,7 @@ The shared chunk presenter renders source-authored exterior buildings and map-ow
 
 ## Remaining source-authored world locations
 
-The 24-anchor geography manifest has six canonical settlement definitions above; Kragmoor and Emberlode Mine are additionally registered as separate multi-story sites. The following 18 other anchors have partial or no playable site implementations:
+The 25-anchor geography manifest has six canonical settlement definitions above; Kragmoor and Emberlode Mine are additionally registered as separate multi-story sites. The following 19 other anchors have partial or no playable site implementations:
 
 | Location | Source content still to port |
 |---|---|
