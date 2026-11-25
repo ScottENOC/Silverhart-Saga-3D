@@ -191,16 +191,46 @@ def target_floor_cells_by_level(multistory: dict[str, Any]) -> dict[int, set[str
             for corridor in floor.get("corridors", []):
                 if isinstance(corridor, dict) and isinstance(corridor.get("from"), dict) and isinstance(corridor.get("to"), dict):
                     result[floor_number].update(rasterize_segment(corridor["from"], corridor["to"]))
+            for tile_object in floor.get("tile_objects", []):
+                if isinstance(tile_object, dict) and isinstance(tile_object.get("position"), dict):
+                    position = tile_object["position"]
+                    if "q" in position and "r" in position:
+                        result[floor_number].add(axial_key(int(position["q"]), int(position["r"])))
     return dict(result)
 
 
 def source_floor_cells_by_level(runtime: dict[str, Any]) -> dict[int, set[str]]:
-    """Collect source walkable floor cells; surface interiors live in terrain, upper floors in multiStoryBuildings."""
+    """Collect source interior floors, excluding two large open fort courtyards."""
     result: dict[int, set[str]] = defaultdict(set)
     walkable_floor_names = {"Wood Floor", "Stone Floor", "Cave Floor"}
-    for key, value in runtime.get("terrain", {}).items():
-        if isinstance(value, dict) and str(value.get("name", "")) in walkable_floor_names:
-            result[0].add(str(key))
+    terrain = runtime.get("terrain", {})
+    for region in runtime.get("interiors", []):
+        if not isinstance(region, dict):
+            continue
+        bounds = [region.get(key) for key in ("minQ", "maxQ", "minR", "maxR")]
+        if all(value is not None for value in bounds):
+            min_q, max_q, min_r, max_r = (int(value) for value in bounds)
+            # These two source regions are open Northwatch/Ridgehold fort
+            # grounds. They are exterior terrain, not building interiors.
+            if max_q - min_q > 20 or max_r - min_r > 20:
+                continue
+        explicit_floor = region.get("floorHexes", [])
+        if explicit_floor:
+            for cell in explicit_floor:
+                if isinstance(cell, dict) and "q" in cell and "r" in cell:
+                    result[0].add(axial_key(int(cell["q"]), int(cell["r"])))
+            continue
+        if not all(value is not None for value in bounds):
+            continue
+        for key, value in terrain.items():
+            if not isinstance(value, dict) or str(value.get("name", "")) not in walkable_floor_names:
+                continue
+            try:
+                q, r = (int(part) for part in str(key).split(",", 1))
+            except (TypeError, ValueError):
+                continue
+            if min_q <= q <= max_q and min_r <= r <= max_r:
+                result[0].add(axial_key(q, r))
     for building in runtime.get("multiStoryBuildings", []):
         if not isinstance(building, dict):
             continue
@@ -237,6 +267,13 @@ def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, 
     return {
         "levels": report,
         "source_interior_regions": len(runtime.get("interiors", [])),
+        "source_open_fort_regions_excluded": sum(
+            1 for region in runtime.get("interiors", [])
+            if isinstance(region, dict)
+            and region.get("minQ") is not None and region.get("maxQ") is not None
+            and region.get("minR") is not None and region.get("maxR") is not None
+            and (int(region["maxQ"]) - int(region["minQ"]) > 20 or int(region["maxR"]) - int(region["minR"]) > 20)
+        ),
         "source_interior_regions_with_explicit_floor_hexes": sum(
             1 for region in runtime.get("interiors", [])
             if isinstance(region, dict) and region.get("floorHexes")
@@ -248,7 +285,7 @@ def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, 
         ),
         "target_locations": len(multistory.get("locations", [])),
         "uncompared_negative_levels": uncompared_negative_levels,
-        "note": "Coordinate-level comparison; source surface floors are read from the captured terrain map, upper floors from source multiStoryBuildings, and target rooms/corridors from the canonical floor registry. Negative tunnel floors are excluded because the source runtime terrain capture is flattened and does not encode floor indices.",
+        "note": "Coordinate-level comparison; source ground floors are read from source interior masks (with two large open fort courtyards excluded as exterior terrain), upper floors from source multiStoryBuildings, and target rooms/corridors/fixtures from the canonical floor registry. Negative tunnel floors are excluded because the source runtime terrain capture is flattened and does not encode floor indices.",
     }
 
 
