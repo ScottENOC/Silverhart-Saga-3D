@@ -84,6 +84,8 @@ jobs:
         run: |
           godot --version
           godot --headless --editor --path . --quit
+      - name: Run simulation encounter service tests
+        run: godot --headless --path . --script res://tests/test_combat_encounter_service.gd
       - name: Run player body asset import regression test when generated assets are present
         if: ${{ hashFiles('art/characters/ara_runtime/ara_player_female_body.glb', 'art/characters/ara_runtime/ara_player_male_body.glb') != '' }}
         run: godot --headless --path . --script res://tests/test_player_body_assets.gd
@@ -162,8 +164,6 @@ jobs:
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
       - name: Run shared encounter controller lifecycle tests
         run: godot --headless --path . --script res://tests/test_combat_encounter_controller.gd
-      - name: Run simulation encounter service tests
-        run: godot --headless --path . --script res://tests/test_combat_encounter_service.gd
       - name: Run split animal and riding tests
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
       - name: Run reusable building and door tests
