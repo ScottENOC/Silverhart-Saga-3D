@@ -16157,7 +16157,413 @@
         }
       ],
       "paths": [],
-      "npcs": [],
+      "npcs": [
+        {
+          "id": "chief_skarnub",
+          "name": "Chief Skarnub",
+          "title": "Goblin Chief",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "elite_goblin",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "axe_hit",
+            "axe_dmg"
+          ],
+          "equipment": [
+            "axe",
+            "medium_armor",
+            "wooden_shield"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "chief_skarnub",
+          "ambient_role": "guard",
+          "position": {
+            "q": 203,
+            "r": 22
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.22,
+            "muscle": 0.78,
+            "weight": 0.34,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "nix_sharpear",
+          "name": "Nix Sharpear",
+          "title": "Goblin Lieutenant",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "elite_goblin",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "dagger_hit",
+            "stealth_rogue"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "nix_sharpear",
+          "ambient_role": "guard",
+          "position": {
+            "q": 201,
+            "r": 23
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.18,
+            "muscle": 0.55,
+            "weight": 0.28,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "gralk_bonecaster",
+          "name": "Gralk the Bonecaster",
+          "title": "Goblin Shaman",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "elite_goblin",
+          "class_levels": [
+            "cleric"
+          ],
+          "skill_picks": [
+            "health",
+            "learn_heal"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "ambient_role": "clergy",
+          "position": {
+            "q": 205,
+            "r": 23
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.2,
+            "muscle": 0.42,
+            "weight": 0.32,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "grondle_camp_trader",
+          "name": "Grondle",
+          "title": "Camp Trader",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "goblin",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "goblin_trader",
+          "ambient_role": "merchant",
+          "position": {
+            "q": 202,
+            "r": 25
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.18,
+            "muscle": 0.48,
+            "weight": 0.3,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarn_goblin_guard_01",
+          "name": "Goblin Warrior",
+          "title": "Goblin Warrior",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "goblin",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit"
+          ],
+          "equipment": [
+            "sword"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 200,
+            "r": 24
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.16,
+            "muscle": 0.62,
+            "weight": 0.3,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarn_goblin_guard_02",
+          "name": "Goblin Warrior",
+          "title": "Goblin Warrior",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "goblin",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "spear_hit"
+          ],
+          "equipment": [
+            "spear"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 206,
+            "r": 24
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.17,
+            "muscle": 0.65,
+            "weight": 0.32,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarn_goblin_skulker",
+          "name": "Goblin Skulker",
+          "title": "Goblin Skulker",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "goblin",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "bow_hit",
+            "stealth_rogue"
+          ],
+          "equipment": [
+            "bow"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 203,
+            "r": 24
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#668a48",
+            "eye_colour": "#c58a36",
+            "hair_colour": "#211b16",
+            "hair_style": "short01",
+            "height": 0.14,
+            "muscle": 0.48,
+            "weight": 0.24,
+            "proportions": 0.55,
+            "breasts": 0,
+            "legs": 0.62
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        }
+      ],
       "creatures": [],
       "source_note": "Map-only exterior pass. The source goblin scout journal now has a physical parchment prop; its readable text/interaction, named goblin actors, trader and faction/quest behaviours remain campaign-owned.",
       "presentation": {
@@ -16436,7 +16842,359 @@
         }
       ],
       "paths": [],
-      "npcs": [],
+      "npcs": [
+        {
+          "id": "warlord_grukk_ironhide",
+          "name": "Warlord Grukk Ironhide",
+          "title": "Warlord of Skarnak's Hold",
+          "race": "orc",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "orc",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "axe_hit",
+            "axe_dmg",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "axe",
+            "heavy_armor",
+            "wooden_shield"
+          ],
+          "side": "neutral",
+          "faction_id": "orc_raiders",
+          "dialogue_id": "orc_warlord",
+          "ambient_role": "guard",
+          "position": {
+            "q": 428,
+            "r": 15
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#776044",
+            "eye_colour": "#d49a3b",
+            "hair_colour": "#211b16",
+            "hair_style": "short02",
+            "height": 0.9,
+            "muscle": 0.95,
+            "weight": 0.82,
+            "proportions": 0.6,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "kesh_stronghold_trader",
+          "name": "Kesh",
+          "title": "Stronghold Trader",
+          "race": "orc",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "orc",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "axe",
+            "medium_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "orc_raiders",
+          "dialogue_id": "orc_trader",
+          "ambient_role": "merchant",
+          "position": {
+            "q": 427,
+            "r": 19
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#776044",
+            "eye_colour": "#d49a3b",
+            "hair_colour": "#211b16",
+            "hair_style": "short02",
+            "height": 0.78,
+            "muscle": 0.8,
+            "weight": 0.72,
+            "proportions": 0.6,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarnak_orc_guard_01",
+          "name": "Orc Guard",
+          "title": "Stronghold Guard",
+          "race": "orc",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "orc",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "axe_hit"
+          ],
+          "equipment": [
+            "axe",
+            "medium_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "orc_raiders",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 425,
+            "r": 18
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#776044",
+            "eye_colour": "#d49a3b",
+            "hair_colour": "#211b16",
+            "hair_style": "short02",
+            "height": 0.78,
+            "muscle": 0.85,
+            "weight": 0.72,
+            "proportions": 0.6,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarnak_orc_guard_02",
+          "name": "Orc Guard",
+          "title": "Stronghold Guard",
+          "race": "orc",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "orc",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "spear_hit"
+          ],
+          "equipment": [
+            "spear",
+            "medium_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "orc_raiders",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 431,
+            "r": 18
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#776044",
+            "eye_colour": "#d49a3b",
+            "hair_colour": "#211b16",
+            "hair_style": "short02",
+            "height": 0.76,
+            "muscle": 0.8,
+            "weight": 0.7,
+            "proportions": 0.6,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarnak_orc_skirmisher",
+          "name": "Orc Skirmisher",
+          "title": "Stronghold Skirmisher",
+          "race": "orc",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "orc",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "bow_hit"
+          ],
+          "equipment": [
+            "bow",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "orc_raiders",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 425,
+            "r": 19
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#776044",
+            "eye_colour": "#d49a3b",
+            "hair_colour": "#211b16",
+            "hair_style": "short02",
+            "height": 0.82,
+            "muscle": 0.78,
+            "weight": 0.68,
+            "proportions": 0.6,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        },
+        {
+          "id": "skarnak_orc_guard_04",
+          "name": "Orc Guard",
+          "title": "Stronghold Guard",
+          "race": "orc",
+          "gender": "male",
+          "body_variant": "male",
+          "monster_type": "orc",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "club_hit"
+          ],
+          "equipment": [
+            "club",
+            "medium_armor",
+            "wooden_shield"
+          ],
+          "side": "neutral",
+          "faction_id": "orc_raiders",
+          "dialogue_id": "",
+          "ambient_role": "guard",
+          "position": {
+            "q": 431,
+            "r": 19
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#776044",
+            "eye_colour": "#d49a3b",
+            "hair_colour": "#211b16",
+            "hair_style": "short02",
+            "height": 0.84,
+            "muscle": 0.9,
+            "weight": 0.8,
+            "proportions": 0.6,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+        }
+      ],
       "creatures": [],
       "source_note": "Map-only exterior pass. Warlord, Kesh the trader, orc guards, troll, faction relations and trust quest remain campaign-owned."
     }
