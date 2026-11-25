@@ -1,7 +1,7 @@
-"""Run a visibly useful MakeHuman MPFB2 garment-fitting baseline.
+"""Build and render a complete MPFB2 base-human diagnostic.
 
-Uses MPFB2's upstream MHCLO loader/fitter and original CC0 system assets.
-This is an integration diagnostic, not a replacement fitting implementation.
+This deliberately validates the human/head assembly before garment fitting.
+It uses MPFB2's own MHCLO loader for facial assets and CC0 system assets.
 """
 from __future__ import annotations
 
@@ -26,46 +26,20 @@ def dynamic_import(module_suffix: str, symbol: str):
     raise RuntimeError(f"Could not find MPFB symbol {symbol} in {module_suffix}")
 
 
-def choose_garments(clothes: dict) -> list[tuple[str, str]]:
-    """Prefer a recognisable upper and lower garment, never hats/accessories."""
-    excluded = ("hat", "fedora", "cap", "helmet", "shoe", "boot", "sandal",
-                "glove", "sock", "scarf", "necklace", "earring", "bracelet",
-                "bag", "backpack", "hair", "eyebrow", "eyelash")
-    entries = sorted(
-        ((str(label), str(item["full_path"])) for label, item in clothes.items()),
+def choose_asset(entries: dict, preferred_terms: tuple[str, ...] = ()) -> tuple[str, str] | None:
+    """Choose a deterministic, named asset; report the full inventory for review."""
+    values = sorted(
+        ((str(label), str(item["full_path"])) for label, item in entries.items()),
         key=lambda entry: (entry[0].casefold(), entry[1].casefold()),
     )
-
-    def eligible(entry):
-        haystack = (entry[0] + " " + entry[1]).casefold()
-        return not any(word in haystack for word in excluded)
-
-    usable = [entry for entry in entries if eligible(entry)]
-    if not usable:
-        raise RuntimeError(
-            "No wearable garments remained after excluding accessories. "
-            "Discovered assets: " + json.dumps([label for label, _ in entries])
-        )
-
-    upper_words = ("shirt", "top", "tshirt", "t-shirt", "blouse", "jacket", "hoodie", "sweater", "vest", "tunic")
-    lower_words = ("trouser", "pants", "jeans", "shorts", "skirt", "leggings")
-    upper = next((entry for entry in usable
-                  if any(word in (entry[0] + " " + entry[1]).casefold() for word in upper_words)), None)
-    lower = next((entry for entry in usable
-                  if any(word in (entry[0] + " " + entry[1]).casefold() for word in lower_words)), None)
-
-    selected = []
-    if upper:
-        selected.append(upper)
-    if lower and lower not in selected:
-        selected.append(lower)
-
-    # If the system pack uses less obvious naming, still demonstrate a real
-    # wearable mesh rather than silently choosing a hat or reporting success
-    # with no clothing.
-    if not selected:
-        selected = [usable[0]]
-    return selected
+    if not values:
+        return None
+    for term in preferred_terms:
+        match = next((entry for entry in values
+                      if term.casefold() in (entry[0] + " " + entry[1]).casefold()), None)
+        if match:
+            return match
+    return values[0]
 
 
 def material_diagnostics(obj):
@@ -91,6 +65,57 @@ def material_diagnostics(obj):
     return result
 
 
+def point_camera(camera, location, target):
+    from mathutils import Vector
+    camera.location = location
+    direction = Vector(target) - camera.location
+    camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+
+
+def render_view(name: str, location: tuple[float, float, float], target: tuple[float, float, float]):
+    scene = bpy.context.scene
+    camera_data = bpy.data.cameras.new(name + "Camera")
+    camera = bpy.data.objects.new(name + "Camera", camera_data)
+    scene.collection.objects.link(camera)
+    point_camera(camera, location, target)
+    camera.data.type = "ORTHO"
+    camera.data.ortho_scale = 2.0
+    scene.camera = camera
+
+    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    scene.render.resolution_x = 900
+    scene.render.resolution_y = 1200
+    scene.render.resolution_percentage = 100
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.film_transparent = False
+    scene.world.color = (0.12, 0.12, 0.12)
+
+    # Neutral studio lighting, with no texture or colour grading intended to
+    # conceal geometry problems.
+    for obj in list(bpy.data.objects):
+        if obj.type == "LIGHT":
+            bpy.data.objects.remove(obj, do_unlink=True)
+    light_data = bpy.data.lights.new(name + "Key", type="AREA")
+    light = bpy.data.objects.new(name + "Key", light_data)
+    scene.collection.objects.link(light)
+    light.location = ( -3.0, -4.0, 4.5)
+    light.data.energy = 450
+    light.data.shape = "DISK"
+    light.data.size = 4.0
+    fill_data = bpy.data.lights.new(name + "Fill", type="AREA")
+    fill = bpy.data.objects.new(name + "Fill", fill_data)
+    scene.collection.objects.link(fill)
+    fill.location = (3.0, -2.0, 2.5)
+    fill.data.energy = 220
+    fill.data.size = 3.0
+
+    scene.render.filepath = os.path.join(OUTPUT_DIR, name + ".png")
+    bpy.ops.render.render(write_still=True)
+    bpy.data.objects.remove(camera, do_unlink=True)
+    bpy.data.objects.remove(light, do_unlink=True)
+    bpy.data.objects.remove(fill, do_unlink=True)
+
+
 def main():
     bpy.ops.preferences.addon_enable(module="bl_ext.user_default.mpfb")
 
@@ -98,51 +123,75 @@ def main():
     AssetService = dynamic_import("mpfb.services.assetservice", "AssetService")
 
     AssetService.update_all_asset_lists()
-    clothes = AssetService.get_asset_list("clothes", "mhclo")
-    skins = AssetService.get_asset_list("skins", "mhmat")
-    if not clothes:
-        raise RuntimeError("No original MakeHuman .mhclo clothing assets were discovered")
-    if not skins:
-        raise RuntimeError("No original MakeHuman .mhmat skin assets were discovered")
+    categories = {
+        "skins": ("skins", "mhmat"),
+        "eyes": ("eyes", "mhclo"),
+        "eyebrows": ("eyebrows", "mhclo"),
+        "eyelashes": ("eyelashes", "mhclo"),
+        "hair": ("hair", "mhclo"),
+        "teeth": ("teeth", "mhclo"),
+        "tongue": ("tongue", "mhclo"),
+    }
+    inventories = {}
+    for key, (subdir, extension) in categories.items():
+        inventories[key] = AssetService.get_asset_list(subdir, extension)
 
     basemesh = HumanService.create_human()
     if basemesh is None:
         raise RuntimeError("MPFB2 create_human() did not return a base mesh")
 
-    # Use MPFB2's own skin setup rather than a generic Blender colour.
-    skin_entries = sorted(
-        ((str(label), str(item["full_path"])) for label, item in skins.items()),
-        key=lambda entry: (0 if os.path.basename(entry[1]).casefold() == "brown.mhmat" else 1,
-                           entry[0].casefold()),
+    # A deliberate female skin asset is selected when available; the report
+    # records the exact choice rather than silently using alphabetical order.
+    skin_choice = choose_asset(
+        inventories["skins"],
+        ("young caucasian female", "young female", "caucasian female", "female"),
     )
-    skin_label, skin_path = skin_entries[0]
+    if skin_choice is None:
+        raise RuntimeError("No original MakeHuman skin material was discovered")
+    skin_label, skin_path = skin_choice
     HumanService.set_character_skin(skin_path, basemesh, skin_type="MAKESKIN")
 
-    selected_garments = choose_garments(clothes)
-    loaded_garments = []
-    for garment_label, garment_path in selected_garments:
-        garment = HumanService.add_mhclo_asset(
-            garment_path,
+    # MPFB2 defines separate system-asset libraries for the face components.
+    # Loading each via its native MHCLO path lets the upstream fitter place it
+    # against this exact base mesh; no guessed offsets or manual eye placement.
+    component_preferences = {
+        "eyes": ("eyeball", "eyes"),
+        "eyebrows": ("eyebrow",),
+        "eyelashes": ("eyelash",),
+        "hair": ("short", "bob", "ponytail", "hair"),
+        "teeth": ("teeth",),
+        "tongue": ("tongue",),
+    }
+    loaded_components = []
+    for category, terms in component_preferences.items():
+        choice = choose_asset(inventories[category], terms)
+        if choice is None:
+            continue
+        label, asset_path = choice
+        obj = HumanService.add_mhclo_asset(
+            asset_path,
             basemesh,
-            asset_type="Clothes",
+            asset_type=category.capitalize(),
             material_type="MAKESKIN",
             set_up_rigging=False,
             interpolate_weights=False,
             import_subrig=False,
             import_weights=False,
         )
-        if garment is None or garment.type != "MESH":
-            raise RuntimeError(f"MPFB2 failed to create garment mesh for {garment_label}: {garment_path}")
-        loaded_garments.append({
-            "label": garment_label,
-            "path": garment_path,
-            "object": garment,
+        if obj is None or obj.type != "MESH":
+            raise RuntimeError(f"MPFB2 failed to load {category} asset {label}: {asset_path}")
+        loaded_components.append({
+            "category": category,
+            "label": label,
+            "path": asset_path,
+            "object": obj.name,
         })
 
-    # Remove Blender's startup cube; it is not part of the MakeHuman character.
+    # Remove Blender's startup cube and any unrelated default meshes.
     startup_objects_removed = []
+    keep = {basemesh.name} | {item["object"] for item in loaded_components}
     for obj in list(bpy.data.objects):
-        if obj.type == "MESH" and obj != basemesh and obj not in [g["object"] for g in loaded_garments]:
+        if obj.type == "MESH" and obj.name not in keep:
             startup_objects_removed.append(obj.name)
             bpy.data.objects.remove(obj, do_unlink=True)
 
@@ -158,13 +207,16 @@ def main():
                 "materials": material_diagnostics(obj),
             })
 
-    skin_materials = material_diagnostics(basemesh)
-    if not skin_materials:
+    if not material_diagnostics(basemesh):
         raise RuntimeError("MPFB2 skin setup completed without assigning a material to the human")
-    if len(loaded_garments) < 1:
-        raise RuntimeError("No wearable garment meshes were loaded")
+    if not any(item["category"] == "eyes" for item in loaded_components):
+        raise RuntimeError("No eye asset was loaded; cannot validate complete head assembly")
 
-    glb_path = os.path.join(OUTPUT_DIR, "makehuman-original-garments.glb")
+    # Front and side renders are the primary diagnostic deliverables.
+    render_view("base-human-front", (0.0, -5.0, 1.0), (0.0, 0.0, 0.9))
+    render_view("base-human-side", (5.0, 0.0, 1.0), (0.0, 0.0, 0.9))
+
+    glb_path = os.path.join(OUTPUT_DIR, "makehuman-base-human.glb")
     bpy.ops.export_scene.gltf(filepath=glb_path, export_format="GLB")
 
     report = {
@@ -172,15 +224,18 @@ def main():
         "blender_version": bpy.app.version_string,
         "skin_asset_label": skin_label,
         "skin_asset_path": skin_path,
-        "skin_materials": skin_materials,
-        "garments": [
-            {"label": garment["label"], "path": garment["path"], "object": garment["object"].name}
-            for garment in loaded_garments
-        ],
-        "discovered_garment_count": len(clothes),
-        "discovered_garment_labels": sorted(str(label) for label in clothes.keys()),
+        "asset_inventory": {
+            key: sorted(str(label) for label in values.keys())
+            for key, values in inventories.items()
+        },
+        "asset_counts": {key: len(values) for key, values in inventories.items()},
+        "loaded_face_components": loaded_components,
         "removed_startup_meshes": startup_objects_removed,
         "mesh_objects": mesh_objects,
+        "renders": [
+            os.path.join(OUTPUT_DIR, "base-human-front.png"),
+            os.path.join(OUTPUT_DIR, "base-human-side.png"),
+        ],
         "export": glb_path,
         "status": "passed",
     }
