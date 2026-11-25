@@ -756,12 +756,14 @@ static func camp_activity_animation_hints(activity: String) -> PackedStringArray
 			return PackedStringArray(["use_press"])
 		"study_map":
 			return PackedStringArray(["use_press"])
+		# The current Ara package has no dedicated squat/push-up, talk-gesture
+		# or lookout clips. Use its real crouch, Talk and Idle clips instead.
 		"train":
-			return PackedStringArray(["squat", "push_up"])
+			return PackedStringArray(["crouch_idle", "jump"])
 		"socialise":
-			return PackedStringArray(["talk_gestures", "talk"])
+			return PackedStringArray(["talk", "idle"])
 		"watch":
-			return PackedStringArray(["look_around", "idle"])
+			return PackedStringArray(["idle"])
 		"sleep":
 			return PackedStringArray(["sleep", "lie_down"])
 		_:
