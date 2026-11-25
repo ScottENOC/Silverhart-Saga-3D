@@ -44,7 +44,9 @@ const LAYOUT_STATION_OFFSETS := {
 const ACTIVITY_STATION_ROLES := {
 	"cook": "hearth", "repair_gear": "workshop", "study_map": "study",
 	"socialise": "common", "watch": "threshold", "sleep": "bedroom",
-	"gather_wood": "yard", "set_up_tents": "yard", "fetch_water": "yard", "train": "yard"
+	"gather_wood": "yard", "set_up_tents": "yard", "fetch_water": "yard", "train": "yard",
+	"care_horse_water": "yard", "care_horse_feed": "yard",
+	"care_horse_groom": "yard", "care_horse_tether": "yard"
 }
 
 var simulation: WorldSimulation
