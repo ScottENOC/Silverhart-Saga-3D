@@ -89,14 +89,15 @@ static func apply_effects(
 			aldric.side = "neutral"
 			aldric.combat_dormant = false
 		_sync_aldric_actor(scene_tree, local_actor_by_id, false)
-	if aldric_leaves:
+	if aldric_leaves and simulation.is_party_member(ALDRIC_ID):
 		var aldric_departing := simulation.get_character(ALDRIC_ID)
-		if simulation.is_party_member(ALDRIC_ID):
-			simulation.dismiss_companion(ALDRIC_ID, true)
-		if aldric_departing != null:
-			aldric_departing.side = "neutral"
-			aldric_departing.combat_dormant = false
-		_sync_aldric_actor(scene_tree, local_actor_by_id, true)
+		var dismissed := simulation.dismiss_companion(ALDRIC_ID, true)
+		if bool(dismissed.get("ok", false)):
+			if aldric_departing != null:
+				aldric_departing.side = "neutral"
+				aldric_departing.combat_dormant = true
+			simulation.unregister_character(ALDRIC_ID)
+			_sync_aldric_actor(scene_tree, local_actor_by_id, true)
 
 	return {
 		"ok": true,
@@ -173,3 +174,7 @@ static func _sync_aldric_actor(scene_tree: SceneTree, local_actor_by_id: Diction
 	actor.set_meta("campaign_rescued", true)
 	if departed:
 		actor.set_meta("campaign_departed", true)
+		if local_actor_by_id.has(ALDRIC_ID):
+			local_actor_by_id.erase(ALDRIC_ID)
+		if actor.is_inside_tree():
+			actor.queue_free()
