@@ -131,7 +131,7 @@ func _test_autonomous_director_exchange() -> void:
 	quest_chain.register_quest_definitions(world.campaign_journal)
 	world.campaign_journal.quests["aldric_measure_of_oath"] = {
 		"status": "completed",
-		"completed_at": 50000.0
+		"completed_at": 100.0
 	}
 	var relationship_state := CAMPAIGN_RUNTIME_STORE.relationship_state_for(world)
 	var chapter_start := quest_chain.start(
