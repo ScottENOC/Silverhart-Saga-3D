@@ -17,19 +17,77 @@ def read(path):
     return doc,binary
 
 def write(path,doc,binary):
+    binary = bytes(binary)
     doc['buffers'][0]['byteLength']=len(binary)
     j=json.dumps(doc,separators=(',',':'),ensure_ascii=False).encode(); j+=b' '*((-len(j))%4); binary+=b'\0'*(-len(binary)%4)
     total=12+8+len(j)+8+len(binary)
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
 def body_node(d):
+    """Find the single skinned actor mesh by its skin/anatomy material family.
+
+    Ara body exports use names such as Skin_Anatomy while older modular
+    catalogue exports use Skin. Match the family rather than one exact label.
+    """
     hits=[]
     for n in d['nodes']:
         if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
+        names=[]
+        for primitive in d['meshes'][n['mesh']]['primitives']:
+            material_index=primitive.get('material')
+            if material_index is None: continue
+            if material_index < 0 or material_index >= len(d.get('materials', [])):
+                raise ValueError(f"Node {n.get('name', '<unnamed>')} references invalid material {material_index}")
+            names.append(str(d['materials'][material_index].get('name', '')).strip().lower())
+        if any(name == 'skin' or name.startswith('skin_') or name.startswith('skin ') for name in names):
+            hits.append(n)
+    if len(hits)!=1:
+        raise ValueError(f"Expected one skinned body mesh with a Skin/Skin_* material, got {len(hits)}")
     return hits[0]
+
+
+def body_bounds(doc, binary):
+    node = body_node(doc)
+    positions = []
+    for primitive in doc['meshes'][node['mesh']]['primitives']:
+        material_index = primitive.get('material')
+        if material_index is None:
+            continue
+        name = str(doc.get('materials', [])[material_index].get('name', '')).strip().lower()
+        if name == 'skin' or name.startswith('skin_') or name.startswith('skin '):
+            rows = accessor_rows(doc, binary, primitive['attributes']['POSITION'])
+            positions.extend(rows)
+    if not positions:
+        raise ValueError("Could not calculate skinned body bounds")
+    lo = [min(row[i] for row in positions) for i in range(3)]
+    hi = [max(row[i] for row in positions) for i in range(3)]
+    return lo, hi
+
+
+def transform_vec3_accessor(doc, binary, accessor_index, scale, centre_from=None, centre_to=None, inverse_normal=False):
+    accessor = doc['accessors'][accessor_index]
+    if accessor['componentType'] != 5126 or accessor['type'] != 'VEC3':
+        raise ValueError("Garment fitting expects float VEC3 accessors")
+    view = doc['bufferViews'][accessor['bufferView']]
+    stride = view.get('byteStride', 12)
+    start = view.get('byteOffset', 0) + accessor.get('byteOffset', 0)
+    for index in range(accessor['count']):
+        offset = start + index * stride
+        x, y, z = struct.unpack_from('<3f', binary, offset)
+        values = [x, y, z]
+        if inverse_normal:
+            values = [values[i] / max(scale[i], 1e-8) for i in range(3)]
+            length = sum(v*v for v in values) ** 0.5 or 1.0
+            values = [v / length for v in values]
+        else:
+            values = [values[i] * scale[i] for i in range(3)]
+            if centre_from is not None and centre_to is not None:
+                values = [centre_to[i] + (values[i] - centre_from[i] * scale[i]) for i in range(3)]
+        struct.pack_into('<3f', binary, offset, *values)
+    if not inverse_normal and centre_from is not None and centre_to is not None:
+        rows = accessor_rows(doc, binary, accessor_index)
+        accessor['min'] = [min(row[i] for row in rows) for i in range(3)]
+        accessor['max'] = [max(row[i] for row in rows) for i in range(3)]
 
 def append_bytes(target,buf,data,target_type=None):
     buf+=b'\0'*(-len(buf)%4); off=len(buf)
@@ -91,6 +149,30 @@ def add(target,buf,source_path,selector):
     if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
     joint_map=[tj.index(name) for name in sj]
     tn=body_node(target); sn=body_node(src)
+    # Ara garment catalogue meshes are authored against a standard-height
+    # body. Companion bodies can have different height/width/depth. Refit
+    # garment bind-pose vertices to the target body's local bounds before
+    # appending them; otherwise short characters (notably Dagna) get garments
+    # positioned around the source model's chest/head rather than their own.
+    source_lo, source_hi = body_bounds(src, sbuf)
+    target_lo, target_hi = body_bounds(target, buf)
+    source_size = [source_hi[i] - source_lo[i] for i in range(3)]
+    target_size = [target_hi[i] - target_lo[i] for i in range(3)]
+    fit_scale = []
+    for axis, (source_extent, target_extent) in enumerate(zip(source_size, target_size)):
+        if source_extent <= 1e-6:
+            if target_extent <= 1e-6:
+                # Small synthetic fixtures can be planar. Preserve that axis
+                # rather than rejecting an otherwise valid morph-target test.
+                fit_scale.append(1.0)
+                continue
+            raise ValueError(
+                f"Invalid source body bounds in {source_path}: "
+                f"axis {axis} has source extent {source_extent} but target extent {target_extent}"
+            )
+        fit_scale.append(target_extent / source_extent)
+    source_centre = [(source_lo[i] + source_hi[i]) * 0.5 for i in range(3)]
+    target_centre = [(target_lo[i] + target_hi[i]) * 0.5 for i in range(3)]
     target_mesh=target['meshes'][tn['mesh']]
     source_mesh=src['meshes'][sn['mesh']]
     for k in ('translation','rotation','scale','matrix'):
@@ -105,10 +187,16 @@ def add(target,buf,source_path,selector):
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
-        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if source_count != target_count or (target_names is not None and source_names is not None and source_names != target_names):
+        if not isinstance(target_names, list) or not isinstance(source_names, list):
+            raise ValueError(f'Morph target mismatch in {source_path}; targetNames metadata is required for safe alignment')
+        if len(target_names) != target_count or len(source_names) != source_count:
+            raise ValueError('Morph target name metadata does not match mesh target counts')
+        if len(set(target_names)) != len(target_names) or len(set(source_names)) != len(source_names):
+            raise ValueError('Morph target names must be unique to align garment targets safely')
+        unknown=sorted(set(source_names)-set(target_names))
+        if unknown:
+            raise ValueError(f'Garment has morph targets absent from body: {unknown}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -134,6 +222,10 @@ def add(target,buf,source_path,selector):
     for attr,old_ai in p.get('attributes',{}).items():
         target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices,joint_map if attr.startswith('JOINTS_') else None)
         amap[old_ai]=new_ai
+        if attr == 'POSITION':
+            transform_vec3_accessor(target, buf, new_ai, fit_scale, source_centre, target_centre)
+        elif attr == 'NORMAL':
+            transform_vec3_accessor(target, buf, new_ai, fit_scale, inverse_normal=True)
     new_indices=[remap[x] for x in original]; index_data=struct.pack('<'+ifmt*len(new_indices),*new_indices)
     target,buf,ivi=append_bytes(target,buf,index_data,34963)
     ia2=copy.deepcopy(ia); ia2['bufferView']=ivi; ia2.pop('byteOffset',None); ia2['min']=[min(new_indices)]; ia2['max']=[max(new_indices)]
@@ -144,15 +236,27 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
-    remapped_targets=[]
-    for target_attrs in source_targets:
-        remapped={}
-        for attr,old_ai in target_attrs.items():
-            target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
-            remapped[attr]=new_ai
-        remapped_targets.append(remapped)
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
+    remapped_targets=[{} for _ in range(target_count)]
+    if source_count:
+        if source_names is None or target_names is None:
+            if source_count != target_count:
+                raise ValueError('Cannot align different morph target counts without targetNames metadata')
+            target_indices=list(range(source_count))
+        else:
+            target_lookup={name:index for index,name in enumerate(target_names)}
+            target_indices=[target_lookup[name] for name in source_names]
+        for source_index,target_attrs in enumerate(source_targets):
+            remapped={}
+            for attr,old_ai in target_attrs.items():
+                target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
+                if attr == 'POSITION':
+                    transform_vec3_accessor(target, buf, new_ai, fit_scale)
+                elif attr == 'NORMAL':
+                    transform_vec3_accessor(target, buf, new_ai, fit_scale, inverse_normal=True)
+                remapped[attr]=new_ai
+            remapped_targets[target_indices[source_index]]=remapped
     if source_targets:
         p['targets']=remapped_targets
 
@@ -224,7 +328,7 @@ def validate_morph_targets(doc):
 
 if __name__=='__main__':
     if len(sys.argv)<3 or (len(sys.argv)-3)%2: raise SystemExit('usage: script BODY.glb OUT.glb SOURCE.glb MATERIAL [SOURCE MATERIAL]...')
-    d,b=read(sys.argv[1]); b=b[:d['buffers'][0]['byteLength']]
+    d,b=read(sys.argv[1]); b=bytearray(b[:d['buffers'][0]['byteLength']])
     for i in range(3,len(sys.argv),2): d,b=add(d,b,sys.argv[i],sys.argv[i+1])
     validate_morph_targets(d)
     write(sys.argv[2],d,b)

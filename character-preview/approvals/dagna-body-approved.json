@@ -1,0 +1,15 @@
+{
+  "character": "Dagna",
+  "approval": "accepted",
+  "body_frozen": true,
+  "approved_build": {
+    "workflow": "Build Dagna native Ara character",
+    "run_number": 56,
+    "run_id": 44489910404,
+    "artifact_id": 14512189420,
+    "artifact_name": "dagna-native-ara-56",
+    "source_commit": "912093e383ac802285d7d3491ffd9affed572b51"
+  },
+  "profile": "character-preview/dagna-ara.json",
+  "policy": "Treat this build as the approved body baseline. Outfit previews and starting-equipment changes must use separate garment meshes and must not regenerate, edit, or replace the accepted body. Any future body change requires explicit user approval."
+}
