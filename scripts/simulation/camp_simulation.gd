@@ -456,9 +456,11 @@ func remove_camp_occupant(occupant_id: String) -> Dictionary:
 	var affected_animals: Dictionary = {}
 	if removed_kind == "animal":
 		_restore_horse_care_handler(occupant_id)
-		animal_care_tasks = animal_care_tasks.filter(
-			func(task: Dictionary) -> bool: return String(task.get("animal_id", "")) != occupant_id
-		)
+		var remaining_tasks: Array[Dictionary] = []
+		for task in animal_care_tasks:
+			if String(task.get("animal_id", "")) != occupant_id:
+				remaining_tasks.append(task)
+		animal_care_tasks = remaining_tasks
 		animal_care.erase(occupant_id)
 	else:
 		for task in animal_care_tasks:
