@@ -82,7 +82,9 @@ jobs:
           set -euo pipefail
           blender -b --factory-startup --python-exit-code 1 --python tools/makehuman/mpfb2_garment_smoke.py
           test -s makehuman-baseline/baseline-report.json
-          test -s makehuman-baseline/makehuman-original-garments.glb
+          test -s makehuman-baseline/makehuman-base-human.glb
+          test -s makehuman-baseline/base-human-front.png
+          test -s makehuman-baseline/base-human-side.png
 
       - name: Upload baseline diagnostics
         if: always()
