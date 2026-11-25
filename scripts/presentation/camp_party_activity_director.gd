@@ -46,7 +46,9 @@ const ACTIVITY_STATION_ROLES := {
 	"socialise": "common", "watch": "threshold", "sleep": "bedroom",
 	"gather_wood": "yard", "set_up_tents": "yard", "fetch_water": "yard", "train": "yard",
 	"care_horse_water": "yard", "care_horse_feed": "yard",
-	"care_horse_groom": "yard", "care_horse_tether": "yard"
+	"care_horse_groom": "yard", "care_horse_tether": "yard",
+	"wake": "bedroom", "dress": "bedroom", "breakfast": "table",
+	"extinguish_fire": "hearth", "pack_camp": "yard"
 }
 
 var simulation: WorldSimulation
