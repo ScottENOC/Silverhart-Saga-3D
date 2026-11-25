@@ -197,6 +197,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_campaign_ui.gd
       - name: Run SaveManager round-trip tests
         run: godot --headless --path . --script res://tests/test_save_manager.gd
+      - name: Run SaveManager snapshot extension tests
+        run: godot --headless --path . --script res://tests/test_save_manager_extensions.gd
       - name: Diagnose direct HollowTankard script load
         run: godot --headless --path . --script res://tests/diagnose_tavern_script_load.gd
       - name: Run campaign save/restore scene integration tests
