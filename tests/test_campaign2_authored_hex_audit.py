@@ -176,6 +176,27 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertTrue(report["river_path_matches_geography"])
         self.assertTrue(report["hollowmere_marker_at_origin"])
 
+    def test_strategic_map_parity_reports_terrain_and_river_drift(self):
+        geography = {
+            "coordinate_system": {"strategic_grid_dimensions": {"columns": 1, "rows": 1}},
+            "geography": {
+                "ocean_columns": [0],
+                "orc_lands": {"columns": [1, 0], "rows": [0, 0]},
+                "dwarven_mountains": {"columns": [1, 0], "rows": [1, 0]},
+                "elven_forest": {"columns": [1, 0], "rows": [1, 0]},
+                "river_path": [[0, 0]],
+                "faction_overrides": [],
+                "terrain_variation": {"strategic_hash": {}, "orc_mountain_threshold": 0.8, "orc_hills_threshold": 0.6},
+            },
+        }
+        runtime = {
+            "worldMapData": [[{"t": "G", "o": "h", "n": ""}]],
+            "worldRiverPath": [{"x": 1, "y": 0}],
+        }
+        report = strategic_map_parity_report(runtime, geography)
+        self.assertEqual(report["unmarked_terrain_faction_mismatch_count"], 1)
+        self.assertFalse(report["river_path_matches_geography"])
+
 
 if __name__ == "__main__":
     unittest.main()
