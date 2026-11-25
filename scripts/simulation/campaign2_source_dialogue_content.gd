@@ -35,7 +35,7 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 	if dialogue_id in ["garrick_holt", "mira_ashbrook", "oskar_vinn", "wick_hallow", "yvette", "yvette_marlow", "hendra", "hendra_wells", "elder_marta", "marta_wynfield", "rowan_fletcher", "hollowmere_hunter", "tavern_patron", "bram_fenwick"]:
 		var shakedown_state := journal.quest_state(HollowmereCampaignContent.QUEST_ID)
 		var shakedown_decisions: Dictionary = shakedown_state.get("decisions", {})
-		var shakedown_choice := String(shakedown_decisions.get("choice", shakedown_decisions.get("resolution", "")))
+		var shakedown_choice := String(shakedown_decisions.get("response", ""))
 		var shakedown_resolved := String(shakedown_state.get("status", "")) == "completed"
 		var standing := journal.npc_standing(dialogue_id)
 		var hollowmere_conversation := HollowmereCampaignContent.npc_greeting(dialogue_id, shakedown_resolved, standing, shakedown_choice)
