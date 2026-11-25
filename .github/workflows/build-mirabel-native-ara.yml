@@ -2,7 +2,7 @@ name: Build Mirabel native Ara character
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, feature/unified-female-anatomy-v2]
     paths:
       - "character-preview/mirabel-ara.json"
       - ".github/workflows/build-mirabel-native-ara.yml"
