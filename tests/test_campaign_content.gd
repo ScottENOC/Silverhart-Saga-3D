@@ -173,7 +173,22 @@ func _test_hollowmere_campaign_content() -> void:
     _check(garrick.get("choices", []).size() >= 2, "Garrick should offer the Ironbond question and local news")
 
     var exchanges := HollowmereCampaignContent.ambient_exchanges()
-    _check(exchanges.size() >= 40, "Hollowmere should have a broad set of ambient exchanges")
+    _check(exchanges.size() >= 95, "Hollowmere should retain the original chatter and the full grouped Hex-crpg ambient expansion")
+    var exchange_ids: Dictionary = {}
+    var has_miner_chatter := false
+    var has_clergy_chatter := false
+    for exchange_value in exchanges:
+        var exchange: Dictionary = exchange_value
+        var exchange_id := String(exchange.get("id", ""))
+        _check(not exchange_id.is_empty() and not exchange_ids.has(exchange_id), "Ambient exchange IDs must be stable and unique")
+        exchange_ids[exchange_id] = true
+        var roles: Array = exchange.get("roles", ["any"])
+        if roles.has("miner"):
+            has_miner_chatter = true
+        if roles.has("clergy"):
+            has_clergy_chatter = true
+    _check(has_miner_chatter, "Ported ambient dialogue should include occupation-specific miner exchanges")
+    _check(has_clergy_chatter, "Ported ambient dialogue should include occupation-specific clergy exchanges")
     var has_aftermath := false
     for exchange_value in exchanges:
         var exchange: Dictionary = exchange_value
