@@ -542,6 +542,7 @@ def main():
         actor, "wren-body-pressure-compressed-preview.png",
         {"pressure_breast_left", "pressure_hip_right"}, report
     )
+    buttock_preview_rendered = render_buttock_pressure_preview(actor, lo, hi, report)
     # Export evaluated posed meshes for a phone-friendly static review.
     exportables=[]
     collection=bpy.data.collections.new("WrenStaticPose")
