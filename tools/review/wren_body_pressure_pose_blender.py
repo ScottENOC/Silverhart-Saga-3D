@@ -156,6 +156,8 @@ def author_pressure_shapes(actor, surface_centres, report):
         ("breast_right", surface_centres["breast_right"], Vector((0.105,0.095,0.090)), 0.032),
         ("hip_left", surface_centres["hip_left"], Vector((0.115,0.090,0.115)), 0.022),
         ("hip_right", surface_centres["hip_right"], Vector((0.115,0.090,0.115)), 0.022),
+        ("buttock_left", surface_centres["buttock_left"], Vector((0.135,0.105,0.120)), 0.032),
+        ("buttock_right", surface_centres["buttock_right"], Vector((0.135,0.105,0.120)), 0.032),
     ]
     authored = []
     for source in actor["meshes"]:
@@ -264,13 +266,13 @@ def export_stiffness_sweep(actor, lo, hi, report):
     # claim that the native Ara mesh is a validated tissue model.
     cases = [(850.0, 1.0 / 850.0), (400.0, 1.0 / 400.0),
              (200.0, 1.0 / 200.0), (100.0, 1.0 / 100.0)]
-    max_shape_depth = 0.022
+    max_shape_depth = 0.032
     spacing = max(0.72, (hi.x - lo.x) * 1.35)
     collection = bpy.data.collections.new("Wren_Buttock_Stiffness_Comparison")
     bpy.context.scene.collection.children.link(collection)
     exportables = []
     case_report = []
-    shape_name = "pressure_hip_right"
+    shape_name = "pressure_buttock_right"
 
     for case_index, (stiffness, compression_m) in enumerate(cases):
         shape_value = min(1.0, compression_m / max_shape_depth)
@@ -383,6 +385,12 @@ def main():
     # are placed from her measured bounds, then checked against the evaluated mesh.
     left_breast=Vector((centre.x+width*0.14,lo.y+depth*0.13,lo.z+height*0.665))
     right_hip=Vector((centre.x-width*0.22,lo.y+depth*0.25,lo.z+height*0.56))
+    # The native model faces -Y, so the posterior gluteal surface is toward +Y.
+    buttock_query = Vector((centre.x-width*0.13,lo.y+depth*0.86,lo.z+height*0.53))
+    buttock_right_surface = nearest_surface(actor, buttock_query)
+    buttock_left_surface = nearest_surface(actor, Vector((2.0*centre.x-buttock_query.x,buttock_query.y,buttock_query.z)))
+    if buttock_right_surface is None or buttock_left_surface is None:
+        raise RuntimeError("Could not resolve both posterior buttock surface anchors")
     left_target=add_target("Left_hand_contact_target_breast",left_breast)
     right_target=add_target("Right_hand_contact_target_hip",right_hip)
 
@@ -394,14 +402,17 @@ def main():
         "breast_left": Vector(left_breast_surface["surface_point_world"]),
         "breast_right": Vector(mirrored_breast_surface["surface_point_world"]),
         "hip_left": Vector(mirrored_hip_surface["surface_point_world"]),
-        "hip_right": Vector(right_hip_surface["surface_point_world"])
+        "hip_right": Vector(right_hip_surface["surface_point_world"]),
+        "buttock_left": Vector(buttock_left_surface["surface_point_world"]),
+        "buttock_right": Vector(buttock_right_surface["surface_point_world"])
     }
 
     report={"scene":"Wren only: breast and hip hand-contact deformation test",
             "world_axes":{"up":"Z","front":"-Y","basis":"Imported mesh bounds and facing convention; verify in preview"},
             "body_bounds":{"min":[round(v,5) for v in lo],"max":[round(v,5) for v in hi]},
             "targets":{"left_hand_breast":[round(v,5) for v in left_breast],
-                       "right_hand_hip":[round(v,5) for v in right_hip]},
+                       "right_hand_hip":[round(v,5) for v in right_hip],
+                       "posterior_buttock_query":[round(v,5) for v in buttock_query]},
             "ik":{}}
     # Left arm: upper arm reaches horizontally out from torso; pole is lateral
     # to keep the elbow bend fully folded toward the chest contact target.
