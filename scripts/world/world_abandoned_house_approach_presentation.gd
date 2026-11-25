@@ -1,15 +1,13 @@
 extends RefCounted
 ## Chunk-scoped presentation of the short source-authored path to the Abandoned House.
-## The source supplies the waypoint, path cells and west doorway; the worn earth
+## The source supplies the waypoint, two painted Path cells and west doorway; the worn earth
 ## surface is a restrained 3D material treatment, not additional world geometry.
 
 const WAYPOINT := Vector2i(8, -176)
 const DOORWAY := Vector2i(11, -176)
 const PATH_HEXES: Array[Vector2i] = [
-	Vector2i(8, -176),
 	Vector2i(9, -176),
-	Vector2i(10, -176),
-	Vector2i(11, -176)
+	Vector2i(10, -176)
 ]
 
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
