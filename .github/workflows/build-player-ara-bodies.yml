@@ -2,7 +2,7 @@ name: Build current player Ara body assets
 
 on:
   push:
-    branches: [dev, feature/character-runtime-asset-integration]
+    branches: [dev, feature/character-runtime-asset-integration, feature/unified-female-anatomy-v2]
     paths:
       - ".github/workflows/build-player-ara-bodies.yml"
       - "character-preview/wren-ara.json"
