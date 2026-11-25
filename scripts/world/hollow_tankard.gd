@@ -34,6 +34,7 @@ const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
+const SOURCE_NPC_DIALOGUE = preload("res://scripts/simulation/source_campaign_npc_dialogue.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
@@ -1621,6 +1622,12 @@ func _interact_with_character(character_id: String) -> void:
 	var response_choice := String(decisions.get("response", ""))
 	var standing := simulation.campaign_journal.npc_standing(character_id)
 	var conversation := HollowmereCampaignContent.npc_greeting(character_id, shakedown_resolved, standing, response_choice)
+	var source_context := _source_npc_dialogue_context(character_id)
+	var source_dialogue := SOURCE_NPC_DIALOGUE.greeting(character_id, target_state.display_name, _source_npc_role(character_id), source_context)
+	if not source_dialogue.is_empty():
+		conversation = SOURCE_NPC_DIALOGUE.merge_with_existing(conversation, source_dialogue)
+	elif String(conversation.get("text", "")) == "The villager gives you a polite nod.":
+		conversation = SOURCE_NPC_DIALOGUE.generic_greeting(character_id, target_state.display_name, _source_npc_role(character_id))
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		var choice: Dictionary = choice_value
@@ -1709,6 +1716,28 @@ func _find_streamed_npc_actor(character_id: String) -> Node3D:
 	return NPC_INTERACTION_SERVICE.actor_for(get_tree(), actor_by_id, character_id)
 
 
+func _source_npc_role(character_id: String) -> String:
+	var actor := _find_streamed_npc_actor(character_id)
+	if actor == null:
+		return "villager"
+	return String(actor.get_meta("role", actor.get_meta("title", "villager")))
+
+
+func _source_npc_dialogue_context(character_id: String) -> Dictionary:
+	var context := {
+		"shakedown_resolved": shakedown_resolved,
+		"hollowmere_security": float(ambient_security),
+		"player_race": String(player_profile.get("race", "human")),
+		"goblin_scout_note_read": false
+	}
+	if simulation != null and simulation.campaign_journal != null:
+		context["marta_standing"] = simulation.campaign_journal.npc_standing(character_id)
+		var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+		var decisions: Dictionary = quest_state.get("decisions", {})
+		context["shakedown_choice"] = String(decisions.get("response", ""))
+	return context
+
+
 func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) -> void:
 	if actor == null or target_state == null:
 		return
@@ -1736,10 +1765,15 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
 		return
 	var title := String(actor.get_meta("title", ""))
-	var body := "They regard you with measured curiosity, but have little to say just now."
-	if not title.is_empty():
-		body = "%s acknowledges you. Their duties leave little time for conversation." % title
-	_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
+	var role := String(actor.get_meta("role", title))
+	var source_dialogue := SOURCE_NPC_DIALOGUE.greeting(dialogue_id, target_state.display_name, role, _source_npc_dialogue_context(target_state.id))
+	if source_dialogue.is_empty() and dialogue_id != target_state.id:
+		source_dialogue = SOURCE_NPC_DIALOGUE.greeting(target_state.id, target_state.display_name, role, _source_npc_dialogue_context(target_state.id))
+	if not source_dialogue.is_empty():
+		_show_dialogue(String(source_dialogue.get("speaker", target_state.display_name)), String(source_dialogue.get("text", "")), source_dialogue.get("choices", []))
+		return
+	var generic_dialogue := SOURCE_NPC_DIALOGUE.generic_greeting(target_state.id, target_state.display_name, role)
+	_show_dialogue(String(generic_dialogue.get("speaker", target_state.display_name)), String(generic_dialogue.get("text", "")), generic_dialogue.get("choices", [{"id":"continue","label":"Continue","kind":"leave"}]))
 
 
 func _player_has_item(item_id: String) -> bool:
