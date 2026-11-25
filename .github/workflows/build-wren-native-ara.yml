@@ -81,7 +81,7 @@ jobs:
             --python tools/blender/add_adult_anatomy.py -- \
             --input build/wren-native/Wren_Ara_raw.glb \
             --output build/wren-native/Wren.glb \
-            --profile female --adult --method integrated --deformation-scale 1.65 \
+            --profile female --adult --method integrated --deformation-scale 1.65 --no-canal --no-anus \
             2>&1 | tee build/wren-native/anatomy-build.log
           test -s build/wren-native/Wren.glb
           grep -q 'Female anatomy v2:' build/wren-native/anatomy-build.log
