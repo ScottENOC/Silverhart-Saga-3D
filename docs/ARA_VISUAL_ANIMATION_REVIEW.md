@@ -2,7 +2,9 @@
 
 ## Goal
 
-Render Wren Talbot using the separately exported Ara body, braid, fatigue shirt, fatigue trousers, boots and sword, all bound to the 69-bone benchmark rig. The benchmark's 77 imported animation clips drive that one shared skeleton.
+This is a standalone modular-asset preview: render Wren Talbot using the separately exported Ara body, braid, fatigue shirt, fatigue trousers, boots and sword on the 69-bone benchmark rig. The benchmark's 77 imported animation clips drive that preview skeleton.
+
+This preview is not the gameplay actor architecture. Gameplay characters retain their own imported Skeleton3D and skin binding; `AraSkeletonRetargeter` transfers animation deltas from the benchmark source onto each character's native rest pose.
 
 ## Captured poses
 
@@ -14,11 +16,12 @@ CI stages the benchmark and modular exports from the Wren Workshop `character-pi
 
 ## What this review establishes
 
-- The individual modular meshes can be attached to the benchmark skeleton for rendering.
-- The benchmark animation player can drive the shared skeleton while the modular outfit and sword are visible.
+- The individual modular preview meshes can be attached to the benchmark skeleton for rendering.
+- The benchmark animation player can drive that preview skeleton while the modular outfit and sword are visible.
+- Gameplay runtime retargeting is validated separately by `tests/test_ara_character_animation_carrier.gd`.
 - Captured stills provide a visual review of clothing/hair/weapon deformation across representative movement and combat clips.
 
-Automated image capture and matching joint names do not by themselves establish that deformations are visually correct. Inspect the screenshots for clipping, offsets, skinning artefacts, sword placement, foot contact and the known ~20.8 mm Hips rest-origin difference. This is a review prototype, not yet the gameplay animation controller.
+Automated image capture and matching joint names do not by themselves establish that deformations are visually correct. Inspect the screenshots for clipping, offsets, skinning artefacts, sword placement, foot contact and the known ~20.8 mm Hips rest-origin difference. This is a review prototype, not the gameplay animation controller.
 
 ## Current limitations
 

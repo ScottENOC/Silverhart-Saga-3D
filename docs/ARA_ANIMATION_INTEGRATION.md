@@ -8,7 +8,7 @@ Validate the generated Ara character assets against the Godot 4.7.2 runtime. Thi
 
 The **Build Wren Workshop** workflow generates and assembles the Ara models, then creates a runtime package containing:
 
-- `ara_person_benchmark.glb` — complete animated Ara base-person export; animation carrier for the shared rig.
+- `ara_person_benchmark.glb` — complete animated Ara base-person export; animation source for shared clips. Its skeleton is not used to skin player or NPC meshes.
 - `ara_person_body.glb` — integrated base body.
 - `ara_person_modular.glb` — assembled modular body and selectable garment model.
 - `ara_person_modular_underwear.glb` — modular underlayer variant.
@@ -25,10 +25,11 @@ After the Wren Workshop package is built, the separate `ara-game-integration` jo
 1. The manifest is valid, declares the expected files and matches their SHA-256 hashes.
 2. The animated benchmark imports as a scene and can be loaded by `AraCharacterActor`.
 3. The benchmark contains a skeleton and animation clips; an imported animation changes the expected rig poses.
-4. The body, modular outfit, underlayer outfit and male body import with renderable meshes and compatible skeleton layouts.
-5. Bone names/order and rest transforms remain compatible, allowing a maximum 25 mm rest-origin difference while requiring matching bone bases.
+4. Player and NPC meshes remain bound to the Skeleton3D imported with their own character asset.
+5. Shared animation clips are retargeted by bone name and parent relationship. The runtime transfers each animated local transform delta from the benchmark bone rest onto the character's own bone rest.
+6. Facial bones with different native rest positions (including jaw and eyes) retain those rests while the shared locomotion clips animate the body.
 
-This is an automated import/rig compatibility check. It does not prove final visual deformation quality, foot locking, root-motion handling, animation blending, or integration with gameplay movement/combat state machines; those still need in-engine visual review.
+This is an automated import and runtime retargeting check. It verifies that character meshes are not rebound to the benchmark skeleton, that the retargeter maps compatible bone hierarchies, and that locomotion changes the native character skeleton. It does not prove final visual deformation quality, foot locking, root-motion handling, animation blending, or integration with gameplay movement/combat state machines; those still need in-engine visual review.
 
 ## Validation boundaries
 

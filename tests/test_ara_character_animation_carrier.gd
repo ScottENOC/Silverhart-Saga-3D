@@ -1,12 +1,12 @@
 extends SceneTree
-## Verifies that a real gameplay Ara body is bound to the shared animated rig.
+## Ensures shared Ara clips drive each character's native skeleton without
+## replacing its bone rests or rebinding its skinned meshes.
 
 const ACTOR_SCRIPT = preload("res://scripts/presentation/ara_character_actor.gd")
 const BODY_PATHS := [
 	"res://art/characters/ara_runtime/ara_player_female_body.glb",
 	"res://art/characters/ara_runtime/ara_player_male_body.glb"
 ]
-
 const CHARACTER_ASSET_PATHS := [
 	"res://art/characters/companions/aldric.glb",
 	"res://art/characters/companions/dagna.glb",
@@ -34,8 +34,13 @@ const CHARACTER_ASSET_PATHS := [
 	"res://art/characters/hollowmere/wren_talbot.glb",
 	"res://art/characters/hollowmere/yvette.glb"
 ]
+const CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb"
+const FACIAL_BONES := ["Jaw", "LeftEye", "RightEye"]
 
 var failures: int = 0
+var _observed_target_skeleton: Skeleton3D
+var _starting_target_global_poses: Array[Transform3D] = []
+var _max_processed_target_changed_bones: int = 0
 
 
 func _initialize() -> void:
@@ -43,107 +48,125 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_check(ResourceLoader.exists(CARRIER_PATH), "Shared Ara animation source is installed")
 	for body_path in BODY_PATHS:
-		_check(ResourceLoader.exists(body_path), "Gameplay Ara body asset is available: " + body_path.get_file())
-	_check(ResourceLoader.exists("res://art/characters/ara_runtime/ara_person_benchmark.glb"),
-		"Animated Ara benchmark carrier is available")
+		_check(ResourceLoader.exists(body_path), "Player body is installed: " + body_path.get_file())
 	if failures > 0:
 		_finish()
 		return
 
+	await _test_character(BODY_PATHS[0], "Ara female player body", true)
+	await _test_character(BODY_PATHS[1], "Ara male player body", true)
+	for asset_path in CHARACTER_ASSET_PATHS:
+		await _test_character(asset_path, asset_path.get_file().get_basename(), false)
+	_finish()
+
+
+func _test_character(asset_path: String, label: String, check_face_rests: bool) -> void:
 	var actor := ACTOR_SCRIPT.new()
 	root.add_child(actor)
-	var female_configured: bool = actor.configure(BODY_PATHS[0])
-	_check(female_configured, "Ara female gameplay actor configures from its body asset")
-	if female_configured:
-		_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
-			"Ara female model forward axis is aligned with the world actor heading")
-	if not female_configured:
-		actor.free()
-		_finish()
+	var configured: bool = actor.configure(asset_path)
+	_check(configured, label + " configures")
+	if not configured:
+		actor.queue_free()
 		return
 	await process_frame
 
-	var animation_player := actor.animation_player as AnimationPlayer
-	_check(animation_player != null, "Female gameplay actor receives the benchmark AnimationPlayer")
-	var skeleton := _find_skeleton(actor.model_root)
-	_check(skeleton != null, "Female gameplay actor has the animated carrier Skeleton3D")
-	if animation_player == null or skeleton == null:
-		_finish()
+	var target_skeleton := _find_skeleton(actor.model_root)
+	var source_skeleton := _find_skeleton(actor.animation_source_root) if actor.animation_source_root != null else null
+	var player := actor.animation_player as AnimationPlayer
+	_check(target_skeleton != null, label + " retains its native Skeleton3D")
+	_check(source_skeleton != null, label + " has the shared animation source skeleton")
+	_check(player != null, label + " receives the shared AnimationPlayer")
+	_check(actor.skeleton_retargeter != null, label + " installs a live skeleton retargeter")
+	if target_skeleton == null or source_skeleton == null or player == null or actor.skeleton_retargeter == null:
+		actor.queue_free()
 		return
 
-	var visible_bound_meshes := 0
-	var meshes: Array[MeshInstance3D] = []
-	_collect_meshes(actor.model_root, meshes)
-	for mesh in meshes:
-		if mesh.visible and mesh.skin != null and mesh.get_node_or_null(mesh.skeleton) == skeleton:
-			visible_bound_meshes += 1
-	_check(visible_bound_meshes > 0,
-		"Visible gameplay body meshes are bound to the animated carrier skeleton")
+	_check(target_skeleton != source_skeleton, label + " keeps source and target skeletons separate")
+	_check(actor.model_root != actor.animation_source_root, label + " keeps the original character scene as the visible model")
+	_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+		label + " model forward axis is aligned with world actor heading")
 
-	_check(actor.set_moving(true), "Gameplay actor selects a real walk/locomotion clip")
-	_check(animation_player.current_animation.to_lower().contains("walk")
-		or animation_player.current_animation.to_lower().contains("locomotion")
-		or animation_player.current_animation.to_lower().contains("run"),
-		"Gameplay actor plays a locomotion clip")
+	var visible_native_mesh := false
+	var target_meshes: Array[MeshInstance3D] = []
+	_collect_meshes(actor.model_root, target_meshes)
+	for mesh in target_meshes:
+		if mesh.visible and mesh.skin != null and mesh.get_node_or_null(mesh.skeleton) == target_skeleton:
+			visible_native_mesh = true
+			break
+	_check(visible_native_mesh, label + " visible skinned mesh remains bound to its native skeleton")
 
-	var starting_poses: Array[Transform3D] = []
-	for bone_index in range(skeleton.get_bone_count()):
-		starting_poses.append(skeleton.get_bone_global_pose(bone_index))
+	var source_meshes: Array[MeshInstance3D] = []
+	_collect_meshes(actor.animation_source_root, source_meshes)
+	for mesh in source_meshes:
+		if mesh.mesh != null:
+			_check(not mesh.visible, label + " hides benchmark-only mesh " + mesh.name)
+
+	var facial_rests: Dictionary = {}
+	if check_face_rests:
+		for bone_name in FACIAL_BONES:
+			var target_index := target_skeleton.find_bone(bone_name)
+			var source_index := source_skeleton.find_bone(bone_name)
+			_check(target_index >= 0, label + " contains native facial bone " + bone_name)
+			_check(source_index >= 0, label + " animation source contains facial bone " + bone_name)
+			if target_index < 0 or source_index < 0:
+				continue
+			var target_rest := target_skeleton.get_bone_rest(target_index)
+			var source_rest := source_skeleton.get_bone_rest(source_index)
+			facial_rests[bone_name] = target_rest
+			if bone_name == "Jaw":
+				_check(target_rest.origin.distance_to(source_rest.origin) > 0.025,
+					label + " jaw retains its distinct native rest position")
+	var starting_source_poses: Array[Transform3D] = []
+	for bone_index in range(target_skeleton.get_bone_count()):
+		_starting_target_global_poses.append(target_skeleton.get_bone_global_pose(bone_index))
+	for bone_index in range(source_skeleton.get_bone_count()):
+		starting_source_poses.append(source_skeleton.get_bone_global_pose(bone_index))
+	_observed_target_skeleton = target_skeleton
+	_max_processed_target_changed_bones = 0
+	actor.skeleton_retargeter.modification_processed.connect(_on_retarget_modification_processed)
+	var modifier_calls_before: int = actor.skeleton_retargeter.process_call_count
+	_check(actor.set_moving(true), label + " selects a locomotion clip")
+	var clip_name := player.current_animation.to_lower()
+	_check(clip_name.contains("walk") or clip_name.contains("locomotion") or clip_name.contains("run"),
+		label + " plays a locomotion clip")
 	await create_timer(0.3).timeout
-	var changed_bones := 0
-	for bone_index in range(skeleton.get_bone_count()):
-		if not skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
-			changed_bones += 1
+	var changed_source_bones := 0
+	for bone_index in range(source_skeleton.get_bone_count()):
+		if not source_skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_source_poses[bone_index]):
+			changed_source_bones += 1
+	var changed_bones := _max_processed_target_changed_bones
+	print("ARA_RETARGET_DIAGNOSTIC label=%s clip=%s source_changed=%d modifier_calls=%d target_changed_after_modifier=%d source_root=%s" % [label, player.current_animation, changed_source_bones, actor.skeleton_retargeter.process_call_count - modifier_calls_before, changed_bones, player.root_node])
+	print("ARA_RETARGET_WRITE_DIAGNOSTIC label=%s writes=%d changed_writes=%d source_pose=%s output_pose=%s readback_pose=%s" % [label, actor.skeleton_retargeter.write_count, actor.skeleton_retargeter.changed_write_count, actor.skeleton_retargeter.last_source_pose, actor.skeleton_retargeter.last_written_pose, actor.skeleton_retargeter.last_readback_pose])
+	_check(changed_source_bones >= 5,
+		label + " locomotion animates the benchmark source skeleton (%d changed bones)" % changed_source_bones)
+	_check(actor.skeleton_retargeter.process_call_count > modifier_calls_before,
+		label + " executes the SkeletonModifier3D callback")
 	_check(changed_bones >= 5,
-		"Gameplay walk animation drives the visible character skeleton (%d changed bones)" % changed_bones)
+		label + " locomotion drives the native skeleton after modifier processing (%d changed bones)" % changed_bones)
 
-	_check(actor.set_moving(false), "Gameplay actor returns to an idle clip")
-	_check(animation_player.current_animation.to_lower().contains("idle")
-		or animation_player.current_animation.to_lower().contains("stand"),
-		"Gameplay actor selects its idle clip")
+	for bone_name in facial_rests:
+		var bone_index := target_skeleton.find_bone(bone_name)
+		_check(target_skeleton.get_bone_rest(bone_index).is_equal_approx(facial_rests[bone_name]),
+			label + " preserves native " + bone_name + " rest transform during animation")
 
-	actor.free()
-	var male_actor := ACTOR_SCRIPT.new()
-	root.add_child(male_actor)
-	var male_configured: bool = male_actor.configure(BODY_PATHS[1])
-	_check(male_configured, "Ara male gameplay actor configures from its body asset")
-	if male_configured:
-		_check(absf(wrapf(male_actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
-			"Ara male model forward axis is aligned with the world actor heading")
-	if not male_configured:
-		male_actor.free()
-		_finish()
-		return
+	_check(actor.set_moving(false), label + " returns to idle")
+	actor.skeleton_retargeter.modification_processed.disconnect(_on_retarget_modification_processed)
+	_observed_target_skeleton = null
+	_starting_target_global_poses.clear()
+	actor.queue_free()
 	await process_frame
-	var male_animation_player := male_actor.animation_player as AnimationPlayer
-	var male_skeleton := _find_skeleton(male_actor.model_root)
-	_check(male_animation_player != null, "Male gameplay actor receives the benchmark AnimationPlayer")
-	_check(male_skeleton != null, "Male gameplay actor has the animated carrier Skeleton3D")
-	if male_animation_player != null and male_skeleton != null:
-		_check(male_skeleton.get_bone_count() >= 72,
-			"Male gameplay rig retains shared animation bones and additional anatomy bones")
-		for anatomy_bone in ["AnatomyRoot", "AnatomyMid", "AnatomyTip"]:
-			_check(male_skeleton.find_bone(anatomy_bone) >= 0,
-				"Male gameplay rig preserves independently controlled " + anatomy_bone)
-		var male_locomotion_selected := male_actor.set_moving(true)
-		_check(male_locomotion_selected, "Male gameplay actor selects a real locomotion clip")
-		if male_locomotion_selected:
-			var male_starting_poses: Array[Transform3D] = []
-			for bone_index in range(male_skeleton.get_bone_count()):
-				male_starting_poses.append(male_skeleton.get_bone_global_pose(bone_index))
-			await create_timer(0.3).timeout
-			var male_changed_bones := 0
-			for bone_index in range(male_skeleton.get_bone_count()):
-				if not male_skeleton.get_bone_global_pose(bone_index).is_equal_approx(male_starting_poses[bone_index]):
-					male_changed_bones += 1
-			_check(male_changed_bones >= 5,
-				"Male gameplay walk animation drives its skeleton (%d changed bones)" % male_changed_bones)
-	male_actor.free()
 
-	for asset_path in CHARACTER_ASSET_PATHS:
-		await _assert_character_asset_animated(asset_path, asset_path.get_file().get_basename())
-	_finish()
+
+func _on_retarget_modification_processed() -> void:
+	if _observed_target_skeleton == null or not is_instance_valid(_observed_target_skeleton):
+		return
+	var changed := 0
+	for bone_index in range(_observed_target_skeleton.get_bone_count()):
+		if not _observed_target_skeleton.get_bone_global_pose(bone_index).is_equal_approx(_starting_target_global_poses[bone_index]):
+			changed += 1
+	_max_processed_target_changed_bones = maxi(_max_processed_target_changed_bones, changed)
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
@@ -159,6 +182,8 @@ func _find_skeleton(node: Node) -> Skeleton3D:
 
 
 func _collect_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
+	if node == null:
+		return
 	if node is MeshInstance3D:
 		output.append(node as MeshInstance3D)
 	for child in node.get_children():
@@ -175,48 +200,8 @@ func _check(condition: bool, message: String) -> void:
 
 func _finish() -> void:
 	if failures > 0:
-		push_error("%d Ara animation carrier assertion(s) failed." % failures)
+		push_error("ARA_NATIVE_RIG_RETARGET_TEST: %d failure(s)" % failures)
 		quit(1)
 		return
-	print("Ara gameplay animation carrier integration tests passed.")
+	print("ARA_NATIVE_RIG_RETARGET_TEST: PASS")
 	quit(0)
-
-
-func _assert_character_asset_animated(asset_path: String, label: String) -> void:
-	var actor := ACTOR_SCRIPT.new()
-	root.add_child(actor)
-	var configured: bool = actor.configure(asset_path)
-	_check(configured, label + " configures")
-	if configured:
-		_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
-			label + " model forward axis is aligned with the world actor heading")
-	if not configured:
-		actor.free()
-		return
-	await process_frame
-	var player := actor.animation_player as AnimationPlayer
-	var skeleton := _find_skeleton(actor.model_root)
-	_check(player != null, label + " has an animation player")
-	_check(skeleton != null, label + " has a skeleton")
-	if player != null and skeleton != null:
-		var locomotion_selected := actor.set_moving(true)
-		_check(locomotion_selected, label + " selects a locomotion clip")
-		var bound_mesh_found := false
-		var meshes: Array[MeshInstance3D] = []
-		_collect_meshes(actor.model_root, meshes)
-		for mesh in meshes:
-			if mesh.visible and mesh.skin != null and mesh.get_node_or_null(mesh.skeleton) == skeleton:
-				bound_mesh_found = true
-				break
-		_check(bound_mesh_found, label + " has a visible skinned mesh bound to its animated skeleton")
-		if locomotion_selected:
-			var starting_poses: Array[Transform3D] = []
-			for bone_index in range(skeleton.get_bone_count()):
-				starting_poses.append(skeleton.get_bone_global_pose(bone_index))
-			await create_timer(0.18).timeout
-			var changed_bones := 0
-			for bone_index in range(skeleton.get_bone_count()):
-				if not skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
-					changed_bones += 1
-			_check(changed_bones >= 5, label + " walk animation drives its visible skeleton (%d changed bones)" % changed_bones)
-	actor.free()
