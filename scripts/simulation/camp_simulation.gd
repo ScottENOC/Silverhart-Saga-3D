@@ -277,6 +277,8 @@ func _select_horse_care_handler(already_assigned: Dictionary) -> String:
 		if bool(current.get("player_override", false)):
 			continue
 		var score := 0.0
+		if occupant_id == String(environment.get("player_character_id", "")):
+			score -= 100.0
 		var kind := String(occupant.get("kind", ""))
 		if kind == "resident":
 			score += 12.0
@@ -317,6 +319,14 @@ func _activate_horse_care_task_for_handler(animal_id: String, preferred_handler:
 		if String(task.get("status", "")) in ["completed", "blocked"]:
 			continue
 		var handler_id := String(task.get("handler_id", preferred_handler))
+		var action := String(task.get("action", ""))
+		if action == "rest":
+			task["status"] = "in_progress"
+			animal_care_tasks[index] = task
+			var rest_result := perform_animal_care(animal_id, "rest", "")
+			task["status"] = "completed" if bool(rest_result.get("ok", false)) else "blocked"
+			animal_care_tasks[index] = task
+			continue
 		if handler_id.is_empty():
 			task["status"] = "blocked"
 			task["blocked_reason"] = "no_available_handler"
@@ -324,12 +334,6 @@ func _activate_horse_care_task_for_handler(animal_id: String, preferred_handler:
 			continue
 		task["status"] = "in_progress"
 		animal_care_tasks[index] = task
-		var action := String(task.get("action", ""))
-		if action == "rest":
-			var rest_result := perform_animal_care(animal_id, "rest", "")
-			task["status"] = "completed" if bool(rest_result.get("ok", false)) else "blocked"
-			animal_care_tasks[index] = task
-			continue
 		var activity := "care_horse_" + action
 		var current: Dictionary = assignments.get(handler_id, {})
 		if not _default_assignments.has(handler_id):
