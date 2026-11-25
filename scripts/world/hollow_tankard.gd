@@ -113,9 +113,6 @@ var combat_controller: CombatEncounterController
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
-var active_enemy_ids: Array[String] = []
-var active_party_ids: Array[String] = []
-var active_combat_controlled_ids: Array[String] = []
 var active_combat_session: Dictionary = {}
 var active_encounter_resolver: Callable
 var nearby_interaction_panel: PanelContainer
@@ -596,16 +593,16 @@ func _begin_dire_wolf_hunt_combat() -> void:
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(FARMSTEAD_DIRE_WOLF_SCRIPT, "resolve_combat")
-	active_enemy_ids = [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID]
-	active_party_ids.clear()
-	active_combat_controlled_ids.clear()
+	var enemy_ids: Array[String] = [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID]
+	var party_ids_active: Array[String] = []
+	var controlled_ids: Array[String] = []
 	for value in result.get("party_ids", []):
-		active_party_ids.append(String(value))
-		active_combat_controlled_ids.append(String(value))
+		party_ids_active.append(String(value))
+		controlled_ids.append(String(value))
 	encounter_active = true
-	if not active_party_ids.has(active_character_id):
+	if not party_ids_active.has(active_character_id):
 		active_character_id = "player"
-	_activate_combat_controller()
+	_activate_combat_controller(enemy_ids, party_ids_active, controlled_ids)
 	_update_combat_ui()
 
 func _load_starting_loadouts() -> Dictionary:
@@ -2092,16 +2089,17 @@ func _begin_shakedown_combat() -> void:
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(HOLLOWMERE_ENCOUNTER_SCRIPT, "resolve_combat")
 	encounter_active = true
-	active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
-	active_party_ids.clear()
-	active_combat_controlled_ids.clear()
+	var enemy_ids: Array[String] = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
+	var party_ids_active: Array[String] = []
+	var controlled_ids: Array[String] = []
 	for party_id_value in result.get("party_ids", []):
-		active_party_ids.append(String(party_id_value))
+		party_ids_active.append(String(party_id_value))
 	for character_id_value in result.get("controlled_ids", []):
-		active_combat_controlled_ids.append(String(character_id_value))
-	if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
+		controlled_ids.append(String(character_id_value))
+	if not controlled_ids.has(active_character_id):
 		active_character_id = "player"
-	_activate_combat_controller()
+	encounter_active = true
+	_activate_combat_controller(enemy_ids, party_ids_active, controlled_ids)
 	_update_combat_ui()
 
 
@@ -2135,10 +2133,10 @@ func _update_combat_ui() -> void:
 		combat_controller.update_hud(encounter_active, active_character_id)
 
 
-func _activate_combat_controller() -> void:
+func _activate_combat_controller(enemy_ids: Array[String], party_ids: Array[String], controlled_ids: Array[String]) -> void:
 	if combat_controller == null:
 		return
-	combat_controller.begin_encounter(active_enemy_ids, active_party_ids, active_combat_controlled_ids)
+	combat_controller.begin_encounter(enemy_ids, party_ids, controlled_ids)
 
 
 func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
@@ -2222,18 +2220,18 @@ func _begin_abandoned_house_encounter() -> void:
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(ABANDONED_HOUSE_QUEST_SCRIPT, "resolve_combat")
-	active_enemy_ids.clear()
-	active_party_ids.clear()
-	active_combat_controlled_ids.clear()
+	var enemy_ids: Array[String] = []
+	var party_ids_active: Array[String] = []
+	var controlled_ids: Array[String] = []
 	for enemy_id_value in result.get("enemy_ids", []):
-		active_enemy_ids.append(String(enemy_id_value))
+		enemy_ids.append(String(enemy_id_value))
 	for party_id_value in result.get("party_ids", []):
-		active_party_ids.append(String(party_id_value))
-		active_combat_controlled_ids.append(String(party_id_value))
+		party_ids_active.append(String(party_id_value))
+		controlled_ids.append(String(party_id_value))
 	encounter_active = true
-	if not active_party_ids.has(active_character_id):
+	if not party_ids_active.has(active_character_id):
 		active_character_id = simulation.player_character_id
-	_activate_combat_controller()
+	_activate_combat_controller(enemy_ids, party_ids_active, controlled_ids)
 	_update_combat_ui()
 	_show_dialogue("Abandoned House", "The three skeletal guardians turn as one. Rusted weapons rise from the dark, and the house erupts into violence.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
@@ -2301,17 +2299,17 @@ func _start_farm_wolf_encounter() -> void:
 			actor_by_id[wolf_id] = actor
 	farm_wolves_retry_armed = false
 
-	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
-	active_party_ids.clear()
-	active_combat_controlled_ids.clear()
+	var enemy_ids: Array[String] = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
+	var party_ids_active: Array[String] = []
+	var controlled_ids: Array[String] = []
 	for party_id_value in simulation.get_party_member_ids():
 		var party_id := String(party_id_value)
 		var member := simulation.get_character(party_id)
 		if member == null or not member.can_act():
 			continue
-		active_party_ids.append(party_id)
-		active_combat_controlled_ids.append(party_id)
-	var begin_result: Dictionary = FARM_WOLVES_QUEST_SCRIPT.start_encounter(simulation, active_party_ids, active_enemy_ids)
+		party_ids_active.append(party_id)
+		controlled_ids.append(party_id)
+	var begin_result: Dictionary = FARM_WOLVES_QUEST_SCRIPT.start_encounter(simulation, party_ids_active, enemy_ids)
 	if not bool(begin_result.get("ok", false)):
 		farm_wolves_retry_armed = true
 		push_error("Could not start farm wolf encounter: %s" % begin_result)
@@ -2319,7 +2317,7 @@ func _start_farm_wolf_encounter() -> void:
 	active_combat_session = begin_result.get("session", {})
 	active_encounter_resolver = Callable(FARM_WOLVES_QUEST_SCRIPT, "resolve_combat")
 	encounter_active = true
-	if not active_party_ids.has(active_character_id):
+	if not party_ids_active.has(active_character_id):
 		active_character_id = "player"
 	_activate_combat_controller()
 	_update_combat_ui()
@@ -2332,7 +2330,7 @@ func _check_encounter_resolution() -> void:
 	var result: Dictionary = active_encounter_resolver.call(
 		simulation,
 		simulation.campaign_journal,
-		active_party_ids,
+		combat_controller.party_ids if combat_controller != null else [],
 		active_combat_session
 	)
 	if not bool(result.get("resolved", false)):
@@ -2407,7 +2405,7 @@ func _toggle_world_map() -> void:
 
 
 func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
-	if not active_combat_controlled_ids.has(reactor_id):
+	if combat_controller == null or not combat_controller.player_controlled_ids.has(reactor_id):
 		_resolve_ai_reaction(reactor_id, options)
 		return
 	if reaction_prompt != null:
