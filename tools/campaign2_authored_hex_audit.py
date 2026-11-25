@@ -330,6 +330,63 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
             if isinstance(cell, dict) and str(cell.get("n", "")).strip():
                 markers.append({"name": str(cell["n"]), "row": row_index, "column": column_index})
 
+    marker_validation_performed = bool(geography.get("strategic_markers"))
+    marker_mismatches: list[dict[str, Any]] = []
+    if marker_validation_performed:
+        coordinate_system = geography.get("coordinate_system", {})
+        origin = coordinate_system.get("origin", {})
+        scale = int(coordinate_system.get("local_hexes_per_strategic_cell", 0))
+        locations_by_id = {
+            str(location.get("id", "")): location
+            for location in geography.get("locations", [])
+            if isinstance(location, dict)
+        }
+        occupied: set[tuple[int, int]] = set()
+        expected_markers: dict[str, tuple[int, int]] = {}
+        for marker in geography.get("strategic_markers", []):
+            if not isinstance(marker, dict):
+                continue
+            marker_id = str(marker.get("id", ""))
+            location = locations_by_id.get(marker_id)
+            if not location or scale <= 0:
+                marker_mismatches.append({"id": marker_id, "reason": "missing_location_or_scale"})
+                continue
+            local_q = int(location.get("q", 0))
+            local_r = int(location.get("r", 0))
+            desired_column = int(origin.get("column", 0)) + math.floor((local_q - int(origin.get("local_q", 0))) / scale + 0.5)
+            desired_row = int(origin.get("row", 0)) + math.floor((local_r - int(origin.get("local_r", 0))) / scale + 0.5)
+            candidates = [
+                (desired_column, desired_row),
+                (desired_column + 1, desired_row),
+                (desired_column, desired_row + 1),
+                (desired_column - 1, desired_row),
+                (desired_column, desired_row - 1),
+            ]
+            chosen = (desired_column, desired_row)
+            for candidate in candidates:
+                column, row = candidate
+                if column < 0 or column >= expected_columns or row < 0 or row >= expected_rows or candidate in occupied:
+                    continue
+                chosen = candidate
+                break
+            occupied.add(chosen)
+            source_name = str(marker.get("source_name", location.get("name", marker_id)))
+            expected_markers[source_name] = chosen
+        actual_markers = {
+            str(marker.get("name", "")): (int(marker.get("column", -1)), int(marker.get("row", -1)))
+            for marker in markers
+        }
+        for name, expected_cell in expected_markers.items():
+            if actual_markers.get(name) != expected_cell:
+                marker_mismatches.append({
+                    "name": name,
+                    "expected_cell": expected_cell,
+                    "actual_cell": actual_markers.get(name),
+                })
+        for name, actual_cell in actual_markers.items():
+            if name not in expected_markers:
+                marker_mismatches.append({"name": name, "actual_cell": actual_cell, "reason": "unexpected_source_marker"})
+
     return {
         "expected_dimensions": {"rows": expected_rows, "columns": expected_columns},
         "actual_dimensions": {
@@ -348,6 +405,10 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
         "actual_river_waypoints": len(actual_river),
         "marker_count": len(markers),
         "markers": markers,
+        "marker_validation_performed": marker_validation_performed,
+        "markers_match": (len(marker_mismatches) == 0) if marker_validation_performed else None,
+        "marker_mismatch_count": len(marker_mismatches),
+        "marker_mismatch_samples": marker_mismatches[:20],
         "hollowmere_marker_at_origin": (
             len(world_grid) > 6 and isinstance(world_grid[6], list) and len(world_grid[6]) > 6
             and str(world_grid[6][6].get("n", "")) == "Hollowmere"
@@ -648,6 +709,7 @@ def main() -> int:
         or map_check["unmarked_terrain_faction_mismatch_count"] > 0
         or not map_check["river_path_matches_geography"]
         or not map_check["hollowmere_marker_at_origin"]
+        or map_check["markers_match"] is False
     ):
         print("Strategic map parity validation failed:", json.dumps(map_check, indent=2))
         return 1
