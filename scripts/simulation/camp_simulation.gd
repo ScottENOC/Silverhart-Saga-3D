@@ -178,6 +178,16 @@ func perform_animal_care(occupant_id: String, action: String, handler_id: String
 			return {"ok": false, "reason": "handler_cannot_work"}
 	_ensure_horse_care_state(occupant_id)
 	var state: Dictionary = animal_care[occupant_id].duplicate(true)
+	var completed_flag := String({
+		"water": "watered", "feed": "fed", "groom": "groomed",
+		"tether": "tethered", "rest": "resting"
+	}.get(action, ""))
+	if completed_flag.is_empty():
+		return {"ok": false, "reason": "unknown_animal_care_action"}
+	if bool(state.get(completed_flag, false)):
+		return {"ok": true, "already_completed": true, "animal_id": occupant_id, "care": state.duplicate(true), "resources_remaining": resources.duplicate(true)}
+	if action != "rest":
+		state["resting"] = false
 	match action:
 		"water":
 			if int(resources.get("water", 0)) <= 0:
