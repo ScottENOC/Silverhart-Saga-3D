@@ -3,6 +3,7 @@ extends RefCounted
 ## Snapshot and restore world-side/dormancy state around the farmstead encounter.
 const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
 const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
+const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 
 static func create_dire_wolf(simulation: WorldSimulation, hex: Vector2i) -> Dictionary:
 	if simulation == null:
@@ -87,7 +88,7 @@ static func resolve_combat(
 	if not dire_wolf_defeated(simulation):
 		return {"ok": true, "resolved": false}
 	finish(simulation, party_ids, session.get("previous_states", {}))
-	var objective_result := CompanionCampaignContent.complete_objective(journal, "reyna_dire_wolf_hunt", "dire_wolf_slain")
+	var objective_result := COMPANION_CAMPAIGN_CONTENT.complete_objective(journal, "reyna_dire_wolf_hunt", "dire_wolf_slain")
 	return {
 		"ok": bool(objective_result.get("ok", false)),
 		"resolved": true,
