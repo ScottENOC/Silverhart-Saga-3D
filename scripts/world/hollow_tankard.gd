@@ -34,6 +34,7 @@ const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
+const CAMPAIGN2_SOURCE_DIALOGUE_CONTENT = preload("res://scripts/simulation/campaign2_source_dialogue_content.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
@@ -1731,11 +1732,29 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		else:
 			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
 		return
-	var title := String(actor.get_meta("title", ""))
-	var body := "They regard you with measured curiosity, but have little to say just now."
-	if not title.is_empty():
-		body = "%s acknowledges you. Their duties leave little time for conversation." % title
-	_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
+	var journal := simulation.campaign_journal
+	var guild_favor_state := journal.quest_state("guild_favor")
+	var wizard_vendetta_state := journal.quest_state("wizard_vendetta")
+	var context := {
+		"guild_favor_active": String(guild_favor_state.get("status", "")) == "active",
+		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+		"ironbond_standing": journal.faction_standing("ironbond_company"),
+		"wizard_resolution": String(wizard_vendetta_state.get("resolution", "")),
+		"wizard_standing": journal.npc_standing("court_wizard_thessaly")
+	}
+	var conversation := CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting(dialogue_id, target_state.display_name, context)
+	if conversation.is_empty():
+		conversation = CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.role_greeting(
+			target_state.id,
+			target_state.display_name,
+			String(actor.get_meta("title", "")),
+			String(actor.get_meta("ambient_role", "civilian"))
+		)
+	var choices: Array[Dictionary] = []
+	for choice_value in conversation.get("choices", []):
+		if choice_value is Dictionary:
+			choices.append(choice_value.duplicate(true))
+	_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), choices)
 
 
 func _player_has_item(item_id: String) -> bool:
