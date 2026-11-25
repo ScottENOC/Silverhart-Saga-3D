@@ -466,7 +466,7 @@ func _initialize() -> void:
 		"silverhart_warrens_shack_centre": {"centre": Vector2i(5, -427), "door": Vector2i(5, -429), "door_id": "silverhart_warrens_shack_centre_north_door"},
 		"silverhart_warrens_shack_east": {"centre": Vector2i(11, -433), "door": Vector2i(11, -431), "door_id": "silverhart_warrens_shack_east_south_door"},
 		"silverhart_middle_ring_house_east": {"centre": Vector2i(49, -496), "door": Vector2i(51, -496), "door_id": "silverhart_middle_ring_house_east_east_door"},
-		"silverhart_middle_ring_house_northeast": {"centre": Vector2i(49, -536), "door": Vector2i(49, -538), "door_id": "silverhart_middle_ring_house_northeast_north_door"},
+		"silverhart_middle_ring_house_northeast": {"centre": Vector2i(49, -536), "door": Vector2i(49, -538), "door_id": "silverhart_middle_ring_house_northeast_east_door"},
 		"silverhart_middle_ring_house_north": {"centre": Vector2i(8, -536), "door": Vector2i(8, -538), "door_id": "silverhart_middle_ring_house_north_north_door"},
 		"silverhart_middle_ring_house_west": {"centre": Vector2i(-32, -496), "door": Vector2i(-34, -496), "door_id": "silverhart_middle_ring_house_west_west_door"},
 		"silverhart_middle_ring_house_southwest": {"centre": Vector2i(-32, -455), "door": Vector2i(-34, -455), "door_id": "silverhart_middle_ring_house_southwest_west_door"},
