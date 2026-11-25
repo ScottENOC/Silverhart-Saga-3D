@@ -46,7 +46,6 @@ func _initialize() -> void:
 	assert(bool(IRONBOND_MISSING_COURIER_QUEST.handle_dialogue_choice(decline_journal, "ironbond_missing_courier:walk_away").get("dismiss_now", false)))
 
 	assert(SETTLEMENT.SETTLEMENT_ID == "hollowmere")
-	assert(SETTLEMENT.SETTLEMENT_ID == "hollowmere")
 	assert(SETTLEMENT.COORDINATE_SYSTEM == "campaign2_local_axial_qr")
 	assert(SETTLEMENT.WORLD_REFERENCE_HEX == Vector2i(8, 24), "Hollowmere reference point must remain in campaign axial world coordinates")
 
