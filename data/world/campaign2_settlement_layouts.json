@@ -16590,6 +16590,61 @@
             "q": 203,
             "r": 24
           }
+        },
+        {
+          "id": "ser_aldric_thorne",
+          "name": "Ser Aldric Thorne",
+          "title": "Captive Paladin",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "cleric"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "learn_heal",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "sword",
+            "heavy_armor",
+            "wooden_shield"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "ser_aldric_captive",
+          "ambient_role": "guard",
+          "tied_up": true,
+          "monster_type": "",
+          "position": {
+            "q": 204,
+            "r": 22
+          },
+          "source_position": {
+            "q": 204,
+            "r": 22
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#c69a78",
+            "eye_colour": "#6d4932",
+            "hair_colour": "#8a6943",
+            "hair_style": "short01",
+            "height": 0.62,
+            "muscle": 0.72,
+            "weight": 0.58,
+            "proportions": 0.58,
+            "breasts": 0,
+            "legs": 0.68
+          },
+          "visual_equipment": {},
+          "source": "Hex-crpg/campaign2World.js captive placement and campaign2Dialogue.js rescue interaction"
         }
       ],
       "creatures": [],
