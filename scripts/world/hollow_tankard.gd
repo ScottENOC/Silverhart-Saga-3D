@@ -119,13 +119,13 @@ var active_enemy_ids: Array[String] = []
 var active_party_ids: Array[String] = []
 var active_combat_controlled_ids: Array[String] = []
 var active_combat_session: Dictionary = {}
+var active_encounter_resolver: Callable
 var nearby_interaction_panel: PanelContainer
 var nearby_interaction_box: VBoxContainer
 var nearby_interaction_refresh: float = 0.0
 var farm_wolves_spawned: bool = false
 var farm_wolves_retry_armed: bool = false
 var reyna_clue_visual: Node3D
-var active_encounter_character_states: Dictionary = {}
 var wilderness_steps_since_spawn: int = 0
 var wilderness_creature_nodes: Array[Node3D] = []
 var camp_presentation: CampWorldPresentation
@@ -596,7 +596,8 @@ func _begin_dire_wolf_hunt_combat() -> void:
 	if not bool(result.get("ok", false)):
 		_show_dialogue("Reyna Fletcher", "We cannot face it just now: %s." % String(result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
 		return
-	active_encounter_character_states = result.get("previous_states", {})
+	active_combat_session = {"previous_states": result.get("previous_states", {})}
+	active_encounter_resolver = Callable(FARMSTEAD_DIRE_WOLF_SCRIPT, "resolve_combat")
 	active_combat_kind = "dire_wolf_hunt"
 	active_enemy_ids = [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID]
 	active_party_ids.clear()
@@ -2091,7 +2092,8 @@ func _begin_shakedown_combat() -> void:
 		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
 		_show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
 		return
-	active_encounter_character_states = result.get("previous_states", {})
+	active_combat_session = {"previous_states": result.get("previous_states", {})}
+	active_encounter_resolver = Callable(HOLLOWMERE_ENCOUNTER_SCRIPT, "resolve_combat")
 	encounter_active = true
 	active_combat_kind = "ironbond"
 	active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
@@ -2222,7 +2224,8 @@ func _begin_abandoned_house_encounter() -> void:
 	if not bool(result.get("ok", false)):
 		_show_dialogue("Abandoned House", "You cannot face the guardians just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
 		return
-	active_encounter_character_states = result.get("previous_states", {})
+	active_combat_session = {"previous_states": result.get("previous_states", {})}
+	active_encounter_resolver = Callable(ABANDONED_HOUSE_QUEST_SCRIPT, "resolve_combat")
 	active_combat_kind = "abandoned_house"
 	active_enemy_ids.clear()
 	active_party_ids.clear()
@@ -2303,7 +2306,6 @@ func _start_farm_wolf_encounter() -> void:
 			actor_by_id[wolf_id] = actor
 	farm_wolves_retry_armed = false
 
-	active_combat_kind = "farm_wolves"
 	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
 	active_party_ids.clear()
 	active_combat_controlled_ids.clear()
@@ -2314,12 +2316,13 @@ func _start_farm_wolf_encounter() -> void:
 			continue
 		active_party_ids.append(party_id)
 		active_combat_controlled_ids.append(party_id)
-	var begin_result: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, active_party_ids, active_enemy_ids)
+	var begin_result: Dictionary = FARM_WOLVES_QUEST_SCRIPT.start_encounter(simulation, active_party_ids, active_enemy_ids)
 	if not bool(begin_result.get("ok", false)):
 		farm_wolves_retry_armed = true
 		push_error("Could not start farm wolf encounter: %s" % begin_result)
 		return
 	active_combat_session = begin_result.get("session", {})
+	active_encounter_resolver = Callable(FARM_WOLVES_QUEST_SCRIPT, "resolve_combat")
 	encounter_active = true
 	if not active_party_ids.has(active_character_id):
 		active_character_id = "player"
