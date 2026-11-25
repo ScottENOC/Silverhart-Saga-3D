@@ -32,6 +32,9 @@ const EXPECTED_TRACKS := [
 
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
+	var vale := terrain.encounter_site("unicorn_vale")
+	assert(String(vale.get("kind", "")) == "roaming_encounter_area", "Unicorn Vale must resolve from canonical geography")
+	assert(Vector2i(int(vale.get("q", 0)), int(vale.get("r", 0))) == Vector2i(-286, 24), "Unicorn Vale must retain its source-derived anchor")
 	var total := 0
 	for chunk_q in [-13, -12]:
 		for chunk_r in [0, 1]:
@@ -39,6 +42,7 @@ func _initialize() -> void:
 			var result: Dictionary = PRESENTATION.present_chunk(parent, terrain, Vector2i(chunk_q, chunk_r) * 24, 24, HexGrid.DEFAULT_RADIUS_M)
 			assert(bool(result.get("ok", false)), "Unicorn track chunk should present successfully: %s" % result)
 			assert(int(result.get("features", -1)) == parent.get_child_count(), "Each source hoofprint must have exactly one chunk-owned presentation")
+			assert(result.get("vale_center") == Vector2i(-286, 24), "Streamed hoofprints must use the canonical vale anchor")
 			total += int(result.get("features", 0))
 			parent.free()
 	assert(PRESENTATION.TRACKS.size() == EXPECTED_TRACKS.size(), "Wild Unicorn trail must retain all 24 source track markers")
@@ -57,5 +61,16 @@ func _initialize() -> void:
 		var actual: Dictionary = PRESENTATION.TRACKS[index]
 		assert(actual.get("hex") == EXPECTED_TRACKS[index][0], "Unicorn hoofprint %d must retain its exact source axial coordinate" % index)
 		assert(actual.get("direction") == EXPECTED_TRACKS[index][1], "Unicorn hoofprint %d must retain its exact source travel direction" % index)
+	# Moving the canonical POI must move its entire source hoofprint loop,
+	# rather than leaving the physical trail behind at the old hard-coded anchor.
+	terrain.encounter_sites_by_id["unicorn_vale"]["q"] = -285
+	var shifted_parent := Node3D.new()
+	var shifted_result: Dictionary = PRESENTATION.present_chunk(
+		shifted_parent, terrain, Vector2i(-288, 24), 24, HexGrid.DEFAULT_RADIUS_M
+	)
+	assert(bool(shifted_result.get("ok", false)), "A corrected canonical vale anchor should still present")
+	assert(shifted_result.get("vale_center") == Vector2i(-285, 24), "The trail should report a corrected canonical vale anchor")
+	assert(shifted_parent.get_node_or_null("UnicornHoofprints_-273_24") != null, "The first hoofprint must move with the corrected vale anchor")
+	shifted_parent.free()
 	print("Wild Unicorn source hoofprint trail presentation tests passed.")
 	quit(0)
