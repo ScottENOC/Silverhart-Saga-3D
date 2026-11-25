@@ -4,6 +4,7 @@ extends SkeletonModifier3D
 
 var source_skeleton: Skeleton3D
 var _bone_pairs: Array[Vector2i] = []
+var process_call_count: int = 0
 
 
 func configure(source: Skeleton3D, target: Skeleton3D) -> int:
@@ -26,6 +27,7 @@ func configure(source: Skeleton3D, target: Skeleton3D) -> int:
 
 
 func _process_modification_with_delta(_delta: float) -> void:
+	process_call_count += 1
 	var target := get_skeleton()
 	if target == null or not is_instance_valid(source_skeleton):
 		return
