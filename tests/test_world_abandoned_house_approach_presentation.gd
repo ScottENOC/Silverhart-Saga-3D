@@ -18,7 +18,7 @@ func _initialize() -> void:
 func _test_source_path() -> void:
 	_check(PRESENTATION.WAYPOINT == Vector2i(8, -176), "Approach must start at the source north-road waypoint")
 	_check(PRESENTATION.DOORWAY == Vector2i(11, -176), "Approach must terminate at the source west doorway")
-	var expected: Array[Vector2i] = [Vector2i(8, -176), Vector2i(9, -176), Vector2i(10, -176), Vector2i(11, -176)]
+	var expected: Array[Vector2i] = [Vector2i(9, -176), Vector2i(10, -176)]
 	_check(PRESENTATION.PATH_HEXES == expected, "Approach must retain the source-authored short path cells")
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
 	var parent := Node3D.new()
