@@ -18,6 +18,10 @@ static func handles_npc(npc_id: String) -> bool:
     ]
 
 
+static func handles_choice(choice_id: String) -> bool:
+    return choice_id.begins_with("skarnub_") or choice_id.begins_with("nix_") or choice_id.begins_with("aldric_") or choice_id.begins_with("grondle_")
+
+
 static func dialogue_for_npc(
     simulation: WorldSimulation,
     npc_id: String,
