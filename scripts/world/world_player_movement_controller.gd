@@ -37,7 +37,7 @@ func set_group_movement_enabled(enabled: bool) -> void:
 		return
 
 func is_group_movement_enabled() -> bool:
-	return group_movement_enabled and simulation != null and not simulation.is_in_combat
+	return group_movement_enabled and simulation != null
 
 func set_destination(destination: Vector2i) -> void:
 	if simulation == null:
@@ -82,8 +82,6 @@ func process_movement(delta: float) -> void:
 	if simulation == null:
 		return
 	if simulation.is_in_combat:
-		if group_movement_enabled:
-			group_movement_enabled = false
 		return
 	path_step_accumulator += delta
 	if path_step_accumulator < PATH_STEP_INTERVAL:
