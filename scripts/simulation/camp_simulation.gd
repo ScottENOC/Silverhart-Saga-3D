@@ -1199,6 +1199,10 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_occupants: Variant = data.get("occupants", {})
 	var saved_animal_care: Variant = data.get("animal_care", {})
 	var saved_animal_care_tasks: Variant = data.get("animal_care_tasks", [])
+	var saved_watch_schedule: Variant = data.get("night_watch_schedule", [])
+	var saved_encounter_result: Variant = data.get("night_encounter_result", {})
+	if not saved_watch_schedule is Array or not saved_encounter_result is Dictionary:
+		return false
 	if not saved_animal_care_tasks is Array:
 		return false
 	if not saved_animal_care is Dictionary:
@@ -1211,6 +1215,12 @@ func from_dict(data: Dictionary) -> bool:
 		if character_id.is_empty() or ids.has(character_id):
 			return false
 		ids.append(character_id)
+	for shift in saved_watch_schedule:
+		if not shift is Dictionary or not shift.get("watcher_ids", []) is Array:
+			return false
+		for watcher_id in shift.get("watcher_ids", []):
+			if not ids.has(String(watcher_id)):
+				return false
 	for character_id in saved_assignments:
 		if (not ids.has(String(character_id)) and not saved_occupants.has(character_id)) or not saved_assignments[character_id] is Dictionary:
 			return false
@@ -1253,17 +1263,9 @@ func from_dict(data: Dictionary) -> bool:
 	phase = saved_phase
 	night_index = maxi(0, int(data.get("night_index", 0)))
 	night_watch_schedule.clear()
-	var saved_watch_schedule: Variant = data.get("night_watch_schedule", [])
-	if not saved_watch_schedule is Array:
-		return false
 	for shift in saved_watch_schedule:
-		if not shift is Dictionary or not shift.get("watcher_ids", []) is Array:
-			return false
-		for watcher_id in shift.get("watcher_ids", []):
-			if not ids.has(String(watcher_id)):
-				return false
 		night_watch_schedule.append(shift.duplicate(true))
-	night_encounter_result = data.get("night_encounter_result", {}).duplicate(true)
+	night_encounter_result = saved_encounter_result.duplicate(true)
 	site = data.get("site", {}).duplicate(true)
 	lodging_profile = saved_lodging.duplicate(true)
 	party_ids = ids
