@@ -2083,27 +2083,24 @@ func _begin_shakedown_combat() -> void:
 		return
 	shakedown_resolved = true
 	_record_wren_authored_event("hollowmere_shakedown:fight")
-	var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation)
+	var additional_party_ids: Array[String] = []
+	for party_id_value in simulation.get_party_member_ids():
+		additional_party_ids.append(String(party_id_value))
+	var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation, additional_party_ids)
 	if not bool(result.get("ok", false)):
 		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
 		_show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
 		return
+	active_encounter_character_states = result.get("previous_states", {})
 	encounter_active = true
 	active_combat_kind = "ironbond"
 	active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
-	active_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
-	active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
-	for party_id_value in simulation.get_party_member_ids():
-		var party_id := String(party_id_value)
-		if not active_party_ids.has(party_id):
-			active_party_ids.append(party_id)
-		if not active_combat_controlled_ids.has(party_id):
-			active_combat_controlled_ids.append(party_id)
-		var party_state := simulation.get_character(party_id)
-		if party_state != null:
-			party_state.side = "player"
-			party_state.combat_dormant = false
-			party_state.time_points = 100.0
+	active_party_ids.clear()
+	active_combat_controlled_ids.clear()
+	for party_id_value in result.get("party_ids", []):
+		active_party_ids.append(String(party_id_value))
+	for character_id_value in result.get("controlled_ids", []):
+		active_combat_controlled_ids.append(String(character_id_value))
 	if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
 		active_character_id = "player"
 	_activate_combat_controller()
@@ -2427,16 +2424,16 @@ func _check_encounter_resolution() -> void:
 		return
 	if _active_party_defeated():
 		simulation.end_combat()
-		HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
-		_restore_active_party_after_combat()
+		HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation, active_encounter_character_states)
+		active_encounter_character_states.clear()
 		encounter_active = false
 		shakedown_resolved = true
 		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
 		_show_dialogue("Garrick Holt", "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.", [{"id": "continue", "label": "Continue", "text": ""}])
 	elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
 		simulation.end_combat()
-		HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
-		_restore_active_party_after_combat()
+		HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation, active_encounter_character_states)
+		active_encounter_character_states.clear()
 		encounter_active = false
 		HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
 		_show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
