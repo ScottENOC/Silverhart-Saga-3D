@@ -32,7 +32,16 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 		"orc_trust_completed": String(orc_trust_state.get("status", "")) == "completed",
 		"nix_recruited": nix_state != null and nix_state.side == "player"
 	}
-	var conversation := greeting(dialogue_id, character.display_name, context)
+	if dialogue_id in ["garrick_holt", "mira_ashbrook", "oskar_vinn", "wick_hallow", "yvette", "yvette_marlow", "hendra", "hendra_wells", "elder_marta", "marta_wynfield", "rowan_fletcher", "hollowmere_hunter", "tavern_patron", "bram_fenwick"]:
+		var shakedown_state := journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+		var shakedown_decisions: Dictionary = shakedown_state.get("decisions", {})
+		var shakedown_choice := String(shakedown_decisions.get("choice", shakedown_decisions.get("resolution", "")))
+		var shakedown_resolved := String(shakedown_state.get("status", "")) == "completed"
+		var standing := journal.npc_standing(dialogue_id)
+		var hollowmere_conversation := HollowmereCampaignContent.npc_greeting(dialogue_id, shakedown_resolved, standing, shakedown_choice)
+		if not hollowmere_conversation.is_empty():
+			return hollowmere_conversation
+	var conversation: Dictionary = greeting(dialogue_id, character.display_name, context)
 	if conversation.is_empty():
 		var title := String(actor.get_meta("title", "")) if actor != null else ""
 		var ambient_role := String(actor.get_meta("ambient_role", "civilian")) if actor != null else "civilian"
