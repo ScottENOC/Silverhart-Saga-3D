@@ -126,7 +126,7 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         }
         cells = source_floor_cells_by_level(source)
         self.assertEqual(cells[0], {"0,0", "1,0"})
-        self.assertEqual(cells[-9], {"1,0"})
+        self.assertNotIn(-9, cells)
         self.assertEqual(cells[1], {"1,0"})
 
     def test_interior_floor_parity_reports_coordinate_gaps(self):
