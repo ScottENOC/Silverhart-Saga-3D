@@ -167,7 +167,7 @@ static func _sync_aldric_actor(scene_tree: SceneTree, local_actor_by_id: Diction
 			if String(candidate.get_meta("campaign2_npc_id", "")) == ALDRIC_ID:
 				actor = candidate as Node3D
 				break
-	if actor == null:
+	if actor == null or not is_instance_valid(actor):
 		return
 	actor.set_meta("tied_up", false)
 	actor.set_meta("ambient_enabled", false)
