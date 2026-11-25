@@ -2,12 +2,13 @@ name: Build Wren with native Ara generator
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, 'test/wren-claude-anatomy-20261125']
     paths:
       - "character-preview/wren-ara.json"
       - ".github/workflows/build-wren-native-ara.yml"
       - "tools/blender/add_female_anatomy_surface.py"
       - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/blender/add_adult_anatomy.py"
       - "tools/review/wren_native_preview.gd"
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
@@ -25,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-wren-native-ara
+  group: build-wren-native-ara-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.pull_request.head.sha || 'dev' }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - uses: actions/setup-node@v6
         with:
@@ -72,23 +73,18 @@ jobs:
           test -s "$raw_glb"
           cp "$raw_glb" build/wren-native/Wren_Ara_raw.glb
 
-      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+      - name: Apply Claude integrated adult anatomy sculpt (isolated test)
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \
-            --input build/wren-native/Wren_Ara_raw.glb \
-            --output build/wren-native/female-anatomy-subdivision-plan.json
-          test -s build/wren-native/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
+            --python tools/blender/add_adult_anatomy.py -- \
             --input build/wren-native/Wren_Ara_raw.glb \
             --output build/wren-native/Wren.glb \
-            --report build/wren-native/female-anatomy-report.json \
-            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+            --profile female --adult --method integrated --deformation-scale 1.65 \
+            2>&1 | tee build/wren-native/anatomy-build.log
           test -s build/wren-native/Wren.glb
-          grep -q '"clothing_operations": "not run"' build/wren-native/female-anatomy-report.json
+          grep -q 'Female anatomy v2:' build/wren-native/anatomy-build.log
       - name: Apply Wren profile skin and hair colours
         run: |
           set -euo pipefail
