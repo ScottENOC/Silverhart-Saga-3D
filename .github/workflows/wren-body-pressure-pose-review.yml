@@ -58,14 +58,15 @@ jobs:
           assert report["validation"]["posed_glb_exported"]
           assert report["validation"]["pressure_shapes_authored"], report.get("authored_pressure_shapes", [])
           assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})
-          assert report["contact_target_surface_anchors"]["target_clearance_m"] == 0.035
+          assert report["contact_target_surface_anchors"]["target_clearance_m"] == 0.0
+          assert report["validation"]["palm_anchor_within_5mm_of_selected_surface"], report["palm_anchor_surface_gaps"]
           assert all(report["contact_target_surface_anchors"][side] for side in ("left_breast","right_hip"))
           assert all(report["palm_target_errors"].get(side) is not None for side in ("left","right"))
           print("Wren-only pose and localized pressure-shape package passed structural checks.")
           print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
-          print("Structural checks only: this run does not certify anatomical contact or plausible wrist placement.")
-          print("Measured hand-to-body gaps (m):", json.dumps(report.get("hand_surface_gaps", {})))
-          print("Target-anchor offsets from guessed anatomical points (m):", json.dumps({k:v.get("gap_m") for k,v in report["contact_target_surface_anchors"].items() if isinstance(v,dict)}))
+          print("Palm-anchor-to-selected-surface gaps (m):", json.dumps(report.get("palm_anchor_surface_gaps", {})))
+          print("This verifies a bone-based palm proxy, not final hand-mesh collision or anatomical-region membership.")
+          print("Selected surface anchors:", json.dumps(report["contact_target_surface_anchors"]))
           print("Pressure shape authoring is a mesh-level prototype; Godot runtime binding is a separate integration check.")
           print(json.dumps(report,indent=2))
           PY
