@@ -39,6 +39,9 @@ func _ready() -> void:
 		null,
 		campaign_simulation
 	) as Campaign2SettlementBuilder
+	if not _ensure_multistory_registry():
+		push_error("Campaign terrain stream could not initialise its multi-story location registry.")
+		return
 
 	_create_materials()
 

@@ -118,12 +118,24 @@ func _set_loading_stage(message: String, detail: String, progress: float) -> voi
 
 func _on_character_created(profile: Dictionary) -> void:
 	loading_layer.visible = true
+	# Resolve constants dynamically from the preloaded location Script. This
+	# avoids GDScript's external-member resolution failure for the nested
+	# data-only location definition during the real save/restore scene load.
+	var starting_location_instance: RefCounted = STARTING_LOCATION.new()
+	var starting_location_script: Script = starting_location_instance.get_script()
+	var starting_location_constants: Dictionary = starting_location_script.get_script_constant_map()
+	var starting_location_id := String(starting_location_constants.get("LOCATION_ID", ""))
+	var starting_location_display_name := String(starting_location_constants.get("DISPLAY_NAME", ""))
+	var starting_location_definition: Dictionary = starting_location_constants.get("DEFINITION", {})
+	if starting_location_id.is_empty() or starting_location_display_name.is_empty() or starting_location_definition.is_empty():
+		push_error("Hollowmere starting-location script is missing its required constants.")
+		return
 
 	# Construct each large procedural scene only when needed. These are
 	# synchronous stages, so the displayed message identifies the operation
 	# currently occupying the main thread; the bar advances at stage boundaries.
 	_set_loading_stage(
-		"Loading %s…" % STARTING_LOCATION.DISPLAY_NAME,
+		"Loading %s…" % starting_location_display_name,
 		"Resolving the continuous world region and its authored location components.",
 		25.0
 	)
@@ -138,13 +150,13 @@ func _on_character_created(profile: Dictionary) -> void:
 
 	var location_result: Dictionary = LOCATION_LOADER.load_location(
 		self,
-		STARTING_LOCATION.DEFINITION,
+		starting_location_definition,
 		simulation,
 		profile,
 		pending_save_data
 	)
 	if not bool(location_result.get("ok", false)):
-		push_error("Could not load Campaign 2 location %s: %s" % [STARTING_LOCATION.LOCATION_ID, location_result])
+		push_error("Could not load Campaign 2 location %s: %s" % [starting_location_id, location_result])
 		return
 	var location_components: Dictionary = location_result.get("components", {})
 	settlement_presentation = location_components.get("settlement") as Node3D

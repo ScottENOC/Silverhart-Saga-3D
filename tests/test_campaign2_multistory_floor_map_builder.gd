@@ -68,6 +68,140 @@ func _initialize() -> void:
 			var object_position: Dictionary = object_variant.get("position", {})
 			var object_hex := Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))
 			_check(interior_map.is_walkable(object_hex), "Merchant fixture must sit on walkable interior floor: " + String(object_variant.get("id", "")))
+
+	# The newly registered diplomatic and civic buildings must produce real
+	# walkable floor maps, with each source door landing on the room floor.
+	var silverhart_district_doors := {
+		"silverhart_elven_embassy": Vector2i(3, -466),
+		"silverhart_dwarven_embassy": Vector2i(13, -470),
+		"silverhart_aldenreach_embassy": Vector2i(3, -460),
+		"silverhart_corvane_embassy": Vector2i(13, -463),
+		"silverhart_ironbond_office": Vector2i(4, -454),
+		"silverhart_grand_cathedral": Vector2i(10, -451),
+		"silverhart_commons_inn": Vector2i(8, -526)
+	}
+	for district_id in silverhart_district_doors:
+		var district_definition: Dictionary = registry.get_definition(district_id)
+		var district_state = LOCATION_STATE.new()
+		_check(bool(district_state.configure(district_definition).get("ok", false)), "Silverhart district state must configure: " + district_id)
+		var district_result: Dictionary = FLOOR_BUILDER.build_floor_map(district_definition, 0, district_state)
+		_check(bool(district_result.get("ok", false)), "Silverhart district floor must build: " + district_id)
+		if not bool(district_result.get("ok", false)):
+			continue
+		var district_map: HexMapData = district_result.get("map_data") as HexMapData
+		_check(district_map.is_walkable(silverhart_district_doors[district_id]), "Silverhart district entrance must be walkable: " + district_id)
+		_check(district_result.get("actors", []).is_empty() and district_result.get("creatures", []).is_empty(), "Silverhart district floor must not duplicate campaign-owned residents: " + district_id)
+
+		if district_id == "silverhart_ironbond_office":
+			_check(district_map.is_walkable(Vector2i(4, -457)), "Ironbond office's source-opened corner must be walkable")
+			_check(not district_map.is_walkable(Vector2i(5, -458)), "Ironbond office's source-restored corner must remain a wall")
+			_check(_has_object(district_result.get("tile_objects", []), "silverhart_ironbond_office_table"), "Ironbond office table must be presented")
+			_check(_has_object(district_result.get("tile_objects", []), "silverhart_ironbond_office_bench"), "Ironbond office bench must be presented")
+
+	# All remaining source-authored Silverhart homes and Warrens shacks must
+	# build as independent walkable floors with their original door cells.
+	var silverhart_house_doors := {
+		"silverhart_warrens_shack_west": Vector2i(2, -431),
+		"silverhart_warrens_shack_centre": Vector2i(5, -429),
+		"silverhart_warrens_shack_east": Vector2i(11, -431),
+		"silverhart_north_cottage_one": Vector2i(37, -507),
+		"silverhart_north_cottage_two": Vector2i(37, -513),
+		"silverhart_north_cottage_three": Vector2i(37, -519),
+		"silverhart_east_house_one": Vector2i(28, -479),
+		"silverhart_east_house_two": Vector2i(34, -480),
+		"silverhart_east_house_three": Vector2i(24, -470),
+		"silverhart_east_house_four": Vector2i(27, -471),
+		"silverhart_middle_ring_house_east": Vector2i(51, -496),
+		"silverhart_middle_ring_house_northeast": Vector2i(51, -536),
+		"silverhart_middle_ring_house_north": Vector2i(8, -538),
+		"silverhart_middle_ring_house_west": Vector2i(-34, -496),
+		"silverhart_middle_ring_house_southwest": Vector2i(-34, -455),
+		"silverhart_middle_ring_house_southeast": Vector2i(20, -452)
+	}
+	for house_id in silverhart_house_doors:
+		var house_definition: Dictionary = registry.get_definition(house_id)
+		var house_state = LOCATION_STATE.new()
+		_check(bool(house_state.configure(house_definition).get("ok", false)), "Silverhart house state must configure: " + house_id)
+		var house_result: Dictionary = FLOOR_BUILDER.build_floor_map(house_definition, 0, house_state)
+		_check(bool(house_result.get("ok", false)), "Silverhart house floor must build: " + house_id)
+		if not bool(house_result.get("ok", false)):
+			continue
+		var house_map: HexMapData = house_result.get("map_data") as HexMapData
+		_check(house_map.is_walkable(silverhart_house_doors[house_id]), "Silverhart house entrance must be walkable: " + house_id)
+		for house_object in house_result.get("tile_objects", []):
+			var house_position: Dictionary = house_object.get("position", {})
+			_check(house_map.is_walkable(Vector2i(int(house_position.get("q", 0)), int(house_position.get("r", 0)))), "Silverhart house fixture must be on walkable floor: " + String(house_object.get("id", "")))
+	var southwest_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(registry.get_definition("silverhart_middle_ring_house_southwest"), 0)
+	var southwest_house_map: HexMapData = southwest_house_result.get("map_data") as HexMapData
+	_check(southwest_house_map.is_walkable(Vector2i(-32, -453)), "Southwest middle-ring house must preserve its source-added floor hex")
+
+	# The Corstane manor's source west-wall repair is irregular: its west
+	# wall moved one column inward, the former wall column was removed, and
+	# the old floor cells in the new wall column were restored as wall.
+	var manor_definition: Dictionary = registry.get_definition("silverhart_corstane_manor")
+	var manor_state = LOCATION_STATE.new()
+	_check(bool(manor_state.configure(manor_definition).get("ok", false)), "Corstane manor state must configure")
+	var manor_result: Dictionary = FLOOR_BUILDER.build_floor_map(manor_definition, 0, manor_state)
+	_check(bool(manor_result.get("ok", false)), "Corstane manor floor must build from explicit source masks")
+	if bool(manor_result.get("ok", false)):
+		var manor_map: HexMapData = manor_result.get("map_data") as HexMapData
+		_check(manor_map.is_walkable(Vector2i(36, -502)), "Corstane manor's moved west entrance must be walkable")
+		_check(not manor_map.is_walkable(Vector2i(36, -501)), "Corstane manor's shifted west wall must be solid")
+		_check(not manor_map.cells.has(Vector2i(35, -502)), "Corstane manor's abandoned west-wall column must not remain as a wall")
+		_check(_has_object(manor_result.get("tile_objects", []), "silverhart_corstane_manor_west_door"), "Corstane manor must retain its moved west door")
+	var silverhart_noble_doors := {
+		"silverhart_noble_neighbor_house": Vector2i(48, -502),
+		"silverhart_outlying_house_east": Vector2i(63, -544),
+		"silverhart_outlying_house_far_east": Vector2i(88, -544),
+		"silverhart_outlying_house_west": Vector2i(22, -476)
+	}
+	for home_id in silverhart_noble_doors:
+		var home_definition: Dictionary = registry.get_definition(home_id)
+		var home_state = LOCATION_STATE.new()
+		_check(bool(home_state.configure(home_definition).get("ok", false)), "Noble/outlying house state must configure: " + home_id)
+		var home_result: Dictionary = FLOOR_BUILDER.build_floor_map(home_definition, 0, home_state)
+		_check(bool(home_result.get("ok", false)), "Noble/outlying house floor must build: " + home_id)
+		if bool(home_result.get("ok", false)):
+			var home_map: HexMapData = home_result.get("map_data") as HexMapData
+			_check(home_map.is_walkable(silverhart_noble_doors[home_id]), "Noble/outlying house entrance must be walkable: " + home_id)
+
+	# Hallis's house is a six-corner polygon, not a rectangular room. Its two
+	# source door cells must be walkable while the reinforced perimeter stays
+	# solid after the explicit floor/wall masks are converted to HexMapData.
+	var builder_house_definition: Dictionary = registry.get_definition("silverhart_builder_house")
+	var builder_house_state = LOCATION_STATE.new()
+	_check(bool(builder_house_state.configure(builder_house_definition).get("ok", false)), "Hallis polygon house state must configure")
+	var builder_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(builder_house_definition, 0, builder_house_state)
+	_check(bool(builder_house_result.get("ok", false)), "Hallis polygon house floor must build")
+	if bool(builder_house_result.get("ok", false)):
+		var builder_house_map: HexMapData = builder_house_result.get("map_data") as HexMapData
+		_check(builder_house_map.is_walkable(Vector2i(34, -493)), "Hallis's west door must be walkable")
+		_check(builder_house_map.is_walkable(Vector2i(38, -486)), "Hallis's south door must be walkable")
+		_check(not builder_house_map.is_walkable(Vector2i(42, -495)), "Hallis's polygon perimeter must remain a wall")
+		_check(_has_object(builder_house_result.get("tile_objects", []), "silverhart_builder_house_west_door"), "Hallis's west door must be presented")
+		_check(_has_object(builder_house_result.get("tile_objects", []), "silverhart_builder_house_south_door"), "Hallis's south door must be presented")
+
+	# Final source-coverage sweep: every Silverhart ground-floor interior
+	# region must build through the same floor-map builder. The two tunnel
+	# locations have surface anchor placeholders only; their real geometry
+	# lives on floor -9 and is tested by the tunnel/runtime suites.
+	for silverhart_id in registry.location_ids():
+		if not silverhart_id.begins_with("silverhart_"):
+			continue
+		var silverhart_definition: Dictionary = registry.get_definition(silverhart_id)
+		var silverhart_floor := registry.get_floor_definition(silverhart_id, 0)
+		if silverhart_floor.get("rooms", []).is_empty() and silverhart_floor.get("floor_hexes", []).is_empty():
+			continue
+		var silverhart_state = LOCATION_STATE.new()
+		_check(bool(silverhart_state.configure(silverhart_definition).get("ok", false)), "Every Silverhart source interior must configure: " + silverhart_id)
+		var silverhart_result: Dictionary = FLOOR_BUILDER.build_floor_map(silverhart_definition, 0, silverhart_state)
+		_check(bool(silverhart_result.get("ok", false)), "Every Silverhart source interior must build: " + silverhart_id)
+		if not bool(silverhart_result.get("ok", false)):
+			continue
+		var silverhart_map: HexMapData = silverhart_result.get("map_data") as HexMapData
+		for silverhart_object in silverhart_result.get("tile_objects", []):
+			var object_position: Dictionary = silverhart_object.get("position", {})
+			_check(silverhart_map.is_walkable(Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))), "Every Silverhart fixture must sit on walkable floor: " + String(silverhart_object.get("id", "")))
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
@@ -125,6 +259,15 @@ func _initialize() -> void:
 		var crypt_map: HexMapData = crypt_result.get("map_data") as HexMapData
 		_check(_has_walkable_path(crypt_map, Vector2i(29, -154), Vector2i(49, -154)), "Crypt entrance, ossuary and ritual chambers must form one connected walkable layout")
 		_check(_has_object(crypt_result.get("tile_objects", []), "crypt_entrance_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ossuary_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ritual_door"), "Crypt must emit all three source door openings")
+		var crypt_note_found := false
+		for object_variant in crypt_result.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			var note_position: Dictionary = object_data.get("position", {})
+			if String(object_data.get("id", "")) == "crypt_entrance_note" and String(object_data.get("type", "")) == "journal" and int(note_position.get("q", 0)) == 32 and int(note_position.get("r", 0)) == -155:
+				crypt_note_found = true
+		_check(crypt_note_found, "Crypt entrance must present the source journal at (32,-155)")
 		_check(crypt_result.get("actors", []).is_empty() and crypt_result.get("creatures", []).is_empty(), "Map-only crypt floor must leave encounters to campaign systems")
 	var barrow_definition: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
 	var barrow_state = LOCATION_STATE.new()
@@ -156,6 +299,37 @@ func _initialize() -> void:
 	_check(bool(upper_court.get("ok", false)), "Upper Court pavilion must build")
 	_check((upper_court.get("wall_hexes", []) as Array).is_empty(), "Open-air Court must not generate a wall ring")
 	_check(_has_object(upper_court.get("tile_objects", []), "court_throne"), "Upper Court throne must be presented")
+
+	# Northwatch's hexagonal keep and Ridgehold's flat keep are
+	# represented by exact source-authored floor/wall masks, not rectangles.
+	var northwatch_definition: Dictionary = registry.get_definition("northwatch_keep")
+	var northwatch_state = LOCATION_STATE.new()
+	_check(bool(northwatch_state.configure(northwatch_definition).get("ok", false)), "Northwatch keep state must configure")
+	var northwatch_result: Dictionary = FLOOR_BUILDER.build_floor_map(northwatch_definition, 0, northwatch_state)
+	_check(bool(northwatch_result.get("ok", false)), "Northwatch keep source floor must build")
+	if bool(northwatch_result.get("ok", false)):
+		var northwatch_map: HexMapData = northwatch_result.get("map_data") as HexMapData
+		_check(northwatch_result.get("walkable_hexes", []).size() == 67, "Northwatch keep must retain its 61-cell core and six open corner gaps")
+		_check(northwatch_result.get("wall_hexes", []).size() == 24, "Northwatch keep must retain its 24 closed wall-ring cells")
+		for gap in [Vector2i(273, -21), Vector2i(273, -26), Vector2i(268, -26), Vector2i(263, -21), Vector2i(263, -16), Vector2i(268, -16)]:
+			_check(northwatch_map.is_walkable(gap), "Every source keep corner gap must remain walkable: %s" % gap)
+		_check(not northwatch_map.is_walkable(Vector2i(273, -22)), "Northwatch keep wall ring must remain closed between its source gaps")
+		_check(_has_object(northwatch_result.get("tile_objects", []), "northwatch_keep_fireplace"), "Northwatch keep fireplace must be presented")
+		_check(_has_object(northwatch_result.get("tile_objects", []), "northwatch_keep_door"), "Northwatch keep primary source gap must be presented as an entrance")
+	var ridgehold_definition: Dictionary = registry.get_definition("ridgehold_keep")
+	var ridgehold_state = LOCATION_STATE.new()
+	_check(bool(ridgehold_state.configure(ridgehold_definition).get("ok", false)), "Ridgehold keep state must configure")
+	var ridgehold_result: Dictionary = FLOOR_BUILDER.build_floor_map(ridgehold_definition, 0, ridgehold_state)
+	_check(bool(ridgehold_result.get("ok", false)), "Ridgehold keep source floor must build")
+	if bool(ridgehold_result.get("ok", false)):
+		var ridgehold_map: HexMapData = ridgehold_result.get("map_data") as HexMapData
+		_check(ridgehold_result.get("walkable_hexes", []).size() == 16, "Ridgehold keep must retain its 15-cell room and open source doorway")
+		_check(ridgehold_result.get("wall_hexes", []).size() == 17, "Ridgehold keep must retain its source wall ring around the open door")
+		_check(ridgehold_map.is_walkable(Vector2i(426, 45)), "Ridgehold keep source east doorway must be walkable")
+		_check(ridgehold_map.is_walkable(Vector2i(426, 43)), "Ridgehold keep fireplace hex must be walkable")
+		_check(not ridgehold_map.is_walkable(Vector2i(425, 42)), "Ridgehold keep wall ring must remain solid")
+		_check(_has_object(ridgehold_result.get("tile_objects", []), "ridgehold_keep_fireplace"), "Ridgehold keep fireplace must be presented")
+		_check(_has_object(ridgehold_result.get("tile_objects", []), "ridgehold_keep_door"), "Ridgehold keep source door must be presented")
 
 	var gate_hall: Dictionary = FLOOR_BUILDER.build_floor_map(definition, 0, state)
 	var gate_map: HexMapData = gate_hall.get("map_data") as HexMapData

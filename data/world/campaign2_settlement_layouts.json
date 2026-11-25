@@ -2279,13 +2279,13 @@
           "kind": "house",
           "archetype": "cottage",
           "center": {
-            "q": 23,
+            "q": 63,
             "r": -546
           },
           "half_q": 2,
           "half_r": 2,
           "door": {
-            "q": 23,
+            "q": 63,
             "r": -544
           },
           "door_side": "south",
@@ -2300,13 +2300,13 @@
           "kind": "house",
           "archetype": "cottage",
           "center": {
-            "q": 48,
+            "q": 88,
             "r": -546
           },
           "half_q": 2,
           "half_r": 2,
           "door": {
-            "q": 48,
+            "q": 88,
             "r": -544
           },
           "door_side": "south",
@@ -2321,13 +2321,13 @@
           "kind": "house",
           "archetype": "cottage",
           "center": {
-            "q": -32,
+            "q": 20,
             "r": -476
           },
           "half_q": 2,
           "half_r": 2,
           "door": {
-            "q": -30,
+            "q": 22,
             "r": -476
           },
           "door_side": "east",
@@ -2466,7 +2466,7 @@
         {
           "id": "silverhart_warrens_shack_1",
           "kind": "house",
-          "archetype": "cottage",
+          "archetype": "hut",
           "center": {
             "q": 2,
             "r": -433
@@ -2487,7 +2487,7 @@
         {
           "id": "silverhart_warrens_shack_2",
           "kind": "house",
-          "archetype": "cottage",
+          "archetype": "hut",
           "center": {
             "q": 5,
             "r": -427
@@ -2508,7 +2508,7 @@
         {
           "id": "silverhart_warrens_shack_3",
           "kind": "house",
-          "archetype": "cottage",
+          "archetype": "hut",
           "center": {
             "q": 11,
             "r": -433
@@ -8180,55 +8180,6 @@
               "position": {
                 "x": 0,
                 "y": 3.65,
-                "z": 0
-              }
-            }
-          ]
-        },
-        {
-          "id": "silverhart_diplomatic_fountain",
-          "feature_type": "landmark_props",
-          "anchor": {
-            "q": 8,
-            "r": -455
-          },
-          "parts": [
-            {
-              "name": "Basin",
-              "type": "cylinder",
-              "material": "timber",
-              "top_radius": 1.55,
-              "bottom_radius": 1.75,
-              "height": 0.45,
-              "position": {
-                "x": 0,
-                "y": 0.25,
-                "z": 0
-              }
-            },
-            {
-              "name": "Column",
-              "type": "cylinder",
-              "material": "timber",
-              "top_radius": 0.3,
-              "bottom_radius": 0.4,
-              "height": 1.25,
-              "position": {
-                "x": 0,
-                "y": 1,
-                "z": 0
-              }
-            },
-            {
-              "name": "TopBowl",
-              "type": "cylinder",
-              "material": "timber",
-              "top_radius": 0.75,
-              "bottom_radius": 0.9,
-              "height": 0.25,
-              "position": {
-                "x": 0,
-                "y": 1.65,
                 "z": 0
               }
             }
@@ -15953,6 +15904,91 @@
               }
             }
           ]
+        },
+        {
+          "id": "silverhart_commons_market_table",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -521
+          },
+          "parts": [
+            {
+              "name": "TableTop",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.35,
+                "y": 0.16,
+                "z": 0.95
+              },
+              "position": {
+                "x": 0,
+                "y": 0.88,
+                "z": 0
+              }
+            },
+            {
+              "name": "LegNorthWest",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": -0.52,
+                "y": 0.42,
+                "z": -0.34
+              }
+            },
+            {
+              "name": "LegNorthEast",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0.52,
+                "y": 0.42,
+                "z": -0.34
+              }
+            },
+            {
+              "name": "LegSouthWest",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": -0.52,
+                "y": 0.42,
+                "z": 0.34
+              }
+            },
+            {
+              "name": "LegSouthEast",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0.52,
+                "y": 0.42,
+                "z": 0.34
+              }
+            }
+          ]
         }
       ],
       "presentation": {
@@ -16123,7 +16159,92 @@
       "paths": [],
       "npcs": [],
       "creatures": [],
-      "source_note": "Map-only first pass. Named goblin actors, trader, scout note and faction/quest behaviours remain campaign-owned."
+      "source_note": "Map-only exterior pass. The source goblin scout journal now has a physical parchment prop; its readable text/interaction, named goblin actors, trader and faction/quest behaviours remain campaign-owned.",
+      "presentation": {
+        "palette": {
+          "parchment": "#d8c49a",
+          "ink": "#4b3828"
+        },
+        "materials": {
+          "quest_props": {
+            "parchment": "parchment",
+            "ink": "ink"
+          }
+        }
+      },
+      "props": [
+        {
+          "id": "skarn_tooth_goblin_scout_note",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": 204,
+            "r": 21
+          },
+          "parts": [
+            {
+              "name": "Parchment",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.035,
+                "z": 0
+              },
+              "size": {
+                "x": 0.62,
+                "y": 0.035,
+                "z": 0.46
+              },
+              "material": "parchment"
+            },
+            {
+              "name": "InkLineOne",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.057,
+                "z": -0.1
+              },
+              "size": {
+                "x": 0.38,
+                "y": 0.008,
+                "z": 0.018
+              },
+              "material": "ink"
+            },
+            {
+              "name": "InkLineTwo",
+              "type": "box",
+              "position": {
+                "x": 0.025,
+                "y": 0.057,
+                "z": 0
+              },
+              "size": {
+                "x": 0.32,
+                "y": 0.008,
+                "z": 0.018
+              },
+              "material": "ink"
+            },
+            {
+              "name": "InkLineThree",
+              "type": "box",
+              "position": {
+                "x": -0.035,
+                "y": 0.057,
+                "z": 0.1
+              },
+              "size": {
+                "x": 0.25,
+                "y": 0.008,
+                "z": 0.018
+              },
+              "material": "ink"
+            }
+          ],
+          "source": "campaign2World.js:buildGoblinCamp tileObjects[center.q + 1, center.r - 2] journal (goblin_scout_note)"
+        }
+      ]
     },
     {
       "id": "skarnaks_hold",

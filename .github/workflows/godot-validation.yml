@@ -97,6 +97,8 @@ jobs:
         run: |
           python -m py_compile tools/makehuman/target_format.py
           python -m unittest discover -s tests -p test_makehuman_target_format.py
+      - name: Run distant light perception tests
+        run: godot --headless --path . --script res://tests/test_distant_light_perception.gd
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run split character and progression tests
@@ -166,6 +168,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_building_factory.gd
       - name: Run reusable wall feature factory tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wall_feature_factory.gd
+      - name: Run Silverhart city wall and gate tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_city_wall_gate.gd
       - name: Run border fort presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_border_fort_presentation.gd
       - name: Run Ashveil dragon lair presentation tests
@@ -176,6 +180,12 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_druid_grove_presentation.gd
       - name: Run wild unicorn track presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_unicorn_track_presentation.gd
+      - name: Run Old Mac wolf den presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wolf_den_presentation.gd
+      - name: Run source-authored cave entrance presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_cave_entrance_presentation.gd
+      - name: Run abandoned-house approach presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_abandoned_house_approach_presentation.gd
       - name: Run Vampire Grave presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_vampire_grave_presentation.gd
       - name: Run Silthandriel canopy settlement presentation tests
@@ -190,6 +200,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_prop_feature_factory.gd
       - name: Run modular Hollowmere authored data tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_data_modules.gd
+      - name: Run Silverhart Warrens presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_warrens_presentation.gd
       - name: Run generic authored settlement presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_authored_settlement_presenter.gd
       - name: Run generic interior feature factory tests
@@ -231,6 +243,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_cell_loader.gd
       - name: Run source-authored multi-story location tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
+      - name: Run Thieves' Cove source map-object tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
       - name: Run source-authored multi-story floor map tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_floor_map_builder.gd
       - name: Run multi-story location traversal and persistence tests
@@ -239,6 +253,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_runtime.gd
       - name: Run Campaign 2 regional authored terrain feature tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_features.gd
+      - name: Run player cottage plot map tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_player_cottage_plot.gd
       - name: Run Campaign 2 regional hydrology tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_hydrology.gd
       - name: Run Campaign 2 local terrain rule tests
@@ -261,6 +277,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
       - name: Run chunk-aware settlement feature composer tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
+      - name: Run Silverhart Diplomatic Quarter tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_diplomatic_quarter.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null

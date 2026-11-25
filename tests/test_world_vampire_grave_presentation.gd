@@ -27,6 +27,8 @@ func _test_vampire_grave_is_owned_by_one_streamed_chunk() -> void:
 	assert(grave.get_node_or_null("SheepCarcass/Skull") != null, "The sheep carcass should have a recognisable head")
 	assert(grave.get_node_or_null("SheepCarcass/ThroatPuncture_00") != null and grave.get_node_or_null("SheepCarcass/ThroatPuncture_01") != null, "The throat should show the two source-described punctures")
 	assert(grave.get_node_or_null("ShatteredFang") != null, "The source-described fang should be visible")
+	assert(grave.get_node_or_null("BuriedJournal/LeatherCover") != null, "The source Vampire Grave journal should be physically visible")
+	assert(grave.get_node_or_null("BuriedJournal/ParchmentPages") != null, "The source journal should retain a visible parchment block")
 	var expected := HexGrid.axial_to_world(Vector2i(-256, 28), HexGrid.DEFAULT_RADIUS_M, terrain_data.elevation_for_hex(Vector2i(-256, 28)))
 	assert(grave.position.distance_to(expected) < 0.001, "The presentation must use the canonical geography anchor")
 	parent.free()

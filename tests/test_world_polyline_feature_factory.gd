@@ -58,7 +58,7 @@ func _test_hollowmere_authored_route_manifest() -> void:
 		{"path": path_material, "water": water_material, "bank": bank_material},
 		HexGrid.DEFAULT_RADIUS_M
 	)
-	assert(HOLLOWMERE_ROUTES.PRESENTATION_ROUTES.size() == 12, "Hollowmere should author the stream, banks, main roads, village lane, ring, five house spurs and farmyard lane")
+	assert(HOLLOWMERE_ROUTES.PRESENTATION_ROUTES.size() == 13, "Hollowmere should author the stream, banks, main roads, village lane, ring, five house spurs, farmyard lane and cottage-plot access spur")
 	assert(created.size() == HOLLOWMERE_ROUTES.PRESENTATION_ROUTES.size(), "Every authored Hollowmere route should render")
 	assert(parent.get_node_or_null("VillageStream") != null and parent.get_node_or_null("NorthSouthRoad") != null, "Key routes should retain stable scene names")
 	parent.free()
