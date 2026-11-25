@@ -104,6 +104,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_body_pressure_solver.gd
       - name: Run body pressure controller regression test
         run: godot --headless --path . --script res://tests/test_body_pressure_controller.gd
+      - name: Run synthetic Pascal pressure contrast scenario
+        run: godot --headless --path . --script res://tests/test_body_pressure_pascal_scenario.gd
       - name: Run body pressure contact regression test
         run: godot --headless --path . --script res://tests/test_body_pressure_contact.gd
       - name: Run canonical anatomy pressure profile regression test
