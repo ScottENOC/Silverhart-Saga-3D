@@ -1,22 +1,6 @@
 {
   "schema_version": 1,
   "assets": {
-    "wren.glb": {
-      "character": "Wren Talbot",
-      "workflow_run": 45550489788,
-      "build": 184,
-      "accepted_source_commit": "1fd6d6ab65b2f1e8cd9f6d1f7cfd59d8a8fa8500",
-      "size_bytes": 24341796,
-      "sha256": "ffe434c346d1fef1938b1199e7db4d9b76f1a9ab548f14d49217f058da3e3fdc"
-    },
-    "aldric.glb": {
-      "character": "Ser Aldric Thorne",
-      "workflow_run": 44641513062,
-      "build": 125,
-      "accepted_source_commit": "8681bc9f6ad4e2c651d6fd8bf937fdfc95538555",
-      "size_bytes": 32384528,
-      "sha256": "8b395bc6d7061ff9f4ce4d3b84f3537c926f0a3ee56e32161e36503592d7c22b"
-    },
     "dagna.glb": {
       "character": "Dagna Stoneward",
       "workflow_run": 45550892688,
