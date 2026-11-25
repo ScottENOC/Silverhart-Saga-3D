@@ -16,11 +16,22 @@ func bind(simulation: WorldSimulation, scene_tree: SceneTree = null, local_actor
 	_local_actor_by_id = local_actor_by_id
 	if _simulation == null:
 		return
+	var tick_callback := Callable(self, "_on_world_tick")
+	if not _simulation.world_tick.is_connected(tick_callback):
+		_simulation.world_tick.connect(tick_callback)
+	_track_characters()
+
+
+func _on_world_tick(_tick_index: int, _world_seconds: float) -> void:
+	_track_characters()
+
+
+func _track_characters() -> void:
+	if _simulation == null:
+		return
+	var callback := Callable(self, "_on_character_lifecycle_changed")
 	for state in _simulation.character_states():
-		if state == null:
-			continue
-		var callback := Callable(self, "_on_character_lifecycle_changed")
-		if not state.lifecycle_changed.is_connected(callback):
+		if state != null and not state.lifecycle_changed.is_connected(callback):
 			state.lifecycle_changed.connect(callback)
 
 
