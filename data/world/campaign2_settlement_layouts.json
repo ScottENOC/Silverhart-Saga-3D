@@ -16216,7 +16216,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 203,
+            "r": 22
+          }
         },
         {
           "id": "nix_sharpear",
@@ -16243,7 +16247,7 @@
           "dialogue_id": "nix_sharpear",
           "ambient_role": "guard",
           "position": {
-            "q": 201,
+            "q": 202,
             "r": 23
           },
           "appearance": {
@@ -16275,7 +16279,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 201,
+            "r": 23
+          }
         },
         {
           "id": "gralk_bonecaster",
@@ -16300,7 +16308,7 @@
           "dialogue_id": "",
           "ambient_role": "clergy",
           "position": {
-            "q": 205,
+            "q": 204,
             "r": 23
           },
           "appearance": {
@@ -16332,7 +16340,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 205,
+            "r": 23
+          }
         },
         {
           "id": "grondle_camp_trader",
@@ -16358,7 +16370,7 @@
           "ambient_role": "merchant",
           "position": {
             "q": 202,
-            "r": 25
+            "r": 24
           },
           "appearance": {
             "body_variant": "male",
@@ -16389,7 +16401,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 202,
+            "r": 25
+          }
         },
         {
           "id": "skarn_goblin_guard_01",
@@ -16414,7 +16430,7 @@
           "dialogue_id": "",
           "ambient_role": "guard",
           "position": {
-            "q": 200,
+            "q": 203,
             "r": 24
           },
           "appearance": {
@@ -16446,7 +16462,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 200,
+            "r": 24
+          }
         },
         {
           "id": "skarn_goblin_guard_02",
@@ -16471,7 +16491,7 @@
           "dialogue_id": "",
           "ambient_role": "guard",
           "position": {
-            "q": 206,
+            "q": 204,
             "r": 24
           },
           "appearance": {
@@ -16503,7 +16523,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 206,
+            "r": 24
+          }
         },
         {
           "id": "skarn_goblin_skulker",
@@ -16530,7 +16554,7 @@
           "ambient_role": "guard",
           "position": {
             "q": 203,
-            "r": 24
+            "r": 25
           },
           "appearance": {
             "body_variant": "male",
@@ -16561,7 +16585,11 @@
               "garment_visual": "sandals"
             }
           },
-          "source": "Hex-crpg/campaign2Content.js + campaign2World.js"
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js",
+          "source_position": {
+            "q": 203,
+            "r": 24
+          }
         }
       ],
       "creatures": [],
