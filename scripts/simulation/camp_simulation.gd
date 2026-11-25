@@ -1124,7 +1124,6 @@ func _begin_morning_stage(stage: int) -> void:
 				_set_assignment(character_id, "depart")
 			return
 		5:
-		5:
 			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
 				environment["fire_extinguished"] = true
 				environment["fire_lit"] = false
