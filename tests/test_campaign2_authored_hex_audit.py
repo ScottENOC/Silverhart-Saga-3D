@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from tools.campaign2_authored_hex_audit import (
@@ -143,7 +144,20 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
                 is_mountain = 12 <= column <= 15 and 0 <= row <= 4
                 is_forest = not is_ocean and 2 <= column <= 9 and 12 <= row <= 15
                 is_orc = 10 <= column <= 15
-                terrain = "W" if is_ocean else ("M" if is_mountain else ("F" if is_forest else "G"))
+                terrain = "G"
+                if is_ocean:
+                    terrain = "W"
+                elif is_mountain:
+                    terrain = "M"
+                elif is_forest:
+                    terrain = "F"
+                elif is_orc:
+                    rough = math.sin(column * 2.3 + 5 + row * 1.7 + 3) * 43758.5453
+                    rough -= math.floor(rough)
+                    if rough > 0.8:
+                        terrain = "M"
+                    elif rough > 0.6:
+                        terrain = "H"
                 faction = "" if is_ocean else ("d" if is_mountain else ("e" if is_forest else ("o" if is_orc else "h")))
                 if 10 <= column <= 11 and row <= 1:
                     faction = "d"
