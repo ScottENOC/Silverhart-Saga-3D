@@ -1461,6 +1461,23 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		else:
 			_show_dialogue("Ser Aldric Thorne", "The ropes won't give way just now. We need to try again when the camp is secure.", [{"id":"continue","label":"Understood.","text":""}])
 		return
+	if choice_id == "orc_stronghold_accept":
+		var accepted := OrcStrongholdCampaignContent.accept(simulation.campaign_journal)
+		if bool(accepted.get("ok", false)):
+			_show_dialogue("Warlord Grukk Ironhide", "Quest added: Prove Your Strength. The troll den is east of the stockade, among the rocks.", [{"id":"continue","label":"I'll find it.","text":""}])
+		else:
+			_show_dialogue("Warlord Grukk Ironhide", "That matter cannot be taken up just now: %s." % String(accepted.get("reason", "unknown reason")).replace("_", " "), [{"id":"continue","label":"Understood.","text":""}])
+		return
+	if choice_id == "orc_grukk_recruit":
+		var recruited := OrcStrongholdCampaignContent.recruit_grukk(simulation)
+		if bool(recruited.get("ok", false)):
+			var grukk_actor := CampaignNpcInteractionService.actor_for(get_tree(), actor_by_id, OrcStrongholdCampaignContent.GRUKK_ID)
+			if grukk_actor != null:
+				grukk_actor.set_meta("ambient_enabled", false)
+			_show_dialogue("Warlord Grukk Ironhide", "Grukk Ironhide joins your party. His existing skills and equipment are preserved.", [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Recruitment", "Grukk cannot join you yet: %s." % String(recruited.get("reason", "unknown reason")).replace("_", " "), [{"id":"continue","label":"Understood.","text":""}])
+		return
 	if choice_id == "continue":
 		_close_dialogue()
 		return
