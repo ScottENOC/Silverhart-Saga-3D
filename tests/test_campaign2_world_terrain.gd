@@ -28,6 +28,17 @@ func _initialize() -> void:
 	_check(unicorn_vale.get("kind", "") == "roaming_encounter_area", "Unicorn Vale must resolve through the canonical encounter-site lookup")
 	_check(terrain.encounter_site_at(Vector2i(-286, 24)).get("id", "") == "unicorn_vale", "Unicorn Vale lookup must resolve its source patrol-area anchor")
 	_check(not terrain.is_location_marker_visible(unicorn_vale), "Unicorn Vale must remain an exploration encounter area, not a permanent public map marker")
+	var exploration_sites := {
+		"thieves_cove": "cave_network",
+		"vessel_seekers_crypt": "dungeon",
+		"corvin_ashgrave_barrow": "dungeon",
+	}
+	for cave_id in exploration_sites:
+		var cave_site := terrain.encounter_site(cave_id)
+		_check(cave_site.get("kind", "") == exploration_sites[cave_id], "%s must retain its source-authored site kind in the canonical registry" % cave_id)
+		var cave_hex := Vector2i(int(cave_site.get("q", 0)), int(cave_site.get("r", 0)))
+		_check(terrain.encounter_site_at(cave_hex).get("id", "") == cave_id, "%s must resolve by its source geography anchor" % cave_id)
+		_check(not terrain.is_location_marker_visible(cave_site), "%s must remain an exploration site, not a permanent public map marker" % cave_id)
 	var farmstead_den := terrain.encounter_site("farm_wolf_den")
 	_check(farmstead_den.get("kind", "") == "wolf_den", "Old Mac farmstead wolf den must be available from the encounter-site registry")
 	_check(terrain.encounter_site_at(Vector2i(-59, 204)).get("id", "") == "farm_wolf_den", "Wolf den lookup must resolve its source axial coordinate")
