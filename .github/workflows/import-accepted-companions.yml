@@ -41,7 +41,11 @@ jobs:
           test -s /tmp/accepted-dagna/Dagna.glb
           # Wren Talbot and Ser Aldric Thorne are now sourced from the canonical
           # campaign cast models. Remove their superseded duplicate companion exports.
-          find art/characters/companions -maxdepth 1 -type f \( -name 'wren*' -o -name 'aldric*' \) -delete
+          for old_asset in art/characters/companions/wren* art/characters/companions/aldric*; do
+            if [ -f "$old_asset" ]; then
+              rm -f "$old_asset"
+            fi
+          done
           cp /tmp/accepted-dagna/Dagna.glb art/characters/companions/dagna.glb
           python - <<'PY'
           import hashlib, json
