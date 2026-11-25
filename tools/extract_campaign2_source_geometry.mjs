@@ -99,7 +99,7 @@ const windowState = {
   wireSharedInventory() {},
   placeSecretStash() {},
   placeSecretDoor() {},
-  buildNPC(spec) { return { ...spec, alive: true, inventory: [], side: spec.side || "neutral" }; },
+  buildNPC(spec) { return { ...spec, isNPC: true, alive: true, inventory: [], side: spec.side || "neutral" }; },
   createCharacterData(race, characterClass, name, gender) {
     return { race, class: characterClass, name, gender,
       attributes: { agility: 10, wildcard: 3 }, skills: {}, hp: 10, maxHp: 10 };
@@ -153,6 +153,7 @@ const captureCode = [
   "JSON.stringify({",
   "terrain: window.overrideTerrain,",
   "tileObjects: window.tileObjects,",
+  "npcBaseline: window._campaign2NpcBaseline || {},
   "worldMapData: window.worldMapData,",
   "worldRiverPath: window.worldRiverPath || [],",
   "interiors: window.interiorRegions,",
@@ -235,6 +236,7 @@ const output = {
     strategicMapCells: Array.isArray(captured.worldMapData) ? captured.worldMapData.reduce((sum, row) => sum + row.length, 0) : 0,
     strategicRiverWaypoints: Array.isArray(captured.worldRiverPath) ? captured.worldRiverPath.length : 0,
     strategicMapMarkers: Array.isArray(captured.worldMapData) ? captured.worldMapData.flat().filter(cell => cell && cell.n).length : 0,
+    npcBaselineEntries: Object.keys(captured.npcBaseline || {}).length,
   },
   ...captured,
 };
