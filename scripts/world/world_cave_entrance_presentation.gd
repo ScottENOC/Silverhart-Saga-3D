@@ -31,6 +31,12 @@ static func _add_entrance(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 	var root := Node3D.new()
 	root.name = String(definition["node"])
 	root.position = HexGrid.axial_to_world(hex, radius, terrain_data.elevation_for_hex(hex))
+	# All three source doorways face west. Orient the cave mouth toward the
+	# exterior neighbour rather than leaving it facing an arbitrary world axis.
+	var outside := HexGrid.axial_to_world(hex + Vector2i(-1, 0), radius)
+	var centre := HexGrid.axial_to_world(hex, radius)
+	var outward := outside - centre
+	root.rotation.y = atan2(outward.x, outward.z)
 	parent.add_child(root)
 	var stone := _material(Color("#625f57"))
 	var dark_stone := _material(Color("#343633"))
