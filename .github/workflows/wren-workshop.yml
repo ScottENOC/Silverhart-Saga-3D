@@ -9,7 +9,7 @@ on:
         type: string
         default: ""
   push:
-    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
+    branches: [dev, feature/unified-female-anatomy-v2, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
     paths:
       - "tools/ara/patch_layering.py"
       - "tools/ara/assemble_modular_glb.py"
