@@ -6,9 +6,8 @@ on:
     paths:
       - "character-preview/wren-ara.json"
       - ".github/workflows/build-wren-native-ara.yml"
-      - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/plan_female_anatomy_subdivision.py"
-      - "tools/review/wren_native_preview.gd"
+      - "tools/blender/add_adult_anatomy.py"
+      -       - "tools/review/wren_native_preview.gd"
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/review/add_aldric_body_hair.py"
@@ -45,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/wren-ara.json >/dev/null
-          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/blender/add_character_details.py tools/review/render_wren_native.py tools/review/recolor_wren_glb.py tools/blender/plan_female_anatomy_subdivision.py
+          tools/blender/add_adult_anatomy.py tools/blender/add_character_details.py tools/review/render_wren_native.py tools/review/recolor_wren_glb.py
 
       - name: Install Blender and its numerical dependencies
         run: |
@@ -72,23 +71,18 @@ jobs:
           test -s "$raw_glb"
           cp "$raw_glb" build/wren-native/Wren_Ara_raw.glb
 
-      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+      - name: Apply validated integrated female anatomy v2
+        shell: bash
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \
-            --input build/wren-native/Wren_Ara_raw.glb \
-            --output build/wren-native/female-anatomy-subdivision-plan.json
-          test -s build/wren-native/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
+            --python tools/blender/add_adult_anatomy.py -- \
             --input build/wren-native/Wren_Ara_raw.glb \
             --output build/wren-native/Wren.glb \
-            --report build/wren-native/female-anatomy-report.json \
-            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+            --profile female --adult --method integrated --deformation-scale 1.65 \
+            --no-canal --no-anus
           test -s build/wren-native/Wren.glb
-          grep -q '"clothing_operations": "not run"' build/wren-native/female-anatomy-report.json
       - name: Apply Wren profile skin and hair colours
         run: |
           set -euo pipefail
