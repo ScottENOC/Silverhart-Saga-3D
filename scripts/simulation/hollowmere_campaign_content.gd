@@ -231,7 +231,74 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
                 ]
             }
         "wick_hallow":
-            return {"speaker": "Wick Hallow", "text": "If you need something for the road, I can help. If you need it on credit, I can help you leave.", "choices": [{"id": "supplies", "label": "What sells well around here?", "text": "Lamp oil, rope, salt and anything that keeps in a pack. Folk buy more of those when the roads turn rough."}, {"id": "news", "label": "Heard any news?", "text": "Caravans are taking the longer road. No one says why unless they have had a drink or three."}, {"id": "leave", "label": "Just looking.", "text": "Wick nods and resumes sorting his shelves."}]}
+            return {
+                "speaker": "Wick Hallow",
+                "text": "Welcome to Hallow's Goods. Soldier-grade gear, fair prices — what's left of my stock, anyway.",
+                "choices": [
+                    {"id": "supplies", "label": "What sells well around here?", "text": "Lamp oil, rope, salt and anything that keeps in a pack. Folk buy more of those when the roads turn rough."},
+                    {"id": "delivery", "label": "Heard you've had some trouble.", "text": "A goblin scout snatched a delivery of mine not far from here — south and west of the shop. Little thing, shouldn't be hard to catch, but I can't leave the counter to do it myself."},
+                    {"id": "news", "label": "Heard any news?", "text": "Caravans are taking the longer road. No one says why unless they have had a drink or three."},
+                    {"id": "leave", "label": "Just looking.", "text": "Wick nods and resumes sorting his shelves."}
+                ]
+            }
+        "yvette", "yvette_marlow":
+            return {
+                "speaker": "Yvette Marlow",
+                "text": "Oh — sorry, didn't mean to stare. My boy Tomas went off with the border levy three months back. Fighting orc raiders up past Aldervale.",
+                "choices": [
+                    {"id": "tomas_letter", "label": "Have you heard from him?", "text": "A letter, once, back in Brightsun. Said the raids were getting worse — more of them, better organized than the raiding parties used to be. Nothing since. I try to tell myself the roads are just slow this time of year."},
+                    {"id": "sympathy", "label": "I'm sorry to hear that.", "text": "Thank you. It's the waiting that's hardest. At least when he's on the road, I can imagine he's still moving."},
+                    {"id": "leave", "label": "I'll let you be.", "text": "Yvette gives you a small, grateful smile."}
+                ]
+            }
+        "hendra", "hendra_wells":
+            return {
+                "speaker": "Hendra Wells",
+                "text": "My boy Tam's always off exploring — never listens. But it's been since yesterday, and he always comes home by dark. He was headed out past the crossroads, west along the old road.",
+                "choices": [
+                    {"id": "tam_last_seen", "label": "Where was he headed?", "text": "West, past the crossroads. He knows not to go near the old ruins, but Tam has never been good at listening."},
+                    {"id": "tam_reassure", "label": "I'll keep an eye out for him.", "text": "Please, if you find anything out there, come straight back to me. I don't care what time it is."},
+                    {"id": "leave", "label": "I'm sure he'll be home soon.", "text": "Hendra tries to smile, but keeps glancing towards the road."}
+                ]
+            }
+        "elder_marta", "marta_wynfield":
+            var marta_text := "Welcome, traveler. Hollowmere's a small place, but an honest one."
+            if shakedown_resolved and shakedown_choice == "fight":
+                marta_text = "Word of what you did at the Tankard reached me. Hollowmere doesn't forget a favor like that."
+            elif shakedown_resolved and shakedown_choice == "stay_out":
+                marta_text = "I heard about the Tankard. Garrick's a proud man — I imagine that stung him more than you know."
+            elif shakedown_resolved and shakedown_choice == "encourage_pay":
+                marta_text = "The Ironbond men were in the village again. Nothing's changed there, I'm afraid."
+            return {
+                "speaker": "Elder Marta Wynfield",
+                "text": marta_text,
+                "choices": [
+                    {"id": "ironbond", "label": "What can be done about Ironbond?", "text": "They call it a monthly due. Everyone else calls it protection money. A village can endure a great deal, but it should not have to live at another company's mercy."},
+                    {"id": "border", "label": "What news from the border?", "text": "The levy riders say the orc warbands are growing larger and better organised. I would rather not frighten the village with rumours, but we should be ready."},
+                    {"id": "village", "label": "How is the village holding up?", "text": "We are still here. People look after one another, even when they disagree about what is best. That matters more than most folk realise."},
+                    {"id": "leave", "label": "Thank you, Elder.", "text": "Marta inclines her head and returns to her thoughts."}
+                ]
+            }
+        "rowan_fletcher", "hollowmere_hunter":
+            return {
+                "speaker": "Rowan Fletcher",
+                "text": "Keep to the marked paths if you can. The woods are quiet until they aren't.",
+                "choices": [
+                    {"id": "tracks", "label": "Seen anything unusual in the woods?", "text": "Tracks crossing the old road. Some deer, some wolf. And one set I couldn't place — too heavy for a man, too deliberate for a beast."},
+                    {"id": "hunting", "label": "How is the hunting?", "text": "Enough game if you know where to look. The trouble is finding time to look when the roads need watching."},
+                    {"id": "leave", "label": "I'll take care.", "text": "Rowan gives a brief nod and checks the tree line again."}
+                ]
+            }
+        "tavern_patron", "bram_fenwick":
+            return {
+                "speaker": "Bram Fenwick",
+                "text": "A good ale and a quiet evening. That's all a man asks — though Hollowmere seems determined to make even that difficult.",
+                "choices": [
+                    {"id": "ironbond", "label": "What do you make of the Ironbond Company?", "text": "They take their due and call it business. Best not to ask what happens when someone can't pay."},
+                    {"id": "roads", "label": "How are the roads lately?", "text": "Caravans are taking the long way round. Whatever's happening north, folk with wagons aren't keen to find out."},
+                    {"id": "leave", "label": "Enjoy your evening.", "text": "Bram raises his mug in reply."}
+                ]
+            }
         "yvette_marlow":
             return {"speaker": "Yvette Marlow", "text": "There is always something happening in this village. Usually just outside my window.", "choices": [{"id": "ironbond", "label": "What do you make of Ironbond?", "text": "They call it a fee. Funny how the fee always rises when someone says no."}, {"id": "news", "label": "Anything else happening?", "text": "The north road has been busy with levy riders. More than I remember seeing in spring."}, {"id": "leave", "label": "Fair enough.", "text": "Yvette gives you a small smile."}]}
         "hendra_wells":
