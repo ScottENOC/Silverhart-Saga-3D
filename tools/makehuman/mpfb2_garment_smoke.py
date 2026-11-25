@@ -243,6 +243,20 @@ def main():
         export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
     )
 
+    # Validate the deliverable, not merely the source Blender scene: clear the
+    # scene, re-import the GLB, assert the expected mesh count, and render it.
+    for obj in list(bpy.data.objects):
+        bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.ops.import_scene.gltf(filepath=glb_path)
+    roundtrip_meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
+    if len(roundtrip_meshes) != len(export_objects):
+        raise RuntimeError(
+            f"GLB round-trip mesh count mismatch: expected {len(export_objects)}, "
+            f"got {len(roundtrip_meshes)}"
+        )
+    render_view("base-human-glb-roundtrip-front", (0.0, -5.0, 1.0), (0.0, 0.0, 0.9))
+    render_view("base-human-glb-roundtrip-side", (5.0, 0.0, 1.0), (0.0, 0.0, 0.9))
+
     report = {
         "mpfb2": "upstream source checkout",
         "blender_version": bpy.app.version_string,
@@ -251,6 +265,7 @@ def main():
         "phenotype": macro,
         "exported_mesh_objects": [obj.name for obj in export_objects],
         "packed_image_count": sum(1 for image in bpy.data.images if image.packed_file),
+        "glb_roundtrip_mesh_objects": [obj.name for obj in roundtrip_meshes],
         "asset_inventory": {
             key: sorted(str(label) for label in values.keys())
             for key, values in inventories.items()
@@ -262,6 +277,8 @@ def main():
         "renders": [
             os.path.join(OUTPUT_DIR, "base-human-front.png"),
             os.path.join(OUTPUT_DIR, "base-human-side.png"),
+            os.path.join(OUTPUT_DIR, "base-human-glb-roundtrip-front.png"),
+            os.path.join(OUTPUT_DIR, "base-human-glb-roundtrip-side.png"),
         ],
         "export": glb_path,
         "status": "passed",
