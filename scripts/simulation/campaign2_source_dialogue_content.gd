@@ -18,6 +18,7 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 	var nix_state := simulation.get_character("nix_sharpear")
 	var player_state := simulation.get_character(simulation.player_character_id)
 	var player_level := int(player_state.level) if player_state != null else 1
+	var manor_granted := simulation.campaign_dwellings != null and bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false))
 	var context := {
 		"guild_favor_active": String(guild_favor_state.get("status", "")) == "active",
 		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
@@ -35,7 +36,8 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 		"nix_recruited": nix_state != null and nix_state.side == "player",
 		"kingdom_standing": journal.faction_standing("silverhart_kingdom"),
 		"thieves_guild_standing": journal.faction_standing("thieves_guild"),
-		"player_level": player_level
+		"player_level": player_level,
+		"manor_granted": manor_granted
 	}
 	if dialogue_id in ["garrick_holt", "mira_ashbrook", "oskar_vinn", "wick_hallow", "yvette", "yvette_marlow", "hendra", "hendra_wells", "elder_marta", "marta_wynfield", "rowan_fletcher", "hollowmere_hunter", "tavern_patron", "bram_fenwick"]:
 		var shakedown_state := journal.quest_state(HollowmereCampaignContent.QUEST_ID)
@@ -289,6 +291,14 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 			if bool(context.get("orc_trust_active", false)):
 				return {"speaker": display_name, "text": "That troll still denning east of here? Deal with it and we'll talk properly.", "choices": [{"id": "troll", "label": "Where is its den?", "text": "East of the stockade, in the rocks. It has been picking off scouts and cattle. Bring proof that it is dead."}, {"id": "leave", "label": "I'm working on it.", "text": "Grukk folds his arms."}]}
 			return {"speaker": display_name, "text": "Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", "choices": [{"id": "troll", "label": "What do you know about the troll?", "text": "It denns east of the stockade, in the rocks. It has been taking scouts and cattle. Deal with it and you'll have earned a proper welcome."}, {"id": "leave", "label": "Not interested.", "text": "Grukk's expression hardens."}]}
+		"hollowmere_beggar":
+			return {"speaker": display_name, "text": "Spare a coin? Times are hard in Hollowmere just now. Wasn't always like this.", "choices": [{"id": "give_coin", "label": "Give 2 gold.", "text": "The beggar thanks you quietly."}, {"id": "leave", "label": "Sorry, nothing to spare.", "text": "The beggar lowers his eyes and lets you pass."}]}
+		"hollowmere_peddler":
+			return {"speaker": display_name, "text": "Business is good these days — Hollowmere's doing well for itself. Care to see my wares? Just trinkets, nothing you can't live without, but pretty ones.", "choices": [{"id": "wares", "label": "What sort of trinkets?", "text": "Little things picked up along the road. Nothing essential, but sometimes a traveller wants a reminder of somewhere they've been."}, {"id": "leave", "label": "Maybe another time.", "text": "The peddler smiles and rearranges her wares."}]}
+		"silverhart_manor_neighbor":
+			if bool(context.get("manor_granted", false)):
+				return {"speaker": display_name, "text": "Well, at least someone's finally doing something with that place. Better a living soul than another empty house drawing rats.", "choices": [{"id": "leave", "label": "Glad to help.", "text": "Petra Ashfield gives you a pleased nod."}]}
+			return {"speaker": display_name, "text": "That empty manor's been sitting there for years — no heir, no upkeep, just an eyesore drawing rats and worse. The crown really ought to do something with it.", "choices": [{"id": "manor", "label": "Someone should ask the Queen about it.", "text": "Petra Ashfield nods. Perhaps the crown might finally listen."}, {"id": "leave", "label": "I'll keep that in mind.", "text": "She returns to her garden."}]}
 		"thieves_guild_fence":
 			var fence_standing := float(context.get("thieves_guild_standing", 0.0))
 			if fence_standing < 0.0:
