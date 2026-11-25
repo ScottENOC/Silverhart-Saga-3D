@@ -1660,7 +1660,8 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
         if not map_data.has_cell(camp_hex):
             return {"ok": false, "reason": "unknown_camp_hex"}
         resolved_site["walkable"] = map_data.is_walkable(camp_hex)
-        resolved_site["occupied"] = occupied_hexes.has(camp_hex)
+        var occupant_id := String(occupied_hexes.get(camp_hex, ""))
+        resolved_site["occupied"] = not occupant_id.is_empty() and not party_member_ids.has(occupant_id)
         resolved_site["terrain_id"] = map_data.terrain_id_at(camp_hex)
     resolved_site["in_combat"] = is_in_combat
     var resolved_environment := environment_data.duplicate(true)
