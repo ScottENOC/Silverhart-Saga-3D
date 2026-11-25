@@ -1043,7 +1043,7 @@ func from_dict(data: Dictionary) -> bool:
 			return false
 		ids.append(character_id)
 	for character_id in saved_assignments:
-		if not ids.has(String(character_id)) or not saved_assignments[character_id] is Dictionary:
+		if (not ids.has(String(character_id)) and not saved_occupants.has(character_id)) or not saved_assignments[character_id] is Dictionary:
 			return false
 	for character_id in saved_conditions:
 		if String(character_id).is_empty() or not saved_conditions[character_id] is Dictionary:
