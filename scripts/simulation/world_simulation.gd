@@ -13,6 +13,7 @@ signal reaction_requested(reactor_id: String, options: Array[Dictionary], reques
 signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int, reason: String)
 signal movement_reaction_resolved(mover_id: String, halted: bool)
 signal weather_changed(conditions: Dictionary)
+signal camp_night_encounter_resolved(result: Dictionary)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
@@ -71,6 +72,18 @@ func _connect_camp_simulation_signals() -> void:
     var callback := Callable(self, "_on_camp_animal_care_completed")
     if not camp_simulation.animal_care_completed.is_connected(callback):
         camp_simulation.animal_care_completed.connect(callback)
+    var night_callback := Callable(self, "_on_camp_night_resolved")
+    if not camp_simulation.night_resolved.is_connected(night_callback):
+        camp_simulation.night_resolved.connect(night_callback)
+
+
+func _on_camp_night_resolved(summary: Dictionary) -> void:
+    var encounter: Dictionary = summary.get("night_encounter", {})
+    if not bool(encounter.get("attacked", false)):
+        return
+    var result := encounter.duplicate(true)
+    result["night_summary"] = summary.duplicate(true)
+    camp_night_encounter_resolved.emit(result)
 
 func _on_camp_animal_care_completed(animal_id: String, action: String, handler_id: String, care: Dictionary) -> void:
     action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
