@@ -32,6 +32,9 @@ const EXPECTED_TRACKS := [
 
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
+	var vale := terrain.encounter_site("unicorn_vale")
+	assert(String(vale.get("kind", "")) == "roaming_encounter_area", "Unicorn Vale must resolve from canonical geography")
+	assert(Vector2i(int(vale.get("q", 0)), int(vale.get("r", 0))) == Vector2i(-286, 24), "Unicorn Vale must retain its source-derived anchor")
 	var total := 0
 	for chunk_q in [-13, -12]:
 		for chunk_r in [0, 1]:
@@ -39,6 +42,7 @@ func _initialize() -> void:
 			var result: Dictionary = PRESENTATION.present_chunk(parent, terrain, Vector2i(chunk_q, chunk_r) * 24, 24, HexGrid.DEFAULT_RADIUS_M)
 			assert(bool(result.get("ok", false)), "Unicorn track chunk should present successfully: %s" % result)
 			assert(int(result.get("features", -1)) == parent.get_child_count(), "Each source hoofprint must have exactly one chunk-owned presentation")
+			assert(result.get("vale_center") == Vector2i(-286, 24), "Streamed hoofprints must use the canonical vale anchor")
 			total += int(result.get("features", 0))
 			parent.free()
 	assert(PRESENTATION.TRACKS.size() == EXPECTED_TRACKS.size(), "Wild Unicorn trail must retain all 24 source track markers")
