@@ -24,7 +24,8 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 		if location.is_empty():
 			return {"ok": false, "reason": "missing_source_cave_location:%s" % entrance_id}
 		var centre := Vector2i(int(location.get("q", 0)), int(location.get("r", 0)))
-		var hex := centre + (entrance["door_offset"] as Vector2i)
+		var door_offset: Vector2i = entrance["door_offset"]
+		var hex := centre + door_offset
 		if not _contains(hex, chunk_min, chunk_size):
 			continue
 		_add_entrance(parent, terrain_data, entrance, hex, hex_radius)
