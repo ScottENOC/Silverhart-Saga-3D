@@ -74,7 +74,7 @@ jobs:
             --max-displacement-mm 50 \
             --max-step-mm 3 \
             --iterations 25 \
-            --smoothing 0.2 \\
+            --smoothing 0.2 \
             --skin-material Skin \
             --garment-material "Triangle bikini top" \
             --garment-material "Triangle bikini strings" \
