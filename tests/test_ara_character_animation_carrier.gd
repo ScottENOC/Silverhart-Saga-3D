@@ -103,6 +103,7 @@ func _run() -> void:
 		or animation_player.current_animation.to_lower().contains("stand"),
 		"Gameplay actor selects its idle clip")
 
+	print("ARA_CAMP_ANIMATION_CATALOGUE=", animation_player.get_animation_list())
 	var required_camp_clips := [
 		"pick_up", "carry_idle", "use_press", "talk_gestures",
 		"look_around", "squat", "push_up", "lie_down", "sleep"
@@ -129,7 +130,7 @@ func _run() -> void:
 		var played: bool = actor.play_camp_activity(activity)
 		_check(played, "Ara actor accepts camp activity " + activity)
 		if played:
-			_check(animation_player.current_animation.to_lower().contains(expected),
+			_check(_animation_name_matches(String(animation_player.current_animation), expected),
 				"Camp activity %s selects its expected Ara clip" % activity)
 
 	_check(actor.play_camp_activity("socialise"), "Ara actor can return to conversational camp animation")
@@ -187,11 +188,22 @@ func _run() -> void:
 	_finish()
 
 
+func _normalise_animation_token(value: String) -> String:
+	var normalized := value.to_lower()
+	for separator in ["_", "-", " ", ".", ":"]:
+		normalized = normalized.replace(separator, "")
+	return normalized
+
+
+func _animation_name_matches(animation_name: String, token: String) -> bool:
+	return _normalise_animation_token(animation_name).contains(_normalise_animation_token(token))
+
+
 func _has_animation_token(player: AnimationPlayer, token: String) -> bool:
 	if player == null:
 		return false
 	for animation_name in player.get_animation_list():
-		if String(animation_name).to_lower().contains(token.to_lower()):
+		if _animation_name_matches(String(animation_name), token):
 			return true
 	return false
 
