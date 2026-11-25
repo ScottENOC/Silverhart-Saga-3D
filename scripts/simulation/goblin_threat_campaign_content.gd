@@ -20,7 +20,9 @@ static func quest_definition() -> Dictionary:
 		"title":"The Skarn-tooth Tribe",
 		"giver":"Elder Marta Wynfield",
 		"description":"Resolve the threat posed by the Skarn-tooth tribe.",
-		"objectives":[]
+		"objectives":[
+			{"id":"resolved","description":"Resolve the Skarn-tooth threat and determine the tribe's fate.","target":1.0,"required":true}
+		]
 	}
 
 
@@ -164,6 +166,11 @@ func resolve_threat(journal: CampaignJournal, resolution: String, relationships:
 	var effects: Dictionary = outcome.get("effects", {})
 	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), 15.0, "goblin_threat:" + resolution)
 	var goblin_change := FACTION_SIMULATION_SCRIPT.adjust_goblin_reputation(journal, float(outcome.goblin), 20.0, "goblin_threat:" + resolution)
+	var current_objectives: Dictionary = journal.quest_state(QUEST_ID).get("objectives", {})
+	if current_objectives.has("resolved"):
+		var objective_result := journal.set_objective_progress(QUEST_ID, "resolved", 1.0)
+		if not bool(objective_result.get("ok", false)):
+			return objective_result
 	var completed := journal.complete_quest(QUEST_ID)
 	if not bool(completed.get("ok", false)):
 		return completed
