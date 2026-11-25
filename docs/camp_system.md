@@ -7,6 +7,7 @@
 - Social contact, flirting and intimacy are not restricted to a camp phase or a dedicated social activity. The interaction system resolves the event and supplies its actual relationship changes.
 - Sleep is an explicit eight-hour skip to morning, not eight hours of accelerated real-time simulation. It advances the authoritative world clock and applies overnight recovery in bulk.
 - Night watch is assigned when sleep begins, not during evening chores.
+- Current limitation: watch assignments reduce the calculated ambush probability and improve security, but that probability is not yet rolled. There is no enemy approach, watcher detection/alarm, night-attack combat hand-off or undetected-attack consequence. Watchers currently remain assigned for the whole night; rotating watches are part of [issue #393](https://github.com/ScottENOC/Silverhart-Saga-3D/issues/393).
 - Combat and pending reactions take priority over autonomous companion movement.
 
 ## Companion routine presentation
