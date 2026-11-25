@@ -315,6 +315,18 @@ func _test_campaign2_source_dialogue_content() -> void:
 	var merchant_fallback := Campaign2SourceDialogueContent.role_greeting("factor_willem_drass", "Willem", "Factor", "merchant")
 	_check(not String(guard_fallback.get("text", "")).is_empty() and not String(merchant_fallback.get("text", "")).is_empty(), "Unported streamed NPCs should receive occupation-aware dialogue")
 	_check(String(guard_fallback.get("text", "")) != String(merchant_fallback.get("text", "")), "Guards and merchants should not share the same fallback conversation")
+	var simulation := WorldSimulation.new()
+	var garrick_state := CharacterState.new("garrick_holt", "Garrick Holt", Vector2i.ZERO)
+	var innkeeper_actor := Node3D.new()
+	innkeeper_actor.set_meta("title", "Innkeeper")
+	innkeeper_actor.set_meta("ambient_role", "merchant")
+	var garrick_live := Campaign2SourceDialogueContent.greeting_for_npc("garrick_holt", garrick_state, innkeeper_actor, simulation)
+	_check(String(garrick_live.get("text", "")).contains("Welcome to the Hollow Tankard"), "Streamed Hollowmere NPCs must retain their dedicated dialogue instead of receiving the merchant fallback")
+	var hendra_state := CharacterState.new("hendra_wells", "Hendra Wells", Vector2i.ZERO)
+	var hendra_live := Campaign2SourceDialogueContent.greeting_for_npc("hendra_wells", hendra_state, innkeeper_actor, simulation)
+	_check(String(hendra_live.get("text", "")).contains("Tam"), "Hendra's missing-child conversation should remain available through streamed NPC Talk")
+	innkeeper_actor.free()
+	simulation.free()
 
 func _test_companion_campaign_dialogue_and_recruitment() -> void:
 	var journal := CampaignJournal.new()
