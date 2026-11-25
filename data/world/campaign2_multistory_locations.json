@@ -5918,7 +5918,7 @@
       "id": "silverhart_outlying_house_east",
       "name": "Silverhart — Outlying Eastern House",
       "anchor": {
-        "q": 23,
+        "q": 63,
         "r": -546
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
@@ -5931,7 +5931,7 @@
             {
               "id": "silverhart_outlying_house_east_room",
               "center": {
-                "q": 23,
+                "q": 63,
                 "r": -546
               },
               "half_width": 2,
@@ -5944,7 +5944,7 @@
               "id": "silverhart_outlying_house_east_south_door",
               "type": "door_open",
               "position": {
-                "q": 23,
+                "q": 63,
                 "r": -544
               }
             }
@@ -5960,7 +5960,7 @@
       "id": "silverhart_outlying_house_far_east",
       "name": "Silverhart — Outlying Far-Eastern House",
       "anchor": {
-        "q": 48,
+        "q": 88,
         "r": -546
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
@@ -5973,7 +5973,7 @@
             {
               "id": "silverhart_outlying_house_far_east_room",
               "center": {
-                "q": 48,
+                "q": 88,
                 "r": -546
               },
               "half_width": 2,
@@ -5986,7 +5986,7 @@
               "id": "silverhart_outlying_house_far_east_south_door",
               "type": "door_open",
               "position": {
-                "q": 48,
+                "q": 88,
                 "r": -544
               }
             }
@@ -6002,7 +6002,7 @@
       "id": "silverhart_outlying_house_west",
       "name": "Silverhart — Outlying Western House",
       "anchor": {
-        "q": -32,
+        "q": 20,
         "r": -476
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
@@ -6015,7 +6015,7 @@
             {
               "id": "silverhart_outlying_house_west_room",
               "center": {
-                "q": -32,
+                "q": 20,
                 "r": -476
               },
               "half_width": 2,
@@ -6028,7 +6028,7 @@
               "id": "silverhart_outlying_house_west_east_door",
               "type": "door_open",
               "position": {
-                "q": -30,
+                "q": 22,
                 "r": -476
               }
             }
