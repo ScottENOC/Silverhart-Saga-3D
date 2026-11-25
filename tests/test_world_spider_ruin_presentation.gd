@@ -67,7 +67,8 @@ func _test_spider_ruin_rubble() -> void:
 
 func _test_chunk_scoping() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.MIRABEL_SPIDER_RUIN_CENTRE
+	var site := data.encounter_site("mirabel_spider_ruin")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24 + 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)
