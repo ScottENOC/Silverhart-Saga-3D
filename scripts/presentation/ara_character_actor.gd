@@ -638,7 +638,7 @@ func _unskinned_meshes_can_be_flattened(scene_root: Node) -> bool:
 			if ancestor is BoneAttachment3D:
 				var attachment := ancestor as BoneAttachment3D
 				push_warning("Ara unskinned mesh %s is attached to bone %s; retaining native hierarchy instead of flattening it." % [
-					str(scene_root.get_path_to(mesh)), attachment.bone_name
+					str(mesh.name), attachment.bone_name
 				])
 				return false
 			ancestor = ancestor.get_parent()
@@ -657,7 +657,7 @@ func _all_skinned_meshes_use_skeleton(scene_root: Node, expected_skeleton: Skele
 		if source_skeleton != expected_skeleton:
 			push_warning("Ara mesh %s is bound to skeleton '%s', not primary skeleton '%s'; retaining native hierarchy." % [
 				str(scene_root.get_path_to(mesh)),
-				str(source_skeleton.get_path()) if source_skeleton != null else str(mesh.skeleton),
+				str(source_skeleton.name) if source_skeleton != null else str(mesh.skeleton),
 				str(expected_skeleton.get_path())
 			])
 			return false
