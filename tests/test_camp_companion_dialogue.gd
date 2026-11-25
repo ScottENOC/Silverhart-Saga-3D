@@ -123,6 +123,7 @@ func _test_autonomous_director_exchange() -> void:
 	world.register_character(player)
 	world.register_character(aldric)
 	world.register_character(nix)
+	world.restore_party_members([player.id, aldric.id, nix.id])
 
 	# Complete a real authored companion chapter so the ambient conversation
 	# must draw its subject and decision from campaign state, not a test string.
