@@ -244,5 +244,6 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	_verify_all_silverhart_buildings_stream(builder, terrain)
 	print("Campaign 2 canonical settlement builder tests passed.")
 	quit(0)
