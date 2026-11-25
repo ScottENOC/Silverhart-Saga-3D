@@ -14,6 +14,7 @@ from tools.campaign2_authored_hex_audit import (
     target_floor_cells_by_level,
     source_floor_cells_by_level,
     interior_floor_parity_report,
+    source_road_parity_report,
 )
 
 
@@ -94,6 +95,14 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(total, 9)
         self.assertEqual(unique, 9)
 
+
+    def test_source_road_parity_reports_exact_cell_differences(self):
+        source = {"terrainCellsByBuilder": {"paintRoad": ["0,0", "1,0"]}}
+        report = source_road_parity_report(source, {"0,0", "2,0"})
+        self.assertEqual(report["matching_cells"], 1)
+        self.assertEqual(report["source_only_samples"], ["1,0"])
+        self.assertEqual(report["target_only_samples"], ["2,0"])
+        self.assertFalse(report["matches_source"])
 
     def test_target_floor_cells_include_rooms_corridors_and_explicit_masks(self):
         target = {
