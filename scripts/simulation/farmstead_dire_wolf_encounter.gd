@@ -2,7 +2,7 @@ class_name FarmsteadDireWolfEncounter
 extends RefCounted
 ## Snapshot and restore world-side/dormancy state around the farmstead encounter.
 const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
-const CombatEncounterService = preload("res://scripts/simulation/combat_encounter_service.gd")
+const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 
 static func create_dire_wolf(simulation: WorldSimulation, hex: Vector2i) -> Dictionary:
     if simulation == null:
@@ -40,7 +40,7 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
     wolf.health = wolf.max_health
     wolf.alive = true
     wolf.unconscious = false
-    var encounter_result: Dictionary = CombatEncounterService.begin(simulation, valid_party, [DIRE_WOLF_ID])
+    var encounter_result: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, [DIRE_WOLF_ID])
     if not bool(encounter_result.get("ok", false)):
         return encounter_result
     var session: Dictionary = encounter_result.get("session", {})
@@ -53,7 +53,7 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
 
 static func finish(simulation: WorldSimulation, _party_ids: Array[String], previous_states: Dictionary) -> void:
     if simulation == null: return
-    CombatEncounterService.finish(simulation, {"previous_states": previous_states})
+    COMBAT_ENCOUNTER_SERVICE.finish(simulation, {"previous_states": previous_states})
 
 static func party_defeated(simulation: WorldSimulation, party_ids: Array[String]) -> bool:
     if simulation == null: return true
