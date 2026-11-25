@@ -1043,7 +1043,9 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 			if chance > shift_detection:
 				shift_detection = chance
 				shift_watcher = watcher_id
-		best_detection = maxf(best_detection, shift_detection)
+		if shift_detection > best_detection:
+			best_detection = shift_detection
+			detecting_watcher = shift_watcher
 		var detection_roll := rng.randf()
 		if detection_roll < shift_detection:
 			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "seed": seed_value}
