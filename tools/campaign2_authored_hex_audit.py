@@ -173,6 +173,42 @@ def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
     for record in runtime.get("tileObjects", {}).values():
         if isinstance(record, dict):
             object_types[str(record.get("type", "unknown"))] += 1
+    npc_baseline = runtime.get("npcBaseline", {})
+    npc_placements: list[dict[str, Any]] = []
+    npc_by_side: dict[str, int] = defaultdict(int)
+    npc_by_faction: dict[str, int] = defaultdict(int)
+    npc_by_race: dict[str, int] = defaultdict(int)
+    npc_missing_hex = 0
+    if isinstance(npc_baseline, dict):
+        for npc_name, npc in npc_baseline.items():
+            if not isinstance(npc, dict):
+                continue
+            hex_value = npc.get("hex", {})
+            if not isinstance(hex_value, dict) or "q" not in hex_value or "r" not in hex_value:
+                npc_missing_hex += 1
+                hex_value = {}
+            side = str(npc.get("side", "neutral"))
+            faction = str(npc.get("factionId", ""))
+            race = str(npc.get("race", ""))
+            npc_by_side[side] += 1
+            if faction:
+                npc_by_faction[faction] += 1
+            if race:
+                npc_by_race[race] += 1
+            npc_placements.append({
+                "name": str(npc.get("name", npc_name)),
+                "q": int(hex_value.get("q", 0)) if hex_value else None,
+                "r": int(hex_value.get("r", 0)) if hex_value else None,
+                "floor": int(npc.get("floor", 0)),
+                "side": side,
+                "faction_id": faction,
+                "race": race,
+                "dialogue_id": str(npc.get("dialogueId", "")),
+                "behavior_type": str(npc.get("behaviorType", "")),
+                "home_hex": npc.get("homeHex"),
+                "patrol_path": npc.get("patrolPath", []),
+            })
+    npc_placements.sort(key=lambda item: item["name"].casefold())
     floors = 0
     for building in runtime.get("multiStoryBuildings", []):
         if not isinstance(building, dict):
@@ -230,6 +266,12 @@ def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
         "interior_regions": int(runtime.get("counts", {}).get("interiorRegions", 0)),
         "multi_story_buildings": int(runtime.get("counts", {}).get("multiStoryBuildings", 0)),
         "multi_story_floor_maps": floors,
+        "npc_placement_count": len(npc_placements),
+        "npc_placements_missing_hex": npc_missing_hex,
+        "npc_placements_by_side": dict(sorted(npc_by_side.items())),
+        "npc_placements_by_faction": dict(sorted(npc_by_faction.items())),
+        "npc_placements_by_race": dict(sorted(npc_by_race.items())),
+        "npc_placements": npc_placements,
         "unicorn_patrol_waypoints": int(runtime.get("counts", {}).get("unicornPatrolWaypoints", 0)),
         "source_commit": runtime.get("source", {}).get("commit"),
         "warning": "Feature-builder cells overlap one another and the base setup; counts by builder must not be summed. The unique feature-builder union excludes setupVillageScene and is not a target parity percentage.",
@@ -640,7 +682,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'{report["source_runtime"]["base_feature_overlap_cells"]:,} overlaps. '
             f'The scene also produced {report["source_runtime"]["tile_object_placements"]:,} physical object placements, '
             f'{report["source_runtime"]["interior_regions"]:,} interior regions and '
-            f'{report["source_runtime"]["multi_story_buildings"]:,} multi-storey definitions. '
+            f'{report["source_runtime"]["multi_story_buildings"]:,} multi-storey definitions, and '
+            f'{report["source_runtime"]["npc_placement_count"]:,} named NPC baseline placements. '
             "These are source-side runtime totals, not target coverage."
         ),
         "",
