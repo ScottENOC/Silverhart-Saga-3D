@@ -164,14 +164,14 @@ static func mark_chief_assassinated(simulation: WorldSimulation) -> Dictionary:
 static func start_mine_raid(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {"ok":false,"reason":"missing_simulation"}
-	return CONTENT_SCRIPT.new().start_mine_raid(simulation.campaign_journal)
+	return CONTENT_SCRIPT.start_mine_raid(simulation.campaign_journal)
 
 
 static func resolve_mine_raid(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {"ok":false,"reason":"missing_simulation"}
 	var journal := simulation.campaign_journal
-	var result: Dictionary = CONTENT_SCRIPT.new().resolve_mine_raid(journal)
+	var result: Dictionary = CONTENT_SCRIPT.resolve_mine_raid(journal)
 	if not bool(result.get("ok", false)) or not bool(result.get("applied", false)):
 		return result
 	var applied := WORLD_EFFECT_SERVICE.apply_effects(
@@ -186,13 +186,13 @@ static func resolve_mine_raid(simulation: WorldSimulation) -> Dictionary:
 static func start_greenskin_spy(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {"ok":false,"reason":"missing_simulation"}
-	return CONTENT_SCRIPT.new().start_greenskin_spy(simulation.campaign_journal)
+	return CONTENT_SCRIPT.start_greenskin_spy(simulation.campaign_journal)
 
 
 static func complete_greenskin_spy(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {"ok":false,"reason":"missing_simulation"}
-	return CONTENT_SCRIPT.new().complete_greenskin_spy(simulation.campaign_journal)
+	return CONTENT_SCRIPT.complete_greenskin_spy(simulation.campaign_journal)
 
 
 static func read_scout_note(simulation: WorldSimulation) -> Dictionary:
