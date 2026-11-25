@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""Inventory source-traceable Campaign 2 geometry already represented in 3D data.
+"""Inventory source-traceable Campaign 2 layout geometry represented in 3D data.
 
-This intentionally counts authored geometry, not the procedural terrain field.
+The audit is for deliberately authored, layout-producing geometry: roads,
+settlement footprints, walls, bridges, fields, landmark/quest props and
+authored interior floors. It is not a coordinate-parity test for random
+wilderness decoration. Randomly scattered trees, rocks, shrubs, grass and
+undergrowth are expected to differ; review those for biome character, density,
+clearings and readability instead.
+
 Run from the repository root:
     python3 tools/campaign2_authored_hex_audit.py
 Optionally pass --source-root ../Hex-crpg to validate source builder references.
@@ -760,8 +766,9 @@ def build_report(
             "counts": "Unique axial q,r cells represented by explicit target map records",
             "includes": ["strategic road cells", "settlement building footprints", "settlement path segments", "map prop anchor cells"],
             "separate": ["16x16 strategic grid", "interior floor room footprints"],
-            "excludes": ["procedural grass/forest/noise terrain", "generated wilderness", "source-authored regional feature GDScript not yet ingested", "terrain elevation samples", "NPC positions", "visual mesh subdivisions"],
-            "caveat": "This is a target-side authored-geometry inventory, not yet a source-to-target parity percentage. Source builders contain loops and helper-generated footprints; a source runtime extractor is required before claiming a complete source denominator.",
+            "excludes": ["random/procedural tree, rock, shrub, grass and undergrowth placements (coordinate parity intentionally not required)", "generated wilderness decoration (review biome character, density, clearings and readability instead)", "source-authored regional feature GDScript not yet ingested", "terrain elevation samples", "NPC positions", "visual mesh subdivisions"],
+            "parity_scope": ["layout-producing source logic: settlement/building footprints, roads and ring roads, walls, gates, bridges, defensive works, authored fields/fences, authored clearings, landmarks, deliberate physical-site props and interior floors", "gameplay/story-critical placements: entrances, clues, graves and distinctive environmental storytelling"],
+            "caveat": "This is a target-side authored-layout inventory, not yet a source-to-target parity percentage. Do not penalise differences in random wilderness decoration. Source builders contain loops and helper-generated footprints; a source runtime extractor is required before claiming a complete source denominator.",
         },
         "source": source_validation,
         "source_runtime": source_runtime_report,
