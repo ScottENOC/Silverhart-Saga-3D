@@ -140,7 +140,7 @@ static func select_choice(
                 result = {
                     "ok": true,
                     "speaker": "Ser Aldric Thorne",
-                    "text": "The ropes fall away. Aldric works feeling back into his wrists, then steadies himself. "I owe you my life. Let us deal with the goblins, and then we can speak of the road ahead."",
+                    "text": "The ropes fall away. Aldric works feeling back into his wrists, then steadies himself. \"I owe you my life. Let us deal with the goblins, and then we can speak of the road ahead.\"",
                     "choices": [{"id": "continue", "label": "We'll talk soon."}]
                 }
         else:
