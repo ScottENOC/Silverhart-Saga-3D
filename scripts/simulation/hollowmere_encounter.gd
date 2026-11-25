@@ -87,6 +87,25 @@ static func finish(simulation: WorldSimulation, previous_states: Dictionary) -> 
 	if simulation == null:
 		return
 	COMBAT_ENCOUNTER_SERVICE.finish(simulation, {"previous_states": previous_states})
+	for character_id_value in previous_states:
+		var character_id := String(character_id_value)
+		var previous: Dictionary = previous_states[character_id_value]
+		if String(previous.get("side", "")) != "player":
+			continue
+		var party_member := simulation.get_character(character_id)
+		if party_member != null:
+			party_member.side = "player"
+			party_member.combat_dormant = false
+	for ally_id in ALLY_IDS:
+		var ally := simulation.get_character(ally_id)
+		if ally != null:
+			ally.side = "neutral"
+			ally.combat_dormant = true
+	for enemy_id in ENEMY_IDS:
+		var enemy := simulation.get_character(enemy_id)
+		if enemy != null:
+			enemy.side = "enemy"
+			enemy.combat_dormant = true
 
 
 static func enemies_defeated(simulation: WorldSimulation) -> bool:
