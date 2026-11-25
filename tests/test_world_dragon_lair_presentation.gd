@@ -18,13 +18,17 @@ func _initialize() -> void:
 
 func _test_lair_outcrop_dressing() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.DRAGON_LAIR_CENTRE
+	var site := data.encounter_site("ashveil_lair")
+	_check(String(site.get("kind", "")) == "dragon_lair", "Ashveil's lair must resolve from canonical geography")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	_check(centre == FEATURES.DRAGON_LAIR_CENTRE, "Ashveil's canonical map anchor must match the terrain feature anchor")
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)
 	var result := PRESENTATION.present_chunk(parent, data, chunk_min, 24, HexGrid.DEFAULT_RADIUS_M)
 	_check(bool(result.get("ok", false)), "Ashveil lair presentation should succeed")
 	_check(int(result.get("rock_count", 0)) >= 8, "The radius-six outcrop should receive a visible ring of jagged rocks")
+	_check(result.get("anchor") == centre, "The outcrop dressing must report and use the canonical lair anchor")
 	_check(parent.get_child_count() == int(result.get("rock_count", 0)), "Each generated outcrop rock should have one stable root")
 	for child in parent.get_children():
 		var parts := String(child.name).split("_")
@@ -39,7 +43,10 @@ func _test_lair_outcrop_dressing() -> void:
 
 func _test_chunk_scoping() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.DRAGON_LAIR_CENTRE
+	var site := data.encounter_site("ashveil_lair")
+	_check(String(site.get("kind", "")) == "dragon_lair", "Ashveil's lair must resolve from canonical geography")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	_check(centre == FEATURES.DRAGON_LAIR_CENTRE, "Ashveil's canonical map anchor must match the terrain feature anchor")
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24 + 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)
