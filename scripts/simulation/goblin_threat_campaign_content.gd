@@ -35,6 +35,8 @@ func chief_greeting(relationships: PersistentCharacterRelationshipState, context
 	var options: Array[Dictionary] = []
 	if relationships.has_recorded_event(CHIEF_ID, GIFT_EVENT_KEY):
 		options.append({"id":"skarnub_offer_alliance","label":"You don't have to leave. Stay.","kind":"goblin_alliance_offer"})
+	elif int(context.get("player_gold", 0)) >= GIFT_COST:
+		options.append({"id":"skarnub_give_gift","label":"Offer 60 gold as a gift.","kind":"goblin_gift"})
 	options.append({"id":"skarnub_offer_favour","label":"I could help you, for the right price.","kind":"goblin_favour_offer"})
 	options.append({"id":"skarnub_read_chief","label":"Try to read him.","kind":"relationship_read"})
 	options.append({"id":"skarnub_threaten","label":"Leave this land, or face us.","kind":"threat"})
