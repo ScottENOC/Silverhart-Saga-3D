@@ -140,7 +140,8 @@ static func recruit_nix(simulation: WorldSimulation) -> Dictionary:
 			String(progression.get("race", "goblin")),
 			class_sequence,
 			preferred_skills,
-			String(progression.get("seed", "canonical-companion:" + FOLLOWUP_SCRIPT.NIX_ID))
+			String(progression.get("seed", "canonical-companion:" + FOLLOWUP_SCRIPT.NIX_ID)),
+			{"force_rebuild": true}
 		)
 		if not bool(build_result.get("ok", false)):
 			return {"ok": false, "reason": "nix_profile_build_failed", "detail": build_result}
