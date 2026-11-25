@@ -485,8 +485,8 @@ func _initialize() -> void:
 			_check(int(outer_room.get("half_width", 0)) == 2 and int(outer_room.get("half_height", 0)) == 2, "Silverhart outer room must preserve carveFlatRoom dimensions: " + location_id)
 		_check(_has_record(outer_floor_definition.get("tile_objects", []), outer_expected["door_id"]), "Silverhart outer room must preserve its source door: " + location_id)
 		_check(outer_floor_definition.get("actors", []).is_empty() and outer_floor_definition.get("creatures", []).is_empty(), "Silverhart outer map must not duplicate campaign-owned residents: " + location_id)
-	var southwest_floor := registry.get_floor_definition("silverhart_middle_ring_house_5", 0)
-	_check(_position_matches(southwest_floor.get("floor_hexes", [])[0], Vector2i(-32, -453)), "Southwest middle-ring house must preserve the source stray-wall-to-floor correction")
+	var southwest_middle_ring_floor := registry.get_floor_definition("silverhart_middle_ring_house_5", 0)
+	_check(_position_matches(southwest_middle_ring_floor.get("floor_hexes", [])[0], Vector2i(-32, -453)), "Southwest middle-ring house must preserve the source stray-wall-to-floor correction")
 
 	# Remaining Noble Quarter, East Quarter and outlying homes retain their
 	# source room centres, dimensions, door coordinates and fixture placements.
