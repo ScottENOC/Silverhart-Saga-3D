@@ -7,6 +7,7 @@ from tools.campaign2_authored_hex_audit import (
     rasterize_segment,
     round_away_from_zero,
     source_runtime_summary,
+    strategic_map_parity_report,
 )
 
 
@@ -112,6 +113,54 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(summary["builder_union_cells"], 3)
         self.assertEqual(summary["tile_objects_by_type"], {"table": 1})
         self.assertEqual(summary["multi_story_floor_maps"], 1)
+
+
+    def test_strategic_map_matches_source_rules_and_river(self):
+        geography = {
+            "coordinate_system": {"strategic_grid_dimensions": {"columns": 16, "rows": 16}},
+            "geography": {
+                "ocean_columns": [0, 1],
+                "orc_lands": {"columns": [10, 15], "rows": [0, 15]},
+                "dwarven_mountains": {"columns": [12, 15], "rows": [0, 4]},
+                "elven_forest": {"columns": [2, 9], "rows": [12, 15]},
+                "river_path": [[1, 5], [2, 5]],
+                "faction_overrides": [
+                    {"columns": [10, 11], "rows": [0, 1], "faction": "dwarves"},
+                    {"columns": [12, 15], "rows": [4, 4], "faction": "orcs"},
+                ],
+                "terrain_variation": {
+                    "strategic_hash": {"x_scale": 2.3, "x_offset": 5, "y_scale": 1.7, "y_offset": 3},
+                    "orc_mountain_threshold": 0.8,
+                    "orc_hills_threshold": 0.6,
+                },
+            },
+        }
+        grid = []
+        for row in range(16):
+            line = []
+            for column in range(16):
+                is_ocean = column in (0, 1)
+                is_mountain = 12 <= column <= 15 and 0 <= row <= 4
+                is_forest = not is_ocean and 2 <= column <= 9 and 12 <= row <= 15
+                is_orc = 10 <= column <= 15
+                terrain = "W" if is_ocean else ("M" if is_mountain else ("F" if is_forest else "G"))
+                faction = "" if is_ocean else ("d" if is_mountain else ("e" if is_forest else ("o" if is_orc else "h")))
+                if 10 <= column <= 11 and row <= 1:
+                    faction = "d"
+                if 12 <= column <= 15 and row == 4:
+                    faction = "o"
+                line.append({"t": terrain, "o": faction, "f": "", "p": 0, "n": ""})
+            grid.append(line)
+        grid[6][6] = {"t": "G", "f": "V", "o": "h", "p": 1, "n": "Hollowmere"}
+        runtime = {
+            "worldMapData": grid,
+            "worldRiverPath": [{"x": 1, "y": 5}, {"x": 2, "y": 5}],
+        }
+        report = strategic_map_parity_report(runtime, geography)
+        self.assertTrue(report["dimensions_match"])
+        self.assertEqual(report["unmarked_terrain_faction_mismatch_count"], 0)
+        self.assertTrue(report["river_path_matches_geography"])
+        self.assertTrue(report["hollowmere_marker_at_origin"])
 
 
 if __name__ == "__main__":
