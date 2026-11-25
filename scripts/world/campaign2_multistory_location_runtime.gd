@@ -304,8 +304,12 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 		var position_data: Dictionary = object_data.get("position", {})
 		var hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
 		var object_type := String(object_data.get("type", ""))
+		var object_id := String(object_data.get("id", object_type))
+		if object_type in ["bed", "player_bed", "storage_chest", "table", "bench", "door_open", "door_closed"]:
+			_present_furniture_prop(group, object_id, object_type, hex, anchor)
+			continue
 		var marker := MeshInstance3D.new()
-		marker.name = String(object_data.get("id", object_type))
+		marker.name = object_id
 		var material := StandardMaterial3D.new()
 		material.roughness = 0.82
 		match object_type:
@@ -365,6 +369,55 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 			label.font_size = 18
 			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			group.add_child(label)
+
+
+func _present_furniture_prop(group: Node3D, object_id: String, object_type: String, hex: Vector2i, anchor: Vector2i) -> void:
+	var prop := Node3D.new()
+	prop.name = object_id
+	prop.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS, 0.5)
+	group.add_child(prop)
+	match object_type:
+		"bed", "player_bed":
+			_add_floor_prop_piece(prop, "BedFrame", Vector3(0.0, 0.10, 0.0), Vector3(0.88, 0.18, 0.64), Color("#60432f"))
+			_add_floor_prop_piece(prop, "Mattress", Vector3(0.0, 0.25, 0.0), Vector3(0.84, 0.14, 0.60), Color("#c2b9a5"))
+			_add_floor_prop_piece(prop, "Blanket", Vector3(0.12, 0.34, 0.0), Vector3(0.54, 0.055, 0.59), Color("#65727a"))
+			_add_floor_prop_piece(prop, "Pillow", Vector3(-0.25, 0.36, 0.0), Vector3(0.26, 0.08, 0.42), Color("#e0d8c7"))
+		"storage_chest":
+			_add_floor_prop_piece(prop, "ChestBody", Vector3(0.0, 0.25, 0.0), Vector3(0.64, 0.48, 0.56), Color("#69472e"))
+			_add_floor_prop_piece(prop, "ChestLid", Vector3(0.0, 0.52, 0.0), Vector3(0.68, 0.12, 0.60), Color("#805a39"))
+			_add_floor_prop_piece(prop, "ChestLatch", Vector3(0.0, 0.40, 0.29), Vector3(0.10, 0.14, 0.035), Color("#b18a4c"))
+		"table":
+			_add_floor_prop_piece(prop, "TableTop", Vector3(0.0, 0.72, 0.0), Vector3(0.82, 0.12, 0.64), Color("#795438"))
+			for x in [-0.31, 0.31]:
+				for z in [-0.23, 0.23]:
+					_add_floor_prop_piece(prop, "TableLeg", Vector3(x, 0.35, z), Vector3(0.09, 0.70, 0.09), Color("#60432f"))
+		"bench":
+			_add_floor_prop_piece(prop, "BenchSeat", Vector3(0.0, 0.46, 0.0), Vector3(0.76, 0.12, 0.34), Color("#795438"))
+			for x in [-0.29, 0.29]:
+				for z in [-0.10, 0.10]:
+					_add_floor_prop_piece(prop, "BenchLeg", Vector3(x, 0.22, z), Vector3(0.08, 0.44, 0.08), Color("#60432f"))
+		"door_open", "door_closed":
+			_add_floor_prop_piece(prop, "DoorFrameLeft", Vector3(-0.36, 0.92, 0.0), Vector3(0.10, 1.84, 0.12), Color("#66503b"))
+			_add_floor_prop_piece(prop, "DoorFrameRight", Vector3(0.36, 0.92, 0.0), Vector3(0.10, 1.84, 0.12), Color("#66503b"))
+			_add_floor_prop_piece(prop, "DoorLintel", Vector3(0.0, 1.82, 0.0), Vector3(0.82, 0.12, 0.14), Color("#66503b"))
+			var panel := _add_floor_prop_piece(prop, "DoorPanel", Vector3(0.0, 0.88, 0.035), Vector3(0.62, 1.70, 0.075), Color("#795438"))
+			if object_type == "door_open":
+				panel.rotation.y = PI * 0.5
+
+
+func _add_floor_prop_piece(parent: Node3D, node_name: String, position: Vector3, size: Vector3, colour: Color) -> MeshInstance3D:
+	var piece := MeshInstance3D.new()
+	piece.name = node_name
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	piece.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.albedo_color = colour
+	material.roughness = 0.9
+	piece.material_override = material
+	piece.position = position
+	parent.add_child(piece)
+	return piece
 
 func _floor_material(floor_number: int) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
