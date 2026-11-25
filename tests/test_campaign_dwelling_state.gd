@@ -102,7 +102,9 @@ func _test_dwelling_camp_lodging() -> void:
 	_check(String(camp.sleeping_arrangements[1].get("shelter_type", "")) == "open_air", "Party members beyond dwelling capacity should retain ordinary outdoor sleeping.")
 	var result := camp.skip_to_morning()
 	_check(bool(result.get("ok", false)), "A mixed indoor/outdoor night should resolve.")
-	var indoor := result.summary.characters.player
-	var outdoor := result.summary.characters.companion
+	var summary: Dictionary = result.get("summary", {})
+	var characters: Dictionary = summary.get("characters", {})
+	var indoor: Dictionary = characters.get("player", {})
+	var outdoor: Dictionary = characters.get("companion", {})
 	_check(float(indoor.warmth) > float(outdoor.warmth), "Dwelling shelter should improve warmth for its occupant.")
 	_check(float(indoor.comfort) > float(outdoor.comfort), "Dwelling shelter should improve overall overnight comfort for its occupant.")
