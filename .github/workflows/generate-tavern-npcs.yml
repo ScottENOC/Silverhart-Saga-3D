@@ -7,6 +7,7 @@ on:
       - "tools/ara/generate_tavern_npc_profiles.py"
       - "tools/ara/build_hollowmere_npcs.py"
       - "tools/ara/integrate_hollowmere_anatomy.py"
+      - "tools/blender/add_adult_anatomy.py"
       - "tools/ara/patch_layering.py"
       - "tools/review/render_tavern_npc_contact_sheet.py"
       - "tools/review/compose_tavern_npc_contact_sheet.py"
