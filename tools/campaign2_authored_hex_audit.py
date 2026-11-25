@@ -884,7 +884,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'{report["strategic_map_validation"]["unmarked_terrain_faction_mismatch_count"]}; '
             f'river path match: {report["strategic_map_validation"]["river_path_matches_geography"]}; '
             f'all source marker positions match: {report["strategic_map_validation"]["markers_match"]}; '
-            f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
+            f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}. '
+            f'Source road cells: {report["source_road_validation"]["source_cells"]:,}; target road cells: {report["source_road_validation"]["target_cells"]:,}; '
+            f'matching: {report["source_road_validation"]["matching_cells"]:,}; source-only: {report["source_road_validation"]["source_only_cells"]:,}; '
+            f'target-only: {report["source_road_validation"]["target_only_cells"]:,}; exact match: {report["source_road_validation"]["matches_source"]}.'
         ),
         "",
         "| Source terrain builder | Unique cells touched |",
