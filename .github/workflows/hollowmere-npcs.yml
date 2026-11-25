@@ -67,7 +67,50 @@ jobs:
           python -m py_compile tools/ara/integrate_hollowmere_anatomy.py
           python tools/ara/integrate_hollowmere_anatomy.py --directory art/characters/hollowmere
 
-      - name: Upload generated Ara GLBs and parameter files
+      - name: Validate the complete regenerated cast
+        run: python tools/ci/validate_hollowmere_models.py
+
+      - name: Render front and side review images for every generated character
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          mkdir -p art/characters/hollowmere/review
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          root = Path("art/characters/hollowmere")
+          manifest = json.loads((root / "profiles.json").read_text())
+          for character in manifest["characters"]:
+              character_id = character["id"]
+              config = dict(character)
+              config["model"] = character["model"]
+              config_path = Path("/tmp/character-review-profile.json")
+              config_path.write_text(json.dumps(config))
+              output = root / "review" / character_id
+              subprocess.run([
+                  "blender", "--background", "--python-exit-code", "1",
+                  "--python", "tools/review/render_character_preview.py", "--",
+                  str(config_path), str(output), str(root),
+              ], check=True)
+              print(f"Rendered review images for {character['name']}", flush=True)
+          PY
+
+      - name: Install Godot 4.7.2 and validate runtime import
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and validate generated character models in Godot
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tools/ci/validate_hollowmere_models.gd
+
+      - name: Upload generated Ara GLBs, profiles and review images
         uses: actions/upload-artifact@v7
         with:
           name: hollowmere-npc-models
@@ -75,11 +118,12 @@ jobs:
             art/characters/hollowmere/*.glb
             art/characters/hollowmere/*.params.json
             art/characters/hollowmere/profiles.json
+            art/characters/hollowmere/review/**/*.png
           if-no-files-found: error
           retention-days: 90
 
       - name: Commit regenerated Hollowmere models to the integration branch
-        if: github.event_name == 'push' && (github.ref_name == 'feature/character-runtime-asset-integration' || github.ref_name == 'dev')
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'feature/unified-female-anatomy-v2' || github.ref_name == 'feature/character-runtime-asset-integration' || github.ref_name == 'dev')
         shell: bash
         run: |
           set -euo pipefail
