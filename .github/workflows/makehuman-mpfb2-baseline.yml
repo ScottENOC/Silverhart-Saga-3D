@@ -41,23 +41,27 @@ jobs:
           set -euo pipefail
           git clone https://github.com/makehumancommunity/mpfb2.git "$RUNNER_TEMP/mpfb2"
           git -C "$RUNNER_TEMP/mpfb2" rev-parse HEAD | tee mpfb2-source-commit.txt
-          mkdir -p "$HOME/.config/blender/4.2/scripts/addons"
-          cp -R "$RUNNER_TEMP/mpfb2/src/mpfb" "$HOME/.config/blender/4.2/scripts/addons/mpfb"
+          # MPFB2 is a Blender 4.2 extension. Install it in an extension
+          # repository so __package__ is bl_ext.user_default.mpfb and
+          # bpy.utils.extension_path_user() receives a valid extension ID.
+          mkdir -p "$HOME/.config/blender/4.2/extensions/user_default"
+          cp -R "$RUNNER_TEMP/mpfb2/src/mpfb" "$HOME/.config/blender/4.2/extensions/user_default/mpfb"
+          test -f "$HOME/.config/blender/4.2/extensions/user_default/mpfb/blender_manifest.toml"
 
       - name: Download original MakeHuman system assets
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.config/blender/4.2/scripts/addons/mpfb/data"
+          mkdir -p "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data"
           curl -L --retry 3 -o "$RUNNER_TEMP/makehuman_system_assets_cc0.zip" \
             https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip
-          python3 - "$RUNNER_TEMP/makehuman_system_assets_cc0.zip" "$HOME/.config/blender/4.2/scripts/addons/mpfb/data" <<'PY'
+          python3 - "$RUNNER_TEMP/makehuman_system_assets_cc0.zip" "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data" <<'PY'
           import sys, zipfile
           archive, destination = sys.argv[1:]
           with zipfile.ZipFile(archive) as zf:
               zf.extractall(destination)
           PY
-          find "$HOME/.config/blender/4.2/scripts/addons/mpfb/data" -name '*.mhclo' -print -o -name '*.mhmat' -print | sed -n '1,30p'
+          find "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data" -name '*.mhclo' -print -o -name '*.mhmat' -print | sed -n '1,30p'
 
       - name: Run the upstream garment fitting smoke test
         run: |
