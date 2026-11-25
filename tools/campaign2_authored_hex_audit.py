@@ -584,6 +584,19 @@ def render_markdown(report: dict[str, Any]) -> str:
             "These are source-side runtime totals, not target coverage."
         ),
         "",
+        "",
+        "## Strategic map source parity",
+        "",
+        "No strategic map was captured." if report.get("strategic_map_validation") is None else (
+            f'Source map dimensions: {report["strategic_map_validation"]["actual_dimensions"]["columns"]}×{report["strategic_map_validation"]["actual_dimensions"]["rows"]}; '
+            f'{report["strategic_map_validation"]["marker_count"]} named markers; '
+            f'{report["strategic_map_validation"]["actual_river_waypoints"]} river waypoints. '
+            f'Unmarked terrain/faction mismatches against the target geography rules: '
+            f'{report["strategic_map_validation"]["unmarked_terrain_faction_mismatch_count"]}; '
+            f'river path match: {report["strategic_map_validation"]["river_path_matches_geography"]}; '
+            f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
+        ),
+        "",
         "| Source terrain builder | Unique cells touched |",
         "|---|---:|",
     ])
