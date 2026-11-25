@@ -133,6 +133,18 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_persistent_character_dialogue_content.gd
       - name: Run campaign faction state tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_faction_state.gd
+      - name: Run campaign faction decision consequence tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_faction_decision_service.gd
+      - name: Run campaign world state presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_world_state_presentation.gd
+      - name: Run Reddale campaign content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_campaign_content.gd
+      - name: Run Reddale campaign dialogue service tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_campaign_dialogue_service.gd
+      - name: Run Reddale espionage content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_espionage_content.gd
+      - name: Run Reddale espionage dialogue service tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_espionage_dialogue_service.gd
       - name: Run Skarn-tooth campaign content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_campaign_content.gd
       - name: Run Skarn-tooth follow-up content tests

@@ -243,7 +243,7 @@ static func _male_anatomy_scales_for_id(character_id: String) -> Dictionary:
 
 static func _safe_metadata_string(value: Variant, fallback: String = "") -> String:
 	if value is String or value is StringName:
-		return String(value)
+		return str(value)
 	return fallback
 
 
