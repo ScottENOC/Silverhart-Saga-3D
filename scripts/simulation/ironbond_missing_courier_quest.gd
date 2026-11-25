@@ -47,6 +47,20 @@ static func mission_dialogue() -> Dictionary:
 	}
 
 
+static func confirmation_dialogue(response: String) -> Dictionary:
+	if response == "accepted":
+		return {
+			"speaker": "Dray Coltayne",
+			"text": "Good. The courier was last seen heading north with the contracts. Bring the satchel back intact. Quest added: The Missing Courier.",
+			"choices": [{"id": CHOICE_PREFIX + "continue", "label": "I'll see to it."}]
+		}
+	return {
+		"speaker": "Dray Coltayne",
+		"text": "Suit yourself.",
+		"choices": [{"id": CHOICE_PREFIX + "continue", "label": "Goodbye."}]
+	}
+
+
 static func register(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
@@ -59,9 +73,9 @@ static func handle_dialogue_choice(journal: CampaignJournal, choice_id: String) 
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
 	match choice_id:
-		CHOICE_PREFIX + "ask":
+		"ironbond_missing_courier:ask":
 			return {"ok": true, "dialogue": mission_dialogue()}
-		CHOICE_PREFIX + "accept":
+		"ironbond_missing_courier:accept":
 			var existing := journal.quest_state(QUEST_ID)
 			if not existing.is_empty():
 				return {"ok": false, "reason": "quest_already_offered"}
@@ -80,7 +94,7 @@ static func handle_dialogue_choice(journal: CampaignJournal, choice_id: String) 
 					"choices": [{"id": CHOICE_PREFIX + "continue", "label": "I'll see to it."}]
 				}
 			}
-		CHOICE_PREFIX + "decline":
+		"ironbond_missing_courier:decline":
 			return {
 				"ok": true,
 				"dismiss_after_continue": true,
@@ -90,8 +104,8 @@ static func handle_dialogue_choice(journal: CampaignJournal, choice_id: String) 
 					"choices": [{"id": CHOICE_PREFIX + "continue", "label": "Goodbye."}]
 				}
 			}
-		CHOICE_PREFIX + "walk_away":
+		"ironbond_missing_courier:walk_away":
 			return {"ok": true, "dismiss_now": true}
-		CHOICE_PREFIX + "continue":
+		"ironbond_missing_courier:continue":
 			return {"ok": true, "dismiss_now": true}
 	return {"ok": false, "reason": "unknown_dialogue_choice"}
