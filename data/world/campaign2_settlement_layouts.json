@@ -4387,6 +4387,96 @@
             "pronouns": "he/him"
           },
           "source": "Hex-crpg/campaign2Content.js:campaign2ThievesGuildInformant"
+        },
+        {
+          "id": "old_hessa",
+          "name": "Old Hessa",
+          "title": "Retrainer",
+          "race": "dwarf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "cleric"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_retrainer",
+          "ambient_role": "merchant",
+          "position": {
+            "q": 9,
+            "r": -459
+          },
+          "source_position": {
+            "q": 9,
+            "r": -459
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her",
+            "skin_colour": "#C18A68",
+            "eye_colour": "hazel",
+            "hair_colour": "#38251D",
+            "hair_style": "afro01",
+            "height": 0.34,
+            "muscle": 0.69,
+            "weight": 0.64,
+            "proportions": 0.48,
+            "breasts": 0.21,
+            "legs": 0.52
+          },
+          "visual_equipment": {},
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js:buildSilverhartPalace"
+        },
+        {
+          "id": "silverhart_mercenary_recruiter",
+          "name": "Mercenary Recruiter",
+          "title": "Sellsword Broker",
+          "race": "elf",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit",
+            "sword_dmg"
+          ],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_mercenary_broker",
+          "ambient_role": "merchant",
+          "position": {
+            "q": 11,
+            "r": -455
+          },
+          "source_position": {
+            "q": 11,
+            "r": -455
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#c79c7b",
+            "eye_colour": "#6b8b77",
+            "hair_colour": "#d5c6a0",
+            "hair_style": "short01",
+            "height": 0.1,
+            "muscle": 0.38,
+            "weight": 0.36,
+            "proportions": 0.52,
+            "breasts": 0,
+            "legs": 0.58
+          },
+          "visual_equipment": {},
+          "source": "Hex-crpg/campaign2Content.js + campaign2World.js:buildSilverhartPalace"
         }
       ],
       "creatures": [],
