@@ -163,7 +163,7 @@ func advance_real_time(real_delta: float) -> int:
         if turn_scheduler.select_next_ready(characters) != null:
             clock.accumulator = 0.0
             return 0
-    if camp_simulation.phase == "evening":
+    if camp_simulation.phase in ["evening", "morning"]:
         camp_simulation.advance_real_time(real_delta)
     return clock.advance_real_time(real_delta, is_in_combat)
 
@@ -177,7 +177,7 @@ func advance_world_seconds(delta_seconds: float) -> int:
         if turn_scheduler.select_next_ready(characters) != null:
             clock.accumulator = 0.0
             return 0
-    if camp_simulation.phase == "evening" and delta_seconds > 0.0:
+    if camp_simulation.phase in ["evening", "morning"] and delta_seconds > 0.0:
         camp_simulation.advance_real_time(delta_seconds / CampSimulation.EXPLORATION_SECONDS_PER_REAL_SECOND)
     return clock.advance_world_seconds(delta_seconds)
 
