@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.pull_request.head.sha || 'dev' }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - uses: actions/setup-node@v6
         with:
@@ -178,7 +178,7 @@ jobs:
           blend shapes. The body settings and profile skin/hair colours are baked into this export.
           
           To regenerate: run the Build Wren with native Ara generator workflow
-          on dev. The workflow uses Ara 3D Gen and tools/blender/add_female_anatomy_surface.py.
+          on dev. The workflow uses Ara 3D Gen and tools/blender/add_adult_anatomy.py.
           See wren-ara.json for the exact character profile.
           """
           with zipfile.ZipFile(root / "Wren_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
