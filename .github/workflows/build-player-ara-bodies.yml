@@ -196,6 +196,10 @@ jobs:
             exit 0
           fi
           git commit -m "Build player bodies with current gendered anatomy"
+          # Godot's full-project import can modify unrelated tracked import
+          # sidecars. Keep the validated player assets committed above, but
+          # stash those transient changes so they cannot block the rebase.
+          git stash push --include-untracked -m "temporary Godot import side effects"
           for attempt in 1 2 3; do
             git fetch origin "${GITHUB_REF_NAME}"
             git rebase "origin/${GITHUB_REF_NAME}"
