@@ -45,6 +45,7 @@ jobs:
         run: |
           node tools/extract_campaign2_source_geometry.mjs \
             --source Hex-crpg/campaign2World.js \
+            --world-map-source Hex-crpg/worldMap.js \
             --out artifacts/campaign2_source_runtime_geometry.json
       - name: Set up Python
         uses: actions/setup-python@v5
