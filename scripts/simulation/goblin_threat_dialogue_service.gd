@@ -97,6 +97,18 @@ static func select_choice(
 				"text": "Three jobs, then. Pick the one you mean to do.",
 				"choices": CONTENT_SCRIPT.new().favour_options(simulation.campaign_journal.faction_standing("goblin_tribe"))
 			}
+		elif choice_id == "skarnub_start_mine_raid":
+			result = RUNTIME_SERVICE.start_mine_raid(simulation)
+			if bool(result.get("ok", false)):
+				result = {"ok":true,"speaker":"Chief Skarnub","text":"Quest started: A Favor for the Tribe. The mine lies down the west road. Come back when you're ready to lead the raid.","choices":[{"id":"continue","label":"I'll return."}]}
+		elif choice_id == "skarnub_resolve_mine_raid":
+			result = RUNTIME_SERVICE.resolve_mine_raid(simulation)
+		elif choice_id == "skarnub_start_spy":
+			result = RUNTIME_SERVICE.start_greenskin_spy(simulation)
+			if bool(result.get("ok", false)):
+				result = {"ok":true,"speaker":"Chief Skarnub","text":"Quest started: A Hand on the Inside. The warband is gathering near Northwatch. Find a way to help them bring down the fort.","choices":[{"id":"continue","label":"I'll head east."}]}
+		elif choice_id == "skarnub_spy_status":
+			result = {"ok":true,"speaker":"Chief Skarnub","text":"Northwatch still stands. Get in there and help our warband bring it down.","choices":[{"id":"continue","label":"On it."}]}
 		elif choice_id == "skarnub_offer_diplomacy":
 			result = RUNTIME_SERVICE.resolve_threat(simulation, "goblin_diplomacy", relationships, scene_tree, local_actor_by_id)
 		elif choice_id == "skarnub_offer_alliance":
