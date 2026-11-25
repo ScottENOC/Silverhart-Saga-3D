@@ -2114,8 +2114,13 @@ func _on_combat_turn_started(_character_id: String) -> void:
 
 
 func _update_combat(_delta: float) -> void:
-	if combat_controller != null:
-		combat_controller.update_combat(encounter_active, active_character_id)
+	if combat_controller == null:
+		return
+	if not encounter_active:
+		if combat_controller.active:
+			combat_controller.end_encounter()
+		return
+	combat_controller.update_combat(true, active_character_id)
 
 
 func _attack_active_character() -> void:
