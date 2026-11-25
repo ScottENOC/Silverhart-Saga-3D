@@ -218,9 +218,9 @@ func _test_world_camp_animal_care_integration() -> void:
 		{"water": 1, "fodder": 1}
 	)
 	_check(bool(started.get("ok", false)), "World camp setup should accept an explicitly registered horse occupant")
-	var watered := world.care_camp_animal("camp_horse", "water", "player")
-	_check(bool(watered.get("ok", false)), "World simulation should expose camp horse watering")
-	_check(int(world.camp_simulation.resources.water) == 0, "World-level animal care should consume camp water")
+	world.advance_world_seconds(20.0)
+	_check(int(world.camp_simulation.resources.water) == 0, "Deterministic world-time advancement should complete scheduled horse watering")
+	_check(bool(world.camp_simulation.horse_care_for("camp_horse").get("watered", false)), "Scheduled horse watering should update the authoritative care state")
 	var fed := world.care_camp_animal("camp_horse", "feed", "player")
 	_check(bool(fed.get("ok", false)), "World simulation should expose camp horse feeding")
 	var saved := world.to_dict()
