@@ -753,11 +753,11 @@ static func camp_activity_animation_hints(activity: String) -> PackedStringArray
 		"breakfast":
 			return PackedStringArray(["use_press", "sit", "idle"])
 		"extinguish_fire":
-			return PackedStringArray(["pick_up", "crouch_idle", "use_press"])
+			return PackedStringArray(["crouch_idle", "pick_up", "use_press"])
 		"pack_camp":
 			return PackedStringArray(["pick_up", "carry_idle"])
 		"depart":
-			return PackedStringArray(["walk", "idle"])
+			return PackedStringArray(["idle"])
 		_:
 			return PackedStringArray(["idle"])
 
@@ -770,7 +770,7 @@ func play_camp_activity(activity: String) -> bool:
 	for hint in camp_activity_animation_hints(activity):
 		preferred.append(String(hint))
 	var clip := ""
-	if activity == "gather_wood" or activity == "set_up_tents" or activity == "fetch_water":
+	if activity == "gather_wood" or activity == "set_up_tents" or activity == "fetch_water" or activity == "pack_camp":
 		var pickup := _find_animation_clip(["pick_up"])
 		var follow_up := _find_animation_clip(["carry_idle"] if activity != "set_up_tents" else ["use_press"])
 		if pickup.is_empty():
@@ -783,6 +783,11 @@ func play_camp_activity(activity: String) -> bool:
 			clip = follow_up
 		else:
 			clip = pickup
+	elif activity == "extinguish_fire":
+		var crouch := _find_animation_clip(["crouch_idle"])
+		if not crouch.is_empty() and current == crouch.to_lower() and current_playing:
+			return true
+		clip = crouch if not crouch.is_empty() else _find_animation_clip(preferred)
 	elif activity == "sleep":
 		var lie_down := _find_animation_clip(["lie_down"])
 		var sleep := _find_animation_clip(["sleep"])
