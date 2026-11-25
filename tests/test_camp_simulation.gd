@@ -2,6 +2,7 @@ extends SceneTree
 
 var _failures := 0
 var _camp_actor_probes: Dictionary = {}
+var _camp_animal_care_events := 0
 
 
 class CampActivityProbe extends RefCounted:
@@ -16,6 +17,11 @@ class CampActivityProbe extends RefCounted:
 
 func _camp_actor_for_id(character_id: String) -> Object:
 	return _camp_actor_probes.get(character_id)
+
+
+func _on_camp_action_committed(event: SimulationEvent) -> void:
+	if event.event_type == "camp_animal_care":
+		_camp_animal_care_events += 1
 
 
 func _initialize() -> void:
@@ -210,6 +216,8 @@ func _test_world_camp_animal_care_integration() -> void:
 	world.register_character(player)
 	var horse := AnimalCatalog.create_state("horse", "camp_horse", "Mallow", Vector2i(1, 0), 4812)
 	_check(bool(world.register_animal(horse).get("ok", false)), "A registered world horse should be available to the camp system")
+	_camp_animal_care_events = 0
+	world.action_committed.connect(_on_camp_action_committed)
 	var started := world.begin_camp(
 		{"walkable": true, "safe_tethering": true},
 		{"camp_occupants": [
@@ -221,13 +229,17 @@ func _test_world_camp_animal_care_integration() -> void:
 	world.advance_world_seconds(20.0)
 	_check(int(world.camp_simulation.resources.water) == 0, "Deterministic world-time advancement should complete scheduled horse watering")
 	_check(bool(world.camp_simulation.horse_care_for("camp_horse").get("watered", false)), "Scheduled horse watering should update the authoritative care state")
+	_check(_camp_animal_care_events == 1, "Scheduled animal care should be published as a world simulation event")
 	var fed := world.care_camp_animal("camp_horse", "feed", "player")
+	_check(_camp_animal_care_events == 2, "Manual animal care should use the same world event channel")
 	_check(bool(fed.get("ok", false)), "World simulation should expose camp horse feeding")
 	var saved := world.to_dict()
 	var restored := WorldSimulation.new()
 	restored.load_dict(saved)
 	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("watered", false)), "World save/load should preserve camp horse care state")
 	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("fed", false)), "World save/load should preserve camp horse feeding")
+	_check(bool(restored.care_camp_animal("camp_horse", "groom", "player").get("ok", false)), "Restored world simulations should retain animal care event wiring")
+	_check(_camp_animal_care_events == 3, "Animal care after loading should still publish world events")
 	world.free()
 	restored.free()
 
