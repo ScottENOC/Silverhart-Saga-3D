@@ -71,7 +71,7 @@ jobs:
             --output build/wren-bikini/Wren_Bikini.glb \
             --report build/wren-bikini/fit-report.json \
             --fit-mode existing \
-            --skin-material Skin_Anatomy \
+            --skin-material Skin \
             --garment-material "Triangle bikini top" \
             --garment-material "Triangle bikini strings" \
             --garment-material "String bikini bottom" \
