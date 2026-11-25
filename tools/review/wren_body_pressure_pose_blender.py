@@ -157,16 +157,16 @@ def mesh_hand_contact_diagnostics(actor, report):
             group_names = {group.index: group.name for group in source.vertex_groups}
             arm_group_indices = {
                 index for index, name in group_names.items()
-                if name.lower().startswith(prefix.lower())
+                if prefix.lower() in name.lower()
                 and any(token in name.lower() for token in hand_tokens + ("forearm", "arm"))
             }
             palm_group_indices = {
                 index for index, name in group_names.items()
-                if name.lower().startswith(prefix.lower()) and "hand" in name.lower()
+                if prefix.lower() in name.lower() and "hand" in name.lower()
             }
             digit_group_indices = {
                 index for index, name in group_names.items()
-                if name.lower().startswith(prefix.lower())
+                if prefix.lower() in name.lower()
                 and any(token in name.lower() for token in digit_tokens)
             }
             vertex_weights = []
@@ -176,8 +176,9 @@ def mesh_hand_contact_diagnostics(actor, report):
                     for assignment in vertex.groups
                 })
             world_vertices = [evaluated.matrix_world @ vertex.co for vertex in mesh.vertices]
+            vertex_offset = len(body_points)
             for tri in mesh.loop_triangles:
-                indices = list(tri.vertices)
+                indices = [vertex_offset + index for index in tri.vertices]
                 arm_weight = max(
                     (vertex_weights[i].get(group_index, 0.0)
                      for i in indices for group_index in arm_group_indices),
