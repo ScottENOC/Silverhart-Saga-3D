@@ -3,12 +3,15 @@ extends Node3D
 
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
 const ARA_ANIMATION_CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb"
+const ARA_SKELETON_RETARGETER = preload("res://scripts/presentation/ara_skeleton_retargeter.gd")
 ## Ara GLB exports face +Z; the world actor convention faces -Z at zero yaw.
 const MODEL_FORWARD_YAW_OFFSET: float = PI
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
 var model_root: Node3D
+var animation_source_root: Node3D
+var skeleton_retargeter: SkeletonModifier3D
 var animation_player: AnimationPlayer
 var portrait_renderer: CharacterPortraitRenderer
 var loaded_asset_path: String = ""
@@ -26,7 +29,12 @@ func configure(glb_path: String) -> bool:
 	if model_root != null and is_instance_valid(model_root):
 		remove_child(model_root)
 		model_root.queue_free()
+	if animation_source_root != null and is_instance_valid(animation_source_root):
+		remove_child(animation_source_root)
+		animation_source_root.queue_free()
 	model_root = null
+	animation_source_root = null
+	skeleton_retargeter = null
 	animation_player = null
 	hair_instances.clear()
 	_clear_garment_attachments()
@@ -43,64 +51,63 @@ func configure(glb_path: String) -> bool:
 		push_warning("Ara character root is not Node3D: " + glb_path)
 		return false
 
-	# All gameplay bodies share the benchmark's core animation rig. Male body
-	# exports additionally contain anatomy bones for independently controlled
-	# anatomy poses. Preserve source-only bones on the carrier so the same
-	# locomotion/combat system supports both body variants without separate clips.
+	# Keep each imported character's own Skeleton3D and skin binding. The
+	# benchmark is an animation source only; its pose deltas are retargeted
+	# onto the character's native bone rests by AraSkeletonRetargeter.
 	var carrier_root: Node3D
 	if ResourceLoader.exists(ARA_ANIMATION_CARRIER_PATH):
 		var carrier_packed := load(ARA_ANIMATION_CARRIER_PATH) as PackedScene
 		if carrier_packed != null:
 			carrier_root = carrier_packed.instantiate() as Node3D
+
 	var body_skeleton := _find_skeleton(body_root)
 	var carrier_skeleton := _find_skeleton(carrier_root) if carrier_root != null else null
-	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _extend_animation_carrier_skeleton(carrier_skeleton, body_skeleton):
+	var carrier_animation_player := _find_animation_player(carrier_root) if carrier_root != null else null
+	var retargeted := false
+	if body_skeleton != null and carrier_skeleton != null and carrier_animation_player != null:
+		# Keep the source skeleton and AnimationPlayer alive, but hide its
+		# benchmark meshes. No character mesh is reparented or rebound.
 		var carrier_meshes: Array[MeshInstance3D] = []
 		_collect_meshes(carrier_root, carrier_meshes)
 		for mesh in carrier_meshes:
 			mesh.visible = false
-		var body_meshes: Array[MeshInstance3D] = []
-		_collect_meshes(body_root, body_meshes)
-		var attached_mesh_count := 0
-		for source_mesh in body_meshes:
-			if source_mesh.mesh == null:
-				continue
-			var attached_mesh := source_mesh.duplicate() as MeshInstance3D
-			if attached_mesh == null:
-				continue
-			attached_mesh.transform = _transform_from_scene_root(source_mesh, body_root)
-			carrier_root.add_child(attached_mesh)
-			if attached_mesh.skin != null:
-				attached_mesh.skeleton = attached_mesh.get_path_to(carrier_skeleton)
-			attached_mesh.visible = true
-			attached_mesh_count += 1
-		var skinned_mesh_count := 0
-		for attached_mesh in carrier_root.get_children():
-			if attached_mesh is MeshInstance3D and (attached_mesh as MeshInstance3D).skin != null:
-				skinned_mesh_count += 1
-		if attached_mesh_count > 0 and skinned_mesh_count > 0:
-			body_root.free()
-			model_root = carrier_root
-		else:
-			carrier_root.free()
+		skeleton_retargeter = ARA_SKELETON_RETARGETER.new() as SkeletonModifier3D
+		skeleton_retargeter.name = "AraAnimationRetargeter"
+		var mapped_bones: int = skeleton_retargeter.configure(carrier_skeleton, body_skeleton)
+		if mapped_bones >= 20:
+			animation_source_root = carrier_root
+			animation_source_root.name = "AraAnimationSource"
+			add_child(animation_source_root)
 			model_root = body_root
-	else:
-		if carrier_root != null:
+			model_root.name = "AraModel"
+			add_child(model_root)
+			body_skeleton.add_child(skeleton_retargeter)
+			animation_player = carrier_animation_player
+			retargeted = true
+		else:
+			push_warning("Ara character '%s' only maps %d animation bones; leaving its native rig unmodified." % [glb_path, mapped_bones])
+			skeleton_retargeter.free()
+			skeleton_retargeter = null
+	if not retargeted:
+		if carrier_root != null and is_instance_valid(carrier_root) and carrier_root.get_parent() == null:
 			carrier_root.free()
 		model_root = body_root
+		model_root.name = "AraModel"
+		add_child(model_root)
+		animation_player = _find_animation_player(model_root)
 		if body_skeleton != null and ResourceLoader.exists(ARA_ANIMATION_CARRIER_PATH):
-			push_warning("Ara body rig is not compatible with the animated benchmark; retaining its native presentation: " + glb_path)
+			push_warning("Ara animation retargeting unavailable; retaining native character rig: " + glb_path)
 
 	model_root.name = "AraModel"
 	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
-	add_child(model_root)
 	loaded_asset_path = glb_path
 	if portrait_renderer == null:
 		portrait_renderer = CharacterPortraitRenderer.new()
 		portrait_renderer.name = "PortraitRenderer"
 		add_child(portrait_renderer)
 	portrait_renderer.configure(model_root)
-	animation_player = _find_animation_player(model_root)
+	if animation_player == null:
+		animation_player = _find_animation_player(model_root)
 	call_deferred("_play_idle_if_available")
 	call_deferred("_dump_garment_surface_report")
 	return true
@@ -621,33 +628,6 @@ func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -
 ## Male body exports append anatomy bones for independently controlled poses;
 ## ordinary clips leave these bones alone unless they contain explicit tracks.
 ## Keeping the shared prefix unchanged preserves the Skin's original bone indices.
-func _extend_animation_carrier_skeleton(carrier: Skeleton3D, source: Skeleton3D) -> bool:
-	if carrier.get_bone_count() > source.get_bone_count():
-		return false
-	var shared_bone_count := carrier.get_bone_count()
-	for index in range(shared_bone_count):
-		if carrier.get_bone_name(index) != source.get_bone_name(index):
-			return false
-	for source_index in range(shared_bone_count, source.get_bone_count()):
-		var bone_name := source.get_bone_name(source_index)
-		if carrier.find_bone(bone_name) >= 0:
-			return false
-		var source_parent_index := source.get_bone_parent(source_index)
-		var carrier_parent_index := -1
-		if source_parent_index >= 0:
-			carrier_parent_index = carrier.find_bone(source.get_bone_name(source_parent_index))
-			if carrier_parent_index < 0:
-				return false
-		carrier.add_bone(bone_name)
-		var carrier_bone_index := carrier.find_bone(bone_name)
-		if carrier_bone_index < 0:
-			return false
-		carrier.set_bone_parent(carrier_bone_index, carrier_parent_index)
-		carrier.set_bone_rest(carrier_bone_index, source.get_bone_rest(source_index))
-		carrier.set_bone_pose(carrier_bone_index, source.get_bone_pose(source_index))
-	return true
-
-
 func _same_skeleton(a: Skeleton3D, b: Skeleton3D) -> bool:
 	if a.get_bone_count() != b.get_bone_count():
 		return false
