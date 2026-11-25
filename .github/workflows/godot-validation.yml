@@ -97,6 +97,8 @@ jobs:
         run: |
           python -m py_compile tools/makehuman/target_format.py
           python -m unittest discover -s tests -p test_makehuman_target_format.py
+      - name: Run distant light perception tests
+        run: godot --headless --path . --script res://tests/test_distant_light_perception.gd
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run split character and progression tests
