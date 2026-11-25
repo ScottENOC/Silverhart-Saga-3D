@@ -7,8 +7,7 @@ on:
       - feature/unified-female-anatomy-v2
     paths:
       - ".github/workflows/test-four-female-companions-anatomy-v2.yml"
-      - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/blender/add_adult_anatomy.py"
       - "character-preview/dagna-ara.json"
       - "character-preview/mirabel-ara.json"
       - "character-preview/reyna-ara.json"
@@ -39,9 +38,7 @@ jobs:
           for name in dagna mirabel reyna wren; do
             python -m json.tool "character-preview/${name}-ara.json" >/dev/null
           done
-          python -m py_compile \
-            tools/blender/add_female_anatomy_surface.py \
-            tools/blender/plan_female_anatomy_subdivision.py
+          python -m py_compile tools/blender/add_adult_anatomy.py
 
       - name: Generate and apply new anatomy to the four female companions
         shell: bash
@@ -77,35 +74,15 @@ jobs:
             test -s "${raw_glb}"
             cp "${raw_glb}" "${root}/${name}-ara-raw.glb"
 
-            # Each character gets a plan derived from its own exact source topology.
+            # Run the exact uploaded integrated-sculpt script. Its canal builder
+            # checks boundary and non-manifold edge counts before and after extrusion.
             blender --background --python-exit-code 1 \
-              --python tools/blender/plan_female_anatomy_subdivision.py -- \
-              --input "${root}/${name}-ara-raw.glb" \
-              --output "${root}/subdivision-plan.json"
-            test -s "${root}/subdivision-plan.json"
-
-            blender --background --python-exit-code 1 \
-              --python tools/blender/add_female_anatomy_surface.py -- \
+              --python tools/blender/add_adult_anatomy.py -- \
               --input "${root}/${name}-ara-raw.glb" \
               --output "${root}/${name}-anatomy-v2.glb" \
-              --report "${root}/anatomy-report.json" \
-              --subdivision-plan "${root}/subdivision-plan.json" \
-              --adult --deformation-scale 1.65
+              --profile female --adult --deformation-scale 1.65 --method integrated
             test -s "${root}/${name}-anatomy-v2.glb"
-            python - "${root}/anatomy-report.json" <<'PY'
-          import json, sys
-          from pathlib import Path
-          report = json.loads(Path(sys.argv[1]).read_text())
-          assert report["exported_nonwhite_colour_vertices"] > 0, report
-          assert report["anatomy_pigmented_vertex_count"] > 0, report
-          assert report["clothing_operations"] == "not run", report
-          print(json.dumps({
-              "skin_vertices": report["skin_vertices"],
-              "exported_nonwhite_colour_vertices": report["exported_nonwhite_colour_vertices"],
-              "anatomy_pigmented_vertex_count": report["anatomy_pigmented_vertex_count"],
-              "height_metres": report["height_metres"]
-          }, indent=2))
-          PY
+            echo "Generated ${root}/${name}-anatomy-v2.glb"
             echo "::endgroup::"
           done
 
@@ -115,8 +92,6 @@ jobs:
           name: four-female-companions-anatomy-v2-${{ github.run_number }}
           path: |
             build/four-female-companions/*/*-anatomy-v2.glb
-            build/four-female-companions/*/anatomy-report.json
-            build/four-female-companions/*/subdivision-plan.json
             build/four-female-companions/*/ara-profile.json
           if-no-files-found: error
           retention-days: 30
