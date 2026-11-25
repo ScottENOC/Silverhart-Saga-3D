@@ -10,7 +10,7 @@ const QUEST_CHAIN_META_KEY := "companion_quest_chain_state"
 static func relationship_state_for(simulation: WorldSimulation) -> CompanionRelationshipState:
 	if simulation == null:
 		return null
-	var existing: Variant = simulation.get_meta(RELATIONSHIP_META_KEY, null)
+	var existing: Variant = simulation.get_meta(RELATIONSHIP_META_KEY) if simulation.has_meta(RELATIONSHIP_META_KEY) else null
 	if existing is CompanionRelationshipState:
 		return existing
 	var state := CompanionRelationshipState.new()
@@ -21,7 +21,7 @@ static func relationship_state_for(simulation: WorldSimulation) -> CompanionRela
 static func quest_chain_state_for(simulation: WorldSimulation) -> CompanionQuestChainState:
 	if simulation == null:
 		return null
-	var existing: Variant = simulation.get_meta(QUEST_CHAIN_META_KEY, null)
+	var existing: Variant = simulation.get_meta(QUEST_CHAIN_META_KEY) if simulation.has_meta(QUEST_CHAIN_META_KEY) else null
 	if existing is CompanionQuestChainState:
 		return existing
 	var state := CompanionQuestChainState.new()
