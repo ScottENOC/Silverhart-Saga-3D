@@ -307,8 +307,15 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
 
     var aldric_before := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
     _check(not _has_companion_recruit_choice(aldric_before), "Aldric must not recruit before being freed")
-    _check(bool(journal.start_quest("aldric_rescue").get("ok", false)))
-    _check(bool(CompanionCampaignContent.complete_objective(journal, "aldric_rescue", "freed").get("ok", false)))
+    var rescue_choice_found := false
+    for choice_value in aldric_before.get("choices", []):
+        if String(choice_value.get("id", "")) == "rescue:ser_aldric_thorne":
+            rescue_choice_found = true
+    _check(rescue_choice_found, "Aldric should offer the original direct captive-rescue interaction")
+    var aldric_rescue := CompanionCampaignContent.rescue_aldric(journal)
+    _check(bool(aldric_rescue.get("ok", false)) and bool(aldric_rescue.get("applied", false)), "Freeing Aldric should complete his rescue objective")
+    var duplicate_aldric_rescue := CompanionCampaignContent.rescue_aldric(journal)
+    _check(bool(duplicate_aldric_rescue.get("ok", false)) and not bool(duplicate_aldric_rescue.get("applied", true)), "Aldric rescue should be idempotent")
     var aldric_after := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
     _check(_has_companion_recruit_choice(aldric_after), "Aldric should offer to join after rescue")
     _check(CompanionCampaignContent.is_companion_id("companion_ser_aldric_thorne"), "Manifest game IDs must resolve to companion dialogue")
