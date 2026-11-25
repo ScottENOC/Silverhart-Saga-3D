@@ -96,7 +96,7 @@ func _test_alliance_follow_up_dialogue() -> void:
 func _test_threat_resolution_paths() -> void:
 	var content := GoblinThreatCampaignContent.new()
 	var diplomacy_journal := CampaignJournal.new()
-	diplomacy_journal.seed_faction_reputation("goblin_tribe", 45.0)
+	diplomacy_journal.adjust_faction_standing("goblin_tribe", 45.0, "test diplomacy threshold")
 	var diplomacy := content.resolve_threat(diplomacy_journal, "goblin_diplomacy")
 	_check(bool(diplomacy.get("ok", false)), "High-standing diplomacy resolves the threat")
 	_check(bool(diplomacy.get("applied", false)))
