@@ -422,6 +422,8 @@ func _test_companions_walk_to_camp_stations() -> void:
 	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
 	var probe := CampActivityProbe.new()
 	var second_probe := CampActivityProbe.new()
+	var player_probe := CampActivityProbe.new()
+	_camp_actor_probes["player"] = player_probe
 	_camp_actor_probes["wren"] = probe
 	_camp_actor_probes["aldric"] = second_probe
 	var director := CampPartyActivityDirector.new()
