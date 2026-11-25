@@ -376,6 +376,19 @@ func _find_night_seed(ambush_limit: float, detection_limit: float, want_detected
 	return 0
 
 
+func _find_shift_isolation_seed(attack_limit: float, strong_limit: float, weak_limit: float) -> int:
+	for seed_value in range(1, 10000):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var attack_roll := rng.randf()
+		var first_shift_roll := rng.randf()
+		var second_shift_roll := rng.randf()
+		var third_shift_roll := rng.randf()
+		if attack_roll < attack_limit and first_shift_roll >= strong_limit and second_shift_roll >= weak_limit and second_shift_roll < strong_limit and third_shift_roll >= strong_limit:
+			return seed_value
+	return 0
+
+
 func _test_night_watch_rotation_and_detection() -> void:
 	var detected_camp := CampSimulation.new()
 	var detected_seed := _find_night_seed(0.38, 0.42, true)
@@ -409,6 +422,24 @@ func _test_night_watch_rotation_and_detection() -> void:
 	var restored_resolved := CampSimulation.new()
 	_check(restored_resolved.from_dict(saved_resolved), "Resolved encounter information should survive save/load")
 	_check(restored_resolved.night_encounter_result == detected_event, "Loading must not reroll or duplicate a resolved night event")
+
+	var mixed_seed := _find_shift_isolation_seed(0.38, 0.42, 0.27)
+	_check(mixed_seed > 0, "A deterministic seed should isolate the weaker watch shift")
+	var mixed_camp := CampSimulation.new()
+	mixed_camp.begin_camp(
+		{"walkable": true, "site_id": "mixed_watch_test"},
+		["a", "b"],
+		{"danger": 1.0, "night_seed": mixed_seed, "companion_profiles": {
+			"a": {"perception": 3.0}, "b": {"perception": 0.0}
+		}},
+		{}
+	)
+	mixed_camp.begin_night()
+	var mixed_result := mixed_camp.resolve_night()
+	var mixed_event: Dictionary = mixed_result.summary.get("night_encounter", {})
+	_check(bool(mixed_event.get("attacked", false)), "The mixed-skill deterministic roll should produce an attack")
+	_check(not bool(mixed_event.get("detected", true)), "A weaker later shift must not inherit the earlier shift's higher detection chance")
+	_check(is_equal_approx(float(mixed_event.get("detection_chance", 0.0)), 0.42), "The encounter should report the strongest individual shift chance")
 
 	var missed_camp := CampSimulation.new()
 	var missed_seed := _find_night_seed(0.38, 0.15, false)
