@@ -54,7 +54,7 @@ func configure(glb_path: String) -> bool:
 			carrier_root = carrier_packed.instantiate() as Node3D
 	var body_skeleton := _find_skeleton(body_root)
 	var carrier_skeleton := _find_skeleton(carrier_root) if carrier_root != null else null
-	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _all_skinned_meshes_use_skeleton(body_root, body_skeleton) and _extend_animation_carrier_skeleton(carrier_skeleton, body_skeleton):
+	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _all_skinned_meshes_use_skeleton(body_root, body_skeleton) and _unskinned_meshes_can_be_flattened(body_root) and _extend_animation_carrier_skeleton(carrier_skeleton, body_skeleton):
 		var carrier_meshes: Array[MeshInstance3D] = []
 		_collect_meshes(carrier_root, carrier_meshes)
 		for mesh in carrier_meshes:
@@ -622,6 +622,30 @@ func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -
 ## ordinary clips leave these bones alone unless they contain explicit tracks.
 ## Keeping the shared prefix unchanged preserves the Skin's original bone indices.
 const MAX_SHARED_BONE_REST_ORIGIN_DELTA_METRES := 0.025
+
+
+## Unskinned meshes parented beneath a skeleton or BoneAttachment3D inherit
+## a live bone transform. Flattening them to the model root loses that binding.
+## Until the carrier can recreate these attachments, retain the native hierarchy.
+func _unskinned_meshes_can_be_flattened(scene_root: Node) -> bool:
+	var meshes: Array[MeshInstance3D] = []
+	_collect_meshes(scene_root, meshes)
+	for mesh in meshes:
+		if mesh.mesh == null or mesh.skin != null:
+			continue
+		var ancestor := mesh.get_parent()
+		while ancestor != null and ancestor != scene_root:
+			if ancestor is BoneAttachment3D:
+				var attachment := ancestor as BoneAttachment3D
+				push_warning("Ara unskinned mesh %s is attached to bone %s; retaining native hierarchy instead of flattening it." % [
+					str(scene_root.get_path_to(mesh)), attachment.bone_name
+				])
+				return false
+			if ancestor is Skeleton3D:
+				push_warning("Ara unskinned mesh %s is parented under Skeleton3D; retaining native hierarchy instead of flattening it." % str(scene_root.get_path_to(mesh)))
+				return false
+			ancestor = ancestor.get_parent()
+	return true
 
 
 ## The carrier path currently supports one source skeleton. Never silently
