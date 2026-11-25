@@ -7,7 +7,7 @@
 
 ## Context
 
-The starting location controller `scripts/world/hollow_tankard.gd` currently contains both location-specific interactions and shared encounter orchestration. In addition to starting particular tavern/farm encounters, it owns active encounter flags and rosters, AI turn dispatch, player attack targeting, turn completion, combat HUD updates, and a large encounter-resolution dispatcher.
+Before this migration, the starting location controller `scripts/world/hollow_tankard.gd` combined location-specific interactions with shared encounter orchestration, including active rosters, AI turn dispatch, player attack targeting, turn completion, HUD updates and encounter resolution. The migration below records the separation now in place and the remaining work.
 
 This creates the wrong dependency direction. A new camp ambush would have to call into a tavern controller or duplicate the same logic. Other locations would face the same pressure. The project already has reusable simulation primitives (`WorldSimulation`, `CombatAI`, `CombatTurnScheduler`, `CombatRules`) and a presentation HUD, but it lacks a shared encounter lifecycle/controller boundary.
 
@@ -91,17 +91,19 @@ The first incremental slice is now present:
 - Farm-wolf encounter setup now also lives in the farm quest service. `HollowTankard` retains only the location-specific wolf spawn/actor presentation and the common combat roster handed to the shared runtime.
 - The presentation layer consumes simple descriptors from domain resolution (dialogue, status text, actor removal, companion dialogue) without owning quest completion/failure.
 
-This is not yet the target architecture. The service does not yet own spawn/remove requests, encounter identity, save/load serialization or surprise modifiers. The tavern Ironbond/abandoned-house encounters and other farm encounters still need migration, and `HollowTankard` still owns encounter rosters and a resolution dispatcher. Those gaps remain explicit work, not implied as complete.
+This is not yet the target architecture. The simulation service does not yet own spawn/remove requests, stable encounter identity, save/load serialization or surprise modifiers. `HollowTankard` still owns the local creature spawn and actor presentation for the farm wolves, and its encounter-start methods still coordinate location prerequisites and presentation. The shared controller now owns active rosters; the location invokes a domain resolver instead of owning resolution decisions. These gaps remain explicit work, not implied as complete.
 
 ## Migration sequence
 
-1. Audit current combat call sites and record ownership before moving code.
-2. Extract the shared combat loop and HUD/actor adapter from `HollowTankard` without changing behaviour. Preserve the current authored tavern encounters as regression cases.
-3. Move tavern encounter setup/resolution into dedicated encounter content/services; leave `HollowTankard` as a caller and location presenter.
-4. Move farm/wolf setup and resolution into its own encounter service and migrate it to the shared runtime.
-5. Connect camp night-watch results to the same encounter service/runtime. Detection changes the encounter's surprise/initiative configuration; the simulation remains unaware of camp visuals.
-6. Add integration tests for multiple encounter kinds, defeat, victory, retreat, pending reactions, actor cleanup/recreation, save/load boundaries and deterministic surprise.
-7. Delete obsolete generic combat state and methods from `HollowTankard`.
+1. [x] Audit current combat call sites and record ownership before moving code.
+2. [x] Extract the shared combat loop/controller from `HollowTankard` without changing the existing combat rules.
+3. [x] Move the Ironbond and abandoned-house participant lifecycle and domain outcome resolution into their owning services.
+4. [x] Move farm-wolf and dire-wolf participant lifecycle and domain outcome resolution into their owning services.
+5. [x] Replace the location's encounter-kind resolution switch with a common domain-resolver contract and move active rosters into `CombatEncounterController`.
+6. [ ] Move the remaining location-specific spawn/presentation orchestration behind encounter presentation adapters where useful; keep map placement and spawn-cell selection location-owned.
+7. [ ] Extend the simulation service for stable encounter identity, save/load boundaries and explicit surprise/initiative modifiers.
+8. [ ] Connect camp night-watch results to the same runtime. Detection changes the encounter's surprise/initiative configuration; simulation remains unaware of camp visuals.
+9. [ ] Expand integration tests for retreat, pending reactions, actor cleanup/recreation, save/load and deterministic surprise; validate the exact branch head.
 
 The migration is incremental. Do not perform a risky wholesale rewrite of all combat rules or the location scene.
 
