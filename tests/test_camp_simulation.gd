@@ -255,6 +255,7 @@ func _test_world_camp_animal_care_integration() -> void:
 	var saved := world.to_dict()
 	var restored := WorldSimulation.new()
 	restored.load_dict(saved)
+	restored.action_committed.connect(_on_camp_action_committed)
 	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("watered", false)), "World save/load should preserve camp horse care state")
 	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("fed", false)), "World save/load should preserve camp horse feeding")
 	_check(bool(restored.care_camp_animal("camp_horse", "groom", "player").get("ok", false)), "Restored world simulations should retain animal care event wiring")
