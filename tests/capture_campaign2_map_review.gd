@@ -67,6 +67,26 @@ func _capture_all_views() -> void:
 		preview.set("camera_distance", float(view["distance"]))
 		preview.call("_update_camera")
 		preview.call("_update_streamed_chunks", true)
+		var centre_chunk: Vector2i = terrain_data.call("chunk_for_hex", hex, 24)
+		var terrain_counts: Dictionary = {}
+		for q in range((centre_chunk.x - 1) * 24, (centre_chunk.x + 2) * 24):
+			for r in range((centre_chunk.y - 1) * 24, (centre_chunk.y + 2) * 24):
+				var terrain_id := String(terrain_data.call("terrain_for_hex", Vector2i(q, r)))
+				terrain_counts[terrain_id] = int(terrain_counts.get(terrain_id, 0)) + 1
+		var chunk_meshes: Dictionary = {}
+		var streamed_chunks: Dictionary = preview.get("chunk_nodes")
+		for chunk_value in streamed_chunks.values():
+			var chunk_node := chunk_value as Node3D
+			if chunk_node == null:
+				continue
+			for child in chunk_node.get_children():
+				var mesh_instance := child as MeshInstance3D
+				if mesh_instance == null or not mesh_instance.name.begins_with("Terrain_") or mesh_instance.mesh == null:
+					continue
+				chunk_meshes[mesh_instance.name] = int(chunk_meshes.get(mesh_instance.name, 0)) + mesh_instance.mesh.get_surface_count()
+		print("[MapReview] %s terrain_cells=%s terrain_mesh_surfaces=%s streamed_chunks=%d" % [
+			String(view["name"]), terrain_counts, chunk_meshes, streamed_chunks.size()
+		])
 		for _frame in range(10):
 			await process_frame
 		RenderingServer.force_draw(false)
