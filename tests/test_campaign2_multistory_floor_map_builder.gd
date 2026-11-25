@@ -540,9 +540,9 @@ func _has_walkable_path(map_data: HexMapData, start: Vector2i, goal: Vector2i) -
 	return false
 
 func _test_every_registered_floor_map(registry: Campaign2MultiStoryLocationRegistry) -> void:
-	# A source-to-target inventory sweep: every registered physical location and
-	# every one of its floors must produce a logical map, not just the hand-picked
-	# high-profile interiors asserted above.
+	# A source-to-target inventory sweep: every physical floor must build. The
+	# two Silverhart tunnel records deliberately have empty floor-0 host anchors;
+	# their actual one-cell cave geometry is authored on floor -9.
 	var checked_floors := 0
 	for location_id in registry.location_ids():
 		var location_definition: Dictionary = registry.get_definition(location_id)
@@ -550,14 +550,23 @@ func _test_every_registered_floor_map(registry: Campaign2MultiStoryLocationRegis
 		_check(bool(location_state.configure(location_definition).get("ok", false)), "Every registered location must configure: " + location_id)
 		for floor_definition in location_definition.get("floors", []):
 			var floor_number := int(floor_definition.get("floor", 0))
+			var has_floor_geometry := not floor_definition.get("rooms", []).is_empty() or not floor_definition.get("corridors", []).is_empty() or not floor_definition.get("floor_hexes", []).is_empty() or not floor_definition.get("tile_objects", []).is_empty()
+			if not has_floor_geometry:
+				var is_tunnel_host_anchor := location_id in ["silverhart_city_tunnel", "silverhart_palace_tunnel"] and floor_number == 0
+				_check(is_tunnel_host_anchor, "Only the two source tunnel host anchors may have no floor geometry: %s floor %d" % [location_id, floor_number])
+				continue
 			var result: Dictionary = FLOOR_BUILDER.build_floor_map(location_definition, floor_number, location_state)
 			_check(bool(result.get("ok", false)), "Every registered source floor must build: %s floor %d" % [location_id, floor_number])
 			var map_data := result.get("map_data") as HexMapData
 			_check(map_data != null, "Every registered source floor must return HexMapData: %s floor %d" % [location_id, floor_number])
 			if map_data != null:
 				_check(not map_data.cells.is_empty(), "Every registered source floor must contain physical map cells: %s floor %d" % [location_id, floor_number])
+				if location_id in ["silverhart_city_tunnel", "silverhart_palace_tunnel"]:
+					_check(map_data.is_walkable(Vector2i(int(location_definition.anchor.q), int(location_definition.anchor.r))), "Tunnel endpoint must preserve its one-cell source cave floor: " + location_id)
+					_check(result.get("walkable_hexes", []).size() == 1, "Tunnel endpoint must remain a one-cell stub, not an invented tunnel: " + location_id)
+					_check(result.get("tile_objects", []).size() == 1, "Tunnel endpoint must present its junction marker: " + location_id)
 			checked_floors += 1
-	_check(checked_floors == 89, "The current source-authored registry should validate all 89 registered floor maps, got %d" % checked_floors)
+	_check(checked_floors == 87, "The current source-authored registry should validate 87 physical floors plus two empty host anchors, got %d" % checked_floors)
 
 
 func _has_object(objects: Array, object_id: String) -> bool:
