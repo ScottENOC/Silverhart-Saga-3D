@@ -10,8 +10,6 @@ on:
       - "tools/ara/patch_layering.py"
       - "tools/ara/integrate_hollowmere_anatomy.py"
       - "tools/blender/add_adult_anatomy.py"
-      - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/plan_female_anatomy_subdivision.py"
       - "tools/blender/add_male_anatomy.py"
       - ".github/workflows/hollowmere-npcs.yml"
 
@@ -62,7 +60,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
 
-      - name: Integrate Workshop anatomy into every adult NPC model
+      - name: Integrate v2 female and dedicated male anatomy into every adult NPC model
         shell: bash
         run: |
           set -euo pipefail
