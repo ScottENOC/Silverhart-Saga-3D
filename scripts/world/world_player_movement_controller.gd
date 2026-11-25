@@ -1,9 +1,9 @@
 extends Node
 class_name WorldPlayerMovementController
 
-## Keep logical path steps just slower than the 0.36s actor tween so a character
-## reaches each hex centre before the next movement event interrupts its animation.
+## Keep logical path steps just slower than the 0.36s actor tween.
 const PATH_STEP_INTERVAL: float = 0.40
+const FOLLOW_DISTANCE: int = 2
 
 var simulation: WorldSimulation
 var presentation_root: Node3D
@@ -14,6 +14,8 @@ var world_position_for_hex: Callable
 var active_path: Array[Vector2i] = []
 var path_markers: Array[MeshInstance3D] = []
 var path_step_accumulator: float = 0.0
+var group_movement_enabled: bool = false
+var _follower_cursor: int = 0
 
 func configure(campaign_simulation: WorldSimulation, world_presentation_root: Node3D, marker_mesh: Mesh, marker_material: Material, hex_world_position: Callable, initial_character_id: String = "player") -> void:
 	simulation = campaign_simulation
@@ -26,6 +28,16 @@ func configure(campaign_simulation: WorldSimulation, world_presentation_root: No
 func set_active_character_id(character_id: String) -> void:
 	clear_path()
 	active_character_id = character_id
+	_follower_cursor = 0
+
+func set_group_movement_enabled(enabled: bool) -> void:
+	group_movement_enabled = enabled and simulation != null and not simulation.is_in_combat
+	_follower_cursor = 0
+	if not group_movement_enabled:
+		return
+
+func is_group_movement_enabled() -> bool:
+	return group_movement_enabled and simulation != null
 
 func set_destination(destination: Vector2i) -> void:
 	if simulation == null:
@@ -67,13 +79,16 @@ func handle_directional_key(keycode: int) -> bool:
 	return true
 
 func process_movement(delta: float) -> void:
-	if active_path.size() < 2:
+	if simulation == null:
 		return
 	path_step_accumulator += delta
 	if path_step_accumulator < PATH_STEP_INTERVAL:
 		return
 	path_step_accumulator = 0.0
-	_advance_path_step()
+	if active_path.size() >= 2:
+		_advance_path_step()
+	if is_group_movement_enabled() and not simulation.is_in_combat:
+		_advance_group_followers()
 
 func get_active_path() -> Array[Vector2i]:
 	return active_path.duplicate()
@@ -108,6 +123,60 @@ func _advance_path_step() -> void:
 	_show_path_markers(active_path)
 	if active_path.size() < 2:
 		clear_path()
+
+func _advance_group_followers() -> void:
+	if simulation.clock.paused or simulation.has_pending_reaction():
+		return
+	var leader := simulation.get_character(active_character_id)
+	if leader == null:
+		return
+	var party_ids := simulation.get_party_member_ids()
+	var followers: Array[String] = []
+	for value in party_ids:
+		var character_id := String(value)
+		if character_id != active_character_id:
+			followers.append(character_id)
+	if followers.is_empty():
+		return
+	# Rotate processing priority, but let every eligible follower advance once
+	# per leader step so a larger party does not progressively fall behind.
+	_follower_cursor = posmod(_follower_cursor, followers.size())
+	for offset in range(followers.size()):
+		var index := (_follower_cursor + offset) % followers.size()
+		var follower_id := followers[index]
+		var follower := simulation.get_character(follower_id)
+		if follower == null or not follower.can_act():
+			continue
+		if HexGrid.distance(follower.axial, leader.axial) <= FOLLOW_DISTANCE:
+			continue
+		var destination := _best_following_hex(follower_id, follower.axial, leader.axial)
+		if destination == follower.axial:
+			continue
+		var route := simulation.find_path(follower_id, destination)
+		if route.size() < 2:
+			continue
+		var next_hex: Vector2i = route[1]
+		if follower.time_points < simulation.movement_cost(follower_id, next_hex):
+			continue
+		simulation.try_move_character_step(follower_id, next_hex)
+	_follower_cursor = (_follower_cursor + 1) % followers.size()
+
+func _best_following_hex(follower_id: String, follower_hex: Vector2i, leader_hex: Vector2i) -> Vector2i:
+	var best_hex := follower_hex
+	var best_distance := 2147483647
+	for direction in HexGrid.DIRECTIONS:
+		var candidate: Vector2i = leader_hex + direction
+		if not simulation.map_data.is_walkable(candidate):
+			continue
+		if simulation.is_hex_occupied(candidate):
+			var occupant := String(simulation.occupied_hexes.get(candidate, ""))
+			if occupant != follower_id:
+				continue
+		var distance := HexGrid.distance(follower_hex, candidate)
+		if distance < best_distance:
+			best_distance = distance
+			best_hex = candidate
+	return best_hex
 
 func _show_path_markers(path: Array[Vector2i]) -> void:
 	_clear_path_markers()

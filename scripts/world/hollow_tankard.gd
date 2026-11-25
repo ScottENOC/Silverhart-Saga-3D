@@ -81,6 +81,7 @@ var player_profile: Dictionary = {}
 var active_party_index: int = 0
 var active_character_id: String = "player"
 var party_switch_button: Button
+var group_movement_button: Button
 var zoom_slider: HSlider
 var rotate_left_button: Button
 var rotate_right_button: Button
@@ -822,7 +823,7 @@ func _create_hud() -> void:
 	var controls_dialog := AcceptDialog.new()
 	controls_dialog.name = "ControlsDialog"
 	controls_dialog.title = "Hollow Tankard — Controls"
-	controls_dialog.dialog_text = "MOVE\\nW / A / S / D / Q / E — move one hex\\nClick a walkable hex — plot a path\\n[ and ] — turn active character\\n\\nINTERACT\\nF — use nearby door/stairs or talk to nearest person\\nG — gather nearby resource\\nTab — switch active party member\\nC — character sheet\\nK — skill trees and skill points\\nI — inventory and equipment\\n\\nCOMBAT\\nSpace — attack\\nEnter — end turn\\n\\nWORLD\\nV — toggle roof"
+	controls_dialog.dialog_text = "MOVE\\nW / A / S / D / Q / E — move one hex\\nClick a walkable hex — plot a path\\n[ and ] — turn active character\\n\\nINTERACT\\nF — use nearby door/stairs or talk to nearest person\\nGroup Move — toggle party following during exploration\\nG — gather nearby resource\\nTab — switch active party member\\nC — character sheet\\nK — skill trees and skill points\\nI — inventory and equipment\\n\\nCOMBAT\\nSpace — attack\\nEnter — end turn\\n\\nWORLD\\nV — toggle roof"
 	controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nF5 — quick save\nF9 — quick load\nV — toggle roof"
 	controls_dialog.min_size = Vector2i(420, 430)
 	layer.add_child(controls_dialog)
@@ -848,6 +849,14 @@ func _create_hud() -> void:
 	party_switch_button.custom_minimum_size = Vector2(230.0, 42.0)
 	party_switch_button.pressed.connect(_switch_party_member)
 	layer.add_child(party_switch_button)
+
+	group_movement_button = Button.new()
+	group_movement_button.text = "Group Move: OFF"
+	group_movement_button.tooltip_text = "When enabled, travelling companions follow the active character during exploration."
+	group_movement_button.position = Vector2(390.0, 66.0)
+	group_movement_button.custom_minimum_size = Vector2(180.0, 38.0)
+	group_movement_button.pressed.connect(_toggle_group_movement)
+	layer.add_child(group_movement_button)
 
 	var character_panel_button := Button.new()
 	character_panel_button.text = "Character  [C]"
@@ -2660,6 +2669,7 @@ func _process(delta: float) -> void:
 		_refresh_nearby_interactions()
 	if movement_controller != null:
 		movement_controller.process_movement(delta)
+	_refresh_group_movement_button()
 	if camp_activity_director != null:
 		camp_activity_director.process_activity_movement(delta)
 
@@ -2805,6 +2815,22 @@ func _screen_position_to_hex(screen_position: Vector2) -> Vector2i:
 	if not simulation.map_data.has_cell(hex):
 		return INVALID_HEX
 	return hex
+
+func _toggle_group_movement() -> void:
+	if movement_controller == null or simulation == null or simulation.is_in_combat:
+		return
+	movement_controller.set_group_movement_enabled(not movement_controller.is_group_movement_enabled())
+	_refresh_group_movement_button()
+
+
+func _refresh_group_movement_button() -> void:
+	if group_movement_button == null:
+		return
+	var enabled := movement_controller != null and movement_controller.is_group_movement_enabled()
+	group_movement_button.text = "Group Move: ON" if enabled else "Group Move: OFF"
+	group_movement_button.disabled = simulation != null and simulation.is_in_combat
+	group_movement_button.tooltip_text = "Party follows the active character during exploration." if not group_movement_button.disabled else "Group movement is unavailable during turn-based combat."
+
 
 func _set_move_destination(destination: Vector2i) -> void:
 	if movement_controller != null:
