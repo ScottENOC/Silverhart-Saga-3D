@@ -1021,7 +1021,7 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 			var watcher_id := String(watcher_value)
 			var profile: Dictionary = companion_profiles.get(watcher_id, {})
 			var skills: Dictionary = profile.get("skills", {}) if profile.get("skills", {}) is Dictionary else {}
-			var perception := float(profile.get("perception", skills.get("perception", skills.get("awareness", 0.0))))
+			var perception := float(profile.get("perception", skills.get("keen_perception", skills.get("perception", skills.get("awareness", 0.0)))))
 			var fatigue := float(conditions.get(watcher_id, {}).get("fatigue", 40.0))
 			var chance := clampf((0.35 + perception * 0.05 - fatigue * 0.002) * visibility, 0.05, 0.9)
 			if chance > best_detection:
