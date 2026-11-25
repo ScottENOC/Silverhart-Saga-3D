@@ -5204,7 +5204,8 @@
               "position": {
                 "q": 26,
                 "r": -479
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5254,7 +5255,8 @@
               "position": {
                 "q": 32,
                 "r": -480
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5304,7 +5306,8 @@
               "position": {
                 "q": 23,
                 "r": -470
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5354,7 +5357,8 @@
               "position": {
                 "q": 26,
                 "r": -471
-              }
+              },
+              "light_radius": 6
             }
           ],
           "actors": [],
@@ -5436,8 +5440,8 @@
               "id": "silverhart_middle_ring_house_northeast_east_door",
               "type": "door_open",
               "position": {
-                "q": 51,
-                "r": -536
+                "q": 49,
+                "r": -538
               }
             }
           ],
@@ -6361,6 +6365,138 @@
       ],
       "transitions": [],
       "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_1",
+      "name": "Silverhart — Northeast Outlying House 1",
+      "anchor": {
+        "q": 23,
+        "r": -546
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Northeast Outlying House 1",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_1_room",
+              "center": {
+                "q": 23,
+                "r": -546
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_1_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 23,
+                "r": -544
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": []
+    },
+    {
+      "id": "silverhart_outlying_house_2",
+      "name": "Silverhart — Northeast Outlying House 2",
+      "anchor": {
+        "q": 48,
+        "r": -546
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Northeast Outlying House 2",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_2_room",
+              "center": {
+                "q": 48,
+                "r": -546
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_2_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 48,
+                "r": -544
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": []
+    },
+    {
+      "id": "silverhart_outlying_house_3",
+      "name": "Silverhart — West Outlying House",
+      "anchor": {
+        "q": -32,
+        "r": -476
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — West Outlying House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_3_room",
+              "center": {
+                "q": -32,
+                "r": -476
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_3_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -30,
+                "r": -476
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": []
     }
   ]
 }
