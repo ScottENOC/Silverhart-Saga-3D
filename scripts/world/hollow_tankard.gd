@@ -2319,7 +2319,7 @@ func _start_farm_wolf_encounter() -> void:
 	encounter_active = true
 	if not party_ids_active.has(active_character_id):
 		active_character_id = "player"
-	_activate_combat_controller()
+	_activate_combat_controller(enemy_ids, party_ids_active, controlled_ids)
 	_update_combat_ui()
 	_show_dialogue("Wilderness", "A low growl rolls through the trees. Three wolves emerge from the den and spread out to surround you.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
