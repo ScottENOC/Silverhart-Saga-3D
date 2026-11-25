@@ -35,7 +35,11 @@ const CHARACTER_ASSET_PATHS := [
 	"res://art/characters/hollowmere/yvette.glb"
 ]
 
+const CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb"
+const MAX_REST_ORIGIN_DELTA_METRES := 0.025
+
 var failures: int = 0
+var reference_skeleton: Skeleton3D
 
 
 func _initialize() -> void:
@@ -50,6 +54,22 @@ func _run() -> void:
 	if failures > 0:
 		_finish()
 		return
+
+	var carrier_packed := load(CARRIER_PATH) as PackedScene
+	_check(carrier_packed != null, "Animated benchmark imports as a PackedScene")
+	if carrier_packed == null:
+		_finish()
+		return
+	var carrier_root := carrier_packed.instantiate() as Node3D
+	root.add_child(carrier_root)
+	reference_skeleton = _find_skeleton(carrier_root)
+	_check(reference_skeleton != null, "Animated benchmark exposes the reference Skeleton3D")
+	if reference_skeleton == null:
+		_finish()
+		return
+
+	_check_source_rig_compatible(BODY_PATHS[0], "Ara female player body")
+	_check_source_rig_compatible(BODY_PATHS[1], "Ara male player body")
 
 	var actor := ACTOR_SCRIPT.new()
 	root.add_child(actor)
@@ -146,6 +166,44 @@ func _run() -> void:
 	_finish()
 
 
+func _check_source_rig_compatible(asset_path: String, label: String) -> void:
+	var packed := load(asset_path) as PackedScene
+	_check(packed != null, label + " source asset imports")
+	if packed == null:
+		return
+	var source_root := packed.instantiate() as Node3D
+	var source_skeleton := _find_skeleton(source_root)
+	_check(source_skeleton != null, label + " source asset contains a skeleton")
+	if source_skeleton == null:
+		source_root.free()
+		return
+	_check(source_skeleton.get_bone_count() >= reference_skeleton.get_bone_count(),
+		label + " contains every benchmark animation bone")
+	if source_skeleton.get_bone_count() >= reference_skeleton.get_bone_count():
+		for index in range(reference_skeleton.get_bone_count()):
+			var expected_name := reference_skeleton.get_bone_name(index)
+			var actual_name := source_skeleton.get_bone_name(index)
+			_check(actual_name == expected_name,
+				"%s shared bone %d is %s (expected %s)" % [label, index, actual_name, expected_name])
+			if actual_name != expected_name:
+				continue
+			var expected_parent := reference_skeleton.get_bone_parent(index)
+			var actual_parent := source_skeleton.get_bone_parent(index)
+			var expected_parent_name := reference_skeleton.get_bone_name(expected_parent) if expected_parent >= 0 else ""
+			var actual_parent_name := source_skeleton.get_bone_name(actual_parent) if actual_parent >= 0 else ""
+			_check(actual_parent_name == expected_parent_name,
+				"%s bone %s parent matches (%s)" % [label, expected_name, expected_parent_name])
+			var expected_rest := reference_skeleton.get_bone_rest(index)
+			var actual_rest := source_skeleton.get_bone_rest(index)
+			var origin_delta := actual_rest.origin.distance_to(expected_rest.origin)
+			_check(origin_delta <= MAX_REST_ORIGIN_DELTA_METRES and actual_rest.basis.is_equal_approx(expected_rest.basis),
+				"%s bone %s rest transform matches (origin delta %.2f mm)" % [label, expected_name, origin_delta * 1000.0])
+	print("ARA_RIG_DIAGNOSTIC asset=%s source_bones=%d carrier_bones=%d" % [
+		asset_path, source_skeleton.get_bone_count(), reference_skeleton.get_bone_count()
+	])
+	source_root.free()
+
+
 func _find_skeleton(node: Node) -> Skeleton3D:
 	if node == null:
 		return null
@@ -183,6 +241,7 @@ func _finish() -> void:
 
 
 func _assert_character_asset_animated(asset_path: String, label: String) -> void:
+	_check_source_rig_compatible(asset_path, label)
 	var actor := ACTOR_SCRIPT.new()
 	root.add_child(actor)
 	var configured: bool = actor.configure(asset_path)
