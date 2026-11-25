@@ -445,6 +445,11 @@ func _test_companions_walk_to_camp_stations() -> void:
 	for _step in range(20):
 		director.process_activity_movement(0.7)
 	_check(probe.last_activity == "watch", "The director should update the companion's station and Ara routine after reassignment")
+	var morning_result := world.skip_camp_to_morning()
+	_check(bool(morning_result.ok), "The camp should enter its morning routine after sleep.")
+	_check(player_probe.last_activity == "wake", "The player actor should receive the morning wake animation without taking away movement control.")
+	world.advance_real_time(3.0)
+	_check(player_probe.last_activity == "dress", "The player actor should receive the dressing animation at the next morning stage.")
 	director.stop()
 	_check(not director.is_running(), "Packing or sleeping should be able to stop autonomous camp movement")
 	director.free()
