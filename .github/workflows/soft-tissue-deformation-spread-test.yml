@@ -1,0 +1,57 @@
+name: Soft tissue deformation spread diagnostic
+
+on:
+  push:
+    branches: [feature/soft-tissue-deformation-spread-test]
+    paths:
+      - "tools/review/soft_tissue_spread_test_blender.py"
+      - ".github/workflows/soft-tissue-deformation-spread-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: soft-tissue-deformation-spread-test
+  cancel-in-progress: true
+
+jobs:
+  controlled-spread-test:
+    name: Render and measure deformation spread
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender xvfb libegl1 libgl1-mesa-dri
+      - name: Generate controlled comparison
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          python -m py_compile tools/review/soft_tissue_spread_test_blender.py
+          blender --background --python-exit-code 1 --python tools/review/soft_tissue_spread_test_blender.py
+          test -s build/soft-tissue-spread/soft-tissue-spread-comparison.png
+          test -s build/soft-tissue-spread/soft-tissue-spread-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("build/soft-tissue-spread/soft-tissue-spread-report.json").read_text())
+          edge=report["interpretation"]["at_5_5mm_outside_pencil_edge"]
+          assert edge["propagated_mm"] > edge["localised_mm"] * 1.5, edge
+          assert report["parameters"]["pencil_diameter_mm"] == 10.0
+          assert report["parameters"]["maximum_displacement_mm"] == 50.0
+          print("Controlled spread comparison passed.")
+          print("Displacement 0.5 mm beyond pencil edge:", edge)
+          print("Full radial profiles:", json.dumps(report["profiles"]))
+          print("Reminder: this is a prescribed geometric profile, not a physical material solver.")
+          PY
+      - name: Upload comparison and measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soft-tissue-deformation-spread
+          path: build/soft-tissue-spread/
+          if-no-files-found: warn
+          retention-days: 30
