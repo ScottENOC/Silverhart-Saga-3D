@@ -2331,106 +2331,43 @@ func _start_farm_wolf_encounter() -> void:
 	_show_dialogue("Wilderness", "A low growl rolls through the trees. Three wolves emerge from the den and spread out to surround you.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
 
-func _check_farm_wolf_resolution() -> void:
-	var party_defeated := true
-	for party_id in active_party_ids:
-		var member := simulation.get_character(party_id)
-		if member != null and member.can_act():
-			party_defeated = false
-			break
-	if party_defeated:
-		COMBAT_ENCOUNTER_SERVICE.finish(simulation, active_combat_session)
-		active_combat_session.clear()
-		encounter_active = false
-		farm_wolves_retry_armed = false
-		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger. You can return when ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
-		return
-
-	var all_defeated := true
-	for wolf_id in active_enemy_ids:
-		var wolf := simulation.get_character(wolf_id)
-		if wolf != null and wolf.can_act():
-			all_defeated = false
-			break
-	if all_defeated:
-		COMBAT_ENCOUNTER_SERVICE.finish(simulation, active_combat_session)
-		active_combat_session.clear()
-		encounter_active = false
-		FARM_WOLVES_QUEST_SCRIPT.record_wolf_defeat(simulation.campaign_journal, FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size())
-		resource_status_label.text = "The wolf pack is defeated. Return to Old Mac."
-		_show_dialogue("Wilderness", "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.", [{"id": "continue", "label": "Return to the farm.", "text": ""}])
-
-
-func _active_party_defeated() -> bool:
-	for character_id in active_party_ids:
-		var member := simulation.get_character(character_id)
-		if member != null and member.can_act():
-			return false
-	return true
-
-
 func _check_encounter_resolution() -> void:
-	if not encounter_active:
+	if not encounter_active or not active_encounter_resolver.is_valid():
 		return
-	if active_combat_kind == "abandoned_house":
-		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
-		if ABANDONED_HOUSE_QUEST_SCRIPT.party_defeated(simulation, active_party_ids):
-			simulation.end_combat()
-			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
-			active_encounter_character_states.clear()
-			encounter_active = false
-			_show_dialogue("Abandoned House", "The guardians drive you back. They remain in the house, but you can return when the party is ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
-		elif ABANDONED_HOUSE_QUEST_SCRIPT.enemies_defeated(simulation):
-			simulation.end_combat()
-			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
-			active_encounter_character_states.clear()
-			encounter_active = false
-			var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
-			if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
-				resource_status_label.text = "Quest complete: The Abandoned House · all three guardians defeated."
-				_show_dialogue("Abandoned House", "The last guardian collapses. The house is quiet at last. Its rooms can now be restored, though the work will still require timber and stone.", [{"id": "continue", "label": "The house is clear.", "text": ""}])
-			else:
-				_show_dialogue("Abandoned House", "The guardians are defeated, but the clearing could not be recorded: %s." % String(clearing.get("reason", "unknown error")), [{"id": "continue", "label": "Continue", "text": ""}])
+	var result: Dictionary = active_encounter_resolver.call(
+		simulation,
+		simulation.campaign_journal,
+		active_party_ids,
+		active_combat_session
+	)
+	if not bool(result.get("resolved", false)):
 		return
-	if active_combat_kind == "dire_wolf_hunt":
-		if FARMSTEAD_DIRE_WOLF_SCRIPT.party_defeated(simulation, active_party_ids):
-			simulation.end_combat()
-			FARMSTEAD_DIRE_WOLF_SCRIPT.finish(simulation, active_party_ids, active_encounter_character_states)
-			active_encounter_character_states.clear()
-			encounter_active = false
-			_show_dialogue("Reyna Fletcher", "The dire wolf drives you back. It is still stalking the farmstead. Tessa is safe for now, but we cannot leave the beast alive. We can try again when we're ready.", [{"id":"continue","label":"Continue","text":""}])
-		elif FARMSTEAD_DIRE_WOLF_SCRIPT.dire_wolf_defeated(simulation):
-			simulation.end_combat()
-			FARMSTEAD_DIRE_WOLF_SCRIPT.finish(simulation, active_party_ids, active_encounter_character_states)
-			active_encounter_character_states.clear()
-			encounter_active = false
-			COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "reyna_dire_wolf_hunt", "dire_wolf_slain")
-			var wolf_actor := actor_by_id.get(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID) as Node3D
-			if is_instance_valid(wolf_actor):
-				wolf_actor.queue_free()
-			actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
-			_show_speech_bubble("companion_reyna_fletcher", "Tessa is safe. Old Mac's farm can breathe again.")
-			_show_companion_dialogue("companion_reyna_fletcher")
-		return
-	if active_combat_kind == "farm_wolves":
-		_check_farm_wolf_resolution()
-		return
-	if _active_party_defeated():
-		simulation.end_combat()
-		HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation, active_encounter_character_states)
-		active_encounter_character_states.clear()
-		encounter_active = false
+	encounter_active = false
+	active_combat_session.clear()
+	active_encounter_resolver = Callable()
+	if bool(result.get("mark_shakedown_resolved", false)):
 		shakedown_resolved = true
-		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
-		_show_dialogue("Garrick Holt", "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.", [{"id": "continue", "label": "Continue", "text": ""}])
-	elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
-		simulation.end_combat()
-		HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation, active_encounter_character_states)
-		active_encounter_character_states.clear()
-		encounter_active = false
-		HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
-		_show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
-		_show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
+	var status_text := String(result.get("status_text", ""))
+	if not status_text.is_empty():
+		resource_status_label.text = status_text
+	for actor_id_value in result.get("remove_actor_ids", []):
+		var actor_id := String(actor_id_value)
+		var actor := actor_by_id.get(actor_id) as Node3D
+		if is_instance_valid(actor):
+			actor.queue_free()
+		actor_by_id.erase(actor_id)
+	var speech_character_id := String(result.get("speech_bubble_character_id", ""))
+	if not speech_character_id.is_empty():
+		_show_speech_bubble(speech_character_id, String(result.get("message", "")))
+	var companion_dialogue_id := String(result.get("companion_dialogue_id", ""))
+	if not companion_dialogue_id.is_empty():
+		_show_companion_dialogue(companion_dialogue_id)
+		return
+	var speaker := String(result.get("speaker", ""))
+	var message := String(result.get("message", ""))
+	var choice_label := String(result.get("choice_label", "Continue."))
+	_show_dialogue(speaker, message, [{"id": "continue", "label": choice_label, "text": ""}])
+
 
 func _on_initiative_character_selected(character_id: String) -> void:
 	if character_panel == null or simulation == null or simulation.get_character(character_id) == null:
