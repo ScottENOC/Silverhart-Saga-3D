@@ -218,10 +218,10 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 			continue
 		var ancestor := mesh.get_parent()
 		while ancestor != null and ancestor != source_root:
-			if ancestor is BoneAttachment3D or ancestor is Skeleton3D:
+			if ancestor is BoneAttachment3D:
 				bone_attached_unskinned_count += 1
-				_check(false, "%s has unskinned mesh %s attached beneath %s; flattening would lose its bone attachment" % [
-					label, str(source_root.get_path_to(mesh)), str(ancestor.get_path())
+				_check(false, "%s has unskinned mesh %s attached beneath bone %s; flattening would lose its bone attachment" % [
+					label, str(source_root.get_path_to(mesh)), (ancestor as BoneAttachment3D).bone_name
 				])
 				break
 			ancestor = ancestor.get_parent()
