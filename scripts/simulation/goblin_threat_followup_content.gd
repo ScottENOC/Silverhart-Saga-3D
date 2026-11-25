@@ -103,6 +103,10 @@ func aldric_captive_greeting(context: Dictionary) -> Dictionary:
 	if bool(context.get("aldric_recruited", false)):
 		return {"ok":true,"already_rescued":true,"speaker":"Ser Aldric Thorne","text":"","choices":[]}
 	if bool(context.get("aldric_rescued", false)):
+		if bool(context.get("aldric_leaves_if_recruited", false)) or float(context.get("aldric_attitude", 60.0)) <= 0.0:
+			return _conversation("Ser Aldric Thorne", "You freed me, but then led the tribe against the very people I swore to protect. I cannot travel with you. Leave me be.", [
+				{"id":"aldric_leave","label":"I understand.","kind":"leave"}
+			])
 		return _conversation("Ser Aldric Thorne", "You cut me loose. I will not forget that. Whatever happens with the goblins, I owe you a debt — and I would rather repay it at your side. Will you have me?", [
 			{"id":"recruit:ser_aldric_thorne","label":"Join us.","kind":"recruit_companion"},
 			{"id":"aldric_leave","label":"Not yet.","kind":"leave"}
