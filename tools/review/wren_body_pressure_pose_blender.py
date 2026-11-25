@@ -259,6 +259,55 @@ def render_scene(actor, lo, hi):
     bpy.ops.render.render(write_still=True)
 
 
+
+
+def render_buttock_pressure_preview(actor, lo, hi, report):
+    shape_name = "pressure_buttock_right"
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is None:
+            continue
+        for key in keys.key_blocks:
+            key.value = 1.0 if key.name.lower() == shape_name else 0.0
+    bpy.context.view_layer.update()
+
+    scene = bpy.context.scene
+    previous_camera = scene.camera
+    extent = hi - lo
+    target = Vector((0.0, lo.y + extent.y * 0.86, lo.z + extent.z * 0.52))
+    bpy.ops.object.camera_add(location=target + Vector((-0.45, 2.1, 0.22)))
+    camera = bpy.context.object
+    camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
+    camera.data.type = "ORTHO"
+    camera.data.ortho_scale = 0.92
+    scene.camera = camera
+    scene.render.resolution_x = 1200
+    scene.render.resolution_y = 1200
+    scene.render.resolution_percentage = 100
+    scene.render.filepath = os.path.join(OUT_DIR, "wren-buttock-pressure-preview.png")
+    bpy.ops.render.render(write_still=True)
+    rendered = os.path.exists(scene.render.filepath)
+
+    scene.camera = previous_camera
+    bpy.data.objects.remove(camera, do_unlink=True)
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is None:
+            continue
+        for key in keys.key_blocks:
+            if key.name.lower().startswith("pressure_"):
+                key.value = 0.0
+    bpy.context.view_layer.update()
+    report["buttock_pressure_preview"] = {
+        "file": "wren-buttock-pressure-preview.png",
+        "active_regions": [shape_name],
+        "rendered": rendered,
+        "shape_value": 1.0,
+        "maximum_authored_displacement_m": 0.032,
+        "note": "Posterior close-up with the buttock-right prototype shape at full authored strength; visual authoring check only, not a measured 1 N runtime response."
+    }
+    return rendered
+
 def export_stiffness_sweep(actor, lo, hi, report):
     # Build a single inspection GLB containing four baked Wren copies. Each copy
     # uses the same authored hip pressure shape, scaled to the spring equilibrium
@@ -522,7 +571,7 @@ def main():
         "pressure_shapes_authored":len(authored_shapes) >= 4 and all(x["affected_vertices"] > 0 for x in authored_shapes),
         "pressure_compressed_preview_rendered":pressure_preview_rendered,
         "stiffness_sweep_glb_exported":stiffness_sweep_exported,
-        "stiffness_sweep_preview_rendered":report["stiffness_sweep"]["preview_rendered"]}
+        "stiffness_sweep_preview_rendered":report["stiffness_sweep"]["preview_rendered"],\n        "buttock_pressure_preview_rendered":buttock_preview_rendered}
     with open(os.path.join(OUT_DIR,"wren-body-pressure-report.json"),"w",encoding="utf-8") as f: json.dump(report,f,indent=2)
     print("WREN_BODY_PRESSURE_REPORT="+json.dumps(report))
 
