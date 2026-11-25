@@ -2338,8 +2338,8 @@ func _check_encounter_resolution() -> void:
 	encounter_active = false
 	active_combat_session.clear()
 	active_encounter_resolver = Callable()
-	if bool(result.get("mark_shakedown_resolved", false)):
-		shakedown_resolved = true
+	if combat_controller != null:
+		combat_controller.end_encounter()
 	var status_text := String(result.get("status_text", ""))
 	if not status_text.is_empty():
 		resource_status_label.text = status_text
