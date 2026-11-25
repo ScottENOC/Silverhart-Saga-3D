@@ -18,13 +18,17 @@ func _initialize() -> void:
 
 func _test_spring_and_herbs() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.DRUID_GROVE_CENTRE
+	var grove := data.location_at(FEATURES.DRUID_GROVE_CENTRE)
+	_check(String(grove.get("id", "")) == "emberwood_grove", "Druid Grove must resolve from canonical geography")
+	var centre := Vector2i(int(grove.get("q", 0)), int(grove.get("r", 0)))
+	_check(centre == FEATURES.DRUID_GROVE_CENTRE, "Druid Grove geography and terrain feature anchors must agree")
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)
 	var result := PRESENTATION.present_chunk(parent, data, chunk_min, 24, HexGrid.DEFAULT_RADIUS_M)
 	_check(bool(result.get("ok", false)), "Druid Grove presentation should succeed")
 	_check(int(result.get("features", 0)) == 3, "The source spring and both herb patches should be presented")
+	_check(result.get("grove_centre") == centre, "Grove dressing must report the canonical geography anchor")
 	var spring := parent.get_node_or_null("DruidGroveSpringPresentation") as Node3D
 	_check(spring != null, "The source spring should receive its stone rim")
 	if spring != null:
@@ -40,7 +44,10 @@ func _test_spring_and_herbs() -> void:
 
 func _test_chunk_scoping() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var centre: Vector2i = FEATURES.DRUID_GROVE_CENTRE
+	var grove := data.location_at(FEATURES.DRUID_GROVE_CENTRE)
+	_check(String(grove.get("id", "")) == "emberwood_grove", "Druid Grove must resolve from canonical geography")
+	var centre := Vector2i(int(grove.get("q", 0)), int(grove.get("r", 0)))
+	_check(centre == FEATURES.DRUID_GROVE_CENTRE, "Druid Grove geography and terrain feature anchors must agree")
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24 + 24, floori(float(centre.y) / 24.0) * 24)
 	var parent := Node3D.new()
 	root.add_child(parent)
