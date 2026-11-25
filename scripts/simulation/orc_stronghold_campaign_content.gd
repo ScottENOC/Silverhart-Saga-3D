@@ -49,6 +49,9 @@ static func complete_if_troll_defeated(journal: CampaignJournal, player: Charact
 	var standing := journal.adjust_faction_reputation("orc_raiders", 25.0, 25.0, "orc_stronghold_troll_defeated")
 	if not bool(standing.get("ok", false)):
 		return standing
+	var objective := journal.set_objective_progress(QUEST_ID, "kill_troll", 1.0)
+	if not bool(objective.get("ok", false)):
+		return objective
 	var completed := journal.complete_quest(QUEST_ID)
 	if not bool(completed.get("ok", false)):
 		return completed
