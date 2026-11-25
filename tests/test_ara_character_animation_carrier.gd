@@ -185,20 +185,20 @@ func _test_character(asset_path: String, label: String, check_face_rests: bool) 
 		_check(actor.play_camp_activity("socialise"),
 			label + " returns to conversational camp animation")
 		var talk_starting_source_poses: Array[Transform3D] = []
-		var talk_starting_target_poses: Array[Transform3D] = []
+		_starting_target_global_poses.clear()
+		_max_processed_target_changed_bones = 0
 		for bone_index in range(source_skeleton.get_bone_count()):
 			talk_starting_source_poses.append(source_skeleton.get_bone_global_pose(bone_index))
 		for bone_index in range(target_skeleton.get_bone_count()):
-			talk_starting_target_poses.append(target_skeleton.get_bone_global_pose(bone_index))
+			_starting_target_global_poses.append(target_skeleton.get_bone_global_pose(bone_index))
 		await create_timer(0.3).timeout
 		var talk_changed_source_bones := 0
-		var talk_changed_target_bones := 0
 		for bone_index in range(source_skeleton.get_bone_count()):
 			if not source_skeleton.get_bone_global_pose(bone_index).is_equal_approx(talk_starting_source_poses[bone_index]):
 				talk_changed_source_bones += 1
-		for bone_index in range(target_skeleton.get_bone_count()):
-			if not target_skeleton.get_bone_global_pose(bone_index).is_equal_approx(talk_starting_target_poses[bone_index]):
-				talk_changed_target_bones += 1
+		# Read the target during SkeletonModifier3D's post-modification callback;
+		# a direct read after the frame can observe Skeleton3D's pre-modifier pose.
+		var talk_changed_target_bones := _max_processed_target_changed_bones
 		_check(talk_changed_source_bones >= 3,
 			"Ara Talk camp animation moves its source skeleton (%d changed bones)" % talk_changed_source_bones)
 		_check(talk_changed_target_bones >= 3,
