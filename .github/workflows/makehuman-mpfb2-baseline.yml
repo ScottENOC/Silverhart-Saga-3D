@@ -38,6 +38,8 @@ jobs:
         run: |
           set -euo pipefail
           git clone https://github.com/makehumancommunity/mpfb2.git "$RUNNER_TEMP/mpfb2"
+          # Pin the upstream revision already proven to install and run under Blender 4.2.
+          git -C "$RUNNER_TEMP/mpfb2" checkout 650c5c53bd6989a8ac264f31fa1d11d4a0c7bd8a
           git -C "$RUNNER_TEMP/mpfb2" rev-parse HEAD | tee mpfb2-source-commit.txt
           # MPFB2 is a Blender 4.2 extension. Install it in an extension
           # repository so __package__ is bl_ext.user_default.mpfb and
@@ -80,7 +82,7 @@ jobs:
           set -euo pipefail
           blender -b --factory-startup --python-exit-code 1 --python tools/makehuman/mpfb2_garment_smoke.py
           test -s makehuman-baseline/baseline-report.json
-          test -s makehuman-baseline/makehuman-original-garment.glb
+          test -s makehuman-baseline/makehuman-original-garments.glb
 
       - name: Upload baseline diagnostics
         if: always()
