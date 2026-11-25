@@ -55,7 +55,8 @@ func _build_panel() -> void:
 	var locations := Label.new()
 	locations.text = "K  Silverhart     V  Millbrook     V  Hollowmere (start)     T  Reddale\nV  Emberlode     F  Old Mac's Farmstead     S  Skarn-tooth Camp\nF  Northwatch / Ridgehold     K  Skarnak's Hold     K  Kragmoor     K  Sil'thandriel"
 	locations.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	locations.add_theme_font_size_override("font_size", 11)    locations.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	locations.add_theme_font_size_override("font_size", 11)
+	locations.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(locations)
 
 	var note := Label.new()
