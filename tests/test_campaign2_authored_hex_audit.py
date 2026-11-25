@@ -11,6 +11,9 @@ from tools.campaign2_authored_hex_audit import (
     round_away_from_zero,
     source_runtime_summary,
     strategic_map_parity_report,
+    target_floor_cells_by_level,
+    source_floor_cells_by_level,
+    interior_floor_parity_report,
 )
 
 
@@ -91,6 +94,61 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(total, 9)
         self.assertEqual(unique, 9)
 
+
+    def test_target_floor_cells_include_rooms_corridors_and_explicit_masks(self):
+        target = {
+            "locations": [{
+                "id": "test",
+                "floors": [{
+                    "floor": 0,
+                    "rooms": [{"center": {"q": 0, "r": 0}, "half_width": 2, "half_height": 2}],
+                    "corridors": [{"from": {"q": 2, "r": 0}, "to": {"q": 4, "r": 0}}],
+                    "floor_hexes": [{"q": 8, "r": 8}],
+                }],
+            }],
+        }
+        cells = target_floor_cells_by_level(target)[0]
+        self.assertIn("0,0", cells)
+        self.assertIn("2,0", cells)
+        self.assertIn("4,0", cells)
+        self.assertIn("8,8", cells)
+
+    def test_source_floor_cells_use_surface_and_multistory_maps(self):
+        source = {
+            "terrain": {
+                "0,0": {"name": "Wood Floor"},
+                "1,0": {"name": "Cave Floor"},
+                "2,0": {"name": "Grass"},
+            },
+            "multiStoryBuildings": [{
+                "floors": [None, {"terrain": {"0,0": "Wall", "1,0": "Wood Floor"}}],
+            }],
+        }
+        cells = source_floor_cells_by_level(source)
+        self.assertEqual(cells[0], {"0,0", "1,0"})
+        self.assertEqual(cells[-9], {"1,0"})
+        self.assertEqual(cells[1], {"1,0"})
+
+    def test_interior_floor_parity_reports_coordinate_gaps(self):
+        source = {
+            "terrain": {"0,0": {"name": "Wood Floor"}, "1,0": {"name": "Wood Floor"}},
+            "interiors": [{"floorHexes": [{"q": 0, "r": 0}]}],
+            "multiStoryBuildings": [],
+        }
+        target = {
+            "locations": [{
+                "id": "test",
+                "floors": [{
+                    "floor": 0,
+                    "rooms": [{"center": {"q": 0, "r": 0}, "half_width": 1, "half_height": 1}],
+                    "corridors": [],
+                }],
+            }],
+        }
+        report = interior_floor_parity_report(source, target)
+        self.assertEqual(report["levels"]["0"]["matching_cells"], 1)
+        self.assertEqual(report["levels"]["0"]["source_only_cells"], 1)
+        self.assertEqual(report["levels"]["0"]["source_only_samples"], ["1,0"])
 
     def test_source_runtime_summary_deduplicates_builder_overlaps(self):
         summary = source_runtime_summary({
