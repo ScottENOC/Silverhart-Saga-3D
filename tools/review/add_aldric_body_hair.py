@@ -163,7 +163,10 @@ def main():
                                                      side * 0.075 if side < 0 else 0.19, front=False))
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.045, 0.045))
         elif args.coverage == "dagna":
-            paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
+            # Keep Dagna's auburn pubic detail centred on the mons, above the
+            # inner thighs. The previous low, wide band painted a visible patch
+            # onto the upper thigh on her broader Ara body profile.
+            paint_clipped("pubic", tri, band(0.47, 0.53, -0.035, 0.035))
         elif args.coverage == "aldric":
             # Keep axillary hair high and lateral. The previous 0.75-0.82
             # band selected the lower pectoral/rib area, not the armpit.
@@ -212,7 +215,7 @@ def main():
     elif args.coverage == "reyna":
         densities = {"armpits": 700, "pubic": 650}
     elif args.coverage == "dagna":
-        densities = {"pubic": 1800}
+        densities = {"pubic": 800}
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
