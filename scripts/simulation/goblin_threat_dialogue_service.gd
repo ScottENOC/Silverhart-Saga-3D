@@ -13,6 +13,7 @@ static func handles_npc(npc_id: String) -> bool:
 		"chief_skarnub",
 		"nix_sharpear",
 		"ser_aldric_thorne",
+		"ser_aldric_captive",
 		"goblin_trader",
 		"grondle"
 	]
@@ -46,7 +47,7 @@ static func dialogue_for_npc(
 			return CONTENT_SCRIPT.new().chief_greeting(relationships, context)
 		"nix_sharpear":
 			return RUNTIME_SERVICE.nix_greeting(simulation)
-		"ser_aldric_thorne":
+		"ser_aldric_thorne", "ser_aldric_captive":
 			return RUNTIME_SERVICE.aldric_captive_greeting(simulation)
 		"goblin_trader", "grondle":
 			return RUNTIME_SERVICE.grondle_greeting(simulation)
