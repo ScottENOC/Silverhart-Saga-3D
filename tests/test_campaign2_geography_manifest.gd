@@ -16,7 +16,7 @@ func _initialize() -> void:
 	assert(coordinates.get("origin", {}).get("local_r", -1) == 24)
 
 	var locations: Array = parsed.get("locations", [])
-	assert(locations.size() == 24, "The current first-pass geography inventory should contain 24 destinations")
+	assert(locations.size() == 25, "The Campaign 2 geography inventory should contain 25 named destinations")
 	var ids: Dictionary = {}
 	var location_by_id: Dictionary = {}
 	for location in locations:
@@ -40,13 +40,14 @@ func _initialize() -> void:
 		"ridgehold_fort", "skarnaks_hold", "kragmoor", "silthandriel",
 		"vessel_seekers_crypt", "corvin_ashgrave_barrow", "ashveil_lair",
 		"lich_chapterhouse", "emberwood_grove", "vampire_grave", "thieves_cove",
-		"emberlode_mine", "farm_wolf_den", "unicorn_vale"
+		"emberlode_mine", "farm_wolf_den", "unicorn_vale", "mirabel_spider_ruin"
 	]:
 		assert(ids.has(required_id), "Missing required campaign destination: " + required_id)
 
 	assert(int(location_by_id["millbrook"]["q"]) == 1, "Millbrook anchor must use the offset village centre")
 	assert(int(location_by_id["ashveil_lair"]["q"]) == 101, "Dragon lair must be placed 100 q east of Millbrook centre")
 	assert(int(location_by_id["lich_chapterhouse"]["q"]) == -39, "Chapterhouse must be offset west of Millbrook centre")
+	assert(int(location_by_id["mirabel_spider_ruin"]["q"]) == 160 and int(location_by_id["mirabel_spider_ruin"]["r"]) == 24, "Mirabel's ruin must be anchored from the Reddale Guildhouse source offset")
 
 	var connections: Array = parsed.get("connections", [])
 	assert(connections.size() == 22, "The current first-pass travel graph should contain 22 connections")
