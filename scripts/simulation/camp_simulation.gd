@@ -980,7 +980,7 @@ func _build_night_watch_schedule(hours: float) -> Array[Dictionary]:
 func _watcher_selection_score(character_id: String) -> float:
 	var profile: Dictionary = companion_profiles.get(character_id, {})
 	var skills: Dictionary = profile.get("skills", {}) if profile.get("skills", {}) is Dictionary else {}
-	var perception := float(profile.get("perception", skills.get("perception", skills.get("awareness", 0.0))))
+	var perception := float(profile.get("perception", skills.get("keen_perception", skills.get("perception", skills.get("awareness", 0.0)))))
 	var condition: Dictionary = conditions.get(character_id, {})
 	var fatigue := float(condition.get("fatigue", 40.0))
 	return perception * 2.0 - fatigue * 0.05
