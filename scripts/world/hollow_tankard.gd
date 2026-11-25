@@ -12,7 +12,7 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
-const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const QUEST_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_quest_dialogue_service.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
@@ -1434,7 +1434,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
 	if choice_id.begins_with("farm_wolves_"):
-		var farm_result := FARM_WOLVES_QUEST_SCRIPT.resolve_dialogue_choice(
+		var farm_result := QUEST_DIALOGUE_SERVICE.resolve_choice(
+			"old_mac",
 			simulation.campaign_journal,
 			simulation.get_character("player"),
 			choice_id,
@@ -1613,7 +1614,11 @@ func _interact_with_character(character_id: String) -> void:
 		_show_streamed_npc_dialogue(streamed_actor, target_state)
 		return
 	if character_id == "old_mac":
-		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
+		var farm_conversation := QUEST_DIALOGUE_SERVICE.greeting_for_npc(
+			"old_mac",
+			simulation.campaign_journal,
+			{"wolves_remaining": _farm_wolves_remaining()}
+		)
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
 		return
 	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
@@ -2319,7 +2324,7 @@ func _farm_wolves_remaining() -> int:
 	if not farm_wolves_spawned:
 		return -1
 	var remaining := 0
-	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
+	for wolf_id in QUEST_DIALOGUE_SERVICE.WOLF_IDS:
 		var wolf := simulation.get_character(wolf_id)
 		if wolf != null and wolf.can_act():
 			remaining += 1
@@ -2329,7 +2334,7 @@ func _farm_wolves_remaining() -> int:
 func _check_farm_wolf_proximity() -> void:
 	if simulation == null or encounter_active:
 		return
-	var quest := simulation.campaign_journal.quest_state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
+	var quest := simulation.campaign_journal.quest_state(QUEST_DIALOGUE_SERVICE.QUEST_ID)
 	if String(quest.get("status", "")) != "active":
 		return
 	var player := simulation.get_character("player")
@@ -2350,8 +2355,8 @@ func _start_farm_wolf_encounter() -> void:
 		return
 	if not farm_wolves_spawned:
 		farm_wolves_spawned = true
-		for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
-			var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
+		for index in range(QUEST_DIALOGUE_SERVICE.WOLF_IDS.size()):
+			var wolf_id := QUEST_DIALOGUE_SERVICE.WOLF_IDS[index]
 			var preferred: Vector2i = HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX + HOLLOWMERE_PLACEMENTS.FARM_WOLF_SPAWN_OFFSETS[index]
 			var spawn_hex := _find_valid_spawn_hex(preferred)
 			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
@@ -2378,7 +2383,7 @@ func _start_farm_wolf_encounter() -> void:
 	farm_wolves_retry_armed = false
 
 	active_combat_kind = "farm_wolves"
-	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
+	active_enemy_ids = QUEST_DIALOGUE_SERVICE.WOLF_IDS.duplicate()
 	active_party_ids.clear()
 	active_combat_controlled_ids.clear()
 	for party_id in simulation.get_party_member_ids():
@@ -2446,7 +2451,7 @@ func _check_farm_wolf_resolution() -> void:
 			if member != null:
 				member.side = "player"
 				member.combat_dormant = false
-		FARM_WOLVES_QUEST_SCRIPT.record_wolf_defeat(simulation.campaign_journal, FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size())
+		QUEST_DIALOGUE_SERVICE.record_wolf_defeat(simulation.campaign_journal, QUEST_DIALOGUE_SERVICE.WOLF_IDS.size())
 		resource_status_label.text = "The wolf pack is defeated. Return to Old Mac."
 		_show_dialogue("Wilderness", "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.", [{"id": "continue", "label": "Return to the farm.", "text": ""}])
 
