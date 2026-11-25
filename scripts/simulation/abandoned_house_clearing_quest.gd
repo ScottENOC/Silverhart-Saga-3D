@@ -23,7 +23,7 @@ const GUARDIAN_HEALTH := 40
 const REPUTATION_PENALTY := -5
 const REPUTATION_KNOWLEDGE_GAIN := 5
 const REPUTATION_APPLIED_TAG := "abandoned_house_reputation_applied"
-const PARTY_TURN_POINTS := 100.0
+const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 
 
 static func definition() -> Dictionary:
@@ -126,34 +126,21 @@ static func start_encounter(simulation: WorldSimulation, party_ids: Array[String
 			valid_party.append(character_id)
 	if valid_party.is_empty():
 		return {"ok": false, "reason": "no_able_party_members"}
-	var previous_states: Dictionary = {}
-	for value in simulation.character_states():
-		var state: CharacterState = value
-		previous_states[state.id] = {
-			"side": state.side,
-			"combat_dormant": state.combat_dormant
-		}
-		state.combat_dormant = true
-	for character_id in valid_party:
-		var member := simulation.get_character(character_id)
-		member.side = "player"
-		member.combat_dormant = false
-		member.time_points = PARTY_TURN_POINTS
 	var active_enemy_ids: Array[String] = []
 	for guardian_id in GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
-		if guardian == null or not guardian.alive:
+		if guardian == null or not guardian.can_act():
 			continue
-		guardian.side = "enemy"
-		guardian.combat_dormant = false
-		guardian.time_points = guardian.max_time_points
 		active_enemy_ids.append(guardian_id)
-	simulation.start_combat()
+	var encounter_result: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, active_enemy_ids)
+	if not bool(encounter_result.get("ok", false)):
+		return encounter_result
+	var session: Dictionary = encounter_result.get("session", {})
 	return {
 		"ok": true,
 		"party_ids": valid_party,
 		"enemy_ids": active_enemy_ids,
-		"previous_states": previous_states
+		"previous_states": session.get("previous_states", {})
 	}
 
 
@@ -203,19 +190,7 @@ static func apply_defeat_consequences(journal: CampaignJournal, simulation: Worl
 static func finish_encounter(simulation: WorldSimulation, previous_states: Dictionary) -> void:
 	if simulation == null:
 		return
-	for character_id_value in previous_states.keys():
-		var character_id := String(character_id_value)
-		var state := simulation.get_character(character_id)
-		if state == null:
-			continue
-		var previous: Dictionary = previous_states[character_id_value]
-		state.side = String(previous.get("side", state.side))
-		state.combat_dormant = bool(previous.get("combat_dormant", state.combat_dormant))
-	for guardian_id in GUARDIAN_IDS:
-		var guardian := simulation.get_character(guardian_id)
-		if guardian != null:
-			guardian.side = "enemy"
-			guardian.combat_dormant = true
+	COMBAT_ENCOUNTER_SERVICE.finish(simulation, {"previous_states": previous_states})
 
 
 static func resolve_clearing(journal: CampaignJournal, simulation: WorldSimulation) -> Dictionary:
