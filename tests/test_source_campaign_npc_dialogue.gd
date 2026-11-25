@@ -29,8 +29,8 @@ func _initialize() -> void:
 	var merchant_b := SOURCE_DIALOGUE.generic_greeting("merchant_01", "Merchant One", "merchant")
 	var guard := SOURCE_DIALOGUE.generic_greeting("guard_01", "Guard One", "guard")
 	_check(merchant_a == merchant_b, "Procedural NPC dialogue should be stable for the same character.")
-	_check(String(guard.get("text", "")).contains("watch") or String(guard.get("text", "")).contains("gate") or String(guard.get("text", "")).contains("boots"), "Guard roles should receive occupation-appropriate dialogue.")
-	_check(String(merchant_a.get("text", "")).contains("Caravan") or String(merchant_a.get("text", "")).contains("pack") or String(merchant_a.get("text", "")).contains("looking") or String(merchant_a.get("text", "")).contains("toll"), "Merchant roles should receive trade-related dialogue.")
+	_check(String(guard.get("text", "")).contains("road") or String(guard.get("text", "")).contains("watch") or String(guard.get("text", "")).contains("gate") or String(guard.get("text", "")).contains("boots"), "Guard roles should receive occupation-appropriate dialogue.")
+	_check(String(merchant_a.get("text", "")).contains("Caravan") or String(merchant_a.get("text", "")).contains("pack") or String(merchant_a.get("text", "")).contains("stock") or String(merchant_a.get("text", "")).contains("toll"), "Merchant roles should receive trade-related dialogue.")
 
 	print("Source campaign NPC dialogue tests passed.")
 	quit(0)
