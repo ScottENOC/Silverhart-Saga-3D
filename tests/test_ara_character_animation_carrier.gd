@@ -198,10 +198,33 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 			var origin_delta := actual_rest.origin.distance_to(expected_rest.origin)
 			_check(origin_delta <= MAX_REST_ORIGIN_DELTA_METRES and actual_rest.basis.is_equal_approx(expected_rest.basis),
 				"%s bone %s rest transform matches (origin delta %.2f mm)" % [label, expected_name, origin_delta * 1000.0])
-	print("ARA_RIG_DIAGNOSTIC asset=%s source_bones=%d carrier_bones=%d" % [
-		asset_path, source_skeleton.get_bone_count(), reference_skeleton.get_bone_count()
+	var source_meshes: Array[MeshInstance3D] = []
+	_collect_meshes(source_root, source_meshes)
+	var skeleton_node_count := _count_skeletons(source_root)
+	var skinned_mesh_count := 0
+	for mesh in source_meshes:
+		if mesh.mesh == null or mesh.skin == null:
+			continue
+		skinned_mesh_count += 1
+		var mesh_skeleton := mesh.get_node_or_null(mesh.skeleton) as Skeleton3D
+		_check(mesh_skeleton == source_skeleton,
+			"%s skinned mesh %s is bound to the primary source skeleton (resolved=%s path=%s)" % [
+				label, str(source_root.get_path_to(mesh)),
+				str(mesh_skeleton.get_path()) if mesh_skeleton != null else "<unresolved>",
+				str(mesh.skeleton)
+			])
+	print("ARA_RIG_DIAGNOSTIC asset=%s source_bones=%d carrier_bones=%d skeleton_nodes=%d skinned_meshes=%d" % [
+		asset_path, source_skeleton.get_bone_count(), reference_skeleton.get_bone_count(),
+		skeleton_node_count, skinned_mesh_count
 	])
 	source_root.free()
+
+
+func _count_skeletons(node: Node) -> int:
+	var count := 1 if node is Skeleton3D else 0
+	for child in node.get_children():
+		count += _count_skeletons(child)
+	return count
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
