@@ -256,7 +256,7 @@ func _test_campaign2_source_dialogue_content() -> void:
     var stablehand := Campaign2SourceDialogueContent.greeting("silverhart_stablehand", "Ossian Fell")
     _check(String(stablehand.get("text", "")).contains("saddle"), "The stablehand should discuss riding rather than use generic dialogue")
     var petra := Campaign2SourceDialogueContent.greeting("petra_hollis", "Petra Hollis")
-    _check(String(petra.get("text", "")).contains("Ashveil"), "Millbrook's character should introduce the source dragon threat")
+    _check(String(petra.get("text", "")).contains("house gone quiet"), "Millbrook's character should introduce the source abandoned-house mystery")
     var petra_after := Campaign2SourceDialogueContent.greeting("petra_hollis", "Petra Hollis", {"millbrook_dragon_completed": true})
     _check(String(petra_after.get("text", "")).contains("Ashveil's gone"), "Petra should acknowledge the dragon quest outcome")
     var corran := Campaign2SourceDialogueContent.greeting("corran_vale", "Corran Vale", {"goblin_resolution": "goblin_alliance"})
