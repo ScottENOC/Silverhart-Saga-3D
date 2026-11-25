@@ -1109,8 +1109,9 @@ func _begin_morning_stage(stage: int) -> void:
 			activity = "pack_camp"
 			var fire_handler := ""
 			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
+				var player_id := String(environment.get("player_character_id", party_ids[0] if not party_ids.is_empty() else ""))
 				for character_id in party_ids:
-					if character_id != String(environment.get("player_character_id", "")):
+					if character_id != player_id:
 						fire_handler = character_id
 						break
 				if fire_handler.is_empty() and not party_ids.is_empty():
