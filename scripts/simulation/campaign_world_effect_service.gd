@@ -42,6 +42,11 @@ static func apply_effects(
 	if player != null and gold_delta < 0 and player.gold < -gold_delta:
 		return {"ok": false, "reason": "insufficient_player_gold"}
 
+	if rescues_aldric:
+		var rescue_preflight := _prepare_aldric_rescue(journal)
+		if not bool(rescue_preflight.get("ok", false)):
+			return rescue_preflight
+
 	var consequence_id := "%s::%s::world_effects" % [quest_id, decision_id]
 	var recorded := journal.record_world_consequence(consequence_id, quest_id, decision_id, effects)
 	if not bool(recorded.get("ok", false)):
@@ -145,6 +150,24 @@ static func _validate_effects(effects: Dictionary) -> Dictionary:
 
 static func _is_finite_number(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value))
+
+
+static func _prepare_aldric_rescue(journal: CampaignJournal) -> Dictionary:
+	QUEST_DEFINITION_REGISTRY.register_all(journal)
+	var quest := journal.quest_state("aldric_rescue")
+	if quest.is_empty():
+		var started := journal.start_quest("aldric_rescue")
+		if not bool(started.get("ok", false)):
+			return started
+		quest = journal.quest_state("aldric_rescue")
+	var status := String(quest.get("status", ""))
+	if status == "failed":
+		return {"ok":false,"reason":"aldric_rescue_quest_failed"}
+	if status == "completed":
+		return {"ok":true,"already_completed":true}
+	if status != "active" or not quest.get("objectives", {}).has("freed"):
+		return {"ok":false,"reason":"aldric_rescue_quest_not_ready"}
+	return {"ok":true}
 
 
 static func _complete_aldric_rescue(journal: CampaignJournal) -> Dictionary:
