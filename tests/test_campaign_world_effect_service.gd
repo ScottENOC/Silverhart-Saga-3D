@@ -126,6 +126,6 @@ func _test_recruited_aldric_can_depart_on_betrayal() -> void:
 	})
 	_check(bool(result.get("ok", false)))
 	_check(not simulation.is_party_member(ALDRIC_ID), "Betrayal removes Aldric from the active party")
-	_check(simulation.get_character(ALDRIC_ID).side == "neutral", "Departing Aldric returns to a neutral world actor")
+	_check(simulation.get_character(ALDRIC_ID) == null, "Aldric's departed companion actor is removed from the simulation")
 	_check(journal.npc_standing(ALDRIC_ID) == 0.0, "Betrayal resets Aldric's attitude to zero")
 	_check(bool(journal.world_campaign_flag("aldric_leaves_if_recruited", false)))
