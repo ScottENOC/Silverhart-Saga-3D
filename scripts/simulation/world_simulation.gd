@@ -1694,6 +1694,8 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
         companion_profiles[String(character_id)] = {
             "role": character.character_class.to_lower(),
             "personality": personality,
+            "skills": character.skills.duplicate(true),
+            "perception": float(character.skills.get("keen_perception", 0)),
             "injured": character.health < character.max_health * 0.65 or character.hobbled_stacks > 0,
             "fatigue": float(camp_simulation.condition_for(String(character_id)).get("fatigue", 40.0))
         }
