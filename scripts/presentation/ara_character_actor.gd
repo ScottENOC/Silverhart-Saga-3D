@@ -641,9 +641,6 @@ func _unskinned_meshes_can_be_flattened(scene_root: Node) -> bool:
 					str(scene_root.get_path_to(mesh)), attachment.bone_name
 				])
 				return false
-			if ancestor is Skeleton3D:
-				push_warning("Ara unskinned mesh %s is parented under Skeleton3D; retaining native hierarchy instead of flattening it." % str(scene_root.get_path_to(mesh)))
-				return false
 			ancestor = ancestor.get_parent()
 	return true
 
