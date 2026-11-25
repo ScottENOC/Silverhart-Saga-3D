@@ -826,11 +826,12 @@ func _indoor_floor_capacity() -> int:
 		return 0
 	if lodging_profile.has("indoor_floor_capacity"):
 		return maxi(0, int(lodging_profile.get("indoor_floor_capacity", 0)))
-	var floor_size: Variant = lodging_profile.get("floor_size", Vector2.ZERO)
-	if not floor_size is Vector2:
+	var floor_size_value: Variant = lodging_profile.get("floor_size", Vector2.ZERO)
+	if not floor_size_value is Vector2:
 		return 0
+	var floor_size: Vector2 = floor_size_value
 	var floor_count := maxi(1, int(lodging_profile.get("floor_count", 1)))
-	var floor_area := floor_size.x * floor_size.y * float(floor_count)
+	var floor_area: float = floor_size.x * floor_size.y * float(floor_count)
 	# Allow one person per 8 m² of gross floor area, leaving room for
 	# circulation, stairs and existing non-sleeping furniture.
 	return maxi(0, floori(floor_area / 8.0))
