@@ -145,6 +145,8 @@ func register_camp_occupant(data: Dictionary) -> Dictionary:
 	occupants[occupant_id] = clean
 	if kind == "animal" and String(clean.get("species", "")).to_lower() in ["horse", "equine"]:
 		_ensure_horse_care_state(occupant_id)
+	else:
+		animal_care.erase(occupant_id)
 	return {"ok": true, "occupant": clean.duplicate(true)}
 
 
@@ -826,6 +828,12 @@ func from_dict(data: Dictionary) -> bool:
 			return false
 	for character_id in saved_conditions:
 		if String(character_id).is_empty() or not saved_conditions[character_id] is Dictionary:
+			return false
+	for care_id in saved_animal_care:
+		if not saved_occupants.has(care_id) or not saved_animal_care[care_id] is Dictionary:
+			return false
+		var care_occupant: Dictionary = saved_occupants[care_id]
+		if String(care_occupant.get("kind", "")) != "animal" or String(care_occupant.get("species", "")).to_lower() not in ["horse", "equine"]:
 			return false
 	for occupant_id in saved_occupants:
 		var occupant: Variant = saved_occupants[occupant_id]
