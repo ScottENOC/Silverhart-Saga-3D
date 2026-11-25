@@ -290,10 +290,10 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 				return {"speaker": display_name, "text": "That troll still denning east of here? Deal with it and we'll talk properly.", "choices": [{"id": "troll", "label": "Where is its den?", "text": "East of the stockade, in the rocks. It has been picking off scouts and cattle. Bring proof that it is dead."}, {"id": "leave", "label": "I'm working on it.", "text": "Grukk folds his arms."}]}
 			return {"speaker": display_name, "text": "Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", "choices": [{"id": "troll", "label": "What do you know about the troll?", "text": "It denns east of the stockade, in the rocks. It has been taking scouts and cattle. Deal with it and you'll have earned a proper welcome."}, {"id": "leave", "label": "Not interested.", "text": "Grukk's expression hardens."}]}
 		"thieves_guild_fence":
-			var standing := float(context.get("thieves_guild_standing", 0.0))
-			if standing < 0.0:
+			var fence_standing := float(context.get("thieves_guild_standing", 0.0))
+			if fence_standing < 0.0:
 				return {"speaker": display_name, "text": "You're not welcome here. Corvin's word, not mine — take it up with him if you've got a death wish.", "choices": [{"id": "leave", "label": "...", "text": "The fence turns away."}]}
-			if standing < 20.0:
+			if fence_standing < 20.0:
 				return {"speaker": display_name, "text": "I don't know you. Whatever you're after, you won't find it from me.", "choices": [{"id": "leave", "label": "Fair enough.", "text": "The fence goes back to watching the room."}]}
 			return {"speaker": display_name, "text": "You've earned enough trust to ask what moves through the Guild. Goods, information, and work — but every favour has a price.", "choices": [{"id": "guild_goods", "label": "What sort of goods?", "text": "The sort that don't appear on ordinary market stalls. Ask Corvin if you want the Guild's better stock."}, {"id": "leave", "label": "I'll keep that in mind.", "text": "The fence gives a knowing nod."}]}
 		"silverhart_mercenary_broker":
@@ -314,11 +314,11 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 		"elven_ambassador":
 			return {"speaker": display_name, "text": "The Sylvan Court sends its regards to the Queen, and its patience with her borders' woodcutters. Both are finite, in their way. A gift of good herbs would go some way toward the latter — three, if you can spare them.", "choices": [{"id": "elven_herbs", "label": "Why herbs?", "text": "The Court values the living things of the forest. A gift gathered with care carries more meaning than a purse of gold."}, {"id": "leave", "label": "I'll keep that in mind.", "text": "Ambassador Elarion returns to his correspondence."}]}
 		"ironbond_envoy":
-			var influence := float(context.get("ironbond_influence", 30.0))
+			var envoy_influence := float(context.get("ironbond_influence", 30.0))
 			var envoy_line := "Business as usual — a little coin here, a little influence there. Nothing you'd need to worry about."
-			if influence >= 60.0:
+			if envoy_influence >= 60.0:
 				envoy_line = "The Company's word carries real weight in this court these days. We like it that way."
-			elif influence <= 10.0:
+			elif envoy_influence <= 10.0:
 				envoy_line = "Harder going for us at court lately, if I'm honest. Someone's been undoing our work."
 			return {"speaker": display_name, "text": envoy_line + " There's a general store out in Hollowmere — Wick Hallow's place. Convince him to carry Ironbond stock and there's coin in it for you.", "choices": [{"id": "company", "label": "How is the Company faring?", "text": envoy_line}, {"id": "leave", "label": "Noted.", "text": "Factor Willem Drass returns to his accounts."}]}
 		"orc_trader":
