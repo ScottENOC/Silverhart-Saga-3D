@@ -12,6 +12,7 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
+const GOBLIN_DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
@@ -1338,6 +1339,26 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if GOBLIN_DIALOGUE_SERVICE.handles_choice(choice_id):
+		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+		var goblin_result: Dictionary = GOBLIN_DIALOGUE_SERVICE.select_choice(
+			simulation, "", choice_id, relationships, get_tree(), actor_by_id
+		)
+		if bool(goblin_result.get("handled", false)):
+			if bool(goblin_result.get("closed", false)):
+				_close_dialogue()
+			elif bool(goblin_result.get("open_shop", false)):
+				var stock_names: Array[String] = []
+				for item_id in goblin_result.get("item_ids", []):
+					stock_names.append(String(item_id).replace("_", " "))
+				_show_dialogue("Grondle", "Grondle's stock: %s. The trader's stock list is now connected; item purchase and pricing still need their campaign shop implementation." % ", ".join(stock_names), [{"id":"continue","label":"I'll come back to trade.","text":""}])
+			else:
+				_show_dialogue(
+					String(goblin_result.get("speaker", "Skarn-tooth camp")),
+					String(goblin_result.get("text", "")),
+					goblin_result.get("choices", [{"id":"continue","label":"Continue","text":""}])
+				)
+			return
 	if choice_id.begins_with("furniture_buy:"):
 		var item_id := choice_id.trim_prefix("furniture_buy:")
 		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
@@ -1604,6 +1625,18 @@ func _interact_with_character(character_id: String) -> void:
 		if not consultation_prompt.is_empty():
 			consultation_text += "\n\n" + consultation_prompt
 		_show_dialogue(String(chapter_consultation.get("actor", target_state.display_name)), consultation_text, [{"id":"continue","label":"I'll speak with them.","text":""}])
+		return
+	if GOBLIN_DIALOGUE_SERVICE.handles_npc(character_id):
+		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+		var goblin_conversation: Dictionary = GOBLIN_DIALOGUE_SERVICE.dialogue_for_npc(simulation, character_id, relationships)
+		if bool(goblin_conversation.get("ok", false)):
+			_show_dialogue(
+				String(goblin_conversation.get("speaker", target_state.display_name)),
+				String(goblin_conversation.get("text", "")),
+				goblin_conversation.get("choices", [])
+			)
+		else:
+			_show_dialogue(target_state.display_name, "There is nothing more to discuss just now.", [{"id":"continue","label":"Continue","text":""}])
 		return
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)
