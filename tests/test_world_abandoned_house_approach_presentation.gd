@@ -16,16 +16,21 @@ func _initialize() -> void:
 	quit(0)
 
 func _test_source_path() -> void:
-	_check(PRESENTATION.WAYPOINT == Vector2i(8, -176), "Approach must start at the source north-road waypoint")
-	_check(PRESENTATION.DOORWAY == Vector2i(11, -176), "Approach must terminate at the source west doorway")
-	var expected: Array[Vector2i] = [Vector2i(9, -176), Vector2i(10, -176)]
-	_check(PRESENTATION.PATH_HEXES == expected, "Approach must retain the source-authored short path cells")
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
+	var site := data.encounter_site("abandoned_house")
+	_check(String(site.get("kind", "")) == "haunted_house", "Abandoned House must resolve from canonical geography")
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	_check(centre == Vector2i(14, -176), "Abandoned House must retain its source axial anchor")
+	_check(centre + PRESENTATION.WAYPOINT_OFFSET == Vector2i(8, -176), "Approach must start at the source north-road waypoint")
+	_check(centre + PRESENTATION.DOORWAY_OFFSET == Vector2i(11, -176), "Approach must terminate at the source west doorway")
+	var expected: Array[Vector2i] = [centre + Vector2i(-5, 0), centre + Vector2i(-4, 0)]
 	var parent := Node3D.new()
 	root.add_child(parent)
 	var result := PRESENTATION.present_chunk(parent, data, Vector2i(0, -192), 24, HexGrid.DEFAULT_RADIUS_M)
 	_check(bool(result.get("ok", false)), "Owning chunk should compose the abandoned-house approach")
 	_check(int(result.get("features", 0)) == expected.size(), "All source path cells should be presented exactly once")
+	_check(result.get("anchor") == centre and result.get("waypoint") == centre + PRESENTATION.WAYPOINT_OFFSET and result.get("doorway") == centre + PRESENTATION.DOORWAY_OFFSET, "Approach presentation must use the canonical house anchor and source offsets")
+	_check(result.get("path_hexes") == expected, "Returned path cells must be derived from the canonical house anchor")
 	var path_root := parent.get_node_or_null("AbandonedHouseApproach")
 	_check(path_root != null, "Path should have a stable presentation root")
 	if path_root != null:
