@@ -3,24 +3,42 @@ extends RefCounted
 ## The source supplies the waypoint, two painted Path cells and west doorway; the worn earth
 ## surface is a restrained 3D material treatment, not additional world geometry.
 
-const WAYPOINT := Vector2i(8, -176)
-const DOORWAY := Vector2i(11, -176)
-# Source loop: q = waypoint.q + 1; q < doorHex.q. The endpoints are not Path cells.
-const PATH_HEXES: Array[Vector2i] = [
-	Vector2i(9, -176),
-	Vector2i(10, -176)
+const WAYPOINT_OFFSET := Vector2i(-6, 0)
+const DOORWAY_OFFSET := Vector2i(-3, 0)
+const PATH_OFFSETS: Array[Vector2i] = [
+	Vector2i(-5, 0),
+	Vector2i(-4, 0)
 ]
 
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_abandoned_house_approach_arguments"}
+	var site := terrain_data.encounter_site("abandoned_house")
+	if site.is_empty() or String(site.get("kind", "")) != "haunted_house":
+		return {"ok": false, "reason": "missing_source_abandoned_house_anchor"}
+	var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	var waypoint := centre + WAYPOINT_OFFSET
+	var doorway := centre + DOORWAY_OFFSET
+	var path_hexes: Array[Vector2i] = []
+	for offset in PATH_OFFSETS:
+		path_hexes.append(centre + offset)
 	var presented := 0
-	for hex in PATH_HEXES:
+	for hex in path_hexes:
 		if not _contains(hex, chunk_min, chunk_size):
 			continue
 		_add_path_cell(parent, terrain_data, hex, hex_radius)
 		presented += 1
-	return {"ok": true, "features": presented, "path_hexes": PATH_HEXES.duplicate()}
+	return {
+		"ok": true,
+		"features": presented,
+		"anchor": centre,
+		"waypoint": waypoint,
+		"doorway": doorway,
+		"path_hexes": path_hexes
+	}
+
+static func _contains(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
+	return hex.x >= chunk_min.x and hex.x < chunk_min.x + chunk_size and hex.y >= chunk_min.y and hex.y < chunk_min.y + chunk_size
 
 static func _add_path_cell(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, radius: float) -> void:
 	var root := parent.get_node_or_null("AbandonedHouseApproach")
