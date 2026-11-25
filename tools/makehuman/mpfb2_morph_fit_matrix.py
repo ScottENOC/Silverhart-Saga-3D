@@ -129,7 +129,7 @@ def main():
         label = phenotype["id"]
         macro = TargetService.get_default_macro_info_dict()
         macro.update({
-            "gender": 1.0,
+            "gender": 0.0,
             "age": 0.5,
             "muscle": phenotype["muscle"],
             "weight": phenotype["weight"],
@@ -197,7 +197,20 @@ def main():
             "glb": os.path.join(OUTPUT_DIR, label + ".glb"),
         }
         render_character(label)
-        bpy.ops.export_scene.gltf(filepath=result["glb"], export_format="GLB")
+        # Embed all texture images and export only the character meshes. Do not
+        # include Blender cameras, lights, hidden helpers or unrelated objects.
+        for image in bpy.data.images:
+            if image.source == "FILE" and image.has_data and not image.packed_file:
+                image.pack()
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in (human, garment):
+            obj.select_set(True)
+        bpy.context.view_layer.objects.active = human
+        bpy.ops.export_scene.gltf(
+            filepath=result["glb"], export_format="GLB", use_selection=True,
+            export_cameras=False, export_lights=False, export_apply=True,
+            export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
+        )
         results.append(result)
 
     baseline = garment_vertices["neutral"]
@@ -224,7 +237,7 @@ def main():
         "status": "passed",
         "blender_version": bpy.app.version_string,
         "mpfb2_method": "HumanService.create_human(macro_detail_dict=...) + HumanService.add_mhclo_asset(...)",
-        "fixed_variables": ["gender=female", "age=0.5", "race=caucasian", "height=0.5", "proportions=0.5"],
+        "fixed_variables": ["gender=0.0 (fully female)", "age=0.5", "race=caucasian", "height=0.5", "proportions=0.5"],
         "varied_variables": ["weight", "muscle"],
         "phenotypes": results,
         "garment_displacement_comparison": comparisons,
