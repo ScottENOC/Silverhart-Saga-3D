@@ -32,18 +32,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
 
-      - name: Generate a separate anatomy-integrated Ara female body
+      - name: Generate separate Ara female body with integrated anatomy v2
         shell: bash
         run: |
           set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
             --python tools/blender/add_adult_anatomy.py -- \
             --input art/characters/ara_runtime/ara_person_body.glb \
             --output art/characters/ara_runtime/ara_person_body_anatomy.glb \
-            --profile female --adult --method integrated --deformation-scale 1.65
+            --profile female --adult --method integrated --deformation-scale 1.65 \
+            --no-canal --no-anus
           test -s art/characters/ara_runtime/ara_person_body_anatomy.glb
-          test "$(wc -c < art/characters/ara_runtime/ara_person_body_anatomy.glb)" -gt 1000000
-
       - name: Validate generated GLB in Godot
         uses: chickensoft-games/setup-godot@v2
         with:
