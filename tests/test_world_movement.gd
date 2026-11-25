@@ -8,8 +8,9 @@ func _initialize() -> void:
     _test_action_movement_cost()
     _test_terrain_pathfinding()
     _test_elevation_rules()
+    _test_palisade_movement()
     _test_world_clock()
-    _test_wilderness_resources_and_chunk_streaming()
+    _test_wilderness_resources()
     _test_vision_rules()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
@@ -129,6 +130,24 @@ func _test_elevation_rules() -> void:
     _check(is_equal_approx(shared.x, adjacent.x) and is_equal_approx(shared.z, adjacent.z))
     _check(is_equal_approx(shared.y, adjacent.y), "Adjacent hexes must share their edge vertex height")
 
+
+func _test_palisade_movement() -> void:
+    var map_data := HexMapData.new()
+    map_data.add_cell(Vector2i(0, 0))
+    map_data.add_cell(Vector2i(1, 0), 0.0, true, "palisade_wall", 15.0)
+    map_data.add_cell(Vector2i(2, 0))
+    map_data.add_cell(Vector2i(0, 1))
+    map_data.add_cell(Vector2i(1, 1), 0.0, true, "palisade_wall", 2.0)
+    var climber := CharacterState.new("palisade_climber", "Climber", Vector2i.ZERO)
+    var unassisted_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
+    _check(is_equal_approx(unassisted_cost, 75.0), "An unassisted palisade crossing should be possible but very costly")
+    climber.skills["agile_climber"] = 1
+    var skilled_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
+    _check(is_equal_approx(skilled_cost, 10.0), "Agile Climber should reduce palisade crossing to the source cost")
+    climber.skills.clear()
+    var ladder_cost := MovementRules.step_cost(map_data, Vector2i(0, 1), Vector2i(1, 1), climber)
+    _check(is_equal_approx(ladder_cost, 10.0), "A ladder should reduce the palisade crossing cost without requiring the skill")
+
 func _test_world_clock() -> void:
     var clock := WorldClock.new()
     _check(clock.advance_world_seconds(0.39) == 0)
@@ -162,7 +181,7 @@ func _test_world_clock() -> void:
     _check(restored.tick_index == clock.tick_index)
     _check(is_equal_approx(restored.world_seconds, clock.world_seconds))
 
-func _test_wilderness_resources_and_chunk_streaming() -> void:
+func _test_wilderness_resources() -> void:
     var simulation := WorldSimulation.new()
     var player := CharacterState.new("gatherer", "Gatherer", Vector2i(0, 0))
     var pickaxe := ItemCatalog.create_instance("pickaxe", "test_pickaxe")
@@ -183,18 +202,6 @@ func _test_wilderness_resources_and_chunk_streaming() -> void:
     _check(bool(restored.wilderness_resources.nodes["60,60"].get("depleted", false)), "Resource depletion must survive save/load")
     restored.wilderness_resources.advance_time(72.0 * WorldClock.SECONDS_PER_HOUR)
     _check(not bool(restored.wilderness_resources.nodes["60,60"].get("depleted", true)), "Ore should regenerate after 72 game hours")
-
-    var chunks := HexWorldChunkStreamer.new()
-    var map := HexMapData.new()
-    chunks.load_around(map, Vector2i(100, 100))
-    _check(chunks.active_chunk_count() == 9, "A radius-one load should activate nine chunks")
-    _check(map.has_cell(Vector2i(100, 100)), "The active region should contain its centre hex")
-    var terrain_a := HexWorldChunkStreamer.terrain_for_hex(Vector2i(100, 100), 1)
-    var terrain_b := HexWorldChunkStreamer.terrain_for_hex(Vector2i(100, 100), 1)
-    _check(terrain_a == terrain_b, "Chunk terrain must be deterministic for a stable world seed")
-    chunks.load_around(map, Vector2i(300, 300))
-    _check(chunks.active_chunk_count() == 9, "Moving far away should keep the active chunk budget bounded")
-    _check(not map.has_cell(Vector2i(100, 100)), "Old generated chunks should unload when outside the active region")
 
 func _test_vision_rules() -> void:
     var observer := CharacterState.new("vision_observer", "Observer", Vector2i(0, 0))

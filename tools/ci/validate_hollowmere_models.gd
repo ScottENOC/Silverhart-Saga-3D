@@ -1,5 +1,5 @@
 extends SceneTree
-## Loads every Ara GLB through Godot's importer and verifies that its rig animations survive import.
+## Loads every Ara GLB in the Hollowmere village cast and verifies imported animation tracks.
 
 func _initialize() -> void:
     call_deferred("_run")
@@ -12,13 +12,26 @@ func _run() -> void:
         return
 
     var expected: Dictionary = {}
-    for profile in source.get("characters", []):
-        expected[str(profile.get("id", ""))] = true
+    var source_characters: Array = source.get("characters", [])
+    if source_characters.is_empty():
+        _fail("Source Hollowmere character roster is empty.")
+        return
+    for source_profile_variant in source_characters:
+        if not (source_profile_variant is Dictionary):
+            _fail("Source Hollowmere character entry is not an object.")
+            return
+        var source_profile: Dictionary = source_profile_variant
+        var source_id := str(source_profile.get("id", "")).strip_edges()
+        if source_id.is_empty() or expected.has(source_id):
+            _fail("Source Hollowmere character roster has a missing or duplicate ID.")
+            return
+        expected[source_id] = true
 
     var profiles: Array = generated.get("characters", [])
-    if expected.size() != 14 or profiles.size() != expected.size() or not expected.has("player_avatar"):
-        _fail("Expected 13 NPCs plus the generated player_avatar Ara profile.")
+    if profiles.size() != expected.size():
+        _fail("Expected one generated Ara profile for each of the %d source Hollowmere characters; found %d." % [expected.size(), profiles.size()])
         return
+    var generated_ids: Dictionary = {}
 
     for profile_variant in profiles:
         if not (profile_variant is Dictionary):
@@ -26,9 +39,10 @@ func _run() -> void:
             return
         var profile: Dictionary = profile_variant
         var character_id := str(profile.get("id", ""))
-        if not expected.has(character_id):
-            _fail("Unexpected generated character: " + character_id)
+        if character_id.is_empty() or not expected.has(character_id) or generated_ids.has(character_id):
+            _fail("Generated Hollowmere profile has an unknown, missing or duplicate ID: " + character_id)
             return
+        generated_ids[character_id] = true
         var model_path := "res://art/characters/hollowmere/%s.glb" % character_id
         var packed := load(model_path) as PackedScene
         if packed == null:
@@ -45,7 +59,10 @@ func _run() -> void:
             return
         instance.free()
 
-    print("Godot imported all 14 Hollowmere Ara models (13 NPCs plus player avatar) with animation tracks.")
+    if generated_ids.size() != expected.size():
+        _fail("Generated Ara profiles do not cover the complete source Hollowmere character roster.")
+        return
+    print("Godot imported all %d source-authored Hollowmere Ara models with animation tracks." % generated_ids.size())
     quit(0)
 
 func _read_json(path: String) -> Dictionary:

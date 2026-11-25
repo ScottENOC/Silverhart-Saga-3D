@@ -1,101 +1,185 @@
 class_name MainCampaignWorldMapData
 extends RefCounted
-## Strategic 16x16 map translated from Hex-crpg/worldMap.js Campaign 2.
-## Local settlement maps remain separate, detailed axial hex maps.
+## Runtime adapter for the authoritative Campaign 2 geography manifest.
+## The strategic grid is a coarse index into the continuous axial world.
 
-const WORLD_SIZE: int = 16
-const WORLD_HEX_SIZE: int = 130
-const HOLLOWMERE_ORIGIN := Vector2i(6, 6) # (column, row)
+const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
+static var _manifest_cache: Dictionary = {}
 
-# The river path is copied from the original Campaign 2 worldMap.js.
-const RIVER_PATH: Array[Vector2i] = [
-    Vector2i(1, 5), Vector2i(2, 5), Vector2i(3, 5), Vector2i(4, 5),
-    Vector2i(5, 5), Vector2i(6, 5), Vector2i(7, 5), Vector2i(8, 5),
-    Vector2i(9, 5), Vector2i(10, 5), Vector2i(11, 6), Vector2i(12, 6),
-    Vector2i(13, 5), Vector2i(14, 5), Vector2i(15, 4)
-]
+static func _manifest_data() -> Dictionary:
+	if _manifest_cache.is_empty():
+		if not FileAccess.file_exists(MANIFEST_PATH):
+			push_error("Campaign 2 geography manifest is missing: " + MANIFEST_PATH)
+			return {}
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(MANIFEST_PATH))
+		if not parsed is Dictionary:
+			push_error("Campaign 2 geography manifest could not be parsed.")
+			return {}
+		_manifest_cache = parsed
+	return _manifest_cache
 
-# These are the opening-region locations whose world-map positions are
-# explicit in the original Campaign 2 layout/comments. More distant POIs
-# should be added by converting their actual local axial coordinates with
-# world_cell_from_local_hex(), never by eyeballing the map.
-const LOCATIONS: Array[Dictionary] = [
-    {"id": "silverhart", "name": "Silverhart", "short": "K", "kind": "capital", "cell": Vector2i(6, 2)},
-    {"id": "millbrook", "name": "Millbrook", "short": "V", "kind": "village", "cell": Vector2i(6, 3)},
-    {"id": "emberlode", "name": "Emberlode", "short": "V", "kind": "village", "cell": Vector2i(4, 6)},
-    {"id": "hollowmere", "name": "Hollowmere", "short": "V", "kind": "starting_village", "cell": Vector2i(6, 6)},
-    {"id": "reddale", "name": "Reddale", "short": "T", "kind": "town", "cell": Vector2i(7, 6)},
-    {"id": "old_mac_farmstead", "name": "Old Mac's Farmstead", "short": "F", "kind": "farmstead", "cell": Vector2i(6, 7)}
-]
+static func _coordinate_data() -> Dictionary:
+	return _manifest_data().get("coordinate_system", {})
+
+static func _geography_data() -> Dictionary:
+	return _manifest_data().get("geography", {})
+
+static func strategic_grid_size() -> Vector2i:
+	var dimensions: Dictionary = _coordinate_data().get("strategic_grid_dimensions", {})
+	return Vector2i(int(dimensions.get("columns", 0)), int(dimensions.get("rows", 0)))
+
+static func local_hexes_per_strategic_cell() -> int:
+	return int(_coordinate_data().get("local_hexes_per_strategic_cell", 0))
+
+static func hollowmere_origin_cell() -> Vector2i:
+	var origin: Dictionary = _coordinate_data().get("origin", {})
+	return Vector2i(int(origin.get("column", 0)), int(origin.get("row", 0)))
+
+static func hollowmere_local_reference() -> Vector2i:
+	var origin: Dictionary = _coordinate_data().get("origin", {})
+	return Vector2i(int(origin.get("local_q", 0)), int(origin.get("local_r", 0)))
 
 static func world_cell_from_local_hex(local_hex: Vector2i) -> Vector2i:
-    # Return Vector2i(column, row), matching campaign2World.js's
-    # worldMapCellFromLocalHex() and the 16x16 world map's odd-q layout.
-    var column := HOLLOWMERE_ORIGIN.x + roundi(float(local_hex.x - 8) / float(WORLD_HEX_SIZE))
-    var row := HOLLOWMERE_ORIGIN.y + roundi(float(local_hex.y - 24) / float(WORLD_HEX_SIZE))
-    return Vector2i(column, row)
+	# Return Vector2i(column, row), matching the original odd-q strategic map.
+	var origin_cell := hollowmere_origin_cell()
+	var origin_hex := hollowmere_local_reference()
+	var scale := local_hexes_per_strategic_cell()
+	if scale <= 0:
+		return Vector2i(-1, -1)
+	var column := origin_cell.x + roundi(float(local_hex.x - origin_hex.x) / float(scale))
+	var row := origin_cell.y + roundi(float(local_hex.y - origin_hex.y) / float(scale))
+	return Vector2i(column, row)
+
+static func strategic_river_path() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	var path: Array = _geography_data().get("river_path", [])
+	for pair in path:
+		if pair is Array and pair.size() == 2:
+			result.append(Vector2i(int(pair[0]), int(pair[1])))
+	return result
+
+static func strategic_locations() -> Array[Dictionary]:
+	var locations_by_id: Dictionary = {}
+	for location in _manifest_data().get("locations", []):
+		locations_by_id[String(location.get("id", ""))] = location
+	var result: Array[Dictionary] = []
+	var occupied_cells: Dictionary = {}
+	var dimensions := strategic_grid_size()
+	for marker in _manifest_data().get("strategic_markers", []):
+		var id := String(marker.get("id", ""))
+		if not locations_by_id.has(id):
+			continue
+		var location: Dictionary = locations_by_id[id].duplicate(true)
+		location["short"] = String(marker.get("short", ""))
+		location["source_marker_name"] = String(marker.get("source_name", location.get("name", id)))
+		var desired := world_cell_from_local_hex(Vector2i(int(location.get("q", 0)), int(location.get("r", 0))))
+		# Mirror Hex-crpg's setWorldMapMarker collision policy: retain the
+		# source cell where possible, otherwise try east, south, west, then north.
+		var candidates: Array[Vector2i] = [
+			desired,
+			Vector2i(desired.x + 1, desired.y),
+			Vector2i(desired.x, desired.y + 1),
+			Vector2i(desired.x - 1, desired.y),
+			Vector2i(desired.x, desired.y - 1)
+		]
+		var placed := desired
+		for candidate in candidates:
+			if candidate.x < 0 or candidate.x >= dimensions.x or candidate.y < 0 or candidate.y >= dimensions.y:
+				continue
+			if occupied_cells.has(candidate):
+				continue
+			placed = candidate
+			break
+		location["cell"] = placed
+		occupied_cells[placed] = id
+		result.append(location)
+	return result
 
 static func generate_grid() -> Array:
-    var grid: Array = []
-    for row in range(WORLD_SIZE):
-        var cells: Array = []
-        for column in range(WORLD_SIZE):
-            var is_ocean := column < 2
-            var is_orc_lands := column >= 10
-            var is_mountain_range := column >= 12 and row < 5
-            var is_forest := not is_ocean and column <= 9 and row >= 12
-            var rough := _pseudo_random(float(column) * 2.3 + 5.0, float(row) * 1.7 + 3.0)
+	var geography := _geography_data()
+	var dimensions := strategic_grid_size()
+	var grid: Array = []
+	var ocean_columns: Array = geography.get("ocean_columns", [])
+	var human_lands: Dictionary = geography.get("human_lands", {})
+	var orc_lands: Dictionary = geography.get("orc_lands", {})
+	var mountain_range: Dictionary = geography.get("dwarven_mountains", {})
+	var forest_range: Dictionary = geography.get("elven_forest", {})
+	var terrain_variation: Dictionary = geography.get("terrain_variation", {})
+	var hash_config: Dictionary = terrain_variation.get("strategic_hash", {})
+	var faction_overrides: Array = geography.get("faction_overrides", [])
 
-            var terrain := "grass"
-            if is_ocean:
-                terrain = "ocean"
-            elif is_mountain_range:
-                terrain = "mountain"
-            elif is_forest:
-                terrain = "forest"
-            elif is_orc_lands and rough > 0.8:
-                terrain = "mountain"
-            elif is_orc_lands and rough > 0.6:
-                terrain = "hills"
+	for row in range(dimensions.y):
+		var cells: Array = []
+		for column in range(dimensions.x):
+			# JSON numeric values may be decoded as floats; compare the authored
+			# column indices numerically rather than relying on Variant type equality.
+			var is_ocean := false
+			for ocean_column in ocean_columns:
+				if int(ocean_column) == column:
+					is_ocean = true
+					break
+			var is_orc_lands := _inside_range(column, row, orc_lands)
+			var is_mountain_range := _inside_range(column, row, mountain_range)
+			var is_forest := not is_ocean and _inside_range(column, row, forest_range)
+			var rough := _pseudo_random(
+				float(column) * float(hash_config.get("x_scale", 2.3)) + float(hash_config.get("x_offset", 5.0)),
+				float(row) * float(hash_config.get("y_scale", 1.7)) + float(hash_config.get("y_offset", 3.0))
+			)
 
-            var faction := ""
-            if not is_ocean:
-                if is_mountain_range:
-                    faction = "dwarves"
-                elif is_forest:
-                    faction = "elves"
-                elif is_orc_lands:
-                    faction = "orcs"
-                else:
-                    faction = "humans"
+			var terrain := "grass"
+			if is_ocean:
+				terrain = "ocean"
+			elif is_mountain_range:
+				terrain = "mountain"
+			elif is_forest:
+				terrain = "forest"
+			elif is_orc_lands and rough > float(terrain_variation.get("orc_mountain_threshold", 0.8)):
+				terrain = "mountain"
+			elif is_orc_lands and rough > float(terrain_variation.get("orc_hills_threshold", 0.6)):
+				terrain = "hills"
 
-            # The original map deliberately trades four border cells each
-            # way so the dwarves and orcs meet in the north-east.
-            if column >= 10 and column <= 11 and row <= 1:
-                faction = "dwarves"
-            if column >= 12 and column <= 15 and row == 4:
-                faction = "orcs"
+			var faction := ""
+			if not is_ocean:
+				if is_mountain_range:
+					faction = "dwarves"
+				elif is_forest:
+					faction = "elves"
+				elif is_orc_lands:
+					faction = "orcs"
+				elif _inside_range(column, row, human_lands):
+					faction = "humans"
 
-            cells.append({
-                "terrain": terrain,
-                "faction": faction,
-                "poi": {}
-            })
-        grid.append(cells)
+			for override in faction_overrides:
+				if _inside_range(column, row, override):
+					faction = String(override.get("faction", faction))
 
-    for location in LOCATIONS:
-        var cell: Vector2i = location["cell"]
-        if cell.x >= 0 and cell.x < WORLD_SIZE and cell.y >= 0 and cell.y < WORLD_SIZE:
-            grid[cell.y][cell.x]["poi"] = location.duplicate(true)
-    return grid
+			cells.append({
+				"terrain": terrain,
+				"faction": faction,
+				"poi": {}
+			})
+		grid.append(cells)
+
+	for location in strategic_locations():
+		var cell: Vector2i = location["cell"]
+		if cell.x >= 0 and cell.x < dimensions.x and cell.y >= 0 and cell.y < dimensions.y:
+			grid[cell.y][cell.x]["poi"] = location.duplicate(true)
+	return grid
 
 static func location_at(cell: Vector2i) -> Dictionary:
-    for location in LOCATIONS:
-        if location["cell"] == cell:
-            return location.duplicate(true)
-    return {}
+	for location in strategic_locations():
+		if location["cell"] == cell:
+			return location.duplicate(true)
+	return {}
+
+static func _inside_range(column: int, row: int, definition: Dictionary) -> bool:
+	var columns: Array = definition.get("columns", [])
+	var rows: Array = definition.get("rows", [])
+	return columns.size() >= 2 and rows.size() >= 2 \
+		and column >= int(columns[0]) and column <= int(columns[1]) \
+		and row >= int(rows[0]) and row <= int(rows[1])
 
 static func _pseudo_random(x: float, y: float) -> float:
-    # Same deterministic hash used by the original browser game.
-    var value := sin(x * 12.9898 + y * 78.233) * 43758.5453
-    return value - floorf(value)
+	# Same deterministic hash used by the original browser game.
+	var value := sin(x * 12.9898 + y * 78.233) * 43758.5453
+	return value - floorf(value)

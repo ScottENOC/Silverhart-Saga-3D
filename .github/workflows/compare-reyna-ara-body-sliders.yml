@@ -1,0 +1,112 @@
+name: Compare Reyna Ara body sliders
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/compare-reyna-ara-body-sliders.yml"
+      - "tools/ara/build_reyna_slider_variants.py"
+      - "tools/review/reyna_slider_preview.gd"
+      - "character-preview/reyna-ara.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reyna-slider-comparison
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Blender and preview dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri xvfb
+      - name: Generate controlled profiles
+        run: |
+          python tools/ara/build_reyna_slider_variants.py
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Build, anatomise and render each variant
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p build/reyna-slider-comparison/project/build/reyna-slider-comparison
+          preview=build/reyna-slider-comparison/project
+          cp tools/review/reyna_slider_preview.gd "$preview/" 2>/dev/null || true
+          mkdir -p "$preview/tools/review"
+          cp tools/review/reyna_slider_preview.gd "$preview/tools/review/"
+          cat > "$preview/project.godot" <<'EOF'
+          config_version=5
+          [application]
+          config/name="Reyna Slider Comparison"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          EOF
+          for variant in baseline hips_subtle shoulders_subtle combined_subtle combined_stronger; do
+            echo "::group::Building $variant"
+            out="build/reyna-slider-comparison/$variant"
+            mkdir -p "$out/ara-export"
+            npx --yes ara3d@0.7.4 export --params "$out/profile.json" --detail high --no-animations --formats glb --out "$out/ara-export"
+            raw="$(find "$out/ara-export" -maxdepth 1 -type f -name '*.glb' -print -quit)"
+            test -n "$raw"
+            cp "$raw" "$out/Reyna-ara-base.glb"
+            PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input "$out/Reyna-ara-base.glb" --output "$out/Reyna.glb" --profile female --adult
+            python tools/review/recolor_wren_glb.py --model "$out/Reyna.glb" --profile "$out/profile.json" --hair-gamma 0.28
+            mkdir -p "$preview/build/reyna-slider-comparison/$variant/preview"
+            cp "$out/Reyna.glb" "$preview/build/reyna-slider-comparison/$variant/Reyna.glb"
+            export REYNA_MODEL_PATH="res://build/reyna-slider-comparison/$variant/Reyna.glb"
+            export REYNA_OUTPUT_DIR="res://build/reyna-slider-comparison/$variant/preview"
+            godot --headless --editor --path "$preview" --quit
+            xvfb-run -a -s "-screen 0 1280x1024x24" godot --path "$preview" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/reyna_slider_preview.gd
+            for view in front side threequarter pelvis; do test -s "$preview/build/reyna-slider-comparison/$variant/preview/$view.png"; done
+            cp -R "$preview/build/reyna-slider-comparison/$variant/preview" "$out/"
+            echo "::endgroup::"
+          done
+          python - <<'PY'
+          from PIL import Image, ImageDraw
+          from pathlib import Path
+          root=Path("build/reyna-slider-comparison")
+          names=["baseline","hips_subtle","shoulders_subtle","combined_subtle","combined_stronger"]
+          views=["front","side","threequarter","pelvis"]
+          thumbs=[]
+          cell_w,cell_h=300,430
+          for name in names:
+              for view in views:
+                  im=Image.open(root/name/"preview"/(view+".png")).convert("RGB")
+                  im.thumbnail((cell_w,cell_h-34))
+                  thumbs.append((name,view,im.copy()))
+          canvas=Image.new("RGB",(cell_w*4,cell_h*len(names)),(35,39,44))
+          draw=ImageDraw.Draw(canvas)
+          for i,(name,view,im) in enumerate(thumbs):
+              x=(i%4)*cell_w; y=(i//4)*cell_h
+              canvas.paste(im,(x+(cell_w-im.width)//2,y+28))
+              draw.text((x+8,y+8),f"{name} / {view}",fill=(245,245,245))
+          canvas.save(root/"comparison-contact-sheet.jpg",quality=92)
+          PY
+      - name: Upload comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: reyna-ara-slider-comparison
+          path: |
+            build/reyna-slider-comparison/*/Reyna.glb
+            build/reyna-slider-comparison/*/profile.json
+            build/reyna-slider-comparison/*/preview/*.png
+            build/reyna-slider-comparison/comparison-contact-sheet.jpg
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,212 @@
+name: Build Wren with native Ara generator
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/wren-ara.json"
+      - ".github/workflows/build-wren-native-ara.yml"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/review/wren_native_preview.gd"
+      - "scripts/presentation/ara_character_details.gd"
+      - "tools/review/recolor_wren_glb.py"
+      - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_character_details.py"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "character-preview/wren-ara.json"
+      - "tools/review/add_aldric_body_hair.py"
+      - ".github/workflows/build-wren-native-ara.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-wren-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || 'dev' }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Validate Wren profile and Blender scripts
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/wren-ara.json >/dev/null
+          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/blender/add_character_details.py tools/review/render_wren_native.py tools/review/recolor_wren_glb.py tools/blender/plan_female_anatomy_subdivision.py
+
+      - name: Install Blender and its numerical dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
+
+      - name: Generate the unclothed native Ara Wren body
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native/ara-export
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          profile = json.loads(Path("character-preview/wren-ara.json").read_text())
+          profile.pop("character_details", None)
+          Path("build/wren-native/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\n")
+          PY
+          npx --yes ara3d@latest export \
+            --params build/wren-native/ara-export-profile.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/wren-native/ara-export
+          raw_glb="$(find build/wren-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/wren-native/Wren_Ara_raw.glb
+
+      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/wren-native/Wren_Ara_raw.glb \
+            --output build/wren-native/female-anatomy-subdivision-plan.json
+          test -s build/wren-native/female-anatomy-subdivision-plan.json
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/wren-native/Wren_Ara_raw.glb \
+            --output build/wren-native/Wren.glb \
+            --report build/wren-native/female-anatomy-report.json \
+            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+          test -s build/wren-native/Wren.glb
+          grep -q '"clothing_operations": "not run"' build/wren-native/female-anatomy-report.json
+      - name: Apply Wren profile skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/wren-native/Wren.glb \
+            --profile character-preview/wren-ara.json \
+            --hair-gamma 0.18
+          test -s build/wren-native/Wren.glb
+
+      - name: Add restrained armpit and pubic hair detail
+        run: |
+          set -euo pipefail
+          python tools/review/add_aldric_body_hair.py --model build/wren-native/Wren.glb --seed 4404 --coverage wren --hair-colour "#287BFF"
+          test -s build/wren-native/Wren.glb
+
+      - name: Bake Wren's left nipple piercing into the exported GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/wren-native/Wren.glb \
+            --output build/wren-native/Wren-details.glb \
+            --profile character-preview/wren-ara.json \
+            2>&1 | tee build/wren-native/character-details-build.log
+          test -s build/wren-native/Wren-details.glb
+          grep -q "BAKED_PIERCING Piercing_SOCKET_Nipple_L" build/wren-native/character-details-build.log
+          mv build/wren-native/Wren-details.glb build/wren-native/Wren.glb
+
+      - name: Assemble an isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/wren-native-preview-project
+          mkdir -p "$preview/scripts/presentation" "$preview/build/wren-native" "$preview/tools/review"
+          cp build/wren-native/Wren.glb "$preview/build/wren-native/Wren.glb"
+          cp tools/review/wren_native_preview.gd "$preview/tools/review/wren_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Wren Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Import the final Wren GLB into the isolated Godot project
+        run: |
+          set -euo pipefail
+          godot --version
+          godot --headless --editor --path build/wren-native-preview-project --quit
+
+      - name: Render and verify Wren in Godot
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/wren-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/wren_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
+          done
+          test -s build/wren-native-preview-project/build/wren-native/preview/render-report.json
+          cp -R build/wren-native-preview-project/build/wren-native/preview build/wren-native/preview
+      - name: Package the final rigged GLB and its reproducible profile
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/wren-native")
+          readme = """Wren — native Ara character export
+          
+          Wren.glb is the final rigged GLB generated from wren-ara.json and then
+          passed through the repository's integrated adult female anatomy sculpt.
+          The model retains Ara's game skeleton and facial expression / speech
+          blend shapes. The body settings and profile skin/hair colours are baked into this export.
+          
+          To regenerate: run the Build Wren with native Ara generator workflow
+          on dev. The workflow uses Ara 3D Gen and tools/blender/add_female_anatomy_surface.py.
+          See wren-ara.json for the exact character profile.
+          """
+          with zipfile.ZipFile(root / "Wren_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Wren.glb", "Wren.glb")
+              archive.write(root / "character-details-build.log", "character-details-build.log")
+              archive.write(Path("character-preview/wren-ara.json"), "wren-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme)
+          PY
+          rm -rf build/wren-native/ara-export build/wren-native/Wren_Ara_raw.glb
+
+      - name: Upload Wren model and visual review
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-native-ara-${{ github.run_number }}
+          path: |
+            build/wren-native/Wren.glb
+            build/wren-native/Wren_native_Ara_bundle.zip
+            build/wren-native/preview/
+            build/wren-native/anatomy-build.log
+            build/wren-native/character-details-build.log
+          if-no-files-found: error
+          retention-days: 30

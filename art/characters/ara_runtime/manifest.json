@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "package_version": "local-1d92ffd7ce858f3c",
+  "package_version": "local-de6dc7a314da38b6",
   "source_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
   "generator": {
     "repository": "https://github.com/olatunde85/3d-gen",
@@ -28,8 +28,16 @@
       "sha256": "5372e93da2bd87207e193f44328141c6c5b2b3c4e52da854a116da78cce1996c"
     },
     "ara_person_body_anatomy.glb": {
-      "size_bytes": 34931300,
-      "sha256": "9ca80ad003062aee777acf25b34659dbf529429875a3d6243335bf83a69697e0"
+      "size_bytes": 23770236,
+      "sha256": "5e0f792af14c279f6002b8739c0602d2812b5fef8b9c1f2cd80ccc4aa9889bd0"
+    },
+    "ara_player_female_body.glb": {
+      "size_bytes": 31524888,
+      "sha256": "7dd5f9b1c68797534ea999d6d0d8b1a73d4a3744e18ff81f6e4ae4523766c142"
+    },
+    "ara_player_male_body.glb": {
+      "size_bytes": 38494028,
+      "sha256": "9a88f5d874c9a98b1cab4aaee60677042f0ebf33aaaac56432522d4dcce15b05"
     }
   }
 }

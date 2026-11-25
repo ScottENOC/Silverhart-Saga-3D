@@ -6,12 +6,12 @@
   "weight": 0.4,
   "height": 0.52,
   "proportions": 0.48,
-  "african": 0.05,
-  "asian": 0.05,
-  "caucasian": 0.9,
+  "african": 0.12,
+  "asian": 0.25,
+  "caucasian": 0.63,
   "eyes": "bluegreen",
-  "hair": "bob02",
-  "hairTint": "#4d3425",
+  "hair": "braid01",
+  "hairTint": "#5A3826",
   "facialHair": "none",
   "tattoos": [
     "armband_l"
@@ -51,6 +51,9 @@
   "faceShapes": true,
   "speechShapes": false,
   "expression": "neutral",
-  "hairColor": "#4d3425",
+  "hairColor": "#5A3826",
+  "legs": 0.48,
+  "breasts": 0.58,
+  "skinTint": "#D0A17D",
   "name": "Yvette Marlow"
 }

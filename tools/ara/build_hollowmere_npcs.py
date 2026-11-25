@@ -43,7 +43,10 @@ def source_ids(path: str, pattern: str) -> set[str]:
 
 
 def validate_profiles(profiles: dict) -> None:
-    garments = source_ids("src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'")
+    garments: set[str] = set()
+    garment_root = ARA_ROOT / "src" / "core" / "garments"
+    for garment_file in garment_root.glob("*.ts"):
+        garments.update(re.findall(r"\bid:\s*'([^']+)'", garment_file.read_text()))
     garments.add("none")
     # The Silverhart patch adds this exact under-layer ID to Ara's catalogue.
     garments.add("bra")
@@ -101,17 +104,33 @@ def validate_profiles(profiles: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--profiles", type=Path, default=PROFILE_FILE, help="Profile manifest to build")
     parser.add_argument("--detail", choices=("low", "medium", "high"), default=None)
     args = parser.parse_args()
 
     if not (ARA_ROOT / "package.json").exists() or not (ARA_ROOT / "src").exists():
         raise SystemExit("Run this script from the pinned Ara 3D Gen repository root")
-    if not PROFILE_FILE.exists():
-        raise SystemExit(f"Missing character profile file: {PROFILE_FILE}")
+    if not args.profiles.exists():
+        raise SystemExit(f"Missing character profile file: {args.profiles}")
 
-    manifest = json.loads(PROFILE_FILE.read_text())
+    manifest = json.loads(args.profiles.read_text())
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
+
+    # The current source roster no longer stores world hexes. Preserve the
+    # authored placements from the existing model manifest where available;
+    # do not invent coordinates for newly added NPCs.
+    previous_hex_by_identity = {}
+    previous_manifest_path = args.out / "profiles.json"
+    if previous_manifest_path.is_file():
+        previous_manifest = json.loads(previous_manifest_path.read_text())
+        for previous in previous_manifest.get("characters", []):
+            previous_hex = previous.get("hex")
+            if not isinstance(previous_hex, list) or len(previous_hex) != 2:
+                continue
+            for identity in (previous.get("id", ""), previous.get("game_id", "")):
+                if identity:
+                    previous_hex_by_identity[identity] = previous_hex
 
     built = []
     for profile in manifest["characters"]:
@@ -155,17 +174,25 @@ def main() -> None:
         if target.stat().st_size < 100_000:
             raise SystemExit(f"{character_id}: suspiciously small GLB ({target.stat().st_size:,} bytes)")
         print(f"Built {profile['name']}: {target.stat().st_size:,} bytes", flush=True)
-        built.append({
+        character_record = {
             "id": character_id,
             "game_id": profile["game_id"],
             "name": profile["name"],
             "role": profile["role"],
             "dialogue_id": profile.get("dialogue_id", ""),
-            "hex": profile["hex"],
             "detail": detail,
             "model": f"{character_id}.glb",
             "params": params,
-        })
+        }
+        if isinstance(profile.get("anatomy_size"), dict):
+            character_record["anatomy_size"] = dict(profile["anatomy_size"])
+        hex_value = profile.get(
+            "hex",
+            previous_hex_by_identity.get(character_id, previous_hex_by_identity.get(profile["game_id"])),
+        )
+        if isinstance(hex_value, list) and len(hex_value) == 2:
+            character_record["hex"] = hex_value
+        built.append(character_record)
         shutil.rmtree(export_dir)
 
     output_manifest = {
@@ -174,6 +201,9 @@ def main() -> None:
         "generator_commit": manifest["generator_commit"],
         "characters": built,
     }
+    for metadata_key in ("seed", "count", "rarity_policy", "male_anatomy_distribution"):
+        if metadata_key in manifest:
+            output_manifest[metadata_key] = manifest[metadata_key]
     (args.out / "profiles.json").write_text(json.dumps(output_manifest, indent=2) + "\n")
     print(f"\nBuilt {len(built)} Hollowmere Ara characters.", flush=True)
 

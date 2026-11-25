@@ -1,0 +1,59 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "preset": "The Adventurer",
+  "params": {
+    "name": "Reyna Fletcher",
+    "gender": 0,
+    "muscle": 0.9,
+    "weight": 0.18,
+    "height": 0.56,
+    "proportions": 0.62,
+    "breastSize": 0.1,
+    "african": 0.8,
+    "asian": 0.1,
+    "caucasian": 0.1,
+    "skin": "auto",
+    "skinTint": "#5A3426",
+    "eyes": "brown",
+    "hair": "afro01",
+    "hairTint": "#17120F",
+    "hairColor": "#17120F",
+    "facialHair": "none",
+    "outfit": "none",
+    "top": "none",
+    "jacket": "none",
+    "bottom": "none",
+    "underwear": false,
+    "accessories": [],
+    "shoes": "none",
+    "hat": "none",
+    "tattoos": [],
+    "detail": "high",
+    "rig": "game",
+    "faceBones": true,
+    "restPose": "A",
+    "animations": false,
+    "faceShapes": true,
+    "speechShapes": true,
+    "expression": "neutral",
+    "teeth": "teeth_base",
+    "tongue": true,
+    "ageYears": 32,
+    "seed": 3217,
+    "modifiers": {
+      "stomach/stomach-tone": 0.72
+    },
+    "tattoo_ink": "#17120F"
+  },
+  "character_details": {
+    "piercings": [],
+    "tattoos": [
+      {
+        "design": "reyna_shoulder_back"
+      }
+    ],
+    "tattoo_ink": "#17120F"
+  }
+}

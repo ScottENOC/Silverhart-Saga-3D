@@ -1,0 +1,14 @@
+{
+  "character": "Ser Aldric Thorne",
+  "approval": "accepted",
+  "body_frozen": true,
+  "accepted_build": {
+    "workflow": "Build Aldric native Ara character",
+    "run_number": 125,
+    "run_id": 44641513062,
+    "artifact_id": 14586088137,
+    "artifact_name": "aldric-native-ara-125",
+    "source_commit": "8681bc9f6ad4e2c651d6fd8bf937fdfc95538555"
+  },
+  "policy": "This is the accepted male body baseline. Do not regenerate or modify the body without explicit approval. Male clothing is a separate outstanding content task; leave Aldric as-is until suitable clothing is available."
+}

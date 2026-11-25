@@ -9,10 +9,6 @@
       "game_id": "companion_wren_talbot",
       "name": "Wren Talbot",
       "role": "companion",
-      "hex": [
-        -2,
-        1
-      ],
       "detail": "high",
       "params": {
         "seed": 218,
@@ -22,12 +18,12 @@
         "weight": 0.42,
         "height": 0.55,
         "proportions": 0.58,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.35,
+        "asian": 0.35,
+        "caucasian": 0.3,
         "eyes": "green",
         "hair": "braid01",
-        "hairTint": "#252b62",
+        "hairTint": "#38251D",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -72,10 +68,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#252b62",
+        "hairColor": "#38251D",
         "legs": 0.62,
         "breasts": 0.76,
-        "skinTint": "#a1845b"
+        "skinTint": "#A77A55"
       },
       "party": {
         "starts_in_party": true,
@@ -87,10 +83,6 @@
       "game_id": "garrick_holt",
       "name": "Garrick Holt",
       "role": "tavern keeper",
-      "hex": [
-        -3,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 731,
@@ -100,12 +92,12 @@
         "weight": 0.7,
         "height": 0.52,
         "proportions": 0.62,
-        "african": 0.05,
+        "african": 0.08,
         "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "brown",
-        "hair": "short02",
-        "hairTint": "#776e61",
+        "caucasian": 0.87,
+        "eyes": "green",
+        "hair": "buzz",
+        "hairTint": "#87452D",
         "facialHair": "short_beard",
         "beardColor": "#665b50",
         "tattoos": [],
@@ -143,8 +135,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#776e61",
-        "legs": 0.68
+        "hairColor": "#87452D",
+        "legs": 0.68,
+        "skinTint": "#DDAE8D"
       },
       "dialogue_id": "garrick_holt"
     },
@@ -153,10 +146,6 @@
       "game_id": "mira_ashbrook",
       "name": "Mira Ashbrook",
       "role": "villager",
-      "hex": [
-        2,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 842,
@@ -166,12 +155,12 @@
         "weight": 0.34,
         "height": 0.44,
         "proportions": 0.46,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "green",
-        "hair": "long01",
-        "hairTint": "#704b32",
+        "african": 0.12,
+        "asian": 0.48,
+        "caucasian": 0.4,
+        "eyes": "brown",
+        "hair": "buzz",
+        "hairTint": "#38251D",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -208,9 +197,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#704b32",
+        "hairColor": "#38251D",
         "legs": 0.43,
-        "breasts": 0.43
+        "breasts": 0.43,
+        "skinTint": "#C99A75"
       },
       "dialogue_id": "mira_ashbrook"
     },
@@ -219,10 +209,6 @@
       "game_id": "oskar_vinn",
       "name": "Oskar Vinn",
       "role": "villager",
-      "hex": [
-        3,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 953,
@@ -232,12 +218,12 @@
         "weight": 0.54,
         "height": 0.63,
         "proportions": 0.58,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "grey",
-        "hair": "short04",
-        "hairTint": "#49372a",
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
+        "eyes": "brownlight",
+        "hair": "buzz",
+        "hairTint": "#4B2F24",
         "facialHair": "stubble",
         "beardColor": "#49372a",
         "tattoos": [],
@@ -275,8 +261,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#49372a",
-        "legs": 0.64
+        "hairColor": "#4B2F24",
+        "legs": 0.64,
+        "skinTint": "#B98260"
       },
       "dialogue_id": "oskar_vinn"
     },
@@ -285,10 +272,6 @@
       "game_id": "wick_hallow",
       "name": "Wick Hallow",
       "role": "general store keeper",
-      "hex": [
-        0,
-        15
-      ],
       "detail": "medium",
       "params": {
         "seed": 1064,
@@ -298,12 +281,12 @@
         "weight": 0.48,
         "height": 0.43,
         "proportions": 0.44,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "blue",
-        "hair": "buzz",
-        "hairTint": "#aaa49a",
+        "african": 0.88,
+        "asian": 0.08,
+        "caucasian": 0.04,
+        "eyes": "darkbrown",
+        "hair": "short04",
+        "hairTint": "#17120F",
         "facialHair": "full_beard",
         "beardColor": "#898176",
         "tattoos": [],
@@ -339,8 +322,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#aaa49a",
-        "legs": 0.4
+        "hairColor": "#17120F",
+        "legs": 0.4,
+        "skinTint": "#70452F"
       },
       "dialogue_id": "wick_hallow"
     },
@@ -349,10 +333,6 @@
       "game_id": "dray_coltayne",
       "name": "Dray Coltayne",
       "role": "ironbond soldier",
-      "hex": [
-        -1,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1175,
@@ -362,12 +342,12 @@
         "weight": 0.48,
         "height": 0.76,
         "proportions": 0.72,
-        "african": 0.92,
-        "asian": 0.03,
-        "caucasian": 0.05,
-        "eyes": "darkbrown",
-        "hair": "buzz",
-        "hairTint": "#211a16",
+        "african": 0.7,
+        "asian": 0.2,
+        "caucasian": 0.1,
+        "eyes": "brown",
+        "hair": "box_braids",
+        "hairTint": "#2B1B16",
         "facialHair": "stubble",
         "beardColor": "#211a16",
         "tattoos": [
@@ -408,8 +388,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "determined",
-        "hairColor": "#211a16",
-        "legs": 0.74
+        "hairColor": "#2B1B16",
+        "legs": 0.74,
+        "skinTint": "#8F6045"
       },
       "dialogue_id": "dray_coltayne"
     },
@@ -418,10 +399,6 @@
       "game_id": "tomlin_brask",
       "name": "Tomlin Brask",
       "role": "ironbond soldier",
-      "hex": [
-        0,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1286,
@@ -431,12 +408,12 @@
         "weight": 0.44,
         "height": 0.62,
         "proportions": 0.56,
-        "african": 0.05,
-        "asian": 0.9,
-        "caucasian": 0.05,
-        "eyes": "darkbrown",
+        "african": 0.7,
+        "asian": 0.2,
+        "caucasian": 0.1,
+        "eyes": "brown",
         "hair": "cornrows",
-        "hairTint": "#171313",
+        "hairTint": "#2B1B16",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -473,8 +450,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#171313",
-        "legs": 0.6
+        "hairColor": "#2B1B16",
+        "legs": 0.6,
+        "skinTint": "#8F6045"
       },
       "dialogue_id": "tomlin_brask"
     },
@@ -483,10 +461,6 @@
       "game_id": "hask_greel",
       "name": "Hask Greel",
       "role": "ironbond soldier",
-      "hex": [
-        1,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1397,
@@ -496,12 +470,12 @@
         "weight": 0.78,
         "height": 0.58,
         "proportions": 0.62,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
         "eyes": "brownlight",
-        "hair": "short03",
-        "hairTint": "#6e4d35",
+        "hair": "box_braids",
+        "hairTint": "#4B2F24",
         "facialHair": "full_beard",
         "beardColor": "#64462f",
         "tattoos": [
@@ -540,8 +514,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#6e4d35",
-        "legs": 0.7
+        "hairColor": "#4B2F24",
+        "legs": 0.7,
+        "skinTint": "#B98260"
       },
       "dialogue_id": "hask_greel"
     },
@@ -550,10 +525,6 @@
       "game_id": "yvette_marlow",
       "name": "Yvette Marlow",
       "role": "villager",
-      "hex": [
-        -2,
-        2
-      ],
       "detail": "medium",
       "params": {
         "seed": 1508,
@@ -563,12 +534,12 @@
         "weight": 0.4,
         "height": 0.52,
         "proportions": 0.48,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.12,
+        "asian": 0.25,
+        "caucasian": 0.63,
         "eyes": "bluegreen",
-        "hair": "bob02",
-        "hairTint": "#4d3425",
+        "hair": "braid01",
+        "hairTint": "#5A3826",
         "facialHair": "none",
         "tattoos": [
           "armband_l"
@@ -608,9 +579,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#4d3425",
+        "hairColor": "#5A3826",
         "legs": 0.48,
-        "breasts": 0.58
+        "breasts": 0.58,
+        "skinTint": "#D0A17D"
       },
       "dialogue_id": "yvette_marlow"
     },
@@ -619,10 +591,6 @@
       "game_id": "hendra_wells",
       "name": "Hendra Wells",
       "role": "villager",
-      "hex": [
-        -3,
-        2
-      ],
       "detail": "medium",
       "params": {
         "seed": 1619,
@@ -632,12 +600,12 @@
         "weight": 0.58,
         "height": 0.46,
         "proportions": 0.52,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "brownlight",
+        "african": 0.02,
+        "asian": 0.03,
+        "caucasian": 0.95,
+        "eyes": "blue",
         "hair": "box_braids",
-        "hairTint": "#554031",
+        "hairTint": "#C6A16B",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -674,9 +642,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#554031",
+        "hairColor": "#C6A16B",
         "legs": 0.58,
-        "breasts": 0.66
+        "breasts": 0.66,
+        "skinTint": "#E8C5A5"
       },
       "dialogue_id": "hendra_wells"
     },
@@ -685,10 +654,6 @@
       "game_id": "tavern_patron",
       "name": "Bram Fenwick",
       "role": "background patron",
-      "hex": [
-        3,
-        -2
-      ],
       "detail": "low",
       "params": {
         "seed": 1730,
@@ -698,12 +663,12 @@
         "weight": 0.46,
         "height": 0.5,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.9,
-        "caucasian": 0.05,
-        "eyes": "darkbrown",
-        "hair": "short02",
-        "hairTint": "#29201b",
+        "african": 0.58,
+        "asian": 0.3,
+        "caucasian": 0.12,
+        "eyes": "brownlight",
+        "hair": "box_braids",
+        "hairTint": "#241A16",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -738,8 +703,9 @@
         "faceShapes": false,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#29201b",
-        "legs": 0.52
+        "hairColor": "#241A16",
+        "legs": 0.52,
+        "skinTint": "#A87552"
       }
     },
     {
@@ -747,10 +713,6 @@
       "game_id": "marta_wynfield",
       "name": "Elder Marta Wynfield",
       "role": "village elder",
-      "hex": [
-        0,
-        -9
-      ],
       "detail": "medium",
       "params": {
         "seed": 1841,
@@ -761,11 +723,11 @@
         "height": 0.42,
         "proportions": 0.46,
         "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "asian": 0.12,
+        "caucasian": 0.83,
         "eyes": "grey",
-        "hair": "long01",
-        "hairTint": "#c1b9a8",
+        "hair": "braid01",
+        "hairTint": "#8A6A4C",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -802,9 +764,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#c1b9a8",
+        "hairColor": "#8A6A4C",
         "legs": 0.42,
-        "breasts": 0.4
+        "breasts": 0.4,
+        "skinTint": "#E0B99B"
       },
       "dialogue_id": "marta_wynfield"
     },
@@ -813,10 +776,6 @@
       "game_id": "rowan_fletcher",
       "name": "Rowan Fletcher",
       "role": "wandering hunter",
-      "hex": [
-        12,
-        26
-      ],
       "detail": "medium",
       "params": {
         "seed": 1952,
@@ -826,12 +785,12 @@
         "weight": 0.48,
         "height": 0.68,
         "proportions": 0.62,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "green",
-        "hair": "short03",
-        "hairTint": "#3c2d22",
+        "african": 0.58,
+        "asian": 0.3,
+        "caucasian": 0.12,
+        "eyes": "brownlight",
+        "hair": "long01",
+        "hairTint": "#241A16",
         "facialHair": "short_beard",
         "beardColor": "#3c2d22",
         "tattoos": [
@@ -872,8 +831,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#3c2d22",
-        "legs": 0.68
+        "hairColor": "#241A16",
+        "legs": 0.68,
+        "skinTint": "#A87552"
       },
       "dialogue_id": "hollowmere_hunter"
     },
@@ -882,10 +842,6 @@
       "game_id": "player",
       "name": "Player Character",
       "role": "player avatar",
-      "hex": [
-        -1,
-        2
-      ],
       "detail": "high",
       "params": {
         "seed": 2468,
@@ -895,12 +851,12 @@
         "weight": 0.5,
         "height": 0.5,
         "proportions": 0.5,
-        "african": 0.34,
-        "asian": 0.33,
-        "caucasian": 0.33,
-        "eyes": "brown",
-        "hair": "short02",
-        "hairTint": "#49372a",
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
+        "eyes": "brownlight",
+        "hair": "braid01",
+        "hairTint": "#4B2F24",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -935,9 +891,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#49372a",
+        "hairColor": "#4B2F24",
         "legs": 0.5,
-        "breasts": 0.5
+        "breasts": 0.5,
+        "skinTint": "#B98260"
       }
     },
     {
@@ -945,11 +902,11 @@
       "game_id": "companion_ser_aldric_thorne",
       "name": "Ser Aldric Thorne",
       "role": "companion",
-      "hex": [
-        -11,
-        -5
-      ],
       "detail": "runtime",
+      "anatomy_size": {
+        "length_scale": 1.10,
+        "girth_scale": 1.10
+      },
       "progression": {
         "race": "human",
         "class_levels": [
@@ -974,12 +931,12 @@
         "weight": 0.58,
         "height": 0.68,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.35,
+        "asian": 0.25,
+        "caucasian": 0.4,
         "eyes": "brown",
-        "hair": "short03",
-        "hairTint": "#594a3c",
+        "hair": "short02",
+        "hairTint": "#171514",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -994,8 +951,9 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#594a3c",
-        "legs": 0.66
+        "hairColor": "#171514",
+        "legs": 0.66,
+        "skinTint": "#9A6D50"
       },
       "dialogue_id": "ser_aldric_captive",
       "companion_dialogue_id": "companion_ser_aldric"
@@ -1005,10 +963,6 @@
       "game_id": "companion_nix_sharpear",
       "name": "Nix Sharpear",
       "role": "companion",
-      "hex": [
-        -16,
-        9
-      ],
       "detail": "runtime",
       "progression": {
         "race": "goblin",
@@ -1039,12 +993,12 @@
         "weight": 0.3,
         "height": 0.25,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "green",
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
+        "eyes": "brownlight",
         "hair": "short02",
-        "hairTint": "#30251b",
+        "hairTint": "#30251B",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1059,8 +1013,9 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#30251b",
-        "legs": 0.38
+        "hairColor": "#30251B",
+        "legs": 0.38,
+        "skinTint": "#B98260"
       },
       "dialogue_id": "nix_sharpear",
       "companion_dialogue_id": "companion_nix_sharpear"
@@ -1070,10 +1025,6 @@
       "game_id": "companion_warlord_grukk",
       "name": "Warlord Grukk Ironhide",
       "role": "companion",
-      "hex": [
-        16,
-        17
-      ],
       "detail": "runtime",
       "progression": {
         "race": "orc",
@@ -1104,12 +1055,12 @@
         "weight": 0.84,
         "height": 0.82,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.7,
+        "asian": 0.2,
+        "caucasian": 0.1,
         "eyes": "brown",
         "hair": "short02",
-        "hairTint": "#30231c",
+        "hairTint": "#2B1B16",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1124,8 +1075,9 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#30231c",
-        "legs": 0.78
+        "hairColor": "#2B1B16",
+        "legs": 0.78,
+        "skinTint": "#8F6045"
       },
       "dialogue_id": "orc_warlord",
       "companion_dialogue_id": "companion_orc_warlord"
@@ -1135,10 +1087,6 @@
       "game_id": "companion_reyna_fletcher",
       "name": "Reyna Fletcher",
       "role": "companion",
-      "hex": [
-        -18,
-        -12
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1160,16 +1108,16 @@
         "seed": 1112680012,
         "gender": 0,
         "age": 0.34,
-        "muscle": 0.58,
-        "weight": 0.38,
+        "muscle": 0.78,
+        "weight": 0.25,
         "height": 0.56,
-        "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "green",
-        "hair": "long01",
-        "hairTint": "#704b32",
+        "proportions": 0.62,
+        "african": 0.82,
+        "asian": 0.12,
+        "caucasian": 0.06,
+        "eyes": "brown",
+        "hair": "braid01",
+        "hairTint": "#17120F",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1184,8 +1132,10 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#704b32",
-        "legs": 0.6
+        "hairColor": "#17120F",
+        "legs": 0.7,
+        "breasts": 0.2,
+        "skinTint": "#5A3426"
       },
       "dialogue_id": "reyna_fletcher",
       "companion_dialogue_id": "reyna_fletcher"
@@ -1195,10 +1145,6 @@
       "game_id": "companion_mirabel_quill",
       "name": "Mirabel Quill",
       "role": "companion",
-      "hex": [
-        17,
-        -11
-      ],
       "detail": "runtime",
       "progression": {
         "race": "elf",
@@ -1218,17 +1164,17 @@
       "params": {
         "seed": 2014858941,
         "gender": 0,
-        "age": 0.29,
+        "age": 0.63,
         "muscle": 0.3,
         "weight": 0.32,
         "height": 0.58,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
         "eyes": "bluegreen",
         "hair": "long01",
-        "hairTint": "#8b765e",
+        "hairTint": "#5A3826",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1243,8 +1189,10 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#8b765e",
-        "legs": 0.46
+        "hairColor": "#5A3826",
+        "legs": 0.46,
+        "skinTint": "#B98260",
+        "breasts": 0.7
       },
       "dialogue_id": "mirabel_quill",
       "companion_dialogue_id": "mirabel_quill"
@@ -1254,10 +1202,6 @@
       "game_id": "companion_fenn_oakheart",
       "name": "Fenn Oakheart",
       "role": "companion",
-      "hex": [
-        -17,
-        17
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1282,11 +1226,11 @@
         "height": 0.6,
         "proportions": 0.5,
         "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "asian": 0.12,
+        "caucasian": 0.83,
         "eyes": "brownlight",
         "hair": "short02",
-        "hairTint": "#57422d",
+        "hairTint": "#87452D",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1301,8 +1245,9 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#57422d",
-        "legs": 0.57
+        "hairColor": "#87452D",
+        "legs": 0.57,
+        "skinTint": "#E0B99B"
       },
       "dialogue_id": "fenn_oakheart",
       "companion_dialogue_id": "fenn_oakheart"
@@ -1312,10 +1257,6 @@
       "game_id": "companion_brother_alden",
       "name": "Brother Alden",
       "role": "companion",
-      "hex": [
-        5,
-        -16
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1339,12 +1280,12 @@
         "weight": 0.52,
         "height": 0.64,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "grey",
+        "african": 0.88,
+        "asian": 0.08,
+        "caucasian": 0.04,
+        "eyes": "brown",
         "hair": "short03",
-        "hairTint": "#82715e",
+        "hairTint": "#38251D",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1359,8 +1300,9 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#82715e",
-        "legs": 0.63
+        "hairColor": "#38251D",
+        "legs": 0.63,
+        "skinTint": "#70452F"
       },
       "dialogue_id": "brother_alden",
       "companion_dialogue_id": "brother_alden"
@@ -1370,10 +1312,6 @@
       "game_id": "companion_snik_fangtooth",
       "name": "Snik Fangtooth",
       "role": "companion",
-      "hex": [
-        -19,
-        -2
-      ],
       "detail": "runtime",
       "progression": {
         "race": "goblin",
@@ -1401,12 +1339,12 @@
         "weight": 0.28,
         "height": 0.22,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "darkbrown",
-        "hair": "short02",
-        "hairTint": "#251d17",
+        "african": 0.12,
+        "asian": 0.25,
+        "caucasian": 0.63,
+        "eyes": "bluegreen",
+        "hair": "braid01",
+        "hairTint": "#5A3826",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1421,8 +1359,9 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#251d17",
-        "legs": 0.36
+        "hairColor": "#5A3826",
+        "legs": 0.36,
+        "skinTint": "#D0A17D"
       },
       "dialogue_id": "snik_fangtooth",
       "companion_dialogue_id": "snik_fangtooth"

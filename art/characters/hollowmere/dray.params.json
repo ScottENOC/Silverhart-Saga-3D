@@ -6,12 +6,12 @@
   "weight": 0.48,
   "height": 0.76,
   "proportions": 0.72,
-  "african": 0.92,
-  "asian": 0.03,
-  "caucasian": 0.05,
-  "eyes": "darkbrown",
-  "hair": "buzz",
-  "hairTint": "#211a16",
+  "african": 0.7,
+  "asian": 0.2,
+  "caucasian": 0.1,
+  "eyes": "brown",
+  "hair": "box_braids",
+  "hairTint": "#2B1B16",
   "facialHair": "stubble",
   "beardColor": "#211a16",
   "tattoos": [
@@ -52,6 +52,8 @@
   "faceShapes": true,
   "speechShapes": false,
   "expression": "determined",
-  "hairColor": "#211a16",
+  "hairColor": "#2B1B16",
+  "legs": 0.74,
+  "skinTint": "#8F6045",
   "name": "Dray Coltayne"
 }

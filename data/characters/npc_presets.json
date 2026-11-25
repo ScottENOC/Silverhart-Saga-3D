@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Future named-character presets sharing one character-generation contract. The generic Ara base person is the current pipeline milestone; Wren is a later character and does not yet have a production model. Asset IDs in these presets remain provisional until checked against the generated Ara catalogue.",
+  "description": "Named-character presets preserve authored appearances for established characters; generic appearance defaults are for characters without a manually authored design.",
   "characters": [
     {
       "id": "wren_talbot",
@@ -13,7 +13,7 @@
       "skin_palette": "warm_light",
       "face_preset": "face_01",
       "hair": "braid01",
-      "hair_tint": "#252b62",
+      "hair_tint": "#287BFF",
       "outfit": {
         "top": "fatigue_shirt",
         "bottom": "fatigue_pants",

@@ -13,6 +13,13 @@ const PROFILES: Dictionary = {
         "carry_capacity": 0, "movement_mode": "ground", "temperament": "domestic",
         "skills": {}
     },
+    "sheep": {
+        "display_name": "Sheep", "health": 3, "strength": 1, "endurance": 1, "agility": 2,
+        "damage": 0, "to_hit": 0.0, "dodge": 0.0, "tp_rate": 1.0, "fast_movement": 0,
+        "vision": 0, "scent": 0, "size": 1, "mount_size": 0, "mountable": false,
+        "carry_capacity": 0, "movement_mode": "ground", "temperament": "passive",
+        "skills": {}
+    },
     "bull": {
         "display_name": "Bull", "health": 50, "strength": 7, "endurance": 6, "agility": 2,
         "damage": 8, "to_hit": 5.0, "dodge": 0.0, "tp_rate": 1.0, "fast_movement": 0,

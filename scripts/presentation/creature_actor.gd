@@ -4,9 +4,10 @@ extends Node3D
 ## skeleton and animation library intact; animation names are discovered at
 ## runtime because the packs do not share one naming convention.
 
-@export_file("*.gltf", "*.glb") var model_path: String = ""
-@export_enum("cow", "bull", "horse", "donkey", "alpaca", "wolf", "fox", "deer", "stag", "husky", "shiba_inu") var creature_kind: String = "cow"
+@export_file("*.tscn", "*.gltf", "*.glb") var model_path: String = ""
+@export_enum("cow", "sheep", "bull", "horse", "donkey", "alpaca", "wolf", "fox", "deer", "stag", "husky", "shiba_inu") var creature_kind: String = "cow"
 @export_enum("farm", "passive_wildlife", "predator", "mount") var behaviour: String = "farm"
+@export var dialogue_id: String = ""
 @export_range(0.1, 4.0, 0.05) var model_scale: float = 1.0
 @export var idle_animation_hints: PackedStringArray = PackedStringArray(["idle", "graze", "eat", "stand"])
 @export var move_animation_hints: PackedStringArray = PackedStringArray(["walk", "move", "trot"])
@@ -41,7 +42,8 @@ func _load_model() -> void:
     add_child(model_root)
     animation_player = _find_animation_player(model_root)
     if animation_player == null:
-        push_warning("No AnimationPlayer found in creature model: %s" % model_path)
+        if creature_kind != "sheep":
+            push_warning("No AnimationPlayer found in creature model: %s" % model_path)
         return
     animation_names = animation_player.get_animation_list()
     # Prefer the most characteristic resting loop when a pack supplies one;

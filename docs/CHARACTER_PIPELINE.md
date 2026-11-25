@@ -49,3 +49,15 @@ The Wren Workshop pipeline now has an explicit delivery boundary:
 6. A separate Godot integration job downloads the artifact from the same Wren Workshop run and validates the actual files. The regular Godot gameplay test suite remains independent of generated GLBs.
 
 The generated package is a candidate runtime dependency. It does not automatically mean every included variant is already used by the playable game. Runtime adoption remains an explicit game integration step; the package and its tests ensure that the chosen assets are reproducible and compatible when that step is taken.
+
+## Staged runtime clothing migration contract
+
+NPC and companion clothing migration is deliberately incremental.
+
+- **Existing individually generated Hollowmere NPCs and approved companions keep their current baked outfits.** Do not strip those surfaces or replace their GLBs merely to make them use the player's modular wardrobe.
+- **The player and new shared-base characters use modular equipment where compatible garment assets exist.** Equipment state remains the authoritative source for equipped item IDs; the presentation layer resolves those IDs to compatible garment or prop assets.
+- **Ordinary NPCs migrate only when a complete, validated garment set exists for their body variant and their appearance can be preserved.** Convert in batches, with visual and regression checks, rather than regenerating the whole cast.
+- During the transition, baked outfits and modular garments may coexist. Runtime equipment refresh must not hide a baked outfit simply because a modular equivalent is not yet available.
+- The long-term target remains one shared equipment architecture for players, companions and NPCs. The migration schedule is not a reason to create a second inventory/equipment simulation or duplicate character identity state.
+
+This policy protects the individual NPC appearances already generated while allowing the modular clothing system to mature without blocking the port of the original game's characters, quests and dialogue.

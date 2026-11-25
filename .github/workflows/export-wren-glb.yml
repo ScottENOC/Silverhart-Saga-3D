@@ -2,9 +2,11 @@ name: Export Wren GLB
 
 on:
   push:
-    branches: [dev_2]
+    branches: [dev]
     paths:
       - "character-preview/wren.json"
+      - "character-preview/wren-ara.json"
+      - "art/characters/ara_runtime/ara_person_body_anatomy.glb"
       - "tools/review/export_character_glb.py"
       - ".github/workflows/export-wren-glb.yml"
   workflow_dispatch:
@@ -24,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: dev_2
+          ref: dev
       - name: Validate exporter and Wren profile
         run: |
           python -m py_compile tools/review/export_character_glb.py
@@ -45,5 +47,33 @@ jobs:
         with:
           name: wren-character-glb-${{ github.run_number }}
           path: build/wren/
+          if-no-files-found: error
+          retention-days: 30
+
+  native-ara:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build Wren from Ara's MakeHuman morph dataset
+        run: |
+          mkdir -p build/wren-native
+          npx --yes ara3d@latest export --params character-preview/wren-ara.json --detail high --no-animations --formats glb,zip --out build/wren-native
+          glb="$(find build/wren-native -maxdepth 1 -type f -name '*.glb' | head -n 1)"
+          test -n "$glb"
+          test -s "$glb"
+          echo "Native Ara GLB: $glb"
+          echo "=== Generated files ==="
+          ls -lh build/wren-native
+      - name: Upload native Ara Wren and regeneration bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-native-ara-${{ github.run_number }}
+          path: build/wren-native/
           if-no-files-found: error
           retention-days: 30

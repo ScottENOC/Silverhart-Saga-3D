@@ -1,0 +1,49 @@
+name: World vegetation validation
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "art/environment/trees/cosmo_generated/**"
+      - "scripts/world/world_vegetation_generator.gd"
+      - "scripts/world/hollowmere_village.gd"
+      - "scripts/world/hollow_tankard.gd"
+      - "tests/test_world_vegetation.gd"
+      - "tests/test_hollowmere_village.gd"
+      - ".github/workflows/world-vegetation-validation.yml"
+  push:
+    branches: ["feature/**"]
+    paths:
+      - "art/environment/trees/cosmo_generated/**"
+      - "scripts/world/world_vegetation_generator.gd"
+      - "scripts/world/hollowmere_village.gd"
+      - "scripts/world/hollow_tankard.gd"
+      - "tests/test_world_vegetation.gd"
+      - "tests/test_hollowmere_village.gd"
+      - ".github/workflows/world-vegetation-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: world-vegetation-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vegetation:
+    name: Shared world vegetation tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import project
+        run: godot --headless --editor --path . --quit
+      - name: Test shared vegetation generator and tavern grove
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_vegetation.gd
+      - name: Test Hollowmere vegetation integration
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_village.gd

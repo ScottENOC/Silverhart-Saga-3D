@@ -1,10 +1,44 @@
 class_name HexActorPresentation
 extends Node3D
 
-@export var movement_duration: float = 0.18
+@export var movement_duration: float = 0.36
 
-func present_move_to(world_position: Vector3) -> void:
-    var tween := create_tween()
-    tween.set_trans(Tween.TRANS_QUAD)
-    tween.set_ease(Tween.EASE_IN_OUT)
-    tween.tween_property(self, "global_position", world_position, movement_duration)
+var movement_tween: Tween
+
+
+func present_move_to(world_position: Vector3, facing_rotation: float = NAN) -> void:
+	if movement_tween != null and movement_tween.is_running():
+		movement_tween.kill()
+
+	_set_locomotion(true)
+	movement_tween = create_tween()
+	movement_tween.set_trans(Tween.TRANS_SINE)
+	movement_tween.set_ease(Tween.EASE_IN_OUT)
+	movement_tween.tween_property(self, "global_position", world_position, movement_duration)
+
+	if not is_nan(facing_rotation):
+		var shortest_turn := wrapf(facing_rotation - global_rotation.y, -PI, PI)
+		movement_tween.parallel().tween_property(
+			self,
+			"global_rotation:y",
+			global_rotation.y + shortest_turn,
+			minf(0.16, movement_duration * 0.6)
+		)
+
+	movement_tween.tween_callback(_finish_locomotion)
+
+
+func stop_moving() -> void:
+	if movement_tween != null and movement_tween.is_running():
+		movement_tween.kill()
+	_set_locomotion(false)
+
+
+func _finish_locomotion() -> void:
+	_set_locomotion(false)
+
+
+func _set_locomotion(is_moving: bool) -> void:
+	var character_model := get_node_or_null("CharacterModel")
+	if character_model != null and character_model.has_method("set_moving"):
+		character_model.call("set_moving", is_moving)

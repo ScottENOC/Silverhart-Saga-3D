@@ -6,12 +6,12 @@
   "weight": 0.48,
   "height": 0.68,
   "proportions": 0.62,
-  "african": 0.05,
-  "asian": 0.05,
-  "caucasian": 0.9,
-  "eyes": "green",
-  "hair": "short03",
-  "hairTint": "#3c2d22",
+  "african": 0.58,
+  "asian": 0.3,
+  "caucasian": 0.12,
+  "eyes": "brownlight",
+  "hair": "long01",
+  "hairTint": "#241A16",
   "facialHair": "short_beard",
   "beardColor": "#3c2d22",
   "tattoos": [
@@ -52,6 +52,8 @@
   "faceShapes": true,
   "speechShapes": false,
   "expression": "neutral",
-  "hairColor": "#3c2d22",
+  "hairColor": "#241A16",
+  "legs": 0.68,
+  "skinTint": "#A87552",
   "name": "Rowan Fletcher"
 }

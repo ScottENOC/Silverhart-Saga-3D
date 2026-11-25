@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "campaign2_local_axial_qr",
+  "settlements": [
+    {
+      "id": "hollowmere",
+      "priority": 100,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_hollowmere"
+    },
+    {
+      "id": "millbrook",
+      "priority": 50,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "millbrook"
+    },
+    {
+      "id": "emberlode",
+      "priority": 45,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "emberlode"
+    },
+    {
+      "id": "reddale",
+      "priority": 40,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "reddale"
+    },
+    {
+      "id": "silverhart",
+      "priority": 60,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "silverhart"
+    },
+    {
+      "id": "old_mac_farmstead",
+      "priority": 35,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "old_mac_farmstead"
+    },
+    {
+      "id": "skarn_tooth_camp",
+      "priority": 30,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "skarn_tooth_camp"
+    },
+    {
+      "id": "skarnaks_hold",
+      "priority": 35,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "skarnaks_hold"
+    }
+  ]
+}

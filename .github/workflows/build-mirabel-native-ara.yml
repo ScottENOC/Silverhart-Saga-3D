@@ -1,0 +1,227 @@
+name: Build Mirabel native Ara character
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/mirabel-ara.json"
+      - ".github/workflows/build-mirabel-native-ara.yml"
+      - "tools/review/mirabel_native_preview.gd"
+      - "scripts/presentation/ara_character_details.gd"
+      - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/blender/add_elf_ears.py"
+      - "tools/blender/add_character_details.py"
+      - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/make_hairless_preview.py"
+      - "tools/review/mirabel_ears_preview.gd"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "character-preview/mirabel-ara.json"
+      - "tools/blender/add_character_details.py"
+      - "tools/review/recolor_wren_glb.py"
+      - ".github/workflows/build-mirabel-native-ara.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-mirabel-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARA3D_CACHE: ${{ github.workspace }}/.cache/ara3d
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Validate Mirabel profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/mirabel-ara.json >/dev/null
+          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/blender/add_elf_ears.py tools/blender/make_hairless_preview.py tools/blender/add_character_details.py tools/review/recolor_wren_glb.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+
+      - name: Prepare cached Ara and Blender toolchain
+        uses: ./.github/actions/character-build-setup
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/mirabel-native/ara-export
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = Path("character-preview/mirabel-ara.json")
+          target = Path("build/mirabel-native/ara-export-profile.json")
+          data = json.loads(source.read_text())
+          params = data.setdefault("params", {})
+          data.pop("character_details", None)
+          # These are project-side metadata, not Ara generator parameters.
+          # Preserve them in the source profile; omit only from the Ara export copy.
+          for key in ("tattoo_ink", "piercings"):
+              params.pop(key, None)
+          target.write_text(json.dumps(data, indent=2) + "\n")
+          PY
+          npx --yes ara3d@0.7.4 export \
+            --params build/mirabel-native/ara-export-profile.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/mirabel-native/ara-export
+          raw_glb="$(find build/mirabel-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/mirabel-native/Mirabel-ara-base.glb
+
+      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/mirabel-native/Mirabel-ara-base.glb \
+            --output build/mirabel-native/female-anatomy-subdivision-plan.json
+          test -s build/mirabel-native/female-anatomy-subdivision-plan.json
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/mirabel-native/Mirabel-ara-base.glb \
+            --output build/mirabel-native/Mirabel-anatomy.glb \
+            --report build/mirabel-native/female-anatomy-report.json \
+            --subdivision-plan build/mirabel-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+          test -s build/mirabel-native/Mirabel-anatomy.glb
+          grep -q '"clothing_operations": "not run"' build/mirabel-native/female-anatomy-report.json
+      - name: Add reusable pointed elf ears
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_elf_ears.py -- \
+            --input build/mirabel-native/Mirabel-anatomy.glb \
+            --output build/mirabel-native/Mirabel.glb \
+            --length 0.105 --rise 0.025 --sweep 0.055 --strength 1.0
+          test -s build/mirabel-native/Mirabel.glb
+
+      - name: Apply Mirabel skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/mirabel-native/Mirabel.glb \
+            --profile character-preview/mirabel-ara.json \
+            --hair-gamma 0.28
+          test -s build/mirabel-native/Mirabel.glb
+
+      # Mirabel intentionally has no body-hair texture pass.
+
+      - name: Bake tattoos and piercings into exported GLB
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/mirabel-native/Mirabel.glb \
+            --output build/mirabel-native/Mirabel-details.glb \
+            --profile character-preview/mirabel-ara.json
+          test -s build/mirabel-native/Mirabel-details.glb
+          mv build/mirabel-native/Mirabel-details.glb build/mirabel-native/Mirabel.glb
+
+      - name: Create temporary hairless elf-ear inspection model
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/make_hairless_preview.py -- \
+            --input build/mirabel-native/Mirabel.glb \
+            --output build/mirabel-native/Mirabel_ears_preview.glb
+          test -s build/mirabel-native/Mirabel_ears_preview.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/mirabel-native-preview-project
+          mkdir -p "$preview/scripts/presentation" "$preview/build/mirabel-native" "$preview/tools/review"
+          cp build/mirabel-native/Mirabel.glb "$preview/build/mirabel-native/Mirabel.glb"
+          cp build/mirabel-native/Mirabel_ears_preview.glb "$preview/build/mirabel-native/Mirabel_ears_preview.glb"
+          cp tools/review/mirabel_native_preview.gd "$preview/tools/review/mirabel_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
+          cp tools/review/mirabel_ears_preview.gd "$preview/tools/review/mirabel_ears_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Mirabel Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and render Mirabel
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/mirabel-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/mirabel-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/mirabel_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/mirabel-native-preview-project/build/mirabel-native/preview/$view.png"
+          done
+          test -s build/mirabel-native-preview-project/build/mirabel-native/preview/render-report.json
+          cp -R build/mirabel-native-preview-project/build/mirabel-native/preview build/mirabel-native/preview
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/mirabel-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/mirabel_ears_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/mirabel-native-preview-project/build/mirabel-native/preview/ears-bald/$view.png"
+          done
+          cp -R build/mirabel-native-preview-project/build/mirabel-native/preview/ears-bald build/mirabel-native/preview/ears-bald
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/mirabel-native")
+          readme = """Mirabel Quill — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from mirabel-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          Regenerate with the Build Mirabel native Ara character workflow on dev.
+          """
+          with zipfile.ZipFile(root / "Mirabel_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Mirabel.glb", "Mirabel.glb")
+              archive.write(root / "Mirabel_ears_preview.glb", "inspection-only/Mirabel_ears_preview.glb")
+              archive.write(Path("character-preview/mirabel-ara.json"), "mirabel-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / "ears-bald" / f"{view}.png", f"preview/ears-bald/{view}.png")
+              archive.writestr("README.txt", readme + "\\nThe bald ear-inspection model is temporary and is NOT the deployment model.\\n")
+          PY
+
+      - name: Upload Mirabel model and visual review
+        uses: actions/upload-artifact@v7
+        with:
+          name: mirabel-native-ara-${{ github.run_number }}
+          path: |
+            build/mirabel-native/Mirabel.glb
+            build/mirabel-native/Mirabel_native_Ara_bundle.zip
+            build/mirabel-native/preview/
+          if-no-files-found: error
+          retention-days: 30

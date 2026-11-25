@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 NPCS = ROOT / "data/characters/legacy_named_npcs.json"
 ENEMIES = ROOT / "data/characters/legacy_enemy_roster.json"
 ARENA = ROOT / "data/arena/arena_opponents.json"
-VALID_MODEL_STATES = {"hollowmere_profile_available", "appearance_profile_required", "3d_model_required"}
+VALID_MODEL_STATES = {"hollowmere_profile_available", "appearance_profile_authored", "appearance_profile_required", "3d_model_required"}
 
 
 def load(path):

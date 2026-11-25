@@ -1,0 +1,186 @@
+name: Build Dagna native Ara character
+# Appearance-only preview: deliberately no elf-ear pass, dialogue, or quest integration.
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/dagna-ara.json"
+      - "tools/review/add_aldric_body_hair.py"
+      - ".github/workflows/build-dagna-native-ara.yml"
+      - "tools/review/dagna_native_preview.gd"
+      - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "character-preview/dagna-ara.json"
+      - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - ".github/workflows/build-dagna-native-ara.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-dagna-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || 'dev' }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Dagna profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/dagna-ara.json >/dev/null
+          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/review/recolor_wren_glb.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+
+      - name: Install Ara export dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-pil python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/dagna-native/ara-export
+          npx --yes ara3d@latest export \
+            --params character-preview/dagna-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/dagna-native/ara-export
+          raw_glb="$(find build/dagna-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/dagna-native/Dagna-ara-base.glb
+
+      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/dagna-native/Dagna-ara-base.glb \
+            --output build/dagna-native/female-anatomy-subdivision-plan.json
+          test -s build/dagna-native/female-anatomy-subdivision-plan.json
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/dagna-native/Dagna-ara-base.glb \
+            --output build/dagna-native/Dagna-anatomy.glb \
+            --report build/dagna-native/female-anatomy-report.json \
+            --subdivision-plan build/dagna-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+          test -s build/dagna-native/Dagna-anatomy.glb
+          grep -q '"clothing_operations": "not run"' build/dagna-native/female-anatomy-report.json
+      - name: Keep Dagna free of elf-ear modifications
+        run: |
+          set -euo pipefail
+          cp build/dagna-native/Dagna-anatomy.glb build/dagna-native/Dagna.glb
+          test -s build/dagna-native/Dagna.glb
+
+      - name: Apply Dagna skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/dagna-native/Dagna.glb \
+            --profile character-preview/dagna-ara.json \
+            --hair-gamma 0.28 --bake-hair-tint
+          test -s build/dagna-native/Dagna.glb
+
+      - name: Paint thick texture-only pubic hair matching Dagna's head hair
+        run: |
+          set -euo pipefail
+          hair_colour="$(python -c 'import json; print(json.load(open("character-preview/dagna-ara.json"))["params"]["hairTint"])')"
+          echo "Matching Dagna body hair to profile head-hair colour: $hair_colour"
+          python tools/review/add_aldric_body_hair.py --model build/dagna-native/Dagna.glb --seed 6382 --coverage dagna --hair-colour "$hair_colour"
+          test -s build/dagna-native/Dagna.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/dagna-native-preview-project
+          mkdir -p "$preview/build/dagna-native" "$preview/tools/review"
+          cp build/dagna-native/Dagna.glb "$preview/build/dagna-native/Dagna.glb"
+          cp tools/review/dagna_native_preview.gd "$preview/tools/review/dagna_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Dagna Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Import and render Dagna
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/dagna-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/dagna-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/dagna_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/dagna-native-preview-project/build/dagna-native/preview/$view.png"
+          done
+          test -s build/dagna-native-preview-project/build/dagna-native/preview/render-report.json
+          cp -R build/dagna-native-preview-project/build/dagna-native/preview build/dagna-native/preview
+
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/dagna-native")
+          readme = """Dagna Stoneward — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from dagna-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          Regenerate with the Build Dagna native Ara character workflow on dev.
+          """
+          with zipfile.ZipFile(root / "Dagna_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Dagna.glb", "Dagna.glb")
+              archive.write(Path("character-preview/dagna-ara.json"), "dagna-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme + "\\n")
+          PY
+
+      - name: Upload Dagna model and visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dagna-native-ara-${{ github.run_number }}
+          path: |
+            build/dagna-native/Dagna.glb
+            build/dagna-native/Dagna_native_Ara_bundle.zip
+            build/dagna-native/preview/
+          if-no-files-found: error
+          retention-days: 30

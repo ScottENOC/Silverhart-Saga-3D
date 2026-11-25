@@ -1,0 +1,132 @@
+name: Generate procedural tavern NPC sample
+
+on:
+  push:
+    branches: [feature/procedural-tavern-npcs-and-garment-fit]
+    paths:
+      - "tools/ara/generate_tavern_npc_profiles.py"
+      - "tools/ara/build_hollowmere_npcs.py"
+      - "tools/ara/integrate_hollowmere_anatomy.py"
+      - "tools/ara/patch_layering.py"
+      - "tools/review/render_tavern_npc_contact_sheet.py"
+      - "tools/review/compose_tavern_npc_contact_sheet.py"
+      - ".github/workflows/generate-tavern-npcs.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "tools/ara/generate_tavern_npc_profiles.py"
+      - "tools/ara/build_hollowmere_npcs.py"
+      - "tools/ara/integrate_hollowmere_anatomy.py"
+      - "tools/ara/patch_layering.py"
+      - "tools/review/render_tavern_npc_contact_sheet.py"
+      - "tools/review/compose_tavern_npc_contact_sheet.py"
+      - ".github/workflows/generate-tavern-npcs.yml"
+  workflow_dispatch:
+    inputs:
+      count:
+        description: Number of generic tavern patrons to generate
+        required: true
+        default: "20"
+        type: string
+      seed:
+        description: Deterministic generation seed
+        required: true
+        default: "20261120"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tavern-npc-sample
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Generate and package tavern NPCs
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install and pin Ara 3D Gen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          npm run setup-assets
+
+      - name: Apply Silverhart garment-layer contract
+        run: |
+          set -euo pipefail
+          cd /tmp/ara-3d-gen
+          python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
+
+      - name: Generate seeded tavern profiles
+        shell: bash
+        env:
+          NPC_COUNT: ${{ inputs.count || '20' }}
+          NPC_SEED: ${{ inputs.seed || '20261120' }}
+        run: |
+          set -euo pipefail
+          cd /tmp/ara-3d-gen
+          python -m py_compile "$GITHUB_WORKSPACE/tools/ara/generate_tavern_npc_profiles.py"
+          python "$GITHUB_WORKSPACE/tools/ara/generate_tavern_npc_profiles.py" \
+            --count "$NPC_COUNT" \
+            --seed "$NPC_SEED" \
+            --out "$GITHUB_WORKSPACE/art/characters/tavern_npcs/profiles.input.json"
+
+      - name: Build every profile as an Ara GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/ara-3d-gen
+          python -m py_compile "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py"
+          python "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py" \
+            --profiles "$GITHUB_WORKSPACE/art/characters/tavern_npcs/profiles.input.json" \
+            --out "$GITHUB_WORKSPACE/art/characters/tavern_npcs/generated"
+
+      - name: Install Blender for anatomy integration
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
+
+      - name: Integrate adult anatomy consistently
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/ara/integrate_hollowmere_anatomy.py
+          python tools/ara/integrate_hollowmere_anatomy.py --directory art/characters/tavern_npcs/generated
+
+      - name: Render individual NPC previews and contact sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          mkdir -p art/characters/tavern_npcs/generated/review
+          blender --background --python-exit-code 1 \
+            --python tools/review/render_tavern_npc_contact_sheet.py -- \
+            art/characters/tavern_npcs/generated/profiles.json \
+            art/characters/tavern_npcs/generated \
+            art/characters/tavern_npcs/generated/review
+          python3 tools/review/compose_tavern_npc_contact_sheet.py \
+            --manifest art/characters/tavern_npcs/generated/profiles.json \
+            --images art/characters/tavern_npcs/generated/review \
+            --output art/characters/tavern_npcs/generated/review/contact-sheet.png
+
+      - name: Upload generated NPCs and deterministic manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: tavern-npc-sample-seed-${{ inputs.seed || '20261120' }}
+          path: |
+            art/characters/tavern_npcs/generated/*.glb
+            art/characters/tavern_npcs/generated/*.params.json
+            art/characters/tavern_npcs/generated/profiles.json
+            art/characters/tavern_npcs/generated/review/*.png
+          if-no-files-found: error
+          retention-days: 90

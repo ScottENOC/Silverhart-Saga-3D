@@ -1,0 +1,218 @@
+name: Build current player Ara body assets
+
+on:
+  push:
+    branches: [dev, feature/character-runtime-asset-integration]
+    paths:
+      - ".github/workflows/build-player-ara-bodies.yml"
+      - "character-preview/wren-ara.json"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/blender/add_male_anatomy.py"
+      - "scripts/presentation/ara_character_actor.gd"
+      - "scripts/presentation/campaign_character_actor_factory.gd"
+      - "tests/test_player_body_assets.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: player-ara-body-assets
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Install Blender and numerical dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Create neutral, hairless female and male Ara profiles
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = json.loads(Path("character-preview/wren-ara.json").read_text())
+          for name, gender in (("female", 0), ("male", 1)):
+              profile = json.loads(json.dumps(source))
+              params = profile["params"]
+              params.update({
+                  "name": f"Silverhart Player {name.capitalize()} Base",
+                  "seed": 8100 + gender,
+                  "gender": gender,
+                  "ageYears": 30,
+                  "muscle": 0.5,
+                  "weight": 0.5,
+                  "height": 0.5,
+                  "proportions": 0.5,
+                  "african": 0.33,
+                  "asian": 0.33,
+                  "caucasian": 0.34,
+                  "skinTint": "#B9825F",
+                  "eyes": "brown",
+                  "hair": "none",
+                  "hairTint": "#49372A",
+                  "hairColor": "#49372A",
+                  "facialHair": "none",
+                  "outfit": "none",
+                  "top": "none",
+                  "jacket": "none",
+                  "bottom": "none",
+                  "underwear": False,
+                  "accessories": [],
+                  "shoes": "none",
+                  "hat": "none",
+                  "tattoos": [],
+                  "earrings": "none",
+                  "rig": "game",
+                  "restPose": "A",
+                  "animations": True,
+                  "faceBones": True,
+                  "faceShapes": True,
+                  "speechShapes": True,
+                  "expression": "neutral",
+                  "teeth": "teeth_base",
+                  "tongue": True,
+                  "modifiers": {},
+              })
+              if gender == 1:
+                  params.pop("breastSize", None)
+                  params.pop("breastFirmness", None)
+              else:
+                  params["breastSize"] = 0.5
+                  params["breastFirmness"] = 0.5
+              profile.pop("character_details", None)
+              folder = Path(f"build/player-ara/{name}")
+              folder.mkdir(parents=True, exist_ok=True)
+              (folder / "profile.json").write_text(json.dumps(profile, indent=2) + "\n")
+          PY
+
+      - name: Export clean Ara bodies with no embedded hairstyles
+        run: |
+          set -euo pipefail
+          for variant in female male; do
+            npx --yes ara3d@0.7.4 export \
+              --params "build/player-ara/$variant/profile.json" \
+              --detail high --formats glb,zip \
+              --out "build/player-ara/$variant/export"
+            raw="$(find "build/player-ara/$variant/export" -maxdepth 1 -type f -name '*.glb' -print -quit)"
+            test -n "$raw" && test -s "$raw"
+            cp "$raw" "build/player-ara/$variant/raw.glb"
+          done
+
+      - name: Apply accepted surface-following female anatomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/player-ara/female/raw.glb \
+            --output build/player-ara/female/subdivision-plan.json
+          test -s build/player-ara/female/subdivision-plan.json
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/player-ara/female/raw.glb \
+            --output build/player-ara/female/ara_player_female_body.glb \
+            --report build/player-ara/female/anatomy-report.json \
+            --subdivision-plan build/player-ara/female/subdivision-plan.json \
+            --adult --deformation-scale 1.65
+          test -s build/player-ara/female/ara_player_female_body.glb
+          grep -q '"clothing_operations": "not run"' build/player-ara/female/anatomy-report.json
+
+      - name: Apply dedicated male anatomy to the male Ara base
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_male_anatomy.py -- \
+            --input build/player-ara/male/raw.glb \
+            --output build/player-ara/male/ara_player_male_body.glb \
+            --adult --profile-name "Silverhart Player Male Base"
+          test -s build/player-ara/male/ara_player_male_body.glb
+
+      - name: Install Godot 4.7.2 and validate both body scenes
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and validate generated player bodies
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara_runtime
+          cp build/player-ara/female/ara_player_female_body.glb art/characters/ara_runtime/
+          cp build/player-ara/male/ara_player_male_body.glb art/characters/ara_runtime/
+          godot --headless --editor --path . --quit
+          test -s art/characters/ara_runtime/ara_player_female_body.glb.import
+          test -s art/characters/ara_runtime/ara_player_male_body.glb.import
+          godot --headless --path . --script res://tests/test_player_body_assets.gd
+
+      - name: Update runtime asset manifest and commit both player bodies
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Preserve the freshly generated binaries outside the worktree while
+          # moving from the detached trigger commit to the latest branch tip.
+          mkdir -p /tmp/player-ara-assets
+          cp art/characters/ara_runtime/ara_player_female_body.glb /tmp/player-ara-assets/
+          cp art/characters/ara_runtime/ara_player_female_body.glb.import /tmp/player-ara-assets/
+          cp art/characters/ara_runtime/ara_player_male_body.glb /tmp/player-ara-assets/
+          cp art/characters/ara_runtime/ara_player_male_body.glb.import /tmp/player-ara-assets/
+          git fetch origin
+          git checkout -B "${GITHUB_REF_NAME}" "origin/${GITHUB_REF_NAME}"
+          cp /tmp/player-ara-assets/* art/characters/ara_runtime/
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("art/characters/ara_runtime")
+          path = root / "manifest.json"
+          manifest = json.loads(path.read_text())
+          assets = manifest.setdefault("assets", {})
+          for name in ("ara_player_female_body.glb", "ara_player_male_body.glb"):
+              payload = (root / name).read_bytes()
+              assets[name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+          version_source = "".join(f"{name}:{entry['sha256']}" + chr(10) for name, entry in sorted(assets.items())).encode()
+          manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
+          path.write_text(json.dumps(manifest, indent=2) + chr(10))
+          PY
+          # The runtime asset directory is intentionally gitignored because
+          # most generated exports are local-only. Explicitly force-add only
+          # the two validated player bodies and their Godot import sidecars.
+          git add -f art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
+          git add -f art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
+          git add -f art/characters/ara_runtime/manifest.json
+          if git diff --cached --quiet; then
+            echo "Player body assets are already current."
+            exit 0
+          fi
+          git commit -m "Build player bodies with current gendered anatomy"
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Unable to push player body assets after three retries."
+              exit 1
+            fi
+          done

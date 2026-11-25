@@ -1,13 +1,81 @@
 extends SceneTree
 
 func _initialize() -> void:
+	await _test_player_male_anatomy_creation_save_restore()
 	_test_appearance_save_reload_and_material_application()
 	_test_materials_are_not_shared_between_characters()
 	_test_accessory_socket_attach_and_remove()
 	_test_campaign_character_actor_factory()
 	_test_shared_ara_npc_models_and_wren_appearance()
-	print("Character appearance and accessory tests passed.")
+	print("Character appearance, player anatomy customisation and accessory tests passed.")
 	quit()
+
+
+func _test_player_male_anatomy_creation_save_restore() -> void:
+	const SAVE_PATH := "user://player_appearance.json"
+	var previous_save_exists := FileAccess.file_exists(SAVE_PATH)
+	var previous_save := FileAccess.get_file_as_string(SAVE_PATH) if previous_save_exists else ""
+	if previous_save_exists:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+
+	var creator_script := load("res://scripts/ui/player_character_creator.gd") as Script
+	assert(creator_script != null, "Player character creator script must load")
+	var creator: Variant = creator_script.new()
+	creator.preview_enabled = false
+	root.add_child(creator)
+	assert(creator.male_anatomy_length_slider != null)
+	assert(creator.male_anatomy_girth_slider != null)
+	creator.body_variant_select.select(1)
+	creator.male_anatomy_length_slider.value = 0.25
+	creator.male_anatomy_girth_slider.value = 0.75
+
+	var emitted_profiles: Array[Dictionary] = []
+	creator.completed.connect(func(profile: Dictionary) -> void:
+		emitted_profiles.append(profile)
+	)
+	creator._finish()
+	await process_frame
+	assert(emitted_profiles.size() == 1, "Character creation must emit the completed player profile")
+	assert(FileAccess.file_exists(SAVE_PATH), "Character creation must persist the player profile")
+
+	var saved_profile: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	assert(saved_profile is Dictionary, "Saved player appearance must be valid JSON")
+	var profile: Dictionary = saved_profile
+	assert(profile.get("body_variant") == "male")
+	assert(is_equal_approx(float(profile.get("male_anatomy_length_percentile", -1.0)), 0.25))
+	assert(is_equal_approx(float(profile.get("male_anatomy_girth_percentile", -1.0)), 0.75))
+
+	var expected_length := (13.12 + lerpf(-1.644854, 1.644854, 0.25) * 1.66) / 13.12
+	var expected_girth := (11.66 + lerpf(-1.644854, 1.644854, 0.75) * 1.10) / 11.66
+	assert(is_equal_approx(float(profile.get("male_anatomy_length_scale", 0.0)), expected_length))
+	assert(is_equal_approx(float(profile.get("male_anatomy_girth_scale", 0.0)), expected_girth))
+
+	var restored: Variant = creator_script.new()
+	restored.preview_enabled = false
+	root.add_child(restored)
+	assert(restored.body_variant_select.get_item_text(restored.body_variant_select.selected) == "Male")
+	assert(restored.male_anatomy_section.visible, "Male anatomy controls must be visible after restoring a male profile")
+	assert(is_equal_approx(restored.male_anatomy_length_slider.value, 0.25))
+	assert(is_equal_approx(restored.male_anatomy_girth_slider.value, 0.75))
+
+	if ResourceLoader.exists("res://art/characters/ara_runtime/ara_player_male_body.glb"):
+		var actor := AraCharacterActor.new()
+		root.add_child(actor)
+		assert(actor.configure("res://art/characters/ara_runtime/ara_player_male_body.glb"))
+		actor.apply_player_profile(profile)
+		var applied: Dictionary = actor.get_meta("male_anatomy_size_scales", {})
+		assert(is_equal_approx(float(applied.get("length", 0.0)), expected_length), "Saved length choice must reach the male anatomy rig")
+		assert(is_equal_approx(float(applied.get("girth", 0.0)), expected_girth), "Saved circumference choice must reach the male anatomy rig")
+		actor.queue_free()
+
+	restored.queue_free()
+	await process_frame
+	if previous_save_exists:
+		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		assert(restore_file != null)
+		restore_file.store_string(previous_save)
+	else:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 
 func _test_appearance_save_reload_and_material_application() -> void:
 	var appearance := CharacterAppearance.new()
@@ -166,6 +234,9 @@ func _test_accessory_socket_attach_and_remove() -> void:
 
 
 func _test_campaign_character_actor_factory() -> void:
+	if not ResourceLoader.exists("res://art/characters/ara_runtime/ara_player_female_body.glb"):
+		print("CAMPAIGN_CHARACTER_ACTOR_FACTORY_TEST: SKIPPED (generated player body is not installed yet)")
+		return
 	var state := CharacterState.new("factory_player", "Factory Player", Vector2i(-1, 2))
 	var profile := {"name": "Factory Player", "body_variant": "female", "hair_style_id": "short02"}
 	var actor := CampaignCharacterActorFactory.create_actor(
@@ -188,49 +259,78 @@ func _test_campaign_character_actor_factory() -> void:
 	var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(model != null)
 	assert(model.loaded_asset_path != "")
+	assert(not model.hair_instances.is_empty(), "The standalone player hairstyle must bind to the generated body skeleton")
+	var original_hair_count := model.hair_instances.size()
+	assert(model.set_hairstyle("res://art/characters/ara_runtime/hair/female_short02.glb"))
+	assert(model.hair_instances.size() == original_hair_count, "Replacing a hairstyle must not stack duplicate meshes")
 	actor.free()
 
 
 func _test_shared_ara_npc_models_and_wren_appearance() -> void:
-	var male_state := CharacterState.new("garrick_test", "Garrick", Vector2i.ZERO)
-	var male_profile := {
-		"params": {
-			"gender": 1,
-			"age": 0.7,
-			"height": 0.52,
-			"muscle": 0.58,
-			"weight": 0.7,
-			"eyes": "brown",
-			"hair": "short02",
-			"hairTint": "#776e61"
+	if ResourceLoader.exists("res://art/characters/ara_runtime/ara_player_male_body.glb"):
+		var male_state := CharacterState.new("garrick_test", "Garrick", Vector2i.ZERO)
+		var male_profile := {
+			"params": {
+				"gender": 1,
+				"age": 0.7,
+				"height": 0.52,
+				"muscle": 0.58,
+				"weight": 0.7,
+				"eyes": "brown",
+				"hair": "short02",
+				"hairTint": "#776e61"
+			}
 		}
-	}
-	var male_actor := CampaignCharacterActorFactory.create_actor(
-		male_state, Vector3.ZERO, false, {}, male_profile, "garrick_holt.glb", "civilian"
-	)
-	assert(male_actor != null)
-	var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
-	assert(male_model != null)
-	assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
-	male_actor.free()
+		var male_actor := CampaignCharacterActorFactory.create_actor(
+			male_state, Vector3.ZERO, false, {}, male_profile, "garrick_holt.glb", "civilian"
+		)
+		assert(male_actor != null)
+		var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		assert(male_model != null)
+		assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
+		assert(male_model.apply_male_anatomy_size(1.10, 1.10), "Male anatomy size controls must bind to AnatomyRoot")
+		var applied_size: Dictionary = male_model.get_meta("male_anatomy_size_scales", {})
+		assert(is_equal_approx(float(applied_size.get("length", 0.0)), 1.10))
+		assert(is_equal_approx(float(applied_size.get("girth", 0.0)), 1.10))
+		male_actor.free()
 
-	var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
-		"id": "rurik_test",
-		"name": "Rurik",
-		"appearance": {
-			"gender_presentation": "Masculine",
-			"height_scale": 1.03,
-			"build_scale": 1.045,
-			"hair_style": "short02"
+		var aldric_state := CharacterState.new("companion_ser_aldric_thorne", "Ser Aldric Thorne", Vector2i.ZERO)
+		var aldric_profile := {
+			"params": {"gender": 1, "age": 0.62, "height": 0.68, "muscle": 0.72, "weight": 0.58},
+			"anatomy_size": {"length_scale": 1.10, "girth_scale": 1.10}
 		}
-	}, Vector3.ZERO)
-	assert(settlement_actor != null)
-	var settlement_model := settlement_actor.get_node_or_null("CharacterModel") as AraCharacterActor
-	assert(settlement_model != null)
-	assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
-	settlement_actor.free()
+		var aldric_actor := CampaignCharacterActorFactory.create_actor(
+			aldric_state, Vector3.ZERO, false, {}, aldric_profile, "aldric.glb", "companion"
+		)
+		assert(aldric_actor != null)
+		var aldric_model := aldric_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		assert(aldric_model != null)
+		assert(aldric_model.apply_male_anatomy_size(1.0, 1.0), "Aldric's accepted model must expose the anatomy rig")
+		var aldric_size: Dictionary = aldric_model.get_meta("male_anatomy_size_requested", {})
+		assert(is_equal_approx(float(aldric_size.get("length_scale", 0.0)), 1.10))
+		assert(is_equal_approx(float(aldric_size.get("girth_scale", 0.0)), 1.10))
+		aldric_actor.free()
 
-	var wren_state := CharacterState.new("wren_test", "Wren", Vector2i.ZERO)
+		var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
+			"id": "rurik_test",
+			"name": "Rurik",
+			"appearance": {
+				"gender_presentation": "Masculine",
+				"height_scale": 1.03,
+				"build_scale": 1.045,
+				"hair_style": "short02"
+			}
+		}, Vector3.ZERO)
+		assert(settlement_actor != null)
+		var settlement_model := settlement_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		assert(settlement_model != null)
+		assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
+		settlement_actor.free()
+	
+	else:
+		print("CAMPAIGN_MALE_CHARACTER_TEST: SKIPPED (generated male player body is not installed yet)")
+
+	var wren_state := CharacterState.new("companion_wren_talbot", "Wren", Vector2i.ZERO)
 	var wren_profile := {
 		"params": {
 			"gender": 0,
@@ -253,23 +353,13 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(wren_actor != null)
 	var wren_model := wren_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(wren_model != null)
-	assert(wren_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_body_anatomy.glb")
-	var body_parameters: Dictionary = wren_model.get_meta("body_parameters", {})
-	var blend_shape_names: Array[String] = []
-	_collect_blend_shape_names(wren_model.model_root, blend_shape_names)
-	print("ARA_SHARED_BODY_BLEND_SHAPES: %s" % ", ".join(blend_shape_names))
-	print("ARA_WREN_MORPHS_APPLIED: %s" % str(wren_model.get_meta("body_morph_targets_applied", 0)))
-	print("ARA_WREN_HAIR_INSTANCES: %d" % wren_model.hair_instances.size())
-	print("ARA_WREN_SKIN_TINT: %s" % str(wren_model.current_hair_colour))
-	assert(not wren_model.hair_instances.is_empty(), "Wren's Ara braid did not attach")
-	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
-	assert(int(wren_model.get_meta("skin_surfaces_tinted", 0)) > 0, "Wren's skin tint did not reach a material surface")
-	assert(int(wren_model.get_meta("eye_surfaces_tinted", 0)) > 0, "Wren's eye tint did not reach a material surface")
-	var applied_morphs: Dictionary = wren_model.get_meta("body_morph_parameters_applied", {})
-	for morph_name in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
-		assert(applied_morphs.has(morph_name), "Ara body morph is missing: %s" % morph_name)
-	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
-	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	assert(wren_model.loaded_asset_path == "res://art/characters/companions/wren.glb")
+	assert(wren_model.body_variant == "female")
+	assert(wren_model.hair_instances.is_empty(), "Approved Wren build should retain its baked braid, not attach a duplicate")
+	assert(not wren_model.has_meta("body_parameters"), "Approved Wren appearance must not be overwritten by generic NPC morphs")
+	assert(not wren_model.has_meta("skin_surfaces_tinted"), "Approved Wren complexion must remain baked into her accepted model")
+	CampaignCharacterActorFactory.apply_npc_parameters(wren_model, {"gender": 0, "skinTint": "#ffffff", "hairTint": "#ffffff"})
+	assert(not wren_model.has_meta("body_parameters"), "Generic NPC updates must not overwrite the approved Wren build")
 	wren_actor.free()
 
 

@@ -3,8 +3,24 @@ extends Node3D
 ## Hollowmere uses its authored exterior; surrounding local-hex terrain is streamed in chunks.
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
-const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
+const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
+const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
+const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
+const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
+const BORDER_FORT_PRESENTATION = preload("res://scripts/world/world_border_fort_presentation.gd")
+const DRAGON_LAIR_PRESENTATION = preload("res://scripts/world/world_dragon_lair_presentation.gd")
+const SPIDER_RUIN_PRESENTATION = preload("res://scripts/world/world_spider_ruin_presentation.gd")
+const DRUID_GROVE_PRESENTATION = preload("res://scripts/world/world_druid_grove_presentation.gd")
+const VAMPIRE_GRAVE_PRESENTATION = preload("res://scripts/world/world_vampire_grave_presentation.gd")
+const UNICORN_TRACK_PRESENTATION = preload("res://scripts/world/world_unicorn_track_presentation.gd")
+const WOLF_DEN_PRESENTATION = preload("res://scripts/world/world_wolf_den_presentation.gd")
+const CAVE_ENTRANCE_PRESENTATION = preload("res://scripts/world/world_cave_entrance_presentation.gd")
+const ABANDONED_HOUSE_APPROACH = preload("res://scripts/world/world_abandoned_house_approach_presentation.gd")
+const MULTISTORY_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
+const CANOPY_PRESENTATION = preload("res://scripts/world/world_canopy_settlement_presentation.gd")
+const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
@@ -13,6 +29,8 @@ const LOAD_RADIUS_CHUNKS := 1
 
 var terrain_data: Campaign2WorldTerrainData
 var settlement_builder: Campaign2SettlementBuilder
+var multistory_registry
+var ecology_simulation: WorldSimulation
 var chunk_nodes: Dictionary = {}
 var camera: Camera3D
 var target := Vector3.ZERO
@@ -23,20 +41,44 @@ var rotating := false
 var panning := false
 var last_stream_centre := Vector2i(999999, 999999)
 var materials: Dictionary = {}
-var tree_crown_mesh: Mesh
-var tree_trunk_mesh: Mesh
 var terrain_meshes: Dictionary = {}
 var marker_locations: Dictionary = {}
+var movement_controller: WorldPlayerMovementController
+var player_actor: Node3D
+var active_location_runtime: Campaign2MultiStoryLocationRuntime
+var mouse_travel_pressed := false
+
+# Lightweight runtime diagnostics. Reports slow frames and the cost of each
+# streamed chunk stage without printing every frame.
+var _perf_sample_elapsed := 0.0
+var _perf_sample_frames := 0
+var _perf_sample_frame_usec := 0
+var _perf_sample_max_frame_usec := 0
+var _perf_sample_slowest_stage := ""
+var _perf_sample_slowest_usec := 0
 
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
-	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts) as Campaign2SettlementBuilder
+	ecology_simulation = WorldSimulation.new()
+	ecology_simulation.name = "RegionalEcologySimulation"
+	add_child(ecology_simulation)
+	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts, null, ecology_simulation) as Campaign2SettlementBuilder
+	if not _ensure_multistory_registry():
+		push_error("Regional world preview could not initialise its multi-story location registry.")
+		return
 	_create_environment()
 	_create_materials()
 	_create_camera()
-	_add_authored_hollowmere()
+	_create_player()
 	_build_interface()
 	jump_to_location("hollowmere")
+
+
+func _ensure_multistory_registry() -> bool:
+	if multistory_registry == null:
+		multistory_registry = MULTISTORY_REGISTRY_SCRIPT.new()
+	return multistory_registry != null
+
 
 func _create_environment() -> void:
 	var world_environment := WorldEnvironment.new()
@@ -61,21 +103,18 @@ func _create_materials() -> void:
 		"hills": _material(Color("#9b8968")),
 		"mountain": _material(Color("#858b8e")),
 		"badlands": _material(Color("#a36f55")),
+		"sand": _material(Color("#cbb77f")),
+		"swamp": _material(Color("#56664a")),
+		"rocky_outcrop": _material(Color("#77756e")),
+		"dirt": _material(Color("#8b7453")),
+		"wood_floor": _material(Color("#947a59")),
+		"stone_floor": _material(Color("#77766f")),
+		"cave_floor": _material(Color("#554a3c")),
+		"climbable_wall": _material(Color("#4e5154")),
+		"keep_wall": _material(Color("#34383b")),
 		"water": _material(Color("#3d9fc2"), 0.28),
 		"path": _material(Color("#b79b70"))
 	}
-	var crown := CylinderMesh.new()
-	crown.bottom_radius = 0.82
-	crown.top_radius = 0.02
-	crown.height = 2.8
-	crown.radial_segments = 6
-	tree_crown_mesh = crown
-	var trunk := CylinderMesh.new()
-	trunk.top_radius = 0.12
-	trunk.bottom_radius = 0.17
-	trunk.height = 0.9
-	trunk.radial_segments = 6
-	tree_trunk_mesh = trunk
 
 func _material(colour: Color, roughness: float = 0.92) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -92,13 +131,6 @@ func _create_camera() -> void:
 	camera.current = true
 	add_child(camera)
 	_update_camera()
-
-func _add_authored_hollowmere() -> void:
-	# Reuse the actual starting-village scene instead of drawing a second,
-	# approximate village over it. Its authored map occupies radius 96.
-	var village := VILLAGE_SCRIPT.new() as Node3D
-	village.name = "AuthoredHollowmereVillage"
-	add_child(village)
 
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
@@ -179,7 +211,7 @@ func _build_interface() -> void:
 	help.offset_right = -245.0
 	help.offset_top = -52.0
 	help.offset_bottom = -16.0
-	help.text = "Left-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   WASD / arrows: travel   •   Esc: macro map"
+	help.text = "Click: travel   •   QWE / ASD: move   •   F: use nearby stair / enter or exit   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("#d2d8d9"))
 	root.add_child(help)
@@ -202,12 +234,62 @@ func jump_to_location(location_id: String) -> void:
 		_update_streamed_chunks(true)
 		return
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var frame_start := Time.get_ticks_usec()
+	if movement_controller != null:
+		movement_controller.process_movement(delta)
 	_update_streamed_chunks(false)
+	_record_perf_frame(Time.get_ticks_usec() - frame_start, delta)
+
+func _record_perf_frame(frame_usec: int, delta: float) -> void:
+	_perf_sample_elapsed += delta
+	_perf_sample_frames += 1
+	_perf_sample_frame_usec += frame_usec
+	_perf_sample_max_frame_usec = maxi(_perf_sample_max_frame_usec, frame_usec)
+	if _perf_sample_elapsed < 5.0:
+		return
+	var average_ms := float(_perf_sample_frame_usec) / float(maxi(1, _perf_sample_frames)) / 1000.0
+	var maximum_ms := float(_perf_sample_max_frame_usec) / 1000.0
+	var slowest_ms := float(_perf_sample_slowest_usec) / 1000.0
+	var engine_process_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var physics_process_ms := Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	var render_objects := int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
+	var render_primitives := int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+	var physics_bodies := int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))
+	print("[WorldPerf] fps=%.1f script_avg=%.2fms script_max=%.2fms engine_process=%.2fms physics=%.2fms nodes=%d objects=%d render_objects=%d primitives=%d physics_bodies=%d chunks=%d slowest_chunk_stage=%s(%.2fms)" % [
+		float(_perf_sample_frames) / _perf_sample_elapsed,
+		average_ms,
+		maximum_ms,
+		engine_process_ms,
+		physics_process_ms,
+		get_tree().get_node_count(),
+		int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+		render_objects,
+		render_primitives,
+		physics_bodies,
+		chunk_nodes.size(),
+		_perf_sample_slowest_stage,
+		slowest_ms
+	])
+	_perf_sample_elapsed = 0.0
+	_perf_sample_frames = 0
+	_perf_sample_frame_usec = 0
+	_perf_sample_max_frame_usec = 0
+	_perf_sample_slowest_stage = ""
+	_perf_sample_slowest_usec = 0
+
+func _record_chunk_stage(stage: String, started_usec: int) -> void:
+	var elapsed_usec := Time.get_ticks_usec() - started_usec
+	if elapsed_usec > _perf_sample_slowest_usec:
+		_perf_sample_slowest_usec = elapsed_usec
+		_perf_sample_slowest_stage = stage
+	if elapsed_usec >= 50000:
+		print("[WorldPerf] chunk_stage=%s elapsed=%.2fms" % [stage, float(elapsed_usec) / 1000.0])
 
 ## Chunk membership is keyed to the camera focus, not the map's gameplay regions.
 ## Crossing a chunk boundary loads the new 3x3 neighbourhood and retires stale chunks.
 func _update_streamed_chunks(force: bool) -> void:
+	var stream_started := Time.get_ticks_usec()
 	var centre_hex := HexGrid.world_to_axial(Vector3(target.x, 0.0, target.z), HEX_RADIUS)
 	var centre_chunk := terrain_data.chunk_for_hex(centre_hex, CHUNK_SIZE)
 	if not force and centre_chunk == last_stream_centre:
@@ -230,8 +312,10 @@ func _update_streamed_chunks(force: bool) -> void:
 		if is_instance_valid(node):
 			node.queue_free()
 		chunk_nodes.erase(key)
+	_record_chunk_stage("stream_update", stream_started)
 
 func _build_chunk(chunk: Vector2i) -> Node3D:
+	var chunk_started := Time.get_ticks_usec()
 	var root := Node3D.new()
 	root.name = "TerrainChunk_%d_%d" % [chunk.x, chunk.y]
 	add_child(root)
@@ -241,9 +325,11 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		surface.set_material(materials[terrain])
 		tools[terrain] = surface
-	var tree_transforms: Array[Transform3D] = []
-	var trunk_transforms: Array[Transform3D] = []
 	var chunk_min := chunk * CHUNK_SIZE
+	var gameplay_started := Time.get_ticks_usec()
+	_populate_chunk_gameplay_cells(chunk)
+	_record_chunk_stage("gameplay_cells", gameplay_started)
+	var mesh_started := Time.get_ticks_usec()
 	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
 		for r in range(chunk_min.y, chunk_min.y + CHUNK_SIZE):
 			var hex := Vector2i(q, r)
@@ -251,15 +337,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 			if terrain == "authored" or terrain == "void" or not tools.has(terrain):
 				continue
 			var elevation := terrain_data.elevation_for_hex(hex)
-			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation)
-			if terrain_data.has_tree(hex):
-				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-				var size_roll := Campaign2WorldTerrainData._stable_roll(hex, 2909)
-				var scale := 0.72 + size_roll * 0.5
-				var rotation := size_roll * TAU
-				var basis := Basis(Vector3.UP, rotation).scaled(Vector3(scale, scale, scale))
-				tree_transforms.append(Transform3D(basis, centre + Vector3(0.0, 1.35 * scale, 0.0)))
-				trunk_transforms.append(Transform3D(Basis(Vector3.UP, rotation).scaled(Vector3(scale, scale, scale)), centre + Vector3(0.0, 0.45 * scale, 0.0)))
+			var wall_height := WALL_FEATURE_FACTORY.height_for_terrain(terrain)
+			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation + wall_height)
+
 	for terrain in tools:
 		var mesh := (tools[terrain] as SurfaceTool).commit()
 		if mesh == null:
@@ -269,40 +349,246 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		instance.mesh = mesh
 		instance.material_override = materials[terrain]
 		root.add_child(instance)
-	_add_multimesh(root, "ForestCrowns", tree_crown_mesh, tree_transforms)
-	_add_multimesh(root, "ForestTrunks", tree_trunk_mesh, trunk_transforms)
+	_record_chunk_stage("terrain_mesh", mesh_started)
+	var vegetation_started := Time.get_ticks_usec()
+	var vegetation_placements := _wilderness_vegetation_placements_for_chunk(chunk_min, CHUNK_SIZE)
+	var vegetation_spawned := WORLD_VEGETATION_SCRIPT.generate_authored_placements(root, vegetation_placements)
+	_record_chunk_stage("vegetation", vegetation_started)
+	if vegetation_spawned != vegetation_placements.size():
+		push_warning("Regional wilderness vegetation spawned %d of %d GLB models." % [vegetation_spawned, vegetation_placements.size()])
+	var walls_started := Time.get_ticks_usec()
+	var wall_result: Dictionary = WALL_FEATURE_FACTORY.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS, materials)
+	_record_chunk_stage("walls", walls_started)
+	if not bool(wall_result.get("ok", false)):
+		push_warning("Regional wall presentation failed: %s" % wall_result)
+	var fort_presentation: Dictionary = BORDER_FORT_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(fort_presentation.get("ok", false)):
+		push_warning("Regional border fort presentation failed: %s" % fort_presentation)
+	var dragon_lair_presentation: Dictionary = DRAGON_LAIR_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(dragon_lair_presentation.get("ok", false)):
+		push_warning("Regional dragon lair presentation failed: %s" % dragon_lair_presentation)
+	var spider_ruin_presentation: Dictionary = SPIDER_RUIN_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(spider_ruin_presentation.get("ok", false)):
+		push_warning("Regional spider ruin presentation failed: %s" % spider_ruin_presentation)
+	var vampire_grave_presentation: Dictionary = VAMPIRE_GRAVE_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(vampire_grave_presentation.get("ok", false)):
+		push_warning("Regional Vampire Grave presentation failed: %s" % vampire_grave_presentation)
+	var druid_grove_presentation: Dictionary = DRUID_GROVE_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	var unicorn_track_presentation: Dictionary = UNICORN_TRACK_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	var wolf_den_presentation: Dictionary = WOLF_DEN_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(wolf_den_presentation.get("ok", false)):
+		push_warning("Regional Old Mac wolf den presentation failed: %s" % wolf_den_presentation)
+	if not bool(unicorn_track_presentation.get("ok", false)):
+		push_warning("Regional unicorn track presentation failed: %s" % unicorn_track_presentation)
+	if not bool(druid_grove_presentation.get("ok", false)):
+		push_warning("Regional Druid Grove presentation failed: %s" % druid_grove_presentation)
+	var cave_entrance_presentation: Dictionary = CAVE_ENTRANCE_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(cave_entrance_presentation.get("ok", false)):
+		push_warning("Regional source cave entrance presentation failed: %s" % cave_entrance_presentation)
+	var abandoned_house_approach: Dictionary = ABANDONED_HOUSE_APPROACH.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(abandoned_house_approach.get("ok", false)):
+		push_warning("Regional abandoned-house approach presentation failed: %s" % abandoned_house_approach)
+	var elven_capital: Dictionary = multistory_registry.get_definition("silthandriel")
+	var canopy_presentation: Dictionary = CANOPY_PRESENTATION.present_chunk(root, elven_capital, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(canopy_presentation.get("ok", false)):
+		push_warning("Regional canopy settlement presentation failed: %s" % canopy_presentation)
 	_add_chunk_locations(root, chunk)
-	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE)
+	var settlement_started := Time.get_ticks_usec()
+	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
+	_record_chunk_stage("settlements", settlement_started)
+	_record_chunk_stage("chunk_total_%d_%d" % [chunk.x, chunk.y], chunk_started)
 	return root
 
+
+func _create_player() -> void:
+	var start_hex := Vector2i(8, 24)
+	var player := CharacterState.new("player", "Player", start_hex)
+	player.side = "player"
+	player.time_points = 100.0
+	ecology_simulation.player_character_id = player.id
+	ecology_simulation.register_character(player)
+	ecology_simulation.character_moved.connect(_on_world_character_moved)
+
+	var actor_root := Node3D.new()
+	actor_root.name = "RegionalPlayerActor"
+	var body := MeshInstance3D.new()
+	var capsule := CapsuleMesh.new()
+	capsule.radius = 0.62
+	capsule.height = 2.2
+	body.mesh = capsule
+	var body_material := StandardMaterial3D.new()
+	body_material.albedo_color = Color("#d7bd8b")
+	body_material.roughness = 0.78
+	body.material_override = body_material
+	body.position.y = 1.1
+	actor_root.add_child(body)
+	var marker := MeshInstance3D.new()
+	var marker_mesh := CylinderMesh.new()
+	marker_mesh.top_radius = 0.12
+	marker_mesh.bottom_radius = 0.12
+	marker_mesh.height = 0.08
+	marker.mesh = marker_mesh
+	var marker_material := StandardMaterial3D.new()
+	marker_material.albedo_color = Color("#e8c76d")
+	marker.material_override = marker_material
+	marker.position.y = 0.08
+	actor_root.add_child(marker)
+	add_child(actor_root)
+	player_actor = actor_root
+	_update_player_presentation(start_hex)
+
+	movement_controller = WorldPlayerMovementController.new()
+	movement_controller.name = "RegionalPlayerMovementController"
+	add_child(movement_controller)
+	var path_mesh := CylinderMesh.new()
+	path_mesh.top_radius = 0.24
+	path_mesh.bottom_radius = 0.24
+	path_mesh.height = 0.06
+	var path_material := StandardMaterial3D.new()
+	path_material.albedo_color = Color("#f2d27a")
+	path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	path_material.albedo_color.a = 0.78
+	movement_controller.configure(ecology_simulation, self, path_mesh, path_material, Callable(self, "_world_position_for_hex"), player.id)
+	_load_multistory_location("silthandriel")
+
+## The great-tree entrance is the first live connection between the regional
+## player simulation and the shared multi-story location runtime. Other authored
+## locations can be registered here as their entrances are brought online.
+func _load_multistory_location(location_id: String) -> void:
+	var load_result: Dictionary = LOCATION_LOADER_SCRIPT.load_multistory_location(self, location_id, ecology_simulation)
+	if not bool(load_result.get("ok", false)):
+		push_warning("Could not load regional location %s: %s" % [location_id, load_result])
+		return
+	active_location_runtime = load_result.get("runtime") as Campaign2MultiStoryLocationRuntime
+	if active_location_runtime == null:
+		return
+	var anchor_data: Dictionary = active_location_runtime.definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	active_location_runtime.global_position = HexGrid.axial_to_world(anchor, HEX_RADIUS, terrain_data.elevation_for_hex(anchor))
+	active_location_runtime.floor_changed.connect(_on_regional_location_floor_changed)
+	active_location_runtime.register_character_actor(ecology_simulation.player_character_id, player_actor)
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state != null:
+		_update_player_presentation(player_state.axial)
+
+func _interact_with_regional_location() -> bool:
+	if active_location_runtime == null:
+		return false
+	var result: Dictionary = active_location_runtime.interact_with_stair(ecology_simulation.player_character_id)
+	if not bool(result.get("ok", false)):
+		return false
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state != null:
+		target = _world_position_for_hex(player_state.axial)
+		_update_player_presentation(player_state.axial)
+		_update_camera()
+	return true
+
+func _on_regional_location_floor_changed(_location_id: String, _previous_floor: int, _current_floor: int, _stair_position: Vector2i) -> void:
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state == null:
+		return
+	_update_player_presentation(player_state.axial)
+	target = _world_position_for_hex(player_state.axial)
+	_update_camera()
+
+
+## Returns stable GLB placements for wilderness forest cells in one streamed chunk.
+## Density remains governed by the source terrain rules; this only replaces the
+## old shared cylinder/sphere tree silhouettes with the committed vegetation catalogue.
+func _wilderness_vegetation_placements_for_chunk(chunk_min: Vector2i, chunk_size: int) -> Array[Dictionary]:
+	var placements: Array[Dictionary] = []
+	for q in range(chunk_min.x, chunk_min.x + chunk_size):
+		for r in range(chunk_min.y, chunk_min.y + chunk_size):
+			var hex := Vector2i(q, r)
+			if not terrain_data.has_tree(hex) or not terrain_data.settlement_definition_registry.resolve(hex).is_empty():
+				continue
+			var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+			var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
+			var near_stream := HEARTLAND_BIOMES.is_near_stream(
+				hex,
+				6.0,
+				REGIONAL_HYDROLOGY.stream_centre_r(hex.x)
+			)
+			var family := HEARTLAND_BIOMES.select_tree_family(hex, near_stream)
+			var seed_value := int(LOCAL_TERRAIN_RULES.stable_roll(hex, 3047) * 2147483646.0)
+			placements.append({
+				"name": "WildernessTree_%d_%d" % [hex.x, hex.y],
+				"position": centre,
+				"family": family,
+				"seed": seed_value,
+				"scale": 0.72 + size_roll * 0.5,
+				"rotation_y": LOCAL_TERRAIN_RULES.stable_roll(hex, 2909) * TAU
+			})
+	return placements
+
+func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
+	var chunk_min := chunk * CHUNK_SIZE
+	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
+		for r in range(chunk_min.y, chunk_min.y + CHUNK_SIZE):
+			var hex := Vector2i(q, r)
+			if ecology_simulation.map_data.has_cell(hex):
+				continue
+			var terrain := terrain_data.terrain_for_hex(hex)
+			if terrain == "void":
+				continue
+			var walkable := terrain_data.is_walkable_for_hex(hex)
+			var movement_multiplier := terrain_data.movement_multiplier_for_hex(hex)
+			ecology_simulation.map_data.add_cell(hex, terrain_data.elevation_for_hex(hex), walkable, terrain, movement_multiplier)
+
+func _on_world_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
+	if character_id != ecology_simulation.player_character_id:
+		return
+	_update_player_presentation(to_hex)
+	target = _world_position_for_hex(to_hex)
+	_update_camera()
+	_update_streamed_chunks(false)
+
+func _update_player_presentation(hex: Vector2i) -> void:
+	if player_actor == null:
+		return
+	player_actor.position = _world_position_for_hex(hex)
+
+func _world_position_for_hex(hex: Vector2i) -> Vector3:
+	var base_position := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+	if active_location_runtime != null and active_location_runtime.get_current_floor() > 0:
+		base_position.y = active_location_runtime.global_position.y + float(active_location_runtime.get_current_floor()) * 3.2 + 0.1
+	return base_position
+
+func _request_travel_to_screen_position(screen_position: Vector2) -> void:
+	if camera == null or movement_controller == null:
+		return
+	var ray_origin := camera.project_ray_origin(screen_position)
+	var ray_direction := camera.project_ray_normal(screen_position)
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state == null:
+		return
+	var ground_height := _world_position_for_hex(player_state.axial).y
+	var hit: Variant = Plane(Vector3.UP, ground_height).intersects_ray(ray_origin, ray_direction)
+	if hit == null:
+		return
+	var destination := HexGrid.world_to_axial(hit, HEX_RADIUS)
+	if ecology_simulation.map_data.has_cell(destination) and ecology_simulation.map_data.is_walkable(destination):
+		movement_controller.set_destination(destination)
+
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
-	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-	var corners := HexGrid.corner_offsets(HEX_RADIUS * 1.005)
+	var centre_elevation := terrain_data.WATER_SURFACE_ELEVATION if terrain_data.terrain_for_hex(hex) == "water" else elevation
+	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, centre_elevation)
+	var corners := HexGrid.corner_offsets(HEX_RADIUS)
 	for index in range(HexGrid.SIDE_COUNT):
 		var next_index := (index + 1) % HexGrid.SIDE_COUNT
+		var next_vertex := Vector3(corners[next_index].x, terrain_data.shared_vertex_elevation(hex, next_index), corners[next_index].y)
+		var current_vertex := Vector3(corners[index].x, terrain_data.shared_vertex_elevation(hex, index), corners[index].y)
 		surface.set_normal(Vector3.UP)
 		surface.add_vertex(centre)
-		surface.add_vertex(centre + Vector3(corners[next_index].x, 0.0, corners[next_index].y))
-		surface.add_vertex(centre + Vector3(corners[index].x, 0.0, corners[index].y))
-
-func _add_multimesh(parent: Node3D, node_name: String, mesh: Mesh, transforms: Array[Transform3D]) -> void:
-	if transforms.is_empty() or mesh == null:
-		return
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = mesh
-	multi.instance_count = transforms.size()
-	for index in range(transforms.size()):
-		multi.set_instance_transform(index, transforms[index])
-	var instance := MultiMeshInstance3D.new()
-	instance.name = node_name
-	instance.multimesh = multi
-	instance.material_override = _material(Color("#315b38") if node_name == "ForestCrowns" else Color("#5b402b"))
-	parent.add_child(instance)
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + next_vertex)
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + current_vertex)
 
 func _add_chunk_locations(parent: Node3D, chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE
 	for location in terrain_data.locations:
+		if not terrain_data.is_location_marker_visible(location):
+			continue
 		var hex := Vector2i(int(location.get("q", 8)), int(location.get("r", 24)))
 		if hex.x < chunk_min.x or hex.x >= chunk_min.x + CHUNK_SIZE or hex.y < chunk_min.y or hex.y >= chunk_min.y + CHUNK_SIZE:
 			continue
@@ -354,20 +640,27 @@ func _unhandled_input(event: InputEvent) -> void:
 			if key.keycode == KEY_ESCAPE:
 				get_tree().change_scene_to_file(MACRO_SCENE)
 				get_viewport().set_input_as_handled()
-			elif key.keycode in [KEY_W, KEY_UP, KEY_S, KEY_DOWN, KEY_A, KEY_LEFT, KEY_D, KEY_RIGHT]:
-				var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
-				var right := Vector3(cos(yaw), 0.0, -sin(yaw))
-				var movement := Vector3.ZERO
-				if key.keycode in [KEY_W, KEY_UP]: movement += forward
-				if key.keycode in [KEY_S, KEY_DOWN]: movement -= forward
-				if key.keycode in [KEY_A, KEY_LEFT]: movement -= right
-				if key.keycode in [KEY_D, KEY_RIGHT]: movement += right
-				target += movement.normalized() * maxf(8.0, camera_distance * 0.12)
-				_update_camera()
+			elif key.keycode == KEY_F and _interact_with_regional_location():
 				get_viewport().set_input_as_handled()
+			else:
+				var movement_key := key.keycode
+				match key.keycode:
+					KEY_UP: movement_key = KEY_W
+					KEY_RIGHT: movement_key = KEY_E
+					KEY_DOWN: movement_key = KEY_S
+					KEY_LEFT: movement_key = KEY_A
+				if movement_controller != null and movement_controller.handle_directional_key(movement_key):
+					get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
+			if button.pressed:
+				mouse_travel_pressed = true
+			elif mouse_travel_pressed:
+				mouse_travel_pressed = false
+				_request_travel_to_screen_position(button.position)
+				get_viewport().set_input_as_handled()
+		elif button.button_index == MOUSE_BUTTON_MIDDLE:
 			rotating = button.pressed
 		elif button.button_index == MOUSE_BUTTON_RIGHT:
 			panning = button.pressed

@@ -1,4 +1,3 @@
-# CI retrigger after fixing ignored-output staging in the workflow.
 """Sculpt adult female external anatomy directly into the existing Ara skin mesh.
 
 The mons, labial folds, clitoral structures, vestibule and external openings
@@ -283,7 +282,7 @@ def wire_vertex_colour_to_skin_material(material, attribute_name="Color"):
 FEMALE_ANATOMY = {
     # landmark positions along the midline (t axis)
     "t_hood": 0.062, "t_glans": 0.047, "t_meatus": 0.024,
-    "t_introitus": 0.0, "t_fourchette": -0.022, "t_mons": 0.098,
+    "t_introitus": 0.0, "t_fourchette": -0.022, "t_mons": 0.092,
     # labia majora (outer folds) and the cleft between them
     "majora_height": 0.0125, "majora_x": 0.0190, "majora_sigma": 0.0118,
     "cleft_depth": 0.0058, "cleft_sigma": 0.0060,
@@ -294,7 +293,9 @@ FEMALE_ANATOMY = {
     # clitoral complex and openings
     "hood_height": 0.0050, "glans_height": 0.0028,
     "meatus_depth": 0.0012, "introitus_depth": 0.0045,
-    "fourchette_height": 0.0030, "mons_height": 0.0080,
+    "fourchette_height": 0.0030, "mons_height": 0.0060,
+    # Match the surface-following workflow: 30% less raised/recessed relief.
+    "prominence": 0.70,
     # local mesh density target (faces with longer edges are split)
     "target_edge": 0.0013,
     "posterior_floor": 0.03, "underside_ease": 0.0,   # keep relief out of the thigh gap
@@ -435,7 +436,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     import bmesh
     P = dict(FEMALE_ANATOMY)
     k = height / 1.687
-    amp = deformation_scale / 1.65     # 1.65 is the CLI default and maps to the tuned baseline
+    amp = deformation_scale / 1.65 * P["prominence"]  # shared 30% prominence reduction
     if hipline_z is None:
         hipline_z = anatomy_z + height * 0.035
     line, arc = _surface_midline(skin, hipline_z, k)

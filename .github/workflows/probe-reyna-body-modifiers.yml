@@ -1,0 +1,55 @@
+name: Probe Reyna Ara hip and shoulder modifiers
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/probe-reyna-body-modifiers.yml"
+      - "tools/ara/probe_body_modifiers.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: probe-reyna-body-modifiers
+  cancel-in-progress: true
+
+jobs:
+  catalogue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Record exact Ara CLI version and schema
+        run: |
+          set -euo pipefail
+          npx --yes ara3d@0.7.4 --version | tee build-ara-version.txt
+          npx --yes ara3d@0.7.4 schema character > ara-character-schema.json
+          python -m json.tool ara-character-schema.json >/dev/null
+
+      - name: Extract real hip and shoulder modifier IDs
+        run: |
+          set -euo pipefail
+          python tools/ara/probe_body_modifiers.py \
+            --schema ara-character-schema.json \
+            --output ara-body-modifier-report.json
+          python -m json.tool ara-body-modifier-report.json
+
+      - name: Upload modifier catalogue report
+        uses: actions/upload-artifact@v4
+        with:
+          name: reyna-ara-body-modifier-catalogue
+          path: |
+            ara-body-modifier-report.json
+            ara-character-schema.json
+            build-ara-version.txt
+          if-no-files-found: error
+          retention-days: 30

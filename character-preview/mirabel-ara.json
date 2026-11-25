@@ -1,0 +1,68 @@
+{
+  "$schema": "https://ara3dgen.com/schemas/character.v1.json",
+  "kind": "ara-character",
+  "version": 1,
+  "preset": "The Adventurer",
+  "params": {
+    "name": "Mirabel Quill",
+    "gender": 0,
+    "muscle": 0.18,
+    "weight": 0.25,
+    "height": 0.7,
+    "proportions": 0.52,
+    "breastSize": 0.5,
+    "breastFirmness": 0.45,
+    "skin": "auto",
+    "skinTint": "#E8C9AE",
+    "eyes": "lightblue",
+    "hair": "long01",
+    "hairTint": "#E8D59C",
+    "hairColor": "#E8D59C",
+    "facialHair": "none",
+    "outfit": "none",
+    "top": "none",
+    "jacket": "none",
+    "bottom": "none",
+    "underwear": false,
+    "accessories": [],
+    "shoes": "none",
+    "hat": "none",
+    "tattoos": [],
+    "detail": "high",
+    "rig": "game",
+    "faceBones": true,
+    "restPose": "A",
+    "animations": false,
+    "faceShapes": true,
+    "speechShapes": true,
+    "expression": "neutral",
+    "teeth": "teeth_base",
+    "tongue": true,
+    "ageYears": 45,
+    "modifiers": {
+      "buttocks/buttocks-volume": 0.18,
+      "hip/hip-scale-horiz": 0.1,
+      "hip/hip-scale-depth": 0.1,
+      "armslegs/upperarm-shoulder-muscle:decr|incr": -0.15,
+      "ears/ear-shape": -1
+    },
+    "seed": 4517,
+    "piercings": [
+      "earrings",
+      "clit"
+    ],
+    "tattoo_ink": "#30283D"
+  },
+  "character_details": {
+    "piercings": [
+      "earrings",
+      "clit"
+    ],
+    "tattoos": [
+      {
+        "design": "mirabel_arcane"
+      }
+    ],
+    "tattoo_ink": "#30283D"
+  }
+}

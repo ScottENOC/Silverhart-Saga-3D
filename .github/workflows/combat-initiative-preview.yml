@@ -44,7 +44,7 @@ jobs:
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
 
       - name: Run simulation tests
-        run: godot --headless --path . --script res://tests/test_simulation.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_combat_and_reactions.gd
 
       - name: Install virtual display
         run: |

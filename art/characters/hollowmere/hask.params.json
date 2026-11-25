@@ -6,12 +6,12 @@
   "weight": 0.78,
   "height": 0.58,
   "proportions": 0.62,
-  "african": 0.05,
-  "asian": 0.05,
-  "caucasian": 0.9,
+  "african": 0.38,
+  "asian": 0.4,
+  "caucasian": 0.22,
   "eyes": "brownlight",
-  "hair": "short03",
-  "hairTint": "#6e4d35",
+  "hair": "box_braids",
+  "hairTint": "#4B2F24",
   "facialHair": "full_beard",
   "beardColor": "#64462f",
   "tattoos": [
@@ -50,6 +50,8 @@
   "faceShapes": true,
   "speechShapes": false,
   "expression": "neutral",
-  "hairColor": "#6e4d35",
+  "hairColor": "#4B2F24",
+  "legs": 0.7,
+  "skinTint": "#B98260",
   "name": "Hask Greel"
 }

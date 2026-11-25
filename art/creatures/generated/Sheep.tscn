@@ -1,0 +1,121 @@
+[gd_scene load_steps=8 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Material_Fleece"]
+albedo_color = Color(0.94, 0.92, 0.85, 1)
+roughness = 0.98
+
+[sub_resource type="StandardMaterial3D" id="Material_Face"]
+albedo_color = Color(0.18, 0.16, 0.15, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Material_Hoof"]
+albedo_color = Color(0.12, 0.1, 0.09, 1)
+roughness = 0.95
+
+[sub_resource type="SphereMesh" id="Mesh_Body"]
+radius = 0.43
+height = 0.82
+radial_segments = 12
+rings = 8
+
+[sub_resource type="SphereMesh" id="Mesh_Tuft"]
+radius = 0.23
+height = 0.42
+radial_segments = 10
+rings = 6
+
+[sub_resource type="SphereMesh" id="Mesh_Head"]
+radius = 0.18
+height = 0.38
+radial_segments = 12
+rings = 8
+
+[sub_resource type="CylinderMesh" id="Mesh_Leg"]
+top_radius = 0.045
+bottom_radius = 0.055
+height = 0.34
+radial_segments = 8
+
+[node name="Sheep" type="Node3D"]
+
+[node name="FleeceBody" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.72, 0)
+scale = Vector3(1.2, 0.9, 0.95)
+mesh = SubResource("Mesh_Body")
+material_override = SubResource("Material_Fleece")
+
+[node name="FleeceShoulder" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.84, 0.3)
+scale = Vector3(0.9, 0.9, 0.9)
+mesh = SubResource("Mesh_Tuft")
+material_override = SubResource("Material_Fleece")
+
+[node name="FleeceHaunch" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.84, -0.3)
+scale = Vector3(0.95, 0.92, 0.95)
+mesh = SubResource("Mesh_Tuft")
+material_override = SubResource("Material_Fleece")
+
+[node name="FleeceLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.31, 0.78, 0.0)
+scale = Vector3(0.82, 0.88, 0.92)
+mesh = SubResource("Mesh_Tuft")
+material_override = SubResource("Material_Fleece")
+
+[node name="FleeceRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.31, 0.78, 0.0)
+scale = Vector3(0.82, 0.88, 0.92)
+mesh = SubResource("Mesh_Tuft")
+material_override = SubResource("Material_Fleece")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.91, 0.43)
+scale = Vector3(0.88, 1.0, 1.08)
+mesh = SubResource("Mesh_Head")
+material_override = SubResource("Material_Face")
+
+[node name="Muzzle" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.82, 0.58)
+scale = Vector3(0.72, 0.58, 0.72)
+mesh = SubResource("Mesh_Head")
+material_override = SubResource("Material_Face")
+
+[node name="LeftEar" type="MeshInstance3D" parent="."]
+position = Vector3(-0.17, 1.04, 0.39)
+rotation_degrees = Vector3(0, 0, 28)
+scale = Vector3(0.9, 0.42, 1.5)
+mesh = SubResource("Mesh_Head")
+material_override = SubResource("Material_Face")
+
+[node name="RightEar" type="MeshInstance3D" parent="."]
+position = Vector3(0.17, 1.04, 0.39)
+rotation_degrees = Vector3(0, 0, -28)
+scale = Vector3(0.9, 0.42, 1.5)
+mesh = SubResource("Mesh_Head")
+material_override = SubResource("Material_Face")
+
+[node name="FrontLeftLeg" type="MeshInstance3D" parent="."]
+position = Vector3(-0.25, 0.22, 0.24)
+mesh = SubResource("Mesh_Leg")
+material_override = SubResource("Material_Face")
+
+[node name="FrontRightLeg" type="MeshInstance3D" parent="."]
+position = Vector3(0.25, 0.22, 0.24)
+mesh = SubResource("Mesh_Leg")
+material_override = SubResource("Material_Face")
+
+[node name="BackLeftLeg" type="MeshInstance3D" parent="."]
+position = Vector3(-0.25, 0.22, -0.24)
+mesh = SubResource("Mesh_Leg")
+material_override = SubResource("Material_Face")
+
+[node name="BackRightLeg" type="MeshInstance3D" parent="."]
+position = Vector3(0.25, 0.22, -0.24)
+mesh = SubResource("Mesh_Leg")
+material_override = SubResource("Material_Face")
+
+[node name="Tail" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.93, -0.47)
+scale = Vector3(0.55, 0.85, 0.55)
+mesh = SubResource("Mesh_Tuft")
+material_override = SubResource("Material_Fleece")

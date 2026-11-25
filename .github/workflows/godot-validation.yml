@@ -1,9 +1,15 @@
 name: Godot validation
+# Full validation is intentionally triggered on the reconciled terrain-chain head.
 
 on:
   pull_request:
-    branches: [dev, dev_2]
+    branches: [dev, dev_2, "feature/**"]
     paths:
+      - "**/*.gd"
+      - "**/*.tscn"
+      - "**/*.tres"
+      - "**/*.json"
+      - ".editorconfig"
       - "project.godot"
       - "export_presets.cfg"
       - "art/characters/**"
@@ -52,6 +58,21 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.target_ref || github.sha }}
+          fetch-depth: 0
+      - name: Check changed GDScript files only
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CHECK_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$CHECK_SHA" -- '*.gd')
+          if [ "${#changed[@]}" -gt 0 ]; then
+            python tools/ci/check_gdscript_indentation.py "${changed[@]}"
+          else
+            echo "No changed GDScript files to check."
+          fi
       - name: Fetch verified Kenney Nature Kit models
         run: python tools/ci/fetch_kenney_nature_assets.py
       - name: Install Godot 4.7.2
@@ -63,22 +84,128 @@ jobs:
         run: |
           godot --version
           godot --headless --editor --path . --quit
+      - name: Run player body asset import regression test when generated assets are present
+        if: ${{ hashFiles('art/characters/ara_runtime/ara_player_female_body.glb', 'art/characters/ara_runtime/ara_player_male_body.glb') != '' }}
+        run: godot --headless --path . --script res://tests/test_player_body_assets.gd
+      - name: Run Ara hair retargeting regression test when hair assets are present
+        if: ${{ hashFiles('art/characters/ara_runtime/hair/manifest.json') != '' }}
+        run: godot --headless --path . --script res://tests/test_ara_hair_assets.gd
+      - name: Test campaign character model asset resolution when all model packs are installed
+        if: ${{ hashFiles('art/characters/companions/wren.glb') != '' && hashFiles('art/characters/companions/aldric.glb') != '' && hashFiles('art/characters/companions/dagna.glb') != '' && hashFiles('art/characters/hollowmere/garrick_holt.glb') != '' && hashFiles('art/characters/hollowmere/mira_ashbrook.glb') != '' && hashFiles('art/characters/ara_runtime/ara_player_female_body.glb') != '' && hashFiles('art/characters/ara_runtime/ara_player_male_body.glb') != '' }}
+        run: godot --headless --path . --script res://tests/test_campaign_character_asset_resolution.gd
+      - name: Test MakeHuman target parser
+        run: |
+          python -m py_compile tools/makehuman/target_format.py
+          python -m unittest discover -s tests -p test_makehuman_target_format.py
+      - name: Run distant light perception tests
+        run: godot --headless --path . --script res://tests/test_distant_light_perception.gd
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run split character and progression tests
-        run: godot --headless --path . --script res://tests/test_character_systems.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_systems.gd
+      - name: Run spell construction and cost rules tests
+        run: godot --headless --path . --script res://tests/test_spell_rules.gd
+      - name: Run shared spell casting and combat AI tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_spell_casting.gd
+      - name: Run spell effect tests
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_all_spell_effects.gd
+      - name: Run spell visual effect tests
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_spell_vfx.gd
+      - name: Run skill purchase and persistence tests
+        run: godot --headless --path . --script res://tests/test_skill_progression_ui.gd
+      - name: Run player and companion skill tree UI tests
+        run: godot --headless --path . --script res://tests/test_skill_tree_panel.gd
       - name: Run split campaign content tests
         run: godot --headless --path . --script res://tests/test_campaign_content.gd
+      - name: Run companion relationship state tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_relationship_state.gd
+      - name: Run companion-to-companion bond tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_bond_state.gd
+      - name: Run campaign dwelling ownership and camp lodging tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_dwelling_state.gd
+      - name: Run in-world camp simulation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_simulation.gd
+      - name: Run autonomous companion camp dialogue tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_companion_dialogue.gd
+      - name: Run persistent NPC relationship state tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_persistent_character_relationship_state.gd
+      - name: Run persistent NPC dialogue content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_persistent_character_dialogue_content.gd
+      - name: Run campaign faction state tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_faction_state.gd
+      - name: Run Skarn-tooth campaign content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_campaign_content.gd
+      - name: Run Skarn-tooth follow-up content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_followup_content.gd
+      - name: Run companion quest chain tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_quest_chain_state.gd
+      - name: Run companion campaign runtime tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_campaign_runtime_store.gd
+      - name: Run companion prerequisite quest tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_prerequisite_quest_state.gd
       - name: Run split items and equipment tests
         run: godot --headless --path . --script res://tests/test_items_and_equipment.gd
       - name: Run split world and movement tests
         run: godot --headless --path . --script res://tests/test_world_movement.gd
+      - name: Run shared player movement controller tests
+        run: godot --headless --path . --script res://tests/test_world_player_movement_controller.gd
+      - name: Run continuous character movement and animation tests
+        run: godot --headless --path . --script res://tests/test_hex_actor_presentation.gd
+      - name: Run gameplay Ara animation carrier integration tests when assets are present
+        run: |
+          if [[ -f art/characters/ara_runtime/ara_person_benchmark.glb && -f art/characters/ara_runtime/ara_player_female_body.glb ]]; then
+            godot --headless --path . --script res://tests/test_ara_character_animation_carrier.gd
+          else
+            echo "Ara runtime body or animation carrier assets are not installed; skipping integration test."
+          fi
       - name: Run split combat and reaction tests
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
       - name: Run split animal and riding tests
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
       - name: Run reusable building and door tests
         run: godot --headless --path . --script res://tests/test_building_framework.gd
+      - name: Run reusable world building factory tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_building_factory.gd
+      - name: Run reusable wall feature factory tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wall_feature_factory.gd
+      - name: Run Silverhart city wall and gate tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_city_wall_gate.gd
+      - name: Run border fort presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_border_fort_presentation.gd
+      - name: Run Ashveil dragon lair presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_dragon_lair_presentation.gd
+      - name: Run Mirabel spider ruin presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_spider_ruin_presentation.gd
+      - name: Run Druid Grove presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_druid_grove_presentation.gd
+      - name: Run wild unicorn track presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_unicorn_track_presentation.gd
+      - name: Run Old Mac wolf den presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wolf_den_presentation.gd
+      - name: Run source-authored cave entrance presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_cave_entrance_presentation.gd
+      - name: Run abandoned-house approach presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_abandoned_house_approach_presentation.gd
+      - name: Run Vampire Grave presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_vampire_grave_presentation.gd
+      - name: Run Silthandriel canopy settlement presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_canopy_settlement_presentation.gd
+      - name: Run reusable world polyline feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_polyline_feature_factory.gd
+      - name: Run reusable world bridge feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_bridge_feature_factory.gd
+      - name: Run reusable agricultural feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_agricultural_feature_factory.gd
+      - name: Run reusable prop feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_prop_feature_factory.gd
+      - name: Run modular Hollowmere authored data tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_data_modules.gd
+      - name: Run Silverhart Warrens presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_warrens_presentation.gd
+      - name: Run generic authored settlement presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_authored_settlement_presenter.gd
+      - name: Run generic interior feature factory tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_interior_feature_factory.gd
       # Keep presentation-component tests isolated from campaign simulation suites.
       - name: Run campaign UI tests
         run: godot --headless --path . --script res://tests/test_campaign_ui.gd
@@ -90,6 +217,8 @@ jobs:
         run: timeout 180s godot --headless --path . res://tests/save_restore_boot.tscn
       - name: Run NPC pass-through tests
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
+      - name: Run deterministic procedural NPC profile tests
+        run: timeout 30s godot --headless --path . --script res://tests/test_procedural_npc_profiles.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run equipment appearance and heraldry tests
@@ -108,8 +237,48 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
       - name: Run Campaign 2 world terrain tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
+      - name: Run Campaign 2 authored settlement terrain registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_authored_settlement_terrain_registry.gd
+      - name: Run Campaign 2 logical world cell loader tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_cell_loader.gd
+      - name: Run source-authored multi-story location tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
+      - name: Run Thieves' Cove source map-object tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
+      - name: Run source-authored multi-story floor map tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_floor_map_builder.gd
+      - name: Run multi-story location traversal and persistence tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_state.gd
+      - name: Run multi-story location runtime integration tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_runtime.gd
+      - name: Run Campaign 2 regional authored terrain feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_features.gd
+      - name: Run player cottage plot map tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_player_cottage_plot.gd
+      - name: Run Campaign 2 regional hydrology tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_hydrology.gd
+      - name: Run Campaign 2 local terrain rule tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_local_terrain.gd
+      - name: Run Silverhart heartland biome tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_heartland_biomes.gd
+      - name: Run canonical settlement definition registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_definition_registry.gd
+      - name: Run canonical settlement source adapter tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_source_adapters.gd
+      - name: Run canonical settlement definition validator tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_validator.gd
       - name: Run Campaign 2 settlement layout tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
+      - name: Run Campaign 2 character definition registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_character_definition_registry.gd
+      - name: Run shared campaign NPC interaction service tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_npc_interaction_service.gd
+      - name: Run Campaign 2 canonical settlement builder tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
+      - name: Run chunk-aware settlement feature composer tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
+      - name: Run Silverhart Diplomatic Quarter tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_diplomatic_quarter.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null

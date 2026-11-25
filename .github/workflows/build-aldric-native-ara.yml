@@ -1,0 +1,239 @@
+name: Build Aldric native Ara character
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/aldric-ara.json"
+      - "data/characters/hollowmere_npcs.json"
+      - ".github/workflows/build-aldric-native-ara.yml"
+      - "tools/review/aldric_native_preview.gd"
+      - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_male_anatomy.py"
+      - "tools/blender/add_abdominal_definition.py"
+      - "tools/blender/add_character_details.py"
+      - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_abdominal_definition.py"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_character_details.py"
+      - ".github/workflows/build-aldric-native-ara.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-aldric-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARA3D_CACHE: ${{ github.workspace }}/.cache/ara3d
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Validate Aldric profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/aldric-ara.json >/dev/null
+          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py
+
+      - name: Prepare cached Ara and Blender toolchain
+        uses: ./.github/actions/character-build-setup
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/aldric-native/ara-export
+          npx --yes ara3d@0.7.4 export \
+            --params character-preview/aldric-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/aldric-native/ara-export
+          raw_glb="$(find build/aldric-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/aldric-native/Aldric-ara-base.glb
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_male_anatomy.py -- \
+            --input build/aldric-native/Aldric-ara-base.glb \
+            --output build/aldric-native/Aldric.glb \
+            --adult --profile-name "Ser Aldric Thorne" \
+            --length-scale 1.10 --girth-scale 1.10 --variation-strength 0
+          test -s build/aldric-native/Aldric.glb
+
+      - name: Apply Aldric skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/aldric-native/Aldric.glb \
+            --profile character-preview/aldric-ara.json \
+            --hair-gamma 0.28 --grey-strands
+          test -s build/aldric-native/Aldric.glb
+
+      - name: Add pronounced abdominal muscle definition
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_abdominal_definition.py -- \
+            --input build/aldric-native/Aldric.glb \
+            --output build/aldric-native/Aldric-defined.glb \
+            --strength 0.95
+          test -s build/aldric-native/Aldric-defined.glb
+          mv build/aldric-native/Aldric-defined.glb build/aldric-native/Aldric.glb
+
+      - name: Paint full texture-only body hair detail
+        run: |
+          set -euo pipefail
+          python tools/review/add_aldric_body_hair.py --model build/aldric-native/Aldric.glb --seed 1401 --coverage aldric
+          test -s build/aldric-native/Aldric.glb
+
+      - name: Bake tattoos and piercings into exported GLB
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/aldric-native/Aldric.glb \
+            --output build/aldric-native/Aldric-details.glb \
+            --profile character-preview/aldric-ara.json
+          test -s build/aldric-native/Aldric-details.glb
+          mv build/aldric-native/Aldric-details.glb build/aldric-native/Aldric.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/aldric-native-preview-project
+          mkdir -p "$preview/build/aldric-native" "$preview/tools/review"
+          cp build/aldric-native/Aldric.glb "$preview/build/aldric-native/Aldric.glb"
+          cp tools/review/aldric_native_preview.gd "$preview/tools/review/aldric_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Aldric Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and render Aldric
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/aldric-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/aldric-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/aldric_native_preview.gd
+          for view in front side threequarter face pelvis abdomen; do
+            test -s "build/aldric-native-preview-project/build/aldric-native/preview/$view.png"
+          done
+          test -s build/aldric-native-preview-project/build/aldric-native/preview/render-report.json
+          cp -R build/aldric-native-preview-project/build/aldric-native/preview build/aldric-native/preview
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/aldric-native")
+          readme = """Ser Aldric Thorne — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from aldric-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          The model includes the Ara-derived adult male anatomy pass. Regenerate with the Build Aldric native Ara character workflow on dev.
+          """
+          with zipfile.ZipFile(root / "Aldric_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Aldric.glb", "Aldric.glb")
+              archive.write(Path("character-preview/aldric-ara.json"), "aldric-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis", "abdomen"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme)
+          PY
+
+      - name: Upload Aldric model and visual review
+        uses: actions/upload-artifact@v7
+        with:
+          name: aldric-native-ara-${{ github.run_number }}
+          path: |
+            build/aldric-native/Aldric.glb
+            build/aldric-native/Aldric_native_Ara_bundle.zip
+            build/aldric-native/preview/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Install the measured-size Aldric model into the game on dev
+        if: github.event_name == 'push' && github.ref_name == 'dev'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/aldric-install
+          cp build/aldric-native/Aldric.glb /tmp/aldric-install/aldric.glb
+          git fetch origin dev
+          git checkout -B dev origin/dev
+          cp /tmp/aldric-install/aldric.glb art/characters/companions/aldric.glb
+          godot --headless --editor --path . --quit
+          test -s art/characters/companions/aldric.glb.import
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path("art/characters/companions")
+          manifest_path = root / "manifest.json"
+          manifest = json.loads(manifest_path.read_text())
+          assets = manifest.setdefault("assets", {})
+          payload = (root / "aldric.glb").read_bytes()
+          assets["aldric.glb"] = {
+              "character": "Ser Aldric Thorne",
+              "workflow_run": int(os.environ["GITHUB_RUN_ID"]),
+              "build": int(os.environ["GITHUB_RUN_NUMBER"]),
+              "source_commit": os.environ["GITHUB_SHA"],
+              "size_bytes": len(payload),
+              "sha256": hashlib.sha256(payload).hexdigest(),
+          }
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f art/characters/companions/aldric.glb art/characters/companions/aldric.glb.import art/characters/companions/manifest.json
+          if git diff --cached --quiet; then
+            echo "Aldric's measured-size model is already installed."
+            exit 0
+          fi
+          git commit -m "Rebuild Aldric with measured male anatomy size"
+          # Godot's import pass can leave tracked import metadata modified after
+          # the asset commit. This is an ephemeral CI checkout: keep the commit
+          # and discard only those post-commit working-tree changes before rebasing.
+          git reset --hard HEAD
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            git status --short
+            echo "Aldric install checkout is not clean after committing the generated asset."
+            exit 1
+          fi
+          for attempt in 1 2 3; do
+            git fetch origin dev
+            git rebase origin/dev
+            if git push origin HEAD:dev; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Unable to push Aldric model after three retries."
+              exit 1
+            fi
+          done

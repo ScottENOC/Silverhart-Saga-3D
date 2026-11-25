@@ -1,0 +1,207 @@
+name: Build Reyna native Ara character
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/reyna-ara.json"
+      - ".github/workflows/build-reyna-native-ara.yml"
+      - "tools/review/reyna_native_preview.gd"
+      - "scripts/presentation/ara_character_details.gd"
+      - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/blender/add_abdominal_definition.py"
+      - "tools/blender/add_character_details.py"
+      - "tools/review/add_aldric_body_hair.py"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "character-preview/reyna-ara.json"
+      - "tools/blender/add_character_details.py"
+      - "tools/review/recolor_wren_glb.py"
+      - ".github/workflows/build-reyna-native-ara.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-reyna-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARA3D_CACHE: ${{ github.workspace }}/.cache/ara3d
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Validate Reyna profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/reyna-ara.json >/dev/null
+          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+
+      - name: Prepare cached Ara and Blender toolchain
+        uses: ./.github/actions/character-build-setup
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/reyna-native/ara-export
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = Path("character-preview/reyna-ara.json")
+          target = Path("build/reyna-native/ara-export-profile.json")
+          data = json.loads(source.read_text())
+          params = data.setdefault("params", {})
+          # These are project-side metadata, not Ara generator parameters.
+          data.pop("character_details", None)
+          # Preserve them in the source profile; omit only from the Ara export copy.
+          for key in ("tattoo_ink", "piercings"):
+              params.pop(key, None)
+          target.write_text(json.dumps(data, indent=2) + "\n")
+          PY
+          npx --yes ara3d@0.7.4 export \
+            --params build/reyna-native/ara-export-profile.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/reyna-native/ara-export
+          raw_glb="$(find build/reyna-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/reyna-native/Reyna-ara-base.glb
+
+      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/reyna-native/Reyna-ara-base.glb \
+            --output build/reyna-native/female-anatomy-subdivision-plan.json
+          test -s build/reyna-native/female-anatomy-subdivision-plan.json
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/reyna-native/Reyna-ara-base.glb \
+            --output build/reyna-native/Reyna.glb \
+            --report build/reyna-native/female-anatomy-report.json \
+            --subdivision-plan build/reyna-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+          test -s build/reyna-native/Reyna.glb
+          grep -q '"clothing_operations": "not run"' build/reyna-native/female-anatomy-report.json
+      - name: Apply Reyna skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/reyna-native/Reyna.glb \
+            --profile character-preview/reyna-ara.json \
+            --hair-gamma 0.28
+          test -s build/reyna-native/Reyna.glb
+
+      - name: Add moderate abdominal muscle definition
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_abdominal_definition.py -- \
+            --input build/reyna-native/Reyna.glb \
+            --output build/reyna-native/Reyna-defined.glb \
+            --strength 0.85
+          test -s build/reyna-native/Reyna-defined.glb
+          mv build/reyna-native/Reyna-defined.glb build/reyna-native/Reyna.glb
+
+      - name: Add restrained armpit and pubic hair detail
+        run: |
+          set -euo pipefail
+          python tools/review/add_aldric_body_hair.py --model build/reyna-native/Reyna.glb --seed 2402 --coverage reyna --hair-colour "#17120F"
+          test -s build/reyna-native/Reyna.glb
+
+      - name: Bake tattoos and piercings into exported GLB
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/reyna-native/Reyna.glb \
+            --output build/reyna-native/Reyna-details.glb \
+            --profile character-preview/reyna-ara.json
+          test -s build/reyna-native/Reyna-details.glb
+          mv build/reyna-native/Reyna-details.glb build/reyna-native/Reyna.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/reyna-native-preview-project
+          mkdir -p "$preview/scripts/presentation" "$preview/build/reyna-native" "$preview/tools/review"
+          cp build/reyna-native/Reyna.glb "$preview/build/reyna-native/Reyna.glb"
+          cp tools/review/reyna_native_preview.gd "$preview/tools/review/reyna_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Reyna Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and render Reyna
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/reyna-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/reyna-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/reyna_native_preview.gd
+          for view in front side threequarter face pelvis abdomen; do
+            test -s "build/reyna-native-preview-project/build/reyna-native/preview/$view.png"
+          done
+          test -s build/reyna-native-preview-project/build/reyna-native/preview/render-report.json
+          cp -R build/reyna-native-preview-project/build/reyna-native/preview build/reyna-native/preview
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/reyna-native")
+          readme = """Ser Reyna Thorne — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from reyna-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          Regenerate with the Build Reyna native Ara character workflow on dev.
+          """
+          with zipfile.ZipFile(root / "Reyna_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Reyna.glb", "Reyna.glb")
+              archive.write(Path("character-preview/reyna-ara.json"), "reyna-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis", "abdomen"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme)
+          PY
+
+      - name: Upload Reyna model and visual review
+        uses: actions/upload-artifact@v7
+        with:
+          name: reyna-native-ara-${{ github.run_number }}
+          path: |
+            build/reyna-native/Reyna.glb
+            build/reyna-native/Reyna_native_Ara_bundle.zip
+            build/reyna-native/preview/
+          if-no-files-found: error
+          retention-days: 30
