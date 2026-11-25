@@ -88,21 +88,13 @@ static func handle_dialogue_choice(journal: CampaignJournal, choice_id: String) 
 				"ok": true,
 				"accepted": true,
 				"dismiss_after_continue": true,
-				"dialogue": {
-					"speaker": "Dray Coltayne",
-					"text": "Good. The courier was last seen heading north with the contracts. Bring the satchel back intact. Quest added: The Missing Courier.",
-					"choices": [{"id": CHOICE_PREFIX + "continue", "label": "I'll see to it."}]
-				}
+				"dialogue": confirmation_dialogue("accepted")
 			}
 		"ironbond_missing_courier:decline":
 			return {
 				"ok": true,
 				"dismiss_after_continue": true,
-				"dialogue": {
-					"speaker": "Dray Coltayne",
-					"text": "Suit yourself.",
-					"choices": [{"id": CHOICE_PREFIX + "continue", "label": "Goodbye."}]
-				}
+				"dialogue": confirmation_dialogue("declined")
 			}
 		"ironbond_missing_courier:walk_away":
 			return {"ok": true, "dismiss_now": true}
