@@ -83,8 +83,9 @@ The first incremental slice is now present:
 
 - `CombatEncounterController` owns shared turn-loop orchestration, AI dispatch, player attack requests, pending-reaction handling and combat HUD state.
 - `CombatEncounterService` owns participant validation, side/dormancy setup, combat start/end and restoration of the pre-encounter side/dormancy state. It has no Node, scene, HUD or location dependency.
-- The farm-wolf pack encounter and Reyna's dire-wolf hunt both use the shared simulation lifecycle service and the same presentation controller.
-- The farm-wolf location path retains only its wolf spawn/presentation and quest outcome work; it no longer repeats the generic participant setup loop.
+- The farm-wolf pack, Reyna's dire-wolf hunt and the Hollowmere Ironbond shakedown use the shared simulation lifecycle service and the same presentation controller.
+- Those location/domain paths retain encounter-specific spawn, character profile, presentation and quest outcome work; they no longer duplicate generic participant side/dormancy setup or restoration.
+- The Ironbond encounter passes its eligible additional party members into the encounter service and receives its actual player-control roster from the domain service.
 
 This is not yet the target architecture. The service does not yet own spawn/remove requests, encounter identity, save/load serialization or surprise modifiers. The tavern Ironbond/abandoned-house encounters and other farm encounters still need migration, and `HollowTankard` still owns encounter rosters and a resolution dispatcher. Those gaps remain explicit work, not implied as complete.
 
