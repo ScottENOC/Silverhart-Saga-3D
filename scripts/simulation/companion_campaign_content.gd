@@ -64,6 +64,23 @@ static func complete_with_decision(journal: CampaignJournal, quest_id: String, o
         return decision
     return complete_objective(journal, quest_id, objective_id)
 
+static func rescue_aldric(journal: CampaignJournal) -> Dictionary:
+    if journal == null:
+        return {"ok":false,"reason":"missing_journal"}
+    register_quest_definitions(journal)
+    var state := journal.quest_state("aldric_rescue")
+    if String(state.get("status", "")) == "completed":
+        return {"ok":true,"applied":false,"reason":"already_rescued"}
+    if state.is_empty():
+        var started := journal.start_quest("aldric_rescue")
+        if not bool(started.get("ok", false)):
+            return started
+    var result := complete_objective(journal, "aldric_rescue", "freed")
+    if bool(result.get("ok", false)):
+        result["applied"] = true
+    return result
+
+
 static func complete_objective(journal: CampaignJournal, quest_id: String, objective_id: String) -> Dictionary:
     if journal == null:
         return {"ok":false,"reason":"missing_journal"}
@@ -111,10 +128,11 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
             recruit_ready = _completed(journal, quest_id)
             if recruit_ready:
                 body = "You kept your word and got me out. I owe you a debt, and I would rather repay it at your side than sit idle. Will you have me?"
-            elif not _started(journal, quest_id):
-                choices.append(_choice("start:"+quest_id,"I'll find you at the goblin camp and free you."))
             else:
-                body = "I am still waiting on that goblin camp. Find me there and cut me loose; then we can speak of travelling together."
+                if _started(journal, quest_id):
+                    body = "I am still waiting on that goblin camp. Find me there and cut me loose; then we can speak of travelling together."
+                choices.append(_choice("rescue:ser_aldric_thorne","I'll free you now."))
+                choices.append(_choice("continue","Not yet."))
         "nix_sharpear":
             body = "Something you need? Speak quick, this isn't a place for wandering humans. You think Skarnub chose this ground? We were told to sit here, watch the roads, count what comes and goes. Somebody's paying close attention to Hollowmere, and it isn't us."
             var goblin_state := _state(journal, "goblin_threat")
