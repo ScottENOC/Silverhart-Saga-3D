@@ -202,20 +202,32 @@ func _check_source_rig_compatible(asset_path: String, label: String) -> void:
 	_collect_meshes(source_root, source_meshes)
 	var skeleton_node_count := _count_skeletons(source_root)
 	var skinned_mesh_count := 0
+	var bone_attached_unskinned_count := 0
 	for mesh in source_meshes:
-		if mesh.mesh == null or mesh.skin == null:
+		if mesh.mesh == null:
 			continue
-		skinned_mesh_count += 1
-		var mesh_skeleton := mesh.get_node_or_null(mesh.skeleton) as Skeleton3D
-		_check(mesh_skeleton == source_skeleton,
-			"%s skinned mesh %s is bound to the primary source skeleton (resolved=%s path=%s)" % [
-				label, str(source_root.get_path_to(mesh)),
-				str(mesh_skeleton.get_path()) if mesh_skeleton != null else "<unresolved>",
-				str(mesh.skeleton)
-			])
-	print("ARA_RIG_DIAGNOSTIC asset=%s source_bones=%d carrier_bones=%d skeleton_nodes=%d skinned_meshes=%d" % [
+		if mesh.skin != null:
+			skinned_mesh_count += 1
+			var mesh_skeleton := mesh.get_node_or_null(mesh.skeleton) as Skeleton3D
+			_check(mesh_skeleton == source_skeleton,
+				"%s skinned mesh %s is bound to the primary source skeleton (resolved=%s path=%s)" % [
+					label, str(source_root.get_path_to(mesh)),
+					str(mesh_skeleton.get_path()) if mesh_skeleton != null else "<unresolved>",
+					str(mesh.skeleton)
+				])
+			continue
+		var ancestor := mesh.get_parent()
+		while ancestor != null and ancestor != source_root:
+			if ancestor is BoneAttachment3D or ancestor is Skeleton3D:
+				bone_attached_unskinned_count += 1
+				_check(false, "%s has unskinned mesh %s attached beneath %s; flattening would lose its bone attachment" % [
+					label, str(source_root.get_path_to(mesh)), str(ancestor.get_path())
+				])
+				break
+			ancestor = ancestor.get_parent()
+	print("ARA_RIG_DIAGNOSTIC asset=%s source_bones=%d carrier_bones=%d skeleton_nodes=%d skinned_meshes=%d bone_attached_unskinned_meshes=%d" % [
 		asset_path, source_skeleton.get_bone_count(), reference_skeleton.get_bone_count(),
-		skeleton_node_count, skinned_mesh_count
+		skeleton_node_count, skinned_mesh_count, bone_attached_unskinned_count
 	])
 	source_root.free()
 
