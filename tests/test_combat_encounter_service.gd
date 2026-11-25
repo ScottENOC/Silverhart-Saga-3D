@@ -3,6 +3,7 @@ extends SceneTree
 const ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 const DIRE_WOLF_ENCOUNTER = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_ENCOUNTER = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const ABANDONED_HOUSE_QUEST = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 
 var _failures: int = 0
 
@@ -12,6 +13,7 @@ func _initialize() -> void:
 	_test_reject_invalid_rosters_without_mutation()
 	_test_dire_wolf_domain_uses_shared_lifecycle()
 	_test_ironbond_domain_uses_shared_lifecycle()
+	_test_abandoned_house_uses_shared_lifecycle()
 	if _failures > 0:
 		push_error("%d combat encounter service assertion(s) failed." % _failures)
 		quit(1)
@@ -130,4 +132,28 @@ func _test_ironbond_domain_uses_shared_lifecycle() -> void:
 	_check(not simulation.is_in_combat, "Finishing Ironbond should end combat.")
 	_check(not bystander.combat_dormant, "Ironbond cleanup should restore unrelated characters.")
 	_check(simulation.get_character("garrick_holt").side == "neutral", "Ironbond cleanup should restore defender side assignments.")
+	simulation.free()
+
+func _test_abandoned_house_uses_shared_lifecycle() -> void:
+	var simulation := WorldSimulation.new()
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.side = "player"
+	var bystander := CharacterState.new("bystander", "Bystander", Vector2i(1, 0))
+	bystander.combat_dormant = false
+	simulation.register_character(player)
+	simulation.register_character(bystander)
+	var started: Dictionary = ABANDONED_HOUSE_QUEST.start_encounter(simulation, ["player"])
+	_check(bool(started.get("ok", false)), "The abandoned-house guardian encounter should start through the shared lifecycle.")
+	_check(simulation.is_in_combat, "The abandoned-house encounter should activate WorldSimulation combat.")
+	_check(ABANDONED_HOUSE_QUEST.guardian_count_remaining(simulation) == 3, "All three authored guardians should be registered.")
+	_check(bystander.combat_dormant, "The shared lifecycle should suspend unrelated characters during the clearing.")
+	var active_enemies: Array = started.get("enemy_ids", [])
+	_check(active_enemies.size() == 3, "All living guardians should be included in the encounter roster.")
+	for guardian_id in active_enemies:
+		var guardian := simulation.get_character(String(guardian_id))
+		_check(guardian.side == "enemy" and not guardian.combat_dormant, "Guardians should be active enemies.")
+	var previous_states: Dictionary = started.get("previous_states", {})
+	ABANDONED_HOUSE_QUEST.finish_encounter(simulation, previous_states)
+	_check(not simulation.is_in_combat, "Finishing the abandoned-house encounter should end combat.")
+	_check(not bystander.combat_dormant, "Abandoned-house cleanup should restore unrelated characters.")
 	simulation.free()
