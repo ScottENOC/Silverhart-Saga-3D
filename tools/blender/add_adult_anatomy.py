@@ -676,7 +676,14 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
     path = _TubePath(C, cfg, best_axis, mu, mv, k)
     cap, new_all, by_depth = list(patch), set(), []
     for s in depths:
-        geom = bmesh.ops.extrude_face_region(bm, geom=cap)["geom"]
+        # Include the region's edges explicitly. On imported glTF skin meshes,
+        # passing faces alone can leave the source patch's internal edges behind
+        # while the duplicate cap is extruded, producing 3+/4-face non-manifold
+        # edges. Explicit edge input lets the operator replace the source region.
+        cap_edges = {e for f in cap for e in f.edges}
+        geom = bmesh.ops.extrude_face_region(
+            bm, geom=list(cap) + list(cap_edges), use_keep_orig=False
+        )["geom"]
         new_verts = [g for g in geom if isinstance(g, bmesh.types.BMVert)]
         nv = set(new_verts)
         for v, p in zip(new_verts, path.advance(s, [mw @ v.co for v in new_verts])):
