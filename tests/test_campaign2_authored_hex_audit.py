@@ -104,6 +104,7 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
                     "rooms": [{"center": {"q": 0, "r": 0}, "half_width": 2, "half_height": 2}],
                     "corridors": [{"from": {"q": 2, "r": 0}, "to": {"q": 4, "r": 0}}],
                     "floor_hexes": [{"q": 8, "r": 8}],
+                    "tile_objects": [{"position": {"q": 9, "r": 8}}],
                 }],
             }],
         }
@@ -112,6 +113,7 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertIn("2,0", cells)
         self.assertIn("4,0", cells)
         self.assertIn("8,8", cells)
+        self.assertIn("9,8", cells)
 
     def test_source_floor_cells_use_surface_and_multistory_maps(self):
         source = {
@@ -120,6 +122,7 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
                 "1,0": {"name": "Cave Floor"},
                 "2,0": {"name": "Grass"},
             },
+            "interiors": [{"floorHexes": [{"q": 0, "r": 0}, {"q": 1, "r": 0}]}],
             "multiStoryBuildings": [{
                 "floors": [None, {"terrain": {"0,0": "Wall", "1,0": "Wood Floor"}}],
             }],
@@ -132,7 +135,7 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
     def test_interior_floor_parity_reports_coordinate_gaps(self):
         source = {
             "terrain": {"0,0": {"name": "Wood Floor"}, "1,0": {"name": "Wood Floor"}},
-            "interiors": [{"floorHexes": [{"q": 0, "r": 0}]}],
+            "interiors": [{"floorHexes": [{"q": 0, "r": 0}, {"q": 1, "r": 0}]}],
             "multiStoryBuildings": [],
         }
         target = {
