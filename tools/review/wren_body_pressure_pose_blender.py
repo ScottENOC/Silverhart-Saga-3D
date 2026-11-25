@@ -131,6 +131,106 @@ def palm_anchor(actor, side):
     return sum(points,Vector())/len(points),used
 
 
+
+def mesh_hand_contact_diagnostics(actor, report):
+    """Measure skinned hand-surface vertices against a torso BVH.
+
+    Arm/hand-weighted triangles are excluded from the target BVH to avoid
+    reporting a hand's distance to its own forearm or palm as body contact.
+    This is a geometric proximity audit, not a collision response solver.
+    """
+    deps = bpy.context.evaluated_depsgraph_get()
+    result = {}
+    for side in ("left", "right"):
+        prefix = "Left" if side == "left" else "Right"
+        digit_tokens = ("thumb", "index", "middle", "ring", "pinky", "little")
+        hand_tokens = ("hand",) + digit_tokens
+        body_points = []
+        body_polygons = []
+        hand_samples = {"palm": [], "digits": []}
+        for source in actor["meshes"]:
+            evaluated = source.evaluated_get(deps)
+            mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=deps)
+            if mesh is None:
+                continue
+            mesh.calc_loop_triangles()
+            group_names = {group.index: group.name for group in source.vertex_groups}
+            arm_group_indices = {
+                index for index, name in group_names.items()
+                if name.lower().startswith(prefix.lower())
+                and any(token in name.lower() for token in hand_tokens + ("forearm", "arm"))
+            }
+            palm_group_indices = {
+                index for index, name in group_names.items()
+                if name.lower().startswith(prefix.lower()) and "hand" in name.lower()
+            }
+            digit_group_indices = {
+                index for index, name in group_names.items()
+                if name.lower().startswith(prefix.lower())
+                and any(token in name.lower() for token in digit_tokens)
+            }
+            vertex_weights = []
+            for vertex in source.data.vertices:
+                vertex_weights.append({
+                    assignment.group: assignment.weight
+                    for assignment in vertex.groups
+                })
+            world_vertices = [evaluated.matrix_world @ vertex.co for vertex in mesh.vertices]
+            for tri in mesh.loop_triangles:
+                indices = list(tri.vertices)
+                arm_weight = max(
+                    (vertex_weights[i].get(group_index, 0.0)
+                     for i in indices for group_index in arm_group_indices),
+                    default=0.0
+                )
+                if arm_weight > 0.20:
+                    continue
+                body_polygons.append(indices)
+            for index, weights in enumerate(vertex_weights):
+                palm_weight = max((weights.get(g, 0.0) for g in palm_group_indices), default=0.0)
+                digit_weight = max((weights.get(g, 0.0) for g in digit_group_indices), default=0.0)
+                if max(palm_weight, digit_weight) < 0.25:
+                    continue
+                point = world_vertices[index]
+                if palm_weight >= digit_weight:
+                    hand_samples["palm"].append(point)
+                else:
+                    hand_samples["digits"].append(point)
+            body_points.extend(world_vertices)
+            evaluated.to_mesh_clear()
+        if not body_polygons or not hand_samples["palm"] and not hand_samples["digits"]:
+            result[side] = {"available": False, "reason": "Missing body triangles or weighted hand vertices"}
+            continue
+        # Rebuild the target from the accumulated mesh vertices and filtered triangles.
+        body_tree = BVHTree.FromPolygons(body_points, body_polygons, all_triangles=True)
+        side_result = {"available": body_tree is not None}
+        if body_tree is None:
+            side_result["reason"] = "Could not build torso BVH"
+            result[side] = side_result
+            continue
+        for surface_name, samples in hand_samples.items():
+            distances = []
+            for point in samples:
+                hit = body_tree.find_nearest(point)
+                if hit is not None and hit[0] is not None:
+                    distances.append((hit[0] - point).length)
+            distances.sort()
+            side_result[surface_name] = {
+                "sample_vertices": len(samples),
+                "matched_vertices": len(distances),
+                "minimum_gap_m": round(distances[0], 5) if distances else None,
+                "median_gap_m": round(distances[len(distances) // 2], 5) if distances else None,
+                "vertices_within_2mm": sum(1 for value in distances if value <= 0.002),
+                "vertices_within_5mm": sum(1 for value in distances if value <= 0.005)
+            }
+        result[side] = side_result
+    report["mesh_hand_contact"] = {
+        "method": "Skinned hand vertices queried against a BVH of the evaluated body mesh, excluding arm/hand-weighted target triangles",
+        "sides": result,
+        "caveat": "Unsigned nearest-surface distances measure proximity only. They do not establish contact force, signed penetration, or two-way deformation."
+    }
+    return result
+
 def finger_inventory(actor):
     arm=actor["arm"]
     names=[]
@@ -528,6 +628,7 @@ def main():
             "distance_m":round((anchor-target.location).length,5),
             "palm_anchor_world":[round(v,5) for v in anchor],
             "finger_base_bones":anchor_bones}
+    mesh_hand_contact_diagnostics(actor, report)
     report["finger_bones"]=finger_inventory(actor)
     report["pressure_blend_shapes"]=pressure_shape_inventory(actor)
     report["deformation_status"]={
