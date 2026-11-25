@@ -5,6 +5,7 @@ const SIMULATION_SCRIPT = preload("res://scripts/simulation/world_simulation.gd"
 const CHARACTER_SCRIPT = preload("res://scripts/simulation/character_state.gd")
 const RELATIONSHIP_SCRIPT = preload("res://scripts/simulation/persistent_character_relationship_state.gd")
 const DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
+const EVENT_ROUTER = preload("res://scripts/simulation/campaign_quest_event_router.gd")
 
 const ALDRIC_ID := "ser_aldric_thorne"
 var _failures: int = 0
@@ -19,6 +20,8 @@ func _initialize() -> void:
 	_test_nix_recruitment_uses_goblin_profile()
 	_test_chief_dialogue_routes_gift_transaction()
 	_test_alliance_follow_up_mine_raid_and_spy_quest()
+	_test_chief_death_resolves_assault()
+	_test_assassination_opens_nix_succession()
 	if _failures > 0:
 		push_error("%d Skarn-tooth runtime assertion(s) failed." % _failures)
 		quit(1)
@@ -165,3 +168,39 @@ func _test_alliance_follow_up_mine_raid_and_spy_quest() -> void:
 	_check(bool(spy_completed.get("ok", false)))
 	_check(String(simulation.campaign_journal.quest_state("greenskin_spy").get("status", "")) == "completed")
 	_check(bool(simulation.campaign_journal.world_campaign_flag("northwatch_taken_by_greenskins", false)))
+
+
+func _test_chief_death_resolves_assault() -> void:
+	var simulation := _simulation()
+	var chief := CHARACTER_SCRIPT.new("chief_skarnub", "Chief Skarnub")
+	chief.axial = Vector2i(2, 0)
+	simulation.register_character(chief)
+	var router := EVENT_ROUTER.new()
+	router.bind(simulation)
+	chief.apply_damage(1000)
+	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("status", "")) == "completed")
+	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "assault")
+	_check(simulation.get_character("player").experience == 300)
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), 15.0))
+
+
+func _test_assassination_opens_nix_succession() -> void:
+	var simulation := _simulation()
+	var chief := CHARACTER_SCRIPT.new("chief_skarnub", "Chief Skarnub")
+	chief.axial = Vector2i(2, 0)
+	simulation.register_character(chief)
+	var router := EVENT_ROUTER.new()
+	router.bind(simulation)
+	_check(bool(RUNTIME_SERVICE.mark_chief_assassinated(simulation).get("ok", false)))
+	chief.apply_damage(1000)
+	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("status", "")) == "active", "Assassination should leave the succession decision open")
+	var nix_conversation := RUNTIME_SERVICE.nix_greeting(simulation)
+	var succession_offered := false
+	for choice_value in nix_conversation.get("choices", []):
+		if String(choice_value.get("id", "")) == "nix_resolve_succession":
+			succession_offered = true
+	_check(succession_offered, "Nix should offer peaceful succession after an assassination")
+	var resolved := DIALOGUE_SERVICE.select_choice(simulation, "nix_sharpear", "nix_resolve_succession", RELATIONSHIP_SCRIPT.new())
+	_check(bool(resolved.get("ok", false)))
+	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "stealth_succession")
+	_check(simulation.get_character("player").experience == 250)
