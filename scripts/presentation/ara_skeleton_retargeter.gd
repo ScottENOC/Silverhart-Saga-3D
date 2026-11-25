@@ -67,10 +67,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 			* target_parent_basis
 			* target_rest.basis
 		)
+		var motion_scale_ratio := target.get_motion_scale() / source_skeleton.get_motion_scale()
 		var retargeted_origin := (
 			target_parent_inverse
 			* source_parent_basis
-			* (source_pose.origin - source_rest.origin)
+			* ((source_pose.origin - source_rest.origin) * motion_scale_ratio)
 			+ target_rest.origin
 		)
 		var output_pose := Transform3D(retargeted_basis, retargeted_origin)
