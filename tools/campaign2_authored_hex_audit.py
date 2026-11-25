@@ -157,6 +157,71 @@ def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
     return total, unique
 
 
+
+def source_interior_door_parity_report(
+    runtime: dict[str, Any],
+    multistory: dict[str, Any],
+    layouts: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare source interior door anchors with target floor/building door records."""
+    source_regions = runtime.get("interiors", [])
+    source_doors: list[dict[str, Any]] = []
+    for index, region in enumerate(source_regions if isinstance(source_regions, list) else []):
+        if not isinstance(region, dict):
+            continue
+        door = region.get("doorHex")
+        if not isinstance(door, dict) or "q" not in door or "r" not in door:
+            continue
+        source_doors.append({
+            "source_region_index": index,
+            "q": int(door["q"]),
+            "r": int(door["r"]),
+            "bounds": {
+                "min_q": region.get("minQ"),
+                "max_q": region.get("maxQ"),
+                "min_r": region.get("minR"),
+                "max_r": region.get("maxR"),
+            },
+        })
+
+    target_doors: set[str] = set()
+    for location in multistory.get("locations", []):
+        if not isinstance(location, dict):
+            continue
+        for floor in location.get("floors", []):
+            if not isinstance(floor, dict):
+                continue
+            for obj in floor.get("tile_objects", []):
+                if not isinstance(obj, dict) or str(obj.get("type", "")) not in {"door_open", "door", "door_closed"}:
+                    continue
+                position = obj.get("position", {})
+                if isinstance(position, dict) and "q" in position and "r" in position:
+                    target_doors.add(axial_key(int(position["q"]), int(position["r"])))
+    for settlement in layouts.get("settlements", []):
+        if not isinstance(settlement, dict):
+            continue
+        for building in settlement.get("buildings", []):
+            if not isinstance(building, dict):
+                continue
+            door = building.get("door", {})
+            if isinstance(door, dict) and "q" in door and "r" in door:
+                target_doors.add(axial_key(int(door["q"]), int(door["r"])))
+
+    missing = [
+        record for record in source_doors
+        if axial_key(record["q"], record["r"]) not in target_doors
+    ]
+    return {
+        "source_interior_region_count": len(source_regions) if isinstance(source_regions, list) else 0,
+        "source_regions_with_door_anchor": len(source_doors),
+        "target_unique_door_anchor_count": len(target_doors),
+        "matched_source_door_anchor_count": len(source_doors) - len(missing),
+        "missing_source_door_anchor_count": len(missing),
+        "missing_source_door_anchors": missing,
+        "method_note": "Matches source interior doorHex coordinates to target multi-story door tile objects and settlement building door records; does not compare complete floor shapes or furnishings.",
+    }
+
+
 def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
     """Summarise the original scene builder's resolved writes without counting overlaps twice."""
     builder_cells = {
@@ -563,6 +628,11 @@ def build_report(
         if source_runtime_data is not None and source_runtime_data.get("worldMapData")
         else None
     )
+    interior_door_validation = (
+        source_interior_door_parity_report(source_runtime_data, multistory, layouts)
+        if source_runtime_data is not None and source_runtime_data.get("interiors") is not None
+        else None
+    )
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -604,6 +674,7 @@ def build_report(
         "source": source_validation,
         "source_runtime": source_runtime_report,
         "strategic_map_validation": strategic_map_validation,
+        "interior_door_validation": interior_door_validation,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
