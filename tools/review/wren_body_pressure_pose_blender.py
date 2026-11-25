@@ -304,14 +304,25 @@ def main():
 
     bpy.context.view_layer.update()
     for _ in range(5): bpy.context.view_layer.update()
-    # Contact targets are anchored to the actual evaluated body surface.
-    # Do not move IK targets during pose fitting or rotate the wrist to fake contact.
-    for side,target,surface in (("left",left_target,left_breast_surface),
-                                ("right",right_target,right_hip_surface)):
-        point=Vector(surface["surface_point_world"])
-        normal=Vector(surface["surface_normal_world"]).normalized()
-        target.location=point+normal*0.035
-    bpy.context.view_layer.update()
+    # Fit the palm reference point to the measured body surface. The IK target
+    # controls the hand-bone tail, not the palm, so aiming the tail directly at
+    # the surface leaves a systematic offset. Preserve the current wrist/finger
+    # orientation and compensate for the measured tail-to-palm-anchor vector.
+    # Iterate because Blender's IK evaluation can slightly alter that vector.
+    surface_anchors = {"left": left_breast_surface, "right": right_hip_surface}
+    targets_by_side = {"left": left_target, "right": right_target}
+    for _fit_pass in range(5):
+        bpy.context.view_layer.update()
+        for side in ("left", "right"):
+            target = targets_by_side[side]
+            surface = surface_anchors[side]
+            surface_point = Vector(surface["surface_point_world"])
+            anchor, _anchor_bones = palm_anchor(actor, side)
+            if anchor is None:
+                raise RuntimeError("Could not resolve %s palm anchor" % side)
+            target.location += surface_point - anchor
+        for _ in range(3):
+            bpy.context.view_layer.update()
     authored_shapes = author_pressure_shapes(actor, surface_centres, report)
     report["bones"]={
         "left_shoulder":world_bone(actor,["LeftShoulder","Shoulder_L"]),
@@ -322,14 +333,21 @@ def main():
         "right_upper_arm":world_bone(actor,["RightArm","RightUpperArm","UpperArm_R"]),
         "right_forearm":world_bone(actor,["RightForeArm","RightLowerArm","ForeArm_R"]),
         "right_hand":world_bone(actor,["RightHand","Hand_R"])}
-    report["hand_surface_gaps"]={
-        "left_breast":nearest_surface(actor,left_breast),
-        "right_hip":nearest_surface(actor,right_hip)}
+    report["palm_anchor_surface_gaps"] = {}
+    for side, surface in surface_anchors.items():
+        anchor, anchor_bones = palm_anchor(actor, side)
+        surface_point = Vector(surface["surface_point_world"])
+        report["palm_anchor_surface_gaps"][side] = {
+            "gap_m": round((anchor - surface_point).length, 5),
+            "palm_anchor_world": [round(v, 5) for v in anchor],
+            "surface_point_world": [round(v, 5) for v in surface_point],
+            "anchor_bones": anchor_bones
+        }
     report["contact_target_surface_anchors"]={
         "left_breast":left_breast_surface,
         "right_hip":right_hip_surface,
-        "target_clearance_m":0.035,
-        "note":"IK targets are fixed 35 mm along the measured outward surface normal; no target-offset or wrist-rotation search is used."}
+        "target_clearance_m":0.0,
+        "note":"The finger-base palm proxy is iteratively fitted to the selected evaluated body-surface point. This is a pose-proximity diagnostic, not yet a mesh-to-mesh collision measurement."}
     report["hand_target_errors"]={}
     report["palm_target_errors"]={}
     for side,target in (("left",left_target),("right",right_target)):
@@ -374,10 +392,11 @@ def main():
     bpy.ops.export_scene.gltf(filepath=os.path.join(OUT_DIR,"wren-body-pressure-pose.glb"),
         export_format="GLB",use_selection=True,export_animations=False,export_skins=False,
         export_draco_mesh_compression_enable=False)
+    palm_anchor_gaps = [v["gap_m"] for v in report["palm_anchor_surface_gaps"].values()]
     report["validation"]={"wren_only":True,"both_arm_ik_created":all(v.get("created",False) for v in report["ik"].values()),
         "preview_rendered":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-preview.png")),
         "posed_glb_exported":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-pose.glb")),
-        "surface_contact_measured":all(v is not None for v in report["hand_surface_gaps"].values()),
+        "palm_anchor_within_5mm_of_selected_surface":len(palm_anchor_gaps) == 2 and all(gap <= 0.005 for gap in palm_anchor_gaps),
         "pressure_shapes_authored":len(authored_shapes) >= 4 and all(x["affected_vertices"] > 0 for x in authored_shapes),
         "pressure_compressed_preview_rendered":pressure_preview_rendered}
     with open(os.path.join(OUT_DIR,"wren-body-pressure-report.json"),"w",encoding="utf-8") as f: json.dump(report,f,indent=2)
