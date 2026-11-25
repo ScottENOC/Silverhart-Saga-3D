@@ -106,6 +106,18 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
             },
             "tileObjects": {"0,0": {"type": "table"}},
             "multiStoryBuildings": [{"floors": [None, {"terrain": {"0,0": "Wood Floor"}}]}],
+            "npcBaseline": {
+                "Mira Ashbrook": {
+                    "name": "Mira Ashbrook",
+                    "hex": {"q": 12, "r": 9},
+                    "floor": 0,
+                    "side": "neutral",
+                    "factionId": "hollowmere",
+                    "race": "human",
+                    "dialogueId": "mira_ashbrook",
+                    "behaviorType": "routine",
+                },
+            },
             "source": {"commit": "abc123"},
         })
         self.assertEqual(summary["feature_builder_cells_unique"], 2)
@@ -114,6 +126,10 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(summary["builder_union_cells"], 3)
         self.assertEqual(summary["tile_objects_by_type"], {"table": 1})
         self.assertEqual(summary["multi_story_floor_maps"], 1)
+        self.assertEqual(summary["npc_placement_count"], 1)
+        self.assertEqual(summary["npc_placements"][0]["name"], "Mira Ashbrook")
+        self.assertEqual(summary["npc_placements"][0]["q"], 12)
+        self.assertEqual(summary["npc_placements_by_faction"], {"hollowmere": 1})
 
 
     def test_strategic_map_matches_source_rules_and_river(self):
