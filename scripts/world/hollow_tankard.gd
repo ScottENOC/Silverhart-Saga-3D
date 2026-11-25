@@ -30,7 +30,6 @@ const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interio
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const COMBAT_ENCOUNTER_CONTROLLER_SCRIPT = preload("res://scripts/presentation/combat_encounter_controller.gd")
-const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
@@ -114,7 +113,6 @@ var combat_controller: CombatEncounterController
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
-var active_combat_kind: String = "ironbond"
 var active_enemy_ids: Array[String] = []
 var active_party_ids: Array[String] = []
 var active_combat_controlled_ids: Array[String] = []
@@ -598,7 +596,6 @@ func _begin_dire_wolf_hunt_combat() -> void:
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(FARMSTEAD_DIRE_WOLF_SCRIPT, "resolve_combat")
-	active_combat_kind = "dire_wolf_hunt"
 	active_enemy_ids = [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID]
 	active_party_ids.clear()
 	active_combat_controlled_ids.clear()
@@ -2095,7 +2092,6 @@ func _begin_shakedown_combat() -> void:
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(HOLLOWMERE_ENCOUNTER_SCRIPT, "resolve_combat")
 	encounter_active = true
-	active_combat_kind = "ironbond"
 	active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
 	active_party_ids.clear()
 	active_combat_controlled_ids.clear()
@@ -2226,7 +2222,6 @@ func _begin_abandoned_house_encounter() -> void:
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(ABANDONED_HOUSE_QUEST_SCRIPT, "resolve_combat")
-	active_combat_kind = "abandoned_house"
 	active_enemy_ids.clear()
 	active_party_ids.clear()
 	active_combat_controlled_ids.clear()
