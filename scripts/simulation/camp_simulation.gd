@@ -26,6 +26,9 @@ const ACTIVITY_IDS: Array[String] = [
 var phase: String = "inactive"
 var site: Dictionary = {}
 var party_ids: Array[String] = []
+## All entities present at camp. Party membership is a capability, not a
+## prerequisite for being represented here.
+var occupants: Dictionary = {}
 var environment: Dictionary = {}
 var resources: Dictionary = {}
 var assignments: Dictionary = {}
@@ -61,6 +64,18 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	lodging_profile = site.get("dwelling_profile", {}).duplicate(true)
 	party_ids = validated_ids
 	environment = environment_data.duplicate(true)
+	occupants.clear()
+	for character_id in party_ids:
+		register_camp_occupant({
+			"occupant_id": character_id, "kind": "party_member", "species": "humanoid",
+			"participates_in_party": true, "can_sleep": true, "can_work": true,
+			"needs": ["food", "water", "shelter", "sleep", "safety", "social"]
+		})
+	var supplied_occupants: Variant = environment.get("camp_occupants", [])
+	if supplied_occupants is Array:
+		for occupant_data in supplied_occupants:
+			if occupant_data is Dictionary:
+				register_camp_occupant(occupant_data)
 	resources = {
 		"wood": maxi(0, int(resource_data.get("wood", 0))),
 		"rations": maxi(0, int(resource_data.get("rations", 0))),
@@ -88,6 +103,60 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	plan_sleeping_arrangements(resources.tents)
 	camp_started.emit(site.duplicate(true))
 	return {"ok": true, "party_size": party_ids.size(), "assignments": assignments.duplicate(true)}
+
+
+const OCCUPANT_KINDS: Array[String] = [
+	"party_member", "animal", "follower", "resident", "guest"
+]
+
+
+## Registers a non-party camp presence (or updates an existing occupant).
+## Unknown fields are retained so later behaviour systems can add domain data.
+func register_camp_occupant(data: Dictionary) -> Dictionary:
+	var occupant_id := String(data.get("occupant_id", data.get("id", ""))).strip_edges()
+	var kind := String(data.get("kind", "follower")).strip_edges().to_lower()
+	if occupant_id.is_empty():
+		return {"ok": false, "reason": "missing_occupant_id"}
+	if not OCCUPANT_KINDS.has(kind):
+		return {"ok": false, "reason": "invalid_occupant_kind"}
+	var participates_in_party := bool(data.get("participates_in_party", kind == "party_member"))
+	if participates_in_party and not party_ids.has(occupant_id):
+		return {"ok": false, "reason": "party_member_not_in_party"}
+	if not participates_in_party and party_ids.has(occupant_id):
+		return {"ok": false, "reason": "party_member_kind_mismatch"}
+	var clean := data.duplicate(true)
+	clean.erase("id")
+	clean["occupant_id"] = occupant_id
+	clean["kind"] = kind
+	clean["species"] = String(data.get("species", "humanoid" if kind != "animal" else "unknown"))
+	clean["participates_in_party"] = participates_in_party
+	clean["can_sleep"] = bool(data.get("can_sleep", kind != "guest" or bool(data.get("staying_overnight", false))))
+	clean["can_work"] = bool(data.get("can_work", kind in ["party_member", "follower", "resident"]))
+	clean["needs"] = data.get("needs", ["food", "water", "shelter", "sleep", "safety"]).duplicate() if data.get("needs", []) is Array else []
+	occupants[occupant_id] = clean
+	return {"ok": true, "occupant": clean.duplicate(true)}
+
+
+func remove_camp_occupant(occupant_id: String) -> Dictionary:
+	if not occupants.has(occupant_id):
+		return {"ok": false, "reason": "occupant_not_found"}
+	if party_ids.has(occupant_id):
+		return {"ok": false, "reason": "cannot_remove_party_member"}
+	occupants.erase(occupant_id)
+	return {"ok": true}
+
+
+func occupant_for(occupant_id: String) -> Dictionary:
+	return (occupants.get(occupant_id, {}) as Dictionary).duplicate(true)
+
+
+func occupants_of_kind(kind: String) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for occupant_id in occupants:
+		var occupant: Dictionary = occupants[occupant_id]
+		if String(occupant.get("kind", "")) == kind:
+			result.append(occupant.duplicate(true))
+	return result
 
 
 func _plan_initial_activities() -> void:
@@ -654,7 +723,8 @@ func to_dict() -> Dictionary:
 		"conditions": conditions.duplicate(true), "evening_activity_history": evening_activity_history.duplicate(true),
 		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true),
 		"routine_stage": routine_stage, "preparations_completed": _preparations_completed,
-		"companion_profiles": companion_profiles.duplicate(true)
+		"companion_profiles": companion_profiles.duplicate(true),
+		"occupants": occupants.duplicate(true)
 	}
 
 
@@ -668,7 +738,8 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_resources: Variant = data.get("resources", {})
 	var saved_lodging: Variant = data.get("lodging_profile", data.get("site", {}).get("dwelling_profile", {}))
 	var saved_profiles: Variant = data.get("companion_profiles", data.get("environment", {}).get("companion_profiles", {}))
-	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary or not saved_profiles is Dictionary:
+	var saved_occupants: Variant = data.get("occupants", {})
+	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary or not saved_profiles is Dictionary or not saved_occupants is Dictionary:
 		return false
 	var ids: Array[String] = []
 	for value in saved_party:
@@ -681,6 +752,14 @@ func from_dict(data: Dictionary) -> bool:
 			return false
 	for character_id in saved_conditions:
 		if String(character_id).is_empty() or not saved_conditions[character_id] is Dictionary:
+			return false
+	for occupant_id in saved_occupants:
+		var occupant: Variant = saved_occupants[occupant_id]
+		if not occupant is Dictionary or String(occupant.get("occupant_id", "")) != String(occupant_id):
+			return false
+		if not OCCUPANT_KINDS.has(String(occupant.get("kind", ""))):
+			return false
+		if bool(occupant.get("participates_in_party", false)) != ids.has(String(occupant_id)):
 			return false
 	phase = saved_phase
 	site = data.get("site", {}).duplicate(true)
@@ -697,4 +776,11 @@ func from_dict(data: Dictionary) -> bool:
 	routine_stage = clampi(int(data.get("routine_stage", 0)), 0, ROUTINE_STAGE_THRESHOLDS.size())
 	_preparations_completed = bool(data.get("preparations_completed", false))
 	companion_profiles = saved_profiles.duplicate(true)
+	occupants = saved_occupants.duplicate(true)
+	if occupants.is_empty() and not party_ids.is_empty():
+		for character_id in party_ids:
+			register_camp_occupant({
+				"occupant_id": character_id, "kind": "party_member", "species": "humanoid",
+				"participates_in_party": true, "can_sleep": true, "can_work": true
+			})
 	return true
