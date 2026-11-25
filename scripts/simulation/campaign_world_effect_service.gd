@@ -5,6 +5,7 @@ extends RefCounted
 
 const ALDRIC_ID := "ser_aldric_thorne"
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const QUEST_DEFINITION_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
 
 
 static func apply_effects(
@@ -147,7 +148,7 @@ static func _is_finite_number(value: Variant) -> bool:
 
 
 static func _complete_aldric_rescue(journal: CampaignJournal) -> Dictionary:
-	COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(journal)
+	QUEST_DEFINITION_REGISTRY.register_all(journal)
 	var quest := journal.quest_state("aldric_rescue")
 	if quest.is_empty():
 		var started := journal.start_quest("aldric_rescue")
