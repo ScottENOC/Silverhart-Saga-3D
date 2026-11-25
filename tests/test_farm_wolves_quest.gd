@@ -16,8 +16,10 @@ func _test_source_backed_quest_flow() -> void:
 	assert(not String(initial.text).to_lower().contains("sheep"))
 	assert(initial.choices.size() == 2)
 
-	var accepted := FARM_QUEST.accept(journal)
-	assert(accepted.ok)
+	var accepted_dialogue := FARM_QUEST.resolve_dialogue_choice(journal, null, "farm_wolves_accept")
+	assert(accepted_dialogue.handled)
+	assert(String(accepted_dialogue.dialogue.speaker) == "Old Mac")
+	assert(String(accepted_dialogue.dialogue.text).contains("fence"))
 	assert(String(journal.quest_state(FARM_QUEST.QUEST_ID).status) == "active")
 
 	var progress := FARM_QUEST.record_wolf_defeat(journal, 3)
@@ -25,8 +27,13 @@ func _test_source_backed_quest_flow() -> void:
 	var player := CharacterState.new("player", "Adventurer", Vector2i.ZERO)
 	player.gold = 10
 	player.experience = 0
-	var reward := FARM_QUEST.turn_in(journal, player)
-	assert(reward.ok)
+	var turn_in_dialogue := FARM_QUEST.resolve_dialogue_choice(journal, player, "farm_wolves_turn_in")
+	assert(turn_in_dialogue.handled and turn_in_dialogue.quest_completed)
+	assert(String(turn_in_dialogue.dialogue.text).contains("farm owes you"))
+	var reward_state := journal.quest_state(FARM_QUEST.QUEST_ID)
+	assert(String(reward_state.status) == "completed")
+	var reward := {"ok": true}
+
 	assert(player.gold == 35)
 	assert(player.experience == 150)
 	assert(String(journal.quest_state(FARM_QUEST.QUEST_ID).status) == "completed")
