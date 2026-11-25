@@ -5,6 +5,11 @@ extends SkeletonModifier3D
 var source_skeleton: Skeleton3D
 var _bone_pairs: Array[Vector2i] = []
 var process_call_count: int = 0
+var write_count: int = 0
+var changed_write_count: int = 0
+var last_source_pose: Transform3D = Transform3D.IDENTITY
+var last_written_pose: Transform3D = Transform3D.IDENTITY
+var last_readback_pose: Transform3D = Transform3D.IDENTITY
 
 
 func configure(source: Skeleton3D, target: Skeleton3D) -> int:
@@ -31,6 +36,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var target := get_skeleton()
 	if target == null or not is_instance_valid(source_skeleton):
 		return
+	write_count = 0
+	changed_write_count = 0
 	for pair in _bone_pairs:
 		var source_index: int = pair.x
 		var target_index: int = pair.y
@@ -66,7 +73,15 @@ func _process_modification_with_delta(_delta: float) -> void:
 			* (source_pose.origin - source_rest.origin)
 			+ target_rest.origin
 		)
-		target.set_bone_pose(target_index, Transform3D(retargeted_basis, retargeted_origin))
+		var output_pose := Transform3D(retargeted_basis, retargeted_origin)
+		var prior_pose := target.get_bone_pose(target_index)
+		target.set_bone_pose(target_index, output_pose)
+		write_count += 1
+		if not output_pose.is_equal_approx(prior_pose):
+			changed_write_count += 1
+		last_source_pose = source_pose
+		last_written_pose = output_pose
+		last_readback_pose = target.get_bone_pose(target_index)
 
 
 func _parent_bone_name(skeleton: Skeleton3D, bone_index: int) -> String:
