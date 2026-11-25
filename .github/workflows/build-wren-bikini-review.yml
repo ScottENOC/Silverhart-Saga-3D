@@ -70,7 +70,11 @@ jobs:
             --input build/wren-bikini/wren-bikini-source.glb \
             --output build/wren-bikini/Wren_Bikini.glb \
             --report build/wren-bikini/fit-report.json \
-            --fit-mode existing \
+            --fit-mode new \
+            --max-displacement-mm 50 \
+            --max-step-mm 3 \
+            --iterations 25 \
+            --smoothing 0.2
             --skin-material Skin \
             --garment-material "Triangle bikini top" \
             --garment-material "Triangle bikini strings" \
@@ -87,7 +91,7 @@ jobs:
           report=json.loads(p.read_text())
           report["workflow_exit_status"]=int(os.environ.get("FIT_STATUS","1"))
           report["fit_gate_passed"]=report.get("status")=="PASS" and report["workflow_exit_status"]==0
-          p.write_text(json.dumps(report,indent=2)+"\\n")
+          p.write_text(json.dumps(report,indent=2)+"\n")
           PY
 
       - name: Render front, side and rear bikini review
