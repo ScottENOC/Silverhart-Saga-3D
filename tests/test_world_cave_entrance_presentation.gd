@@ -18,16 +18,21 @@ func _initialize() -> void:
 func _test_source_entrances() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
 	var expected := {
-		"thieves_cove": {"hex": Vector2i(-277, 40), "node": "ThievesCoveEntrance"},
-		"vessel_seekers_crypt": {"hex": Vector2i(29, -154), "node": "VesselSeekersCryptEntrance"},
-		"corvin_ashgrave_barrow": {"hex": Vector2i(60, -160), "node": "CorvinAshgraveBarrowEntrance"}
+		"thieves_cove": {"centre": Vector2i(-274, 40), "hex": Vector2i(-277, 40), "node": "ThievesCoveEntrance"},
+		"vessel_seekers_crypt": {"centre": Vector2i(32, -154), "hex": Vector2i(29, -154), "node": "VesselSeekersCryptEntrance"},
+		"corvin_ashgrave_barrow": {"centre": Vector2i(63, -160), "hex": Vector2i(60, -160), "node": "CorvinAshgraveBarrowEntrance"}
 	}
 	for entrance in PRESENTATION.ENTRANCES:
 		var entrance_id := String(entrance.get("id", ""))
 		_check(expected.has(entrance_id), "Every presented cave entrance must have a source-backed test record")
 		if not expected.has(entrance_id):
 			continue
-		var hex: Vector2i = entrance["hex"]
+		var canonical_site := data.encounter_site(entrance_id)
+		_check(not canonical_site.is_empty(), "%s must resolve through canonical encounter-site lookup" % entrance_id)
+		var canonical_centre := Vector2i(int(canonical_site.get("q", 0)), int(canonical_site.get("r", 0)))
+		_check(canonical_centre == expected[entrance_id]["centre"], "%s must preserve its source geography anchor" % entrance_id)
+		var hex: Vector2i = canonical_centre + entrance["door_offset"]
+		_check(hex == expected[entrance_id]["hex"], "%s door must retain its source offset from the canonical POI" % entrance_id)
 		var chunk_min := Vector2i(floori(float(hex.x) / 24.0) * 24, floori(float(hex.y) / 24.0) * 24)
 		var parent := Node3D.new()
 		root.add_child(parent)
@@ -52,7 +57,9 @@ func _test_source_entrances() -> void:
 func _test_chunk_ownership() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
 	for entrance in PRESENTATION.ENTRANCES:
-		var hex: Vector2i = entrance["hex"]
+		var site := data.encounter_site(String(entrance["id"]))
+		var centre := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+		var hex: Vector2i = centre + entrance["door_offset"]
 		var owning_min := Vector2i(floori(float(hex.x) / 24.0) * 24, floori(float(hex.y) / 24.0) * 24)
 		var unrelated_min := owning_min + Vector2i(24, 24)
 		var parent := Node3D.new()
