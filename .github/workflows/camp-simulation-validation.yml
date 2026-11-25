@@ -1,0 +1,48 @@
+name: Camp simulation validation
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "scripts/simulation/camp_simulation.gd"
+      - "scripts/simulation/world_simulation.gd"
+      - "tests/test_camp_simulation.gd"
+      - ".github/workflows/camp-simulation-validation.yml"
+      - "project.godot"
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: "Branch or commit SHA to validate"
+        required: true
+        default: "dev"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: camp-simulation-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  camp-tests:
+    name: Godot 4.7.2 camp simulation tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref || github.event.pull_request.head.sha || github.sha }}
+      - name: Install Godot 4.7.2 standard
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+      - name: Verify engine and import project
+        run: |
+          godot --version
+          godot --headless --editor --path . --quit
+      - name: Run camp simulation regression tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_simulation.gd
