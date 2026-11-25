@@ -38,6 +38,9 @@ const CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb
 const FACIAL_BONES := ["Jaw", "LeftEye", "RightEye"]
 
 var failures: int = 0
+var _observed_target_skeleton: Skeleton3D
+var _starting_target_global_poses: Array[Transform3D] = []
+var _max_processed_target_changed_bones: int = 0
 
 
 func _initialize() -> void:
@@ -115,35 +118,33 @@ func _test_character(asset_path: String, label: String, check_face_rests: bool) 
 			if bone_name == "Jaw":
 				_check(target_rest.origin.distance_to(source_rest.origin) > 0.025,
 					label + " jaw retains its distinct native rest position")
+	var starting_source_poses: Array[Transform3D] = []
+	for bone_index in range(target_skeleton.get_bone_count()):
+		_starting_target_global_poses.append(target_skeleton.get_bone_global_pose(bone_index))
+	for bone_index in range(source_skeleton.get_bone_count()):
+		starting_source_poses.append(source_skeleton.get_bone_global_pose(bone_index))
+	_observed_target_skeleton = target_skeleton
+	_max_processed_target_changed_bones = 0
+	actor.skeleton_retargeter.modification_processed.connect(_on_retarget_modification_processed)
+	var modifier_calls_before: int = actor.skeleton_retargeter.process_call_count
 	_check(actor.set_moving(true), label + " selects a locomotion clip")
 	var clip_name := player.current_animation.to_lower()
 	_check(clip_name.contains("walk") or clip_name.contains("locomotion") or clip_name.contains("run"),
 		label + " plays a locomotion clip")
-
-	var starting_poses: Array[Transform3D] = []
-	var starting_source_poses: Array[Transform3D] = []
-	for bone_index in range(target_skeleton.get_bone_count()):
-		starting_poses.append(target_skeleton.get_bone_pose(bone_index))
-	for bone_index in range(source_skeleton.get_bone_count()):
-		starting_source_poses.append(source_skeleton.get_bone_global_pose(bone_index))
-	var modifier_calls_before: int = actor.skeleton_retargeter.process_call_count
 	await create_timer(0.3).timeout
-	var changed_bones := 0
 	var changed_source_bones := 0
 	for bone_index in range(source_skeleton.get_bone_count()):
 		if not source_skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_source_poses[bone_index]):
 			changed_source_bones += 1
-	for bone_index in range(target_skeleton.get_bone_count()):
-		if not target_skeleton.get_bone_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
-			changed_bones += 1
-	print("ARA_RETARGET_DIAGNOSTIC label=%s clip=%s source_changed=%d modifier_calls=%d target_changed=%d source_root=%s" % [label, player.current_animation, changed_source_bones, actor.skeleton_retargeter.process_call_count - modifier_calls_before, changed_bones, player.root_node])
+	var changed_bones := _max_processed_target_changed_bones
+	print("ARA_RETARGET_DIAGNOSTIC label=%s clip=%s source_changed=%d modifier_calls=%d target_changed_after_modifier=%d source_root=%s" % [label, player.current_animation, changed_source_bones, actor.skeleton_retargeter.process_call_count - modifier_calls_before, changed_bones, player.root_node])
 	print("ARA_RETARGET_WRITE_DIAGNOSTIC label=%s writes=%d changed_writes=%d source_pose=%s output_pose=%s readback_pose=%s" % [label, actor.skeleton_retargeter.write_count, actor.skeleton_retargeter.changed_write_count, actor.skeleton_retargeter.last_source_pose, actor.skeleton_retargeter.last_written_pose, actor.skeleton_retargeter.last_readback_pose])
 	_check(changed_source_bones >= 5,
 		label + " locomotion animates the benchmark source skeleton (%d changed bones)" % changed_source_bones)
 	_check(actor.skeleton_retargeter.process_call_count > modifier_calls_before,
 		label + " executes the SkeletonModifier3D callback")
 	_check(changed_bones >= 5,
-		label + " locomotion drives the native skeleton (%d changed bones)" % changed_bones)
+		label + " locomotion drives the native skeleton after modifier processing (%d changed bones)" % changed_bones)
 
 	for bone_name in facial_rests:
 		var bone_index := target_skeleton.find_bone(bone_name)
@@ -151,8 +152,21 @@ func _test_character(asset_path: String, label: String, check_face_rests: bool) 
 			label + " preserves native " + bone_name + " rest transform during animation")
 
 	_check(actor.set_moving(false), label + " returns to idle")
+	actor.skeleton_retargeter.modification_processed.disconnect(_on_retarget_modification_processed)
+	_observed_target_skeleton = null
+	_starting_target_global_poses.clear()
 	actor.queue_free()
 	await process_frame
+
+
+func _on_retarget_modification_processed() -> void:
+	if _observed_target_skeleton == null or not is_instance_valid(_observed_target_skeleton):
+		return
+	var changed := 0
+	for bone_index in range(_observed_target_skeleton.get_bone_count()):
+		if not _observed_target_skeleton.get_bone_global_pose(bone_index).is_equal_approx(_starting_target_global_poses[bone_index]):
+			changed += 1
+	_max_processed_target_changed_bones = maxi(_max_processed_target_changed_bones, changed)
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
