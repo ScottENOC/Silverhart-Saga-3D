@@ -2,21 +2,23 @@ extends RefCounted
 ## Chunk-owned physical dressing for the source-authored Vampire Grave.
 ## The sheep remains a static environmental clue; reading, investigation and quest state stay campaign-owned.
 
-const GRAVE_HEX := Vector2i(-256, 28)
-
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_vampire_grave_presentation_arguments"}
-	if not _contains(GRAVE_HEX, chunk_min, chunk_size):
+	var site := terrain_data.encounter_site("vampire_grave")
+	if site.is_empty() or String(site.get("kind", "")) != "grave":
+		return {"ok": false, "reason": "missing_source_vampire_grave_anchor"}
+	var grave_hex := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	if not _contains(grave_hex, chunk_min, chunk_size):
 		return {"ok": true, "features": 0}
-	_add_grave_site(parent, terrain_data, hex_radius)
-	return {"ok": true, "features": 1}
+	_add_grave_site(parent, terrain_data, grave_hex, hex_radius)
+	return {"ok": true, "features": 1, "anchor": grave_hex}
 
 
-static func _add_grave_site(parent: Node3D, terrain_data: Campaign2WorldTerrainData, radius: float) -> void:
+static func _add_grave_site(parent: Node3D, terrain_data: Campaign2WorldTerrainData, grave_hex: Vector2i, radius: float) -> void:
 	var root := Node3D.new()
 	root.name = "VampireGravePresentation"
-	root.position = HexGrid.axial_to_world(GRAVE_HEX, radius, terrain_data.elevation_for_hex(GRAVE_HEX))
+	root.position = HexGrid.axial_to_world(grave_hex, radius, terrain_data.elevation_for_hex(grave_hex))
 	parent.add_child(root)
 
 	var earth := _material(Color("#594a37"))
