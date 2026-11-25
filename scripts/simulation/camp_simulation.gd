@@ -20,7 +20,8 @@ const WEATHER_CONTEXT_KEYS: Array[String] = [
 ]
 const ACTIVITY_IDS: Array[String] = [
 	"gather_wood", "set_up_tents", "fetch_water", "cook", "repair_gear",
-	"study_map", "train", "socialise", "watch", "sleep"
+	"study_map", "train", "socialise", "watch", "sleep",
+	"care_horse_water", "care_horse_feed", "care_horse_groom", "care_horse_tether"
 ]
 
 var phase: String = "inactive"
@@ -31,6 +32,8 @@ var party_ids: Array[String] = []
 var occupants: Dictionary = {}
 ## Per-animal camp care state, keyed by the animal occupant ID.
 var animal_care: Dictionary = {}
+## Time-based care chores, queued independently of party membership.
+var animal_care_tasks: Array[Dictionary] = []
 var environment: Dictionary = {}
 var resources: Dictionary = {}
 var assignments: Dictionary = {}
@@ -68,6 +71,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	environment = environment_data.duplicate(true)
 	occupants.clear()
 	animal_care.clear()
+	animal_care_tasks.clear()
 	for character_id in party_ids:
 		register_camp_occupant({
 			"occupant_id": character_id, "kind": "party_member", "species": "humanoid",
@@ -104,6 +108,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 				"warmth": 50.0, "comfort": 50.0, "social_satisfaction": 0.0
 			}
 	_plan_initial_activities()
+	_plan_horse_care_tasks()
 	plan_sleeping_arrangements(resources.tents)
 	camp_started.emit(site.duplicate(true))
 	return {"ok": true, "party_size": party_ids.size(), "occupant_count": occupants.size(), "assignments": assignments.duplicate(true)}
@@ -213,6 +218,184 @@ func perform_animal_care(occupant_id: String, action: String, handler_id: String
 	state["handler_id"] = handler_id
 	animal_care[occupant_id] = state
 	return {"ok": true, "animal_id": occupant_id, "care": state.duplicate(true), "resources_remaining": resources.duplicate(true)}
+
+
+const HORSE_CARE_DURATIONS := {
+	"water": 20.0, "feed": 20.0, "groom": 90.0, "tether": 15.0, "rest": 0.0
+}
+
+
+## Build a deterministic evening chore queue for horses actually registered at
+## camp. A single suitable worker handles each horse's sequence; residents and
+## followers remain independent of party capacity.
+func _plan_horse_care_tasks() -> void:
+	animal_care_tasks.clear()
+	var assigned_handlers: Dictionary = {}
+	for animal in occupants_of_kind("animal"):
+		var species := String(animal.get("species", "")).to_lower()
+		if species not in ["horse", "equine"]:
+			continue
+		var animal_id := String(animal.get("occupant_id", ""))
+		_ensure_horse_care_state(animal_id)
+		var handler_id := _select_horse_care_handler(assigned_handlers)
+		if handler_id.is_empty():
+			for action in ["water", "feed", "groom", "tether", "rest"]:
+				animal_care_tasks.append(_new_horse_care_task(animal_id, action, "", "pending"))
+			continue
+		assigned_handlers[handler_id] = true
+		for action in ["water", "feed", "groom", "tether", "rest"]:
+			var initial_status := "pending"
+			if action == "water" and int(resources.get("water", 0)) <= 0:
+				initial_status = "blocked"
+			elif action == "feed" and int(resources.get("fodder", 0)) <= 0:
+				initial_status = "blocked"
+			elif action == "tether" and not bool(site.get("safe_tethering", environment.get("safe_tethering", false))):
+				initial_status = "blocked"
+			animal_care_tasks.append(_new_horse_care_task(animal_id, action, handler_id, initial_status))
+		_activate_next_horse_care_task(animal_id)
+
+
+func _new_horse_care_task(animal_id: String, action: String, handler_id: String, status: String) -> Dictionary:
+	return {
+		"task_id": "%s:%s" % [animal_id, action], "animal_id": animal_id,
+		"action": action, "handler_id": handler_id, "status": status,
+		"duration_world_seconds": float(HORSE_CARE_DURATIONS.get(action, 0.0)),
+		"elapsed_world_seconds": 0.0, "blocked_reason": ""
+	}
+
+
+func _select_horse_care_handler(already_assigned: Dictionary) -> String:
+	var candidates: Array[Dictionary] = []
+	for occupant_id_value in occupants:
+		var occupant_id := String(occupant_id_value)
+		var occupant: Dictionary = occupants[occupant_id]
+		if not bool(occupant.get("can_work", false)) or already_assigned.has(occupant_id):
+			continue
+		if String(occupant.get("kind", "")) == "animal" or String(occupant.get("kind", "")) == "guest":
+			continue
+		var current: Dictionary = assignments.get(occupant_id, {})
+		if bool(current.get("player_override", false)):
+			continue
+		var score := 0.0
+		var kind := String(occupant.get("kind", ""))
+		if kind == "resident":
+			score += 12.0
+		elif kind == "follower":
+			score += 6.0
+		elif kind == "party_member":
+			score += 1.0
+		var occupation := String(occupant.get("occupation", occupant.get("role", ""))).to_lower()
+		if occupation in ["stablehand", "groom", "horsekeeper", "ostler"]:
+			score += 12.0
+		var condition: Dictionary = conditions.get(occupant_id, {})
+		score -= float(condition.get("fatigue", 0.0)) * 0.08
+		if bool(condition.get("injured", false)):
+			score -= 8.0
+		candidates.append({"id": occupant_id, "score": score, "kind": kind})
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if not is_equal_approx(float(a.score), float(b.score)):
+			return float(a.score) > float(b.score)
+		return String(a.id) < String(b.id)
+	)
+	return String(candidates[0].id) if not candidates.is_empty() else ""
+
+
+func _activate_next_horse_care_task(animal_id: String) -> void:
+	for index in range(animal_care_tasks.size()):
+		var task: Dictionary = animal_care_tasks[index]
+		if String(task.get("animal_id", "")) != animal_id:
+			continue
+		if String(task.get("status", "")) in ["completed", "blocked"]:
+			continue
+		var handler_id := String(task.get("handler_id", ""))
+		if handler_id.is_empty():
+			task["status"] = "blocked"
+			task["blocked_reason"] = "no_available_handler"
+			animal_care_tasks[index] = task
+			continue
+		task["status"] = "in_progress"
+		animal_care_tasks[index] = task
+		var action := String(task.get("action", ""))
+		if action == "rest":
+			var rest_result := perform_animal_care(animal_id, "rest", "")
+			task["status"] = "completed" if bool(rest_result.get("ok", false)) else "blocked"
+			animal_care_tasks[index] = task
+			continue
+		var activity := "care_horse_" + action
+		var current: Dictionary = assignments.get(handler_id, {})
+		if not _default_assignments.has(handler_id):
+			_default_assignments[handler_id] = current.duplicate(true) if not current.is_empty() else {
+				"activity": "socialise", "player_override": false, "override_remaining": 0.0
+			}
+		assignments[handler_id] = {
+			"activity": activity, "player_override": false, "override_remaining": 0.0,
+			"animal_care_task": true, "animal_id": animal_id, "care_action": action
+		}
+		activity_assigned.emit(handler_id, activity)
+		return
+	_restore_horse_care_handler(animal_id)
+
+
+func _restore_horse_care_handler(animal_id: String) -> void:
+	for task in animal_care_tasks:
+		if String(task.get("animal_id", "")) != animal_id:
+			continue
+		var handler_id := String(task.get("handler_id", ""))
+		if handler_id.is_empty():
+			continue
+		var current: Dictionary = assignments.get(handler_id, {})
+		if bool(current.get("animal_care_task", false)) and String(current.get("animal_id", "")) == animal_id:
+			var fallback: Dictionary = _default_assignments.get(handler_id, {"activity": "socialise", "player_override": false, "override_remaining": 0.0})
+			assignments[handler_id] = fallback.duplicate(true)
+			activity_assigned.emit(handler_id, String(fallback.get("activity", "socialise")))
+			_default_assignments.erase(handler_id)
+		return
+
+
+func _advance_animal_care_tasks(world_delta: float) -> void:
+	if world_delta <= 0.0:
+		return
+	var active_animals: Dictionary = {}
+	for task_index in range(animal_care_tasks.size()):
+		var task: Dictionary = animal_care_tasks[task_index]
+		if String(task.get("status", "")) != "in_progress":
+			continue
+		var animal_id := String(task.get("animal_id", ""))
+		var handler_id := String(task.get("handler_id", ""))
+		var action := String(task.get("action", ""))
+		var handler_assignment: Dictionary = assignments.get(handler_id, {})
+		if not bool(handler_assignment.get("animal_care_task", false)) or String(handler_assignment.get("animal_id", "")) != animal_id:
+			continue
+		task["elapsed_world_seconds"] = minf(
+			float(task.get("duration_world_seconds", 0.0)),
+			float(task.get("elapsed_world_seconds", 0.0)) + world_delta
+		)
+		if float(task.get("elapsed_world_seconds", 0.0)) >= float(task.get("duration_world_seconds", 0.0)):
+			var result := perform_animal_care(animal_id, action, handler_id)
+			if bool(result.get("ok", false)):
+				task["status"] = "completed"
+				task["blocked_reason"] = ""
+			else:
+				task["status"] = "blocked"
+				task["blocked_reason"] = String(result.get("reason", "care_failed"))
+		animal_care_tasks[task_index] = task
+		active_animals[animal_id] = true
+	for animal_id in active_animals:
+		var still_active := false
+		for task in animal_care_tasks:
+			if String(task.get("animal_id", "")) == String(animal_id) and String(task.get("status", "")) == "in_progress":
+				still_active = true
+				break
+		if not still_active:
+			_activate_next_horse_care_task(String(animal_id))
+
+
+func horse_care_schedule_for(occupant_id: String) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for task in animal_care_tasks:
+		if String(task.get("animal_id", "")) == occupant_id:
+			result.append(task.duplicate(true))
+	return result
 
 
 func horse_care_for(occupant_id: String) -> Dictionary:
@@ -412,7 +595,9 @@ func assign_activity(character_id: String, activity: String, player_instruction:
 func advance_real_time(real_delta: float) -> float:
 	if phase == "inactive" or phase == "resolved" or real_delta <= 0.0:
 		return 0.0
-	_advance_companion_fatigue(real_delta * EXPLORATION_SECONDS_PER_REAL_SECOND)
+	var world_delta := real_delta * EXPLORATION_SECONDS_PER_REAL_SECOND
+	_advance_companion_fatigue(world_delta)
+	_advance_animal_care_tasks(world_delta)
 	for character_id in assignments.keys():
 		var assignment: Dictionary = assignments[character_id]
 		if not bool(assignment.get("player_override", false)):
@@ -460,6 +645,10 @@ func _advance_companion_fatigue(world_delta: float) -> void:
 				fatigue_rate = 0.002
 			"socialise":
 				fatigue_rate = 0.001
+			"care_horse_water", "care_horse_feed", "care_horse_tether":
+				fatigue_rate = 0.008
+			"care_horse_groom":
+				fatigue_rate = 0.005
 		condition["fatigue"] = clampf(float(condition.get("fatigue", 40.0)) + fatigue_rate * world_delta, 0.0, 100.0)
 		conditions[character_id] = condition
 
@@ -470,6 +659,8 @@ func _advance_evening_routines(stage: int) -> void:
 		_preparations_completed = true
 	for character_id in party_ids:
 		var current: Dictionary = assignments.get(character_id, {})
+		if bool(current.get("animal_care_task", false)):
+			continue
 		var next_activity := _routine_activity_for(character_id, stage)
 		if bool(current.get("player_override", false)):
 			_default_assignments[character_id] = {
@@ -528,7 +719,7 @@ func update_weather(weather_data: Dictionary) -> void:
 			_default_assignments[character_id] = {
 				"activity": next_activity, "player_override": false, "override_remaining": 0.0
 			}
-		elif String(current.get("activity", "")) != next_activity:
+		elif not bool(current.get("animal_care_task", false)) and String(current.get("activity", "")) != next_activity:
 			_set_assignment(character_id, next_activity)
 
 
@@ -807,7 +998,8 @@ func to_dict() -> Dictionary:
 		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true),
 		"routine_stage": routine_stage, "preparations_completed": _preparations_completed,
 		"companion_profiles": companion_profiles.duplicate(true),
-		"occupants": occupants.duplicate(true), "animal_care": animal_care.duplicate(true)
+		"occupants": occupants.duplicate(true), "animal_care": animal_care.duplicate(true),
+		"animal_care_tasks": animal_care_tasks.duplicate(true)
 	}
 
 
@@ -823,6 +1015,9 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_profiles: Variant = data.get("companion_profiles", data.get("environment", {}).get("companion_profiles", {}))
 	var saved_occupants: Variant = data.get("occupants", {})
 	var saved_animal_care: Variant = data.get("animal_care", {})
+	var saved_animal_care_tasks: Variant = data.get("animal_care_tasks", [])
+	if not saved_animal_care_tasks is Array:
+		return false
 	if not saved_animal_care is Dictionary:
 		return false
 	if not saved_party is Array or not saved_conditions is Dictionary or not saved_assignments is Dictionary or not saved_resources is Dictionary or not saved_lodging is Dictionary or not saved_profiles is Dictionary or not saved_occupants is Dictionary:
@@ -838,6 +1033,13 @@ func from_dict(data: Dictionary) -> bool:
 			return false
 	for character_id in saved_conditions:
 		if String(character_id).is_empty() or not saved_conditions[character_id] is Dictionary:
+			return false
+	for task in saved_animal_care_tasks:
+		if not task is Dictionary or String(task.get("animal_id", "")).is_empty() or not saved_occupants.has(String(task.get("animal_id", ""))):
+			return false
+		if not ["water", "feed", "groom", "tether", "rest"].has(String(task.get("action", ""))):
+			return false
+		if not ["pending", "in_progress", "completed", "blocked"].has(String(task.get("status", ""))):
 			return false
 	for care_id in saved_animal_care:
 		if not saved_occupants.has(care_id) or not saved_animal_care[care_id] is Dictionary:
@@ -876,6 +1078,9 @@ func from_dict(data: Dictionary) -> bool:
 	companion_profiles = saved_profiles.duplicate(true)
 	occupants = saved_occupants.duplicate(true)
 	animal_care = saved_animal_care.duplicate(true)
+	animal_care_tasks.clear()
+	for task in saved_animal_care_tasks:
+		animal_care_tasks.append(task.duplicate(true))
 	for occupant_id in occupants:
 		var occupant: Dictionary = occupants[occupant_id]
 		if String(occupant.get("kind", "")) == "animal" and String(occupant.get("species", "")).to_lower() in ["horse", "equine"]:
