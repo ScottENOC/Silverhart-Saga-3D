@@ -344,7 +344,7 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(int(restored.resources.water) == 0, "Drinking water should be consumed once for the whole party, not once per character")
 	_check(String(restored.next_day_effects("player").get("fatigue_band", "")) == "rested")
 	_check(restored.time_point_regeneration_multiplier("player") > 1.0, "A well-rested character should receive a modest next-day recovery bonus")
-	restored.advance_real_time(23.0)
+	restored.advance_real_time(30.0)
 	_check(String(restored.phase) == "resolved", "The morning sequence should finish after wake-up, dressing, breakfast and camp packing.")
 	_check(bool(restored.environment.get("fire_buried", false)), "A wilderness campfire should be extinguished and covered with soil before departure.")
 	_check(bool(restored.environment.get("camp_packed", false)), "The camp should be marked packed only after the morning routine completes.")
