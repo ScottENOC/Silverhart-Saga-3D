@@ -3515,6 +3515,16 @@
           ],
           "tile_objects": [
             {
+              "id": "crypt_entrance_note",
+              "type": "journal",
+              "position": {
+                "q": 32,
+                "r": -155
+              },
+              "read_id": "crypt_entrance_note",
+              "light_radius": 0
+            },
+            {
               "id": "crypt_entrance_door",
               "type": "door_open",
               "position": {
