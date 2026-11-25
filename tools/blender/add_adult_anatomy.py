@@ -27,6 +27,8 @@ def arguments():
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
     parser.add_argument("--deformation-scale", type=float, default=1.65, help="Scale the enhanced female anatomy relief targets")
+    parser.add_argument("--no-canal", action="store_true", help="Skip the collapsed vaginal canal")
+    parser.add_argument("--no-anus", action="store_true", help="Skip the anus and anal canal")
     parser.add_argument("--method", choices=("integrated", "hybrid"), default="integrated", help="Compare the integrated skin sculpt with an additional buried, skin-material loft treatment")
     return parser.parse_args(raw)
 
@@ -287,15 +289,18 @@ FEMALE_ANATOMY = {
     "majora_height": 0.0125, "majora_x": 0.0190, "majora_sigma": 0.0118,
     "cleft_depth": 0.0058, "cleft_sigma": 0.0060,
     # labia minora (inner folds). minora_x is the centre of each fold.
-    "minora_height": 0.0098, "minora_x": 0.0078, "minora_sigma": 0.0027,
+    "minora_height": 0.0075, "minora_x": 0.0078, "minora_sigma": 0.0027,
     "minora_wave": 0.07, "minora_wave_len": 0.026,   # free-edge undulation
     "vestibule_depth": 0.0025,
     # clitoral complex and openings
-    "hood_height": 0.0050, "glans_height": 0.0028,
+    "hood_height": 0.0035, "glans_height": 0.0028,
     "meatus_depth": 0.0012, "introitus_depth": 0.0045,
     "fourchette_height": 0.0030, "mons_height": 0.0060,
-    # Match the surface-following workflow: 30% less raised/recessed relief.
+    # overall prominence: scales EVERY raised or recessed component (mons, labia, hood, cleft, introitus ...)
     "prominence": 0.70,
+    # slide the whole vulval complex toward the perineum (metres at 1.687 m height; positive = down/back).
+    # 0.0 keeps the introitus where the midline search put it.
+    "t_shift": 0.0,
     # local mesh density target (faces with longer edges are split)
     "target_edge": 0.0013,
     "posterior_floor": 0.03, "underside_ease": 0.0,   # keep relief out of the thigh gap
@@ -398,25 +403,29 @@ def _project_many(prep, ys, zs, chunk=4000):
     return np.concatenate(out_s), np.concatenate(out_d)
 
 
+def _female_mons(t, x, P):
+    """The broad mons mound. Separate from the fine vulval detail so it can fade out smoothly into the
+    abdomen and hips (a hard cutoff here showed up as a raised plateau with a step edge)."""
+    return P["mons_height"] * _g2(x, t - P["t_mons"], 0.050, 0.040)
+
+
 def _female_displacement(t, x, P):
     """Outward displacement (m, in k-normalised units) at surface coords (t, x)."""
     ax = abs(x)
     th, tg, tm, ti, tf, tmons = (P["t_hood"], P["t_glans"], P["t_meatus"],
                                  P["t_introitus"], P["t_fourchette"], P["t_mons"])
     d = 0.0
-    # mons pubis
-    d += P["mons_height"] * _g2(x, t - tmons, 0.045, 0.036)
     # labia majora: two rounded ridges that converge toward the mons and the fourchette
     xm = P["majora_x"] * (1.0 - 0.35 * _ss(th - 0.020, th + 0.012, t)) \
         * (1.0 - 0.45 * _ss(tf + 0.012, tf - 0.004, t))
-    env_maj = _env(t, tf - 0.002, th + 0.004, 0.010)
+    env_maj = _env(t, tf - 0.002, th - 0.006, 0.010)
     d += P["majora_height"] * env_maj * math.exp(-0.5 * ((ax - xm) / P["majora_sigma"]) ** 2)
     # cleft between the majora
     d -= P["cleft_depth"] * _env(t, tf + 0.004, th - 0.006, 0.006) * math.exp(-0.5 * (x / P["cleft_sigma"]) ** 2)
     # labia minora: thin folds, converging at the hood, with a wavy free edge
     xn = P["minora_x"] * (0.40 + 0.60 * _ss(th - 0.004, tm, t)) * (1.0 - 0.35 * _ss(tf + 0.012, tf + 0.002, t))
     wave = 1.0 + P["minora_wave"] * math.sin(2.0 * math.pi * t / P["minora_wave_len"])
-    env_min = _env(t, tf + 0.008, th - 0.004, 0.006)
+    env_min = _env(t, tf + 0.008, tg, 0.006)       # fade out at the glans, not into the hood
     d += P["minora_height"] * wave * env_min * math.exp(-0.5 * ((ax - xn) / P["minora_sigma"]) ** 2)
     # vestibule floor between the minora
     d -= P["vestibule_depth"] * _env(t, ti - 0.006, tm + 0.004, 0.004) * math.exp(-0.5 * (x / 0.0045) ** 2)
@@ -431,17 +440,394 @@ def _female_displacement(t, x, P):
     return d
 
 
-def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None):
+# ---------------------------------------------------------------------------
+# Internal passages (vagina, anal canal): collapsed, blind-ended invaginations.
+#
+# Each is built by extruding a disc of skin faces inward, step by step, so the mesh stays ONE closed
+# manifold surface (no holes, no separate object; skin material, UVs and weights carry over). Every new
+# vertex is a pure function of where its source vertex started, so coincident vertices cannot drift
+# apart. After carving, boundary and non-manifold edge counts must be unchanged or the script stops.
+#
+# Axis specs are (half-size at the mouth, half-size at the far end, depth where the change starts,
+# depth where it ends), in metres at 1.687 m height, scaled by the character's height.
+#   u = lateral (x).  v = in the sagittal plane, perpendicular to the passage (front/up side positive).
+# A collapsed passage has one axis shrink to slit_half (walls ~2x that apart) and the other widen.
+# ---------------------------------------------------------------------------
+CANAL = {   # vagina: anterior and posterior walls in contact (slit wide laterally)
+    # 200 mm is the depth the passage can accept, not the resting length of a vagina (which is shorter and
+    # distends with arousal). With wall_asymmetry the anterior wall is ~190 mm and the posterior ~210 mm.
+    "length": 0.200,
+    # tilt back from vertical (degrees) at the mouth and at the far end, blended between the two depths
+    "axis": (20.0, 10.0, 0.040, 0.150),
+    # tried in order; the first that reaches full length with clearance wins, else the one that gets deepest
+    "axis_candidates": [(20.0, 10.0), (15.0, 10.0), (25.0, 15.0), (10.0, 10.0), (20.0, 20.0), (30.0, 20.0),
+                        (30.0, 30.0), (5.0, 5.0), (0.0, 0.0)],
+    "segments": 30,
+    "wall_asymmetry": 0.05,
+    "u": (0.0032, 0.014, 0.002, 0.030),
+    "v": (0.0090, 0.00025, 0.0, 0.004),
+    "wall_clearance": 0.006,  # min distance kept to other skin / the other passage once past check_from
+    "check_from": 0.012,
+    "min_steps": 4,
+}
+
+ANUS = {    # anus + anal canal (~40 mm) continuing as the rectum; closed as a front-to-back slit
+    "perineal_body": 0.025,   # posterior fourchette to anal verge centre
+    "length": 0.200,
+    "axis": (5.0, 15.0, 0.035, 0.090),   # near vertical through the canal, then curving back along the sacrum
+    "axis_candidates": [(5.0, 15.0), (10.0, 15.0), (0.0, 15.0), (5.0, 10.0), (10.0, 10.0), (5.0, 20.0),
+                        (0.0, 10.0), (-5.0, 15.0), (10.0, 20.0), (-10.0, 20.0)],
+    "segments": 30,
+    "wall_asymmetry": 0.0,
+    "u": (0.0035, 0.00025, 0.0, 0.004),
+    "v": (0.0035, 0.012, 0.002, 0.060),
+    "wall_clearance": 0.004,
+    "check_from": 0.010,
+    "min_steps": 3,
+    # surface: raised verge ring, central pucker, radial folds
+    "relief_radius": 0.016, "ring_radius": 0.0085, "ring_sigma": 0.0040, "ring_height": 0.0012,
+    "pit_sigma": 0.0040, "pit_depth": 0.0012, "folds": 12, "fold_amp": 0.0005,
+    "tint_radius": 0.016,
+}
+
+
+def _bmesh_defects(bm):
+    """(boundary edges, non-manifold edges): must be identical before and after a carve."""
+    return (sum(1 for e in bm.edges if e.is_boundary),
+            sum(1 for e in bm.edges if not e.is_boundary and not e.is_manifold))
+
+
+def _surface_point(bm, mw, y, z):
+    """Nearest point on the current skin surface to (0, y, z), and its outward normal (world)."""
+    from mathutils.bvhtree import BVHTree
+    bm.verts.index_update()
+    world = [mw @ v.co for v in bm.verts]
+    tree = BVHTree.FromPolygons(world, [[v.index for v in f.verts] for f in bm.faces], all_triangles=False)
+    loc, nrm, _i, _d = tree.find_nearest(Vector((0.0, y, z)))
+    return loc, nrm.normalized()
+
+
+def _tube_frame(n, cfg):
+    """(L, T, A): lateral, front/up-in-plane, and inward axis at the mouth for outward surface normal n."""
+    bb = math.radians(cfg["axis"][0])
+    A = Vector((0.0, math.sin(bb), math.cos(bb)))
+    if A.dot(n) > -0.2:                      # the axis must head into the body
+        A = (A - n).normalized()
+    L = Vector((1.0, 0.0, 0.0))
+    L = (L - A * L.dot(A)).normalized()
+    return L, L.cross(A).normalized(), A
+
+
+def _mouth_patch(bm, mw, C, L, T, A, ax, at, reach):
+    """Largest connected set of outward-facing skin faces inside the mouth ellipse (projected along the axis)."""
+    rot = mw.to_3x3()
+    cand = set()
+    for f in bm.faces:
+        rel = mw @ f.calc_center_median() - C
+        if abs(rel.dot(A)) > reach:
+            continue
+        if (rel.dot(L) / ax) ** 2 + (rel.dot(T) / at) ** 2 > 1.0:
+            continue
+        if (rot @ f.normal).dot(A) > -0.1:
+            continue
+        cand.add(f)
+    best, seen = [], set()
+    for f0 in cand:
+        if f0 in seen:
+            continue
+        comp, stack = [], [f0]
+        seen.add(f0)
+        while stack:
+            g = stack.pop()
+            comp.append(g)
+            for e in g.edges:
+                for h in e.link_faces:
+                    if h in cand and h not in seen:
+                        seen.add(h)
+                        stack.append(h)
+        if len(comp) > len(best):
+            best = comp
+    return best
+
+
+def _single_clean_loop(patch):
+    """True if the patch is a disc: exactly one boundary loop, no pinch points."""
+    pset = set(patch)
+    adj = {}
+    for f in patch:
+        for e in f.edges:
+            if sum(1 for h in e.link_faces if h in pset) == 1:
+                a, b = e.verts
+                adj.setdefault(a, []).append(b)
+                adj.setdefault(b, []).append(a)
+    if not adj or any(len(n) != 2 for n in adj.values()):
+        return False
+    start = next(iter(adj))
+    seen, stack = {start}, [start]
+    while stack:
+        for w in adj[stack.pop()]:
+            if w not in seen:
+                seen.add(w)
+                stack.append(w)
+    return len(seen) == len(adj)
+
+
+class _TubePath:
+    """Advances a cross-section along a curved centreline (bends about the lateral axis, parallel transport).
+    The dry run and the real carve both use this class, so what is checked is exactly what is built."""
+
+    def __init__(self, C, cfg, axis, mu, mv, k):
+        self.cfg, self.k, self.mu, self.mv = cfg, k, mu, mv
+        self.b0, self.b1, self.d0, self.d1 = axis[0], axis[1], axis[2] * k, axis[3] * k
+        self.L = Vector((1.0, 0.0, 0.0))
+        self.A, self.T = self.frame(0.0)
+        self.C, self.s, self.fl, self.fa = C.copy(), 0.0, 1.0, 1.0
+
+    def frame(self, s):
+        bb = math.radians(self.b0 + (self.b1 - self.b0) * _ss(self.d0, self.d1, s))
+        A = Vector((0.0, math.sin(bb), math.cos(bb)))
+        return A, self.L.cross(A)
+
+    def half(self, spec, mouth, s):
+        return mouth + (spec[1] * self.k - mouth) * _ss(spec[2] * self.k, spec[3] * self.k, s)
+
+    def advance(self, s, pts):
+        cfg = self.cfg
+        fl = self.half(cfg["u"], self.mu, s) / self.mu
+        fa = self.half(cfg["v"], self.mv, s) / self.mv
+        A_new, T_new = self.frame(s)
+        ds = s - self.s
+        C_new = self.C + (self.A + A_new).normalized() * ds
+        asym = cfg["wall_asymmetry"]
+        out = []
+        for p in pts:
+            r = p - self.C
+            ru, rv, ra = r.dot(self.L), r.dot(self.T), r.dot(self.A)
+            w = max(-1.0, min(1.0, -rv / (self.mv * self.fa)))     # +1 posterior wall, -1 anterior wall
+            out.append(C_new + self.L * (ru * fl / self.fl) + T_new * (rv * fa / self.fa)
+                       + A_new * (ra + ds * asym * w))
+        self.C, self.A, self.T, self.s, self.fl, self.fa = C_new, A_new, T_new, s, fl, fa
+        return out
+
+
+def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
+    """Extrude the skin disc at C inward into a collapsed, curved passage. Returns (new vertex indices, depth in metres)."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    bm.normal_update()
+    bm.verts.index_update()
+    world = [mw @ v.co for v in bm.verts]
+    L0, T0, A0 = _tube_frame(n, cfg)
+
+    patch = []
+    for grow in (1.0, 1.15, 0.85, 1.3, 0.7):
+        mu, mv = cfg["u"][0] * k * grow, cfg["v"][0] * k * grow
+        cand = _mouth_patch(bm, mw, C, L0, T0, A0, mu, mv, 0.012 * k)
+        if len(cand) >= 6 and _single_clean_loop(cand):
+            patch = cand
+            break
+    if not patch:
+        raise RuntimeError(f"{name}: no clean disc of skin faces at the mouth (mesh too coarse or broken there); "
+                           "rerun with the matching --no-... flag to skip it")
+
+    n_steps = int(cfg["segments"])
+    depths = [cfg["length"] * k * (j / n_steps) ** 1.6 for j in range(1, n_steps + 1)]
+
+    # dry run per candidate centreline: the passage must stay inside the body and keep wall_clearance from every
+    # other surface, including a passage carved earlier. First full-length candidate wins, else the deepest.
+    pset = set(patch)
+    rest_pts = [world[v.index] for v in {v for f in patch for v in f.verts}]
+    outer = BVHTree.FromPolygons(world, [[v.index for v in f.verts] for f in bm.faces if f not in pset],
+                                 all_triangles=False)
+
+    def run(axis):
+        path = _TubePath(C, cfg, axis, mu, mv, k)
+        pts, keep = list(rest_pts), 0
+        for s in depths:
+            pts = path.advance(s, pts)
+            if s >= cfg["check_from"] * k:
+                for p in pts:
+                    loc, nrm, _i, dist = outer.find_nearest(p)
+                    if loc is None or (p - loc).dot(nrm) >= 0.0 or dist < cfg["wall_clearance"] * k:
+                        return keep
+            keep += 1
+        return keep
+
+    best_axis, best_keep = None, -1
+    for b0, b1 in cfg["axis_candidates"]:
+        bb = math.radians(b0)
+        if Vector((0.0, math.sin(bb), math.cos(bb))).dot(n) > -0.2:
+            continue                                            # does not head into the body
+        axis = (b0, b1, cfg["axis"][2], cfg["axis"][3])
+        kp = run(axis)
+        if kp > best_keep:
+            best_axis, best_keep = axis, kp
+        if kp == len(depths):
+            break
+    if best_axis is None or best_keep < cfg["min_steps"]:
+        raise RuntimeError(f"{name}: no room inside the body along any candidate path; skip it with the matching "
+                           "--no-... flag or edit axis_candidates / length")
+    if best_keep < len(depths):
+        print(f"{name} limited to {depths[best_keep - 1] * 1000:.0f} mm of {depths[-1] * 1000:.0f} mm: "
+              "that is the deepest path with clearance inside this body")
+    depths = depths[:best_keep]
+
+    before = _bmesh_defects(bm)
+    path = _TubePath(C, cfg, best_axis, mu, mv, k)
+    cap, new_all, by_depth = list(patch), set(), []
+    for s in depths:
+        geom = bmesh.ops.extrude_face_region(bm, geom=cap)["geom"]
+        new_verts = [g for g in geom if isinstance(g, bmesh.types.BMVert)]
+        nv = set(new_verts)
+        for v, p in zip(new_verts, path.advance(s, [mw @ v.co for v in new_verts])):
+            v.co = inv @ p
+        cap = [g for g in geom if isinstance(g, bmesh.types.BMFace) and all(v in nv for v in g.verts)]
+        new_all |= nv
+        by_depth.append((s, new_verts))
+    bm.normal_update()
+    after = _bmesh_defects(bm)
+    if after != before:
+        raise RuntimeError(f"{name} changed mesh integrity (boundary, non-manifold) {before} -> {after}")
+
+    # deep vertices must not follow the thighs: fade their skin weights to the pelvis bone with depth
+    deform = bm.verts.layers.deform.active
+    if hips_gi is not None and deform is not None:
+        for s, vs in by_depth:
+            f = _ss(0.03 * k, 0.10 * k, s)
+            if f <= 0.0:
+                continue
+            for v in vs:
+                d = v[deform]
+                for gi in list(d.keys()):
+                    d[gi] = d[gi] * (1.0 - f)
+                d[hips_gi] = (d[hips_gi] if hips_gi in d else 0.0) + f
+
+    bm.verts.index_update()
+    idx = sorted(v.index for v in new_all if v.is_valid)
+    print(f"{name}: {len(patch)} faces extruded in {len(depths)} steps to {depths[-1] * 1000:.0f} mm, "
+          f"centreline tilt {best_axis[0]:.0f} to {best_axis[1]:.0f} deg; "
+          f"boundary/non-manifold edges {before} -> {after}")
+    return idx, depths[-1]
+
+
+def _perineal_anchor(skin, hipline_z, k, line, arc, sA, P):
+    """(y, z) of the anal verge centre: walk the x~0 body contour posteriorly from the introitus past the
+    fourchette by the perineal body. Uses the pre-sculpt skin."""
+    mw = skin.matrix_world
+    cy, cz = -0.02 * k, hipline_z + 0.035 * k
+    pts = []
+    for v in skin.data.vertices:
+        p = mw @ v.co
+        if abs(p.x) > 0.002 * k or not (hipline_z - 0.16 * k < p.z < hipline_z + 0.10 * k):
+            continue
+        ang = math.atan2(-(p.z - cz), -(p.y - cy))
+        if ang < -0.5 * math.pi:          # back above the centre: not part of the lower contour
+            continue
+        pts.append((ang, p.y, p.z))
+    if len(pts) < 12:
+        raise RuntimeError("Anus: could not extract the perineal contour (%d points)" % len(pts))
+    pts.sort()
+    pts = [(y, z) for _a, y, z in pts]
+    for _ in range(4):
+        pts = [pts[0]] + [(0.25 * pts[i - 1][0] + 0.5 * pts[i][0] + 0.25 * pts[i + 1][0],
+                           0.25 * pts[i - 1][1] + 0.5 * pts[i][1] + 0.25 * pts[i + 1][1])
+                          for i in range(1, len(pts) - 1)] + [pts[-1]]
+    seg = [0.0]
+    for i in range(1, len(pts)):
+        seg.append(seg[-1] + math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
+    step = 0.0015 * k
+    out, s, j = [], 0.0, 0
+    while s <= seg[-1]:
+        while j < len(seg) - 2 and seg[j + 1] < s:
+            j += 1
+        f = (s - seg[j]) / max(seg[j + 1] - seg[j], 1e-9)
+        out.append((pts[j][0] + f * (pts[j + 1][0] - pts[j][0]), pts[j][1] + f * (pts[j + 1][1] - pts[j][1])))
+        s += step
+    iA = min(range(len(arc)), key=lambda q: abs(arc[q] - sA))
+    y0, z0 = line[iA]
+    j0 = min(range(len(out)), key=lambda q: (out[q][0] - y0) ** 2 + (out[q][1] - z0) ** 2)
+    want = int(round((abs(P["t_fourchette"]) + ANUS["perineal_body"]) * k / step))
+    j1 = j0 + want
+    if j1 > len(out) - 1:
+        print(f"Anus: contour ends {len(out) - 1 - j0} samples past the introitus (wanted {want}); using its end")
+        j1 = len(out) - 1
+    print(f"Anus anchor: {(j1 - j0) * step / k * 1000:.1f} mm behind the introitus along the midline, "
+          f"y={out[j1][0]:.4f} z={out[j1][1]:.4f}")
+    return out[j1]
+
+
+def _anus_relief(bm, mw, inv, C, n, k):
+    """Raised verge ring, central pucker and radial folds, displaced along vertex normals."""
+    cfg = ANUS
+    L, T, A = _tube_frame(n, cfg)
+    rot = mw.to_3x3()
+    R = cfg["relief_radius"]
+    moved = 0
+    for v in bm.verts:
+        p = mw @ v.co
+        rel = p - C
+        if abs(rel.dot(A)) > 0.012 * k:
+            continue
+        u, w = rel.dot(L) / k, rel.dot(T) / k
+        r = math.hypot(u, w)
+        if r > R:
+            continue
+        nv = (rot @ v.normal).normalized()
+        if nv.dot(A) > -0.1:
+            continue
+        theta = math.atan2(u, w)
+        edge = 1.0 - _ss(0.6 * R, R, r)
+        ring = cfg["ring_height"] * math.exp(-0.5 * ((r - cfg["ring_radius"]) / cfg["ring_sigma"]) ** 2)
+        fold = cfg["fold_amp"] * math.cos(cfg["folds"] * theta) * _ss(0.003, 0.006, r) * (1.0 - _ss(0.010, 0.014, r))
+        pit = cfg["pit_depth"] * math.exp(-0.5 * (r / cfg["pit_sigma"]) ** 2)
+        d = (ring + fold - pit) * edge * k
+        if abs(d) > 1e-8:
+            v.co = inv @ (p + nv * d)
+            moved += 1
+    return moved
+
+
+def _prep_anus(bm, mw, inv, yz, k):
+    """Weld seam twins, refine, and sculpt the anal surface. Returns the surface anchor (point, normal)."""
+    import bmesh
+    C0 = Vector((0.0, yz[0], yz[1]))
+    bm.normal_update()
+    zone = [v for v in bm.verts if (mw @ v.co - C0).length <= 0.030 * k]
+    n0 = len(bm.verts)
+    bmesh.ops.remove_doubles(bm, verts=zone, dist=1e-5)
+    target = 0.0012 * k
+    for _ in range(4):
+        faces = [f for f in bm.faces
+                 if (mw @ f.calc_center_median() - C0).length <= 0.020 * k
+                 and f.calc_perimeter() / len(f.verts) > target * 1.6]
+        if not faces:
+            break
+        bmesh.ops.subdivide_edges(bm, edges=list({e for f in faces for e in f.edges}), cuts=1, use_grid_fill=True)
+        bm.normal_update()
+    C, n = _surface_point(bm, mw, yz[0], yz[1])
+    moved = _anus_relief(bm, mw, inv, C, n, k)
+    bm.normal_update()
+    C, n = _surface_point(bm, mw, yz[0], yz[1])
+    print(f"Anus surface: {n0 - len(bm.verts)} seam twins welded, {moved} vertices sculpted")
+    return C, n
+
+
+def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None,
+                                  canal=True, anus=True):
     """Sculpt the existing skin mesh in place (UVs, material, weights and rig are kept)."""
     import bmesh
     P = dict(FEMALE_ANATOMY)
+    shift = P.pop("t_shift", 0.0)
+    for key in ("t_hood", "t_glans", "t_meatus", "t_introitus", "t_fourchette", "t_mons"):
+        P[key] -= shift
     k = height / 1.687
-    amp = deformation_scale / 1.65 * P["prominence"]  # shared 30% prominence reduction
+    amp = deformation_scale / 1.65 * P["prominence"]     # 1.65 is the CLI default; prominence scales every component
     if hipline_z is None:
         hipline_z = anatomy_z + height * 0.035
     line, arc = _surface_midline(skin, hipline_z, k)
     iA = _locate_introitus(line, arc, k)
     sA = arc[iA]
+    anus_yz = _perineal_anchor(skin, hipline_z, k, line, arc, sA, P) if anus else None
     print(f"Female anatomy: midline {len(line)} samples, introitus at y={line[iA][0]:.4f} z={line[iA][1]:.4f}")
 
     prep = _prep_line(line, arc)
@@ -450,7 +836,20 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     bm.normal_update()
     mw, inv, rot = skin.matrix_world, skin.matrix_world.inverted(), skin.matrix_world.to_3x3()
     z_lo, z_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
-    t_lo, t_hi = P["t_fourchette"] - 0.025, P["t_mons"] + 0.045
+    t_lo = P["t_fourchette"] - 0.025
+    t_ref_hi = P["t_hood"] + 0.030        # refine only the vulva zone; the broad mons needs no extra vertices
+    t_top = P["t_mons"] + 0.055           # the mons fades to exactly zero here
+
+    # glTF import splits vertices at UV seams and material edges. Displacing split twins independently
+    # opens cracks, so weld them in the sculpt zone first (the exporter re-splits at UV seams itself).
+    n_before = len(bm.verts)
+    zone = []
+    for v in bm.verts:
+        w = mw @ v.co
+        if abs(w.x) <= 0.07 * k and z_lo <= w.z <= z_hi and w.y < 0.02:
+            zone.append(v)
+    bmesh.ops.remove_doubles(bm, verts=zone, dist=1e-5)
+    print(f"Sculpt zone weld: {n_before - len(bm.verts)} seam-twin vertices merged")
 
     def coords_for(worlds):
         s_arr, dist = _project_many(prep, [w.y for w in worlds], [w.z for w in worlds])
@@ -463,13 +862,13 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         cand = []
         for f in bm.faces:
             c = mw @ f.calc_center_median()
-            if abs(c.x) <= 0.05 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
+            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
                     and f.calc_perimeter() / len(f.verts) > target * 1.6:
                 cand.append((f, c))
         if not cand:
             break
         ts, ds = coords_for([c for _f, c in cand])
-        faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_hi and dd <= 0.016]
+        faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_ref_hi and dd <= 0.016]
         if not faces:
             break
         edges = list({e for f in faces for e in f.edges})
@@ -479,18 +878,21 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     sel = []
     for v in bm.verts:
         p = mw @ v.co
-        if abs(p.x) <= 0.06 * k and z_lo <= p.z <= z_hi and p.y < 0.02:
+        if abs(p.x) <= 0.065 * k and z_lo <= p.z <= z_hi and p.y < 0.02:
             sel.append((v, p))
     moved = 0
     touched = []
     if sel:
         ts, ds = coords_for([p for _v, p in sel])
         for (v, p), t, dist in zip(sel, ts, ds):
-            if not (t_lo <= t <= t_hi) or dist > 0.020:
+            if not (t_lo <= t <= t_top) or dist > 0.035:
                 continue
-            mask = 1.0 - _ss(0.006, 0.016, dist)      # stay on the skin surface, off inner thighs
-            d = _female_displacement(t, p.x / k, P) * k * mask * amp
-            if abs(d) < 1e-6:
+            w_t = _ss(t_lo, t_lo + 0.025, t) * (1.0 - _ss(t_top - 0.045, t_top, t))     # smooth window ends
+            fine = _female_displacement(t, p.x / k, P) * (1.0 - _ss(0.006, 0.016, dist))   # stay off the inner thighs
+            mons = _female_mons(t, p.x / k, P) * (1.0 - _ss(0.032, 0.060, abs(p.x) / k)) \
+                * (1.0 - _ss(0.010, 0.030, dist))
+            d = (fine + mons) * w_t * k * amp
+            if abs(d) < 1e-7:
                 continue
             n = (rot @ v.normal).normalized()
             if d > 0:
@@ -506,6 +908,16 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         bmesh.ops.smooth_vert(bm, verts=touched, factor=P["smooth_factor"],
                               use_axis_x=True, use_axis_y=True, use_axis_z=True)
     bm.normal_update()
+    hips_gi = next((g.index for g in skin.vertex_groups
+                    if g.name.lower().replace(" ", "") in ("hips", "hip", "pelvis")), None)
+    canal_idx, canal_depth, anus_idx, anus_depth, anus_C = [], 0.0, [], 0.0, None
+    if anus_yz is not None:
+        anus_C, anus_n = _prep_anus(bm, mw, inv, anus_yz, k)
+    if canal:
+        vC, vn = _surface_point(bm, mw, line[iA][0], line[iA][1])
+        canal_idx, canal_depth = _carve_tube(bm, mw, inv, vC, vn, k, CANAL, "Vaginal canal", hips_gi)
+    if anus_C is not None:
+        anus_idx, anus_depth = _carve_tube(bm, mw, inv, anus_C, anus_n, k, ANUS, "Anal canal", hips_gi)
     bm.to_mesh(skin.data)
     bm.free()
     skin.data.update()
@@ -527,7 +939,18 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
     skin["anatomy_method"] = "surface_following_displacement_v2"
     skin["anatomy_parts"] = ("mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,"
-                             "urethral_meatus,vaginal_introitus,posterior_fourchette")
+                             "urethral_meatus,vaginal_introitus,posterior_fourchette"
+                             + (",vaginal_canal_collapsed" if canal_idx else "")
+                             + (",anus" if anus_C is not None else "")
+                             + (",anal_canal_collapsed" if anus_idx else ""))
+    if canal_idx or anus_idx:
+        skin["anatomy_canal_verts"] = canal_idx + anus_idx
+    if canal_idx:
+        skin["anatomy_canal_depth_mm"] = round(canal_depth * 1000.0, 1)
+    if anus_C is not None:
+        skin["anatomy_anus_anchor"] = [anus_C.x, anus_C.y, anus_C.z]
+    if anus_idx:
+        skin["anatomy_anal_canal_depth_mm"] = round(anus_depth * 1000.0, 1)
     skin["anatomy_hood_anchor"] = anchor(P["t_hood"] - 0.004)
     skin["anatomy_deformation_scale"] = float(deformation_scale)
     _FRAME.clear()
@@ -541,9 +964,9 @@ def _pigment_weights(t, x, P):
     ax = abs(x)
     th, tm, ti, tf = P["t_hood"], P["t_meatus"], P["t_introitus"], P["t_fourchette"]
     xm = P["majora_x"] * (1.0 - 0.35 * _ss(th - 0.020, th + 0.012, t)) * (1.0 - 0.45 * _ss(tf + 0.012, tf - 0.004, t))
-    outer = _env(t, tf, th + 0.004, 0.010) * math.exp(-0.5 * ((ax - xm) / (P["majora_sigma"] * 1.3)) ** 2)
+    outer = _env(t, tf, th - 0.006, 0.010) * math.exp(-0.5 * ((ax - xm) / (P["majora_sigma"] * 1.3)) ** 2)
     xn = P["minora_x"] * (0.40 + 0.60 * _ss(th - 0.004, tm, t)) * (1.0 - 0.35 * _ss(tf + 0.012, tf + 0.002, t))
-    inner = _env(t, tf + 0.006, th - 0.002, 0.006) * math.exp(-0.5 * ((ax - xn) / (P["minora_sigma"] * 1.6)) ** 2)
+    inner = _env(t, tf + 0.006, P["t_glans"], 0.006) * math.exp(-0.5 * ((ax - xn) / (P["minora_sigma"] * 1.6)) ** 2)
     dark = (_env(t, tf + 0.004, th - 0.006, 0.006) * math.exp(-0.5 * (x / 0.0045) ** 2) * 0.75
             + _g2(x, t - ti, 0.0050, 0.0080) * 0.5)
     return min(1.0, outer * 0.95), min(1.0, inner * 0.85), min(1.0, dark)
@@ -583,6 +1006,17 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
             out[i * 4 + 2] = 1.0 - 0.060 * outer - 0.20 * inner - 0.34 * dark
             if max(outer, inner, dark) > 0.12:
                 painted += 1
+    anchor = skin.get("anatomy_anus_anchor")
+    if anchor:
+        c0, R = Vector((anchor[0], anchor[1], anchor[2])), ANUS["tint_radius"] * k
+        for i, p in enumerate(worlds):
+            wgt = 1.0 - _ss(0.45 * R, R, (p - c0).length)
+            if wgt > 0.0:     # slightly deeper perianal skin tone, fading out
+                for ch, amt in ((0, 0.05), (1, 0.18), (2, 0.22)):
+                    out[i * 4 + ch] = min(out[i * 4 + ch], 1.0 - amt * wgt)
+    for i in (skin.get("anatomy_canal_verts") or []):
+        if i < len(worlds):
+            out[i * 4:i * 4 + 3] = (0.93, 0.55, 0.56)      # mucosal interior, hidden unless the walls are parted
     colour.data.foreach_set("color", out)
     mesh.update()
     mesh.color_attributes.active_color = colour
@@ -737,67 +1171,306 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
         obj.data.update()
 
 
-def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
-    """Push selected garment vertices just outside the full retained skin surface.
+# ---------------------------------------------------------------------------
+# Garment fitting.
+#
+# Fits garments to the FINAL skin surface (anatomy included) so they sit over it with a small,
+# uniform clearance instead of cutting through it. Works whether the garments share one mesh with
+# the body (the modular GLBs) or live in separate objects.
+#
+#  * The reference surface is built from skin-material faces ONLY. (The old version built it from the
+#    whole mesh, so a garment vertex found its own garment as the "nearest surface", read ~0 mm of
+#    clearance and was inflated 6 mm along its own face normal, whatever the body looked like.)
+#  * Normals are interpolated across the skin face, so the push direction is smooth.
+#  * Required pushes are spread over neighbouring garment vertices (Laplacian smoothing) and re-checked,
+#    so the cloth drapes over a mound instead of rippling around it.
+#  * Vertices that share a position (glTF splits them at UV seams and material edges) always move
+#    together, so no cracks open.
+#  * Edits go through bmesh, so every shape key (facial morphs etc.) keeps its relative deltas, and the
+#    imported custom normals are rotated with the surface they sit on.
+#
+# Clearances are metres. Edit this block to tune.
+# ---------------------------------------------------------------------------
+GARMENT_FIT = {
+    # (material-name tokens, clearance). The first matching group wins.
+    "groups": (
+        (("brief", "string bikini", "lace briefs", "fishnet briefs"), 0.0025, True),   # snug underwear (+ crotch extension)
+        (("triangle bikini", "bra", "halter"), 0.0030, False),                         # snug upper underwear
+        (("pants", "trouser", "breech"), 0.0050, False),
+        (("fatigue shirt", "tank top", "shirt", "dress"), 0.0045, False),
+    ),
+    # The neutral Ara body has no genital volume, so its garments end their crotch about 2-3 cm above the
+    # body's real crotch. Underwear is slid down to just under the crotch roof before it is fitted.
+    "crotch": {"half_width": 0.045, "reach": 0.075, "min_shift": 0.003},
+    # Cloth bridges folds rather than sinking into them, and a coarse garment triangle can span a fine ridge.
+    # Underwear therefore gets extra clearance over the vulva zone (front, centre, around the crotch).
+    "vulva_margin": {"amount": 0.008, "half_width": 0.04, "z_lo": 0.755, "z_hi": 0.870, "fade": 0.03},
+    "max_push_per_round": 0.02, "max_total_push": 0.04,
+    # The narrow crotch strip has to bridge the vulva. Pushing each vertex out independently crumples it, so after
+    # the push its OFFSETS are smoothed, re-cleared from the skin, and repeated.
+    "crotch_smooth": {"rounds": 3, "passes": 8, "factor": 0.5, "half_width": 0.05, "z_above": 0.10},
+    "skin_tokens": ("skin",),               # materials that make up the body surface
+    "skin_exclude": ("skin details",),      # overlay layers that are not the body surface
+    "outer_iterations": 4,                  # push -> smooth -> re-check rounds
+    "smooth_passes": 6, "smooth_factor": 0.5,
+    "final_clearance_fraction": 0.8,        # after smoothing, nothing may sit closer than this x clearance
+}
 
-    The body remains untouched. Fitting is performed against the integrated
-    female Ara skin, so briefs/bikini bottoms clear the vulvar contour and
-    bras/tops clear the lower breast fold instead of relying on the original
-    generic body shell offset.
-    """
-    tree = build_bvh(skin)
-    tokens = tuple(token.lower() for token in material_tokens)
-    moved_total = 0
-    for obj in objects:
+
+def _rotate_loop_normals(mesh, old_vertex_normals, new_vertex_normals):
+    """Rotate the authored (imported) custom normals of moved vertices by the rotation their surface
+    normal went through, so shading follows the new surface and the exported NORMAL stays correct."""
+    import numpy as np
+    if not mesh.has_custom_normals or not old_vertex_normals:
+        return
+    mesh.calc_normals_split()
+    n_loops = len(mesh.loops)
+    ln = np.empty(n_loops * 3, dtype=np.float32); mesh.loops.foreach_get("normal", ln); ln = ln.reshape(-1, 3)
+    vidx = np.empty(n_loops, dtype=np.int32); mesh.loops.foreach_get("vertex_index", vidx)
+    loops_of = {}
+    for li, vi in enumerate(vidx):
+        if int(vi) in old_vertex_normals:
+            loops_of.setdefault(int(vi), []).append(li)
+    for vi, loops in loops_of.items():
+        q = old_vertex_normals[vi].rotation_difference(new_vertex_normals[vi])
+        ln[loops] = ln[loops] @ np.array(q.to_matrix()).T
+    mesh.normals_split_custom_set([tuple(x) for x in ln])
+    mesh.update()
+
+
+def _skin_reference(skin_obj):
+    """BVH + smooth normals of the body surface (skin-material faces only), in world space."""
+    from mathutils.bvhtree import BVHTree
+    cfg = GARMENT_FIT
+    mesh = skin_obj.data
+    mw = skin_obj.matrix_world
+    rot = mw.to_3x3()
+    polys = []
+    for p in mesh.polygons:
+        slot = skin_obj.material_slots[p.material_index] if p.material_index < len(skin_obj.material_slots) else None
+        label = slot.material.name.lower() if slot and slot.material else ""
+        if any(t in label for t in cfg["skin_tokens"]) and not any(t in label for t in cfg["skin_exclude"]):
+            polys.append(p)
+    if not polys:
+        raise RuntimeError("Garment fitting: no skin faces found to fit against")
+    verts = [mw @ v.co for v in mesh.vertices]
+    normals = [(rot @ v.normal).normalized() for v in mesh.vertices]
+    tree = BVHTree.FromPolygons(verts, [list(p.vertices) for p in polys], all_triangles=False)
+    return tree, verts, normals, polys
+
+
+def _garment_family(label):
+    """'string bikini strings' and 'string bikini bottom' are one garment; trim and ties move with their panel."""
+    for word in (" ties", " strings", " bottom"):
+        label = label.replace(word, "")
+    return label.strip()
+
+
+def fit_garments_to_skin(garment_objects, skin_obj, verbose=True):
+    """Fit every recognised garment vertex over the skin surface. Returns the number of vertices moved."""
+    import bmesh
+    from mathutils.interpolate import poly_3d_calc
+    cfg = GARMENT_FIT
+    tree, skin_verts, skin_normals, skin_polys = _skin_reference(skin_obj)
+
+    def gap_and_normal(p):
+        loc, nrm, idx, _d = tree.find_nearest(p)
+        if loc is None:
+            return None
+        poly = skin_polys[idx]
+        pts = [skin_verts[i] for i in poly.vertices]
+        try:
+            w = poly_3d_calc(pts, loc)
+            n = sum((skin_normals[i] * wi for i, wi in zip(poly.vertices, w)), Vector((0.0, 0.0, 0.0)))
+            n = n.normalized() if n.length > 1e-6 else nrm.normalized()
+        except Exception:
+            n = nrm.normalized()
+        return (p - loc).dot(n), n
+
+    total_moved = 0
+    for obj in garment_objects:
         if obj.type != "MESH":
             continue
-        garment_vertices = set()
-        for poly in obj.data.polygons:
-            if poly.material_index >= len(obj.material_slots):
-                continue
-            material = obj.material_slots[poly.material_index].material
-            label = material.name.lower() if material else ""
-            if any(token in label for token in tokens):
-                garment_vertices.update(poly.vertices)
-        if not garment_vertices:
+        mesh = obj.data
+        mw, inv = obj.matrix_world, obj.matrix_world.inverted()
+        skin_vertex_ids = set()
+        if obj is skin_obj:
+            for p in skin_polys:
+                skin_vertex_ids.update(p.vertices)
+        clearance, extend_label = {}, {}
+        for p in mesh.polygons:
+            slot = obj.material_slots[p.material_index] if p.material_index < len(obj.material_slots) else None
+            label = slot.material.name.lower() if slot and slot.material else ""
+            for tokens, clr, extend in cfg["groups"]:
+                if any(t in label for t in tokens) and not any(t in label for t in cfg["skin_tokens"]):
+                    for vi in p.vertices:
+                        if vi not in skin_vertex_ids:
+                            clearance[vi] = max(clearance.get(vi, 0.0), clr)
+                            if extend:
+                                extend_label[vi] = _garment_family(label)
+                    break
+        if not clearance:
             continue
-        inv = obj.matrix_world.inverted()
-        moved = 0
-        for index in garment_vertices:
-            vert = obj.data.vertices[index]
-            world = obj.matrix_world @ vert.co
-            nearest = tree.find_nearest(world)
-            if not nearest or nearest[0] is None or nearest[1] is None:
-                continue
-            location, normal, _face, _distance = nearest
-            normal = normal.normalized()
-            signed = (world - location).dot(normal)
-            if signed < clearance:
-                world += normal * (clearance - signed)
-                vert.co = inv @ world
-                moved += 1
-        if moved:
-            obj.data.update()
-            print(f"Garment clearance: {obj.name} moved {moved} vertices ({clearance:.4f} m)")
-            moved_total += moved
-    return moved_total
+        # vertices at the same position (UV seams / material edges) form one group and move together
+        key_of, groups, g_pos, g_clr = {}, [], [], []
+        gid_of = {}
+        for vi, clr in clearance.items():
+            co = mw @ mesh.vertices[vi].co
+            key = (round(co.x * 1e5), round(co.y * 1e5), round(co.z * 1e5))
+            if key not in key_of:
+                key_of[key] = len(groups); groups.append([]); g_pos.append(co); g_clr.append(clr)
+            g = key_of[key]
+            groups[g].append(vi); gid_of[vi] = g
+            g_clr[g] = max(g_clr[g], clr)
+        neighbours = [set() for _ in groups]
+        for e in mesh.edges:
+            a, b = e.vertices
+            if a in gid_of and b in gid_of and gid_of[a] != gid_of[b]:
+                neighbours[gid_of[a]].add(gid_of[b]); neighbours[gid_of[b]].add(gid_of[a])
+        vm = cfg["vulva_margin"]
+
+        def margin(p, g, n=None):
+            if g not in extend_groups:
+                return 0.0
+            wn = 1.0 if n is None else _ss(-0.15, -0.5, n.y)        # only over forward-facing skin, not the underside
+            wx = 1.0 - _ss(vm["half_width"] - 0.01, vm["half_width"] + 0.01, abs(p.x))
+            wz = _ss(vm["z_lo"] - 0.02, vm["z_lo"] + 0.01, p.z) * (1.0 - _ss(vm["z_hi"], vm["z_hi"] + vm["fade"], p.z))
+            wy = 1.0 - _ss(-0.06, -0.03, p.y)
+            return vm["amount"] * wx * wz * wy * wn
+
+        extend_groups = {gid_of[vi] for vi in extend_label}
+        disp = [Vector((0.0, 0.0, 0.0)) for _ in groups]
+        # crotch extension: slide underwear down to just under the body's crotch roof
+        cr = cfg["crotch"]
+        roof_z = None
+        for y_probe in (-0.065, -0.05, -0.035, -0.02):
+            hit = tree.ray_cast(Vector((0.0, y_probe, 0.35)), Vector((0.0, 0.0, 1.0)))
+            if hit and hit[0] is not None:
+                roof_z = hit[0].z if roof_z is None else min(roof_z, hit[0].z)
+        if roof_z is not None and extend_label:
+            by_label = {}
+            for vi, lab in extend_label.items():
+                by_label.setdefault(lab, []).append(gid_of[vi])
+            for lab, gids in by_label.items():
+                z_seam = min((g_pos[g].z for g in gids if abs(g_pos[g].x) < 0.03), default=None)
+                if z_seam is None:
+                    continue
+                target = roof_z - g_clr[gids[0]]
+                shift = z_seam - target
+                if shift < cr["min_shift"]:
+                    continue
+                for g in set(gids):
+                    p = g_pos[g]
+                    wx = 1.0 - _ss(0.020, cr["half_width"], abs(p.x))
+                    wz = 1.0 - _ss(z_seam, z_seam + cr["reach"], p.z)
+                    disp[g] += Vector((0.0, 0.0, -shift * wx * wz))
+                if verbose:
+                    print(f"Garment crotch: '{lab}' seam z={z_seam:.4f} -> {target:.4f} (shift {shift*1000:.1f} mm)")
+        shift0 = [d.copy() for d in disp]
+        lam, passes = cfg["smooth_factor"], cfg["smooth_passes"]
+        for _round in range(cfg["outer_iterations"]):
+            pushed = 0
+            for g in range(len(groups)):
+                pos_g = g_pos[g] + disp[g]
+                res = gap_and_normal(pos_g)
+                need = g_clr[g] + (margin(pos_g, g, res[1]) if res else 0.0)
+                if res and res[0] < need:
+                    disp[g] += res[1] * min(need - res[0], cfg["max_push_per_round"])
+                    pushed += 1
+            for g in range(len(groups)):                  # no runaway: cap the push beyond the crotch shift
+                extra = disp[g] - shift0[g]
+                if extra.length > cfg["max_total_push"]:
+                    disp[g] = shift0[g] + extra * (cfg["max_total_push"] / extra.length)
+            if not pushed:
+                break
+            active = {g for g in range(len(groups)) if disp[g].length > 1e-5}
+            for _ in range(passes):                       # spread the push so the cloth drapes
+                nxt = {}
+                for g in active:
+                    nb = [h for h in neighbours[g]]
+                    if nb:
+                        avg = sum((disp[h] for h in nb), Vector((0.0, 0.0, 0.0))) / len(nb)
+                        nxt[g] = disp[g] * (1.0 - lam) + avg * lam
+                for g, v in nxt.items():
+                    disp[g] = v
+                active |= {h for g in list(active) for h in neighbours[g] if disp[h].length > 1e-5 or disp[g].length > 1e-4}
+        # crotch strip smoothing (positions), alternating with re-clearing from the skin
+        cs = cfg["crotch_smooth"]
+        if cs["rounds"] and roof_z is not None and extend_groups:
+            zone = [g for g in extend_groups
+                    if abs(g_pos[g].x) < cs["half_width"] and (g_pos[g] + disp[g]).z < roof_z + cs["z_above"]]
+            zone_set = set(zone)
+
+            def roughness():
+                tot = 0.0
+                for g in zone:
+                    nb = list(neighbours[g])
+                    if nb:
+                        avg = sum((g_pos[h] + disp[h] for h in nb), Vector((0.0, 0.0, 0.0))) / len(nb)
+                        tot += ((g_pos[g] + disp[g]) - avg).length
+                return 1000.0 * tot / max(len(zone), 1)
+
+            rough_before = roughness()
+            for _r in range(cs["rounds"]):
+                for _p in range(cs["passes"]):
+                    new_disp = {}
+                    for g in zone:                                   # smooth the OFFSETS, not the positions: no shrinking
+                        nb = list(neighbours[g])
+                        if nb:
+                            avg = sum((disp[h] for h in nb), Vector((0.0, 0.0, 0.0))) / len(nb)
+                            new_disp[g] = disp[g] * (1.0 - cs["factor"]) + avg * cs["factor"]
+                    for g, v in new_disp.items():
+                        disp[g] = v
+                for g in zone:                                           # re-clear from the skin after each smoothing round
+                    pos_g = g_pos[g] + disp[g]
+                    res = gap_and_normal(pos_g)
+                    need = g_clr[g] + (margin(pos_g, g, res[1]) if res else 0.0)
+                    if res and res[0] < need:
+                        disp[g] += res[1] * min(need - res[0], cfg["max_push_per_round"])
+            if verbose:
+                print(f"Garment crotch smoothing: {len(zone)} vertices, roughness {rough_before:.2f} -> {roughness():.2f} mm")
+        # final guarantee: no garment vertex ends up closer than a fraction of its clearance
+        residual = 0
+        for g in range(len(groups)):
+            pos_g = g_pos[g] + disp[g]
+            res = gap_and_normal(pos_g)
+            floor = (g_clr[g] + (margin(pos_g, g, res[1]) if res else 0.0)) * cfg["final_clearance_fraction"]
+            if res and res[0] < floor:
+                disp[g] += res[1] * min(floor - res[0], cfg["max_push_per_round"]); residual += 1
+        if verbose:
+            for g in sorted(range(len(groups)), key=lambda q: -disp[q].length)[:4]:
+                p0 = g_pos[g]
+                print(f"Garment fit: big mover at ({p0.x:.3f},{p0.y:.3f},{p0.z:.3f}) moved {disp[g].length*1000:.0f} mm "
+                      f"d=({disp[g].x*1000:.0f},{disp[g].y*1000:.0f},{disp[g].z*1000:.0f}) clr={g_clr[g]*1000:.1f}")
+        moved_groups = [g for g in range(len(groups)) if disp[g].length > 1e-6]
+        if not moved_groups:
+            continue
+        bm = bmesh.new(); bm.from_mesh(mesh); bm.normal_update(); bm.verts.ensure_lookup_table()
+        old_n, new_n = {}, {}
+        for g in moved_groups:
+            for vi in groups[g]:
+                old_n[vi] = bm.verts[vi].normal.copy()
+        for g in moved_groups:
+            local = inv.to_3x3() @ disp[g]
+            for vi in groups[g]:
+                bm.verts[vi].co = bm.verts[vi].co + local
+        bm.normal_update()
+        for vi in old_n:
+            new_n[vi] = bm.verts[vi].normal.copy()
+        bm.to_mesh(mesh); bm.free(); mesh.update()
+        _rotate_loop_normals(mesh, old_n, new_n)
+        n_moved = sum(len(groups[g]) for g in moved_groups)
+        total_moved += n_moved
+        if verbose:
+            biggest = max(disp[g].length for g in moved_groups) * 1000.0
+            print(f"Garment fit: {obj.name}: {n_moved} of {len(clearance)} garment vertices moved "
+                  f"(max {biggest:.1f} mm, {residual} needed the final clamp)")
+    return total_moved
 
 
 def fit_female_clothing(objects, skin):
-    # Lower garments need a little more stand-off around the integrated vulvar
-    # contour; upper layers need a smaller clearance to avoid the inframammary
-    # fold without making the clothing visibly float away from the chest.
-    lower = fit_garment_clearance(
-        objects, skin,
-        ("brief", "bikini bottom", "bikini strings", "pants", "trouser", "breech"),
-        clearance=0.006,
-    )
-    upper = fit_garment_clearance(
-        objects, skin,
-        ("bra", "halter", "fatigue shirt", "tank top", "shirt", "dress"),
-        clearance=0.0045,
-    )
-    print(f"Female garment fitting complete: {lower} lower-body and {upper} upper-body vertices adjusted")
+    moved = fit_garments_to_skin(objects, skin)
+    print(f"Garment fitting complete: {moved} garment vertices adjusted")
 
 
 def main():
@@ -874,8 +1547,9 @@ def main():
             details.append(f"{obj.name}: materials={material_name(obj)!r}, z={lo.z:.3f}..{hi.z:.3f}, polys={len(obj.data.polygons)}")
         raise RuntimeError("Could not locate the front pelvis surface after grid scan. Meshes: " + " | ".join(details))
 
-    # Expand lower garments before adding the anatomy so their surfaces clear it.
-    expand_lower_garments(meshes, anatomy_z, body_front_y, width)
+    if not args.fit_existing:
+        # Expand lower garments before adding the anatomy so their surfaces clear it.
+        expand_lower_garments(meshes, anatomy_z, body_front_y, width)
 
     if args.fit_existing:
         # The base skin remains present beneath transparent clothing. Fit only
@@ -901,7 +1575,8 @@ def main():
 
     anatomy = None
     if args.profile == "female":
-        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale)
+        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale,
+                                              canal=not args.no_canal, anus=not args.no_anus)
         apply_anatomy_pigmentation(skin, anatomy_z, width, height)
         skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
         wire_vertex_colour_to_skin_material(skin_material, "Color")
