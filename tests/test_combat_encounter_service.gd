@@ -6,6 +6,7 @@ const HOLLOWMERE_ENCOUNTER = preload("res://scripts/simulation/hollowmere_encoun
 const ABANDONED_HOUSE_QUEST = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
+const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 
 var _failures: int = 0
 
@@ -14,6 +15,7 @@ func _initialize() -> void:
 	_test_begin_and_restore_all_participants()
 	_test_reject_invalid_rosters_without_mutation()
 	_test_dire_wolf_domain_uses_shared_lifecycle()
+	_test_dire_wolf_resolution_is_domain_owned()
 	_test_ironbond_domain_uses_shared_lifecycle()
 	_test_abandoned_house_uses_shared_lifecycle()
 	_test_farm_wolf_resolution_is_domain_owned()
@@ -204,7 +206,7 @@ func _test_ironbond_resolution_is_domain_owned() -> void:
 	var journal := simulation.campaign_journal
 	journal.register_quest_definition(HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_quest_definition())
 	journal.start_quest(HOLLOWMERE_CAMPAIGN_CONTENT.QUEST_ID)
-	journal.record_decision(HOLLOWMERE_CAMPAIGN_CONTENT.QUEST_ID, "response", "fight")
+	HOLLOWMERE_CAMPAIGN_CONTENT.apply_shakedown_choice(journal, "fight")
 	var all_ids: Array[String] = HOLLOWMERE_ENCOUNTER.COMBAT_ALLY_IDS.duplicate()
 	all_ids.append_array(HOLLOWMERE_ENCOUNTER.ENEMY_IDS)
 	var index := 0
@@ -249,4 +251,29 @@ func _test_abandoned_house_resolution_is_domain_owned() -> void:
 	_check(bool(result.get("status_text", "").contains("Quest complete")), "The abandoned-house resolver should return its quest presentation result.")
 	_check(String(journal.quest_state(ABANDONED_HOUSE_QUEST.QUEST_ID).get("status", "")) == "completed", "The abandoned-house resolver should complete the quest.")
 	_check(not simulation.is_in_combat, "The abandoned-house resolver should end simulation combat.")
+	simulation.free()
+
+func _test_dire_wolf_resolution_is_domain_owned() -> void:
+	var simulation := WorldSimulation.new()
+	var journal := simulation.campaign_journal
+	COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(journal)
+	journal.start_quest("reyna_dire_wolf_hunt")
+	journal.set_objective_progress("reyna_dire_wolf_hunt", "trail_found", 1.0)
+	journal.set_objective_progress("reyna_dire_wolf_hunt", "child_rescued", 1.0)
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.side = "player"
+	simulation.register_character(player)
+	DIRE_WOLF_ENCOUNTER.create_dire_wolf(simulation, Vector2i(1, 0))
+	var party_ids: Array[String] = ["player"]
+	var started: Dictionary = DIRE_WOLF_ENCOUNTER.start(simulation, party_ids)
+	_check(bool(started.get("ok", false)), "The dire wolf should start before domain resolution.")
+	var wolf := simulation.get_character(DIRE_WOLF_ENCOUNTER.DIRE_WOLF_ID)
+	wolf.alive = false
+	wolf.health = 0
+	var session := {"previous_states": started.get("previous_states", {})}
+	var result: Dictionary = DIRE_WOLF_ENCOUNTER.resolve_combat(simulation, journal, party_ids, session)
+	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "The dire-wolf service should own its victory decision.")
+	_check(String(journal.quest_state("reyna_dire_wolf_hunt").get("status", "")) == "completed", "Dire-wolf victory should complete Reyna's authored objective.")
+	_check((result.get("remove_actor_ids", []) as Array).has(DIRE_WOLF_ENCOUNTER.DIRE_WOLF_ID), "Dire-wolf victory should return its presentation cleanup request.")
+	_check(not simulation.is_in_combat, "Dire-wolf domain resolution should end simulation combat.")
 	simulation.free()
