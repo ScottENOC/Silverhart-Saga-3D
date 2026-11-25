@@ -145,9 +145,10 @@ func _process_companion_step(character_id: String) -> void:
 func _build_companion_destinations() -> void:
 	var reserved: Dictionary = {}
 	var camp := simulation.camp_simulation
-	for character_id_value in camp.party_ids:
+	for character_id_value in camp.assignments:
 		var character_id := String(character_id_value)
-		# The player remains under direct control. Companions gather at camp.
+		# The player remains under direct control. Party companions and any
+		# registered non-party worker with a world actor can perform camp duties.
 		if character_id == simulation.player_character_id:
 			continue
 		var state := simulation.get_character(character_id)
