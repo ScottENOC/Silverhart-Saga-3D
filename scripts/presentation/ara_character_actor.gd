@@ -54,7 +54,7 @@ func configure(glb_path: String) -> bool:
 			carrier_root = carrier_packed.instantiate() as Node3D
 	var body_skeleton := _find_skeleton(body_root)
 	var carrier_skeleton := _find_skeleton(carrier_root) if carrier_root != null else null
-	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _extend_animation_carrier_skeleton(carrier_skeleton, body_skeleton):
+	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _all_skinned_meshes_use_skeleton(body_root, body_skeleton) and _extend_animation_carrier_skeleton(carrier_skeleton, body_skeleton):
 		var carrier_meshes: Array[MeshInstance3D] = []
 		_collect_meshes(carrier_root, carrier_meshes)
 		for mesh in carrier_meshes:
@@ -622,6 +622,25 @@ func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -
 ## ordinary clips leave these bones alone unless they contain explicit tracks.
 ## Keeping the shared prefix unchanged preserves the Skin's original bone indices.
 const MAX_SHARED_BONE_REST_ORIGIN_DELTA_METRES := 0.025
+
+
+## The carrier path currently supports one source skeleton. Never silently
+## redirect a facial/secondary skinned mesh from a different source skeleton.
+func _all_skinned_meshes_use_skeleton(scene_root: Node, expected_skeleton: Skeleton3D) -> bool:
+	var meshes: Array[MeshInstance3D] = []
+	_collect_meshes(scene_root, meshes)
+	for mesh in meshes:
+		if mesh.mesh == null or mesh.skin == null:
+			continue
+		var source_skeleton := mesh.get_node_or_null(mesh.skeleton) as Skeleton3D
+		if source_skeleton != expected_skeleton:
+			push_warning("Ara mesh %s is bound to skeleton '%s', not primary skeleton '%s'; retaining native hierarchy." % [
+				str(scene_root.get_path_to(mesh)),
+				str(source_skeleton.get_path()) if source_skeleton != null else str(mesh.skeleton),
+				str(expected_skeleton.get_path())
+			])
+			return false
+	return true
 
 
 func _extend_animation_carrier_skeleton(carrier: Skeleton3D, source: Skeleton3D) -> bool:
