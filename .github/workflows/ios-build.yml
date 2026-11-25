@@ -1,0 +1,158 @@
+name: iOS build (iPhone 17)
+
+on:
+  push:
+    branches:
+      - dev
+      - feature/ios-iphone17-foundation
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "art/**"
+      - ".github/workflows/ios-build.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "art/**"
+      - ".github/workflows/ios-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export-ios:
+    name: Export and compile iOS project
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - name: Check out Silverhart
+        uses: actions/checkout@v7
+
+      - name: Install Godot 4.7.2 and export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import and validate project
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          godot --headless --editor --path . --quit
+
+      - name: Diagnose iOS export prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable"
+          echo "Godot export template directory: $TEMPLATE_DIR"
+          if [ -d "$TEMPLATE_DIR" ]; then
+            find "$TEMPLATE_DIR" -maxdepth 1 -type f -print -exec ls -lh {} \;
+          else
+            echo "Expected Godot export template directory is missing."
+            find "$HOME/Library/Application Support/Godot" -maxdepth 4 -print 2>/dev/null || true
+          fi
+          echo "iOS preset:"
+          sed -n '/^\[preset.1\]/,$p' export_presets.cfg
+          echo "Application icon:"
+          sips -g pixelWidth -g pixelHeight art/app_icon/icon-1024.png
+
+      - name: Export iOS Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios
+          godot --headless --path . --export-debug "iOS" build/ios/SilverhartSaga.zip --verbose 2>&1 | tee build/ios/godot-export.log
+
+          # Godot's iOS project-only export can place the Xcode project directly
+          # in the destination rather than producing a ZIP archive. Accept both
+          # layouts and only unzip when the output is actually an archive.
+          if [ -f build/ios/SilverhartSaga.zip ]; then
+            unzip -q build/ios/SilverhartSaga.zip -d build/ios/unpacked
+          fi
+
+          PROJECT="$(find build/ios -maxdepth 6 -name '*.xcodeproj' -type d -print -quit)"
+          if [ -z "$PROJECT" ]; then
+            echo "Godot export completed but no Xcode project was found." >&2
+            echo "Export output listing:"
+            find build/ios -maxdepth 6 -print
+            exit 1
+          fi
+
+          ditto -c -k --sequesterRsrc --keepParent "$PROJECT" build/ios/XcodeProject.zip
+          echo "Found Xcode project: $PROJECT"
+          echo "IOS_XCODE_PROJECT=$PROJECT" >> "$GITHUB_ENV"
+
+      - name: Compile and package unsigned IPA for AltServer
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -list -json -project "$IOS_XCODE_PROJECT" > build/ios/xcode-project.json
+          SCHEME="$(python3 - <<'PY'
+          import json
+          with open("build/ios/xcode-project.json", encoding="utf-8") as f:
+              data = json.load(f)
+          schemes = data.get("project", {}).get("schemes", [])
+          if not schemes:
+              raise SystemExit("No Xcode build scheme was exported.")
+          print(schemes[0])
+          PY
+          )"
+          set -o pipefail
+          xcodebuild \
+            -project "$IOS_XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/ios/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build/ios/xcodebuild.log
+
+          APP_PATH="build/ios/DerivedData/Build/Products/Debug-iphoneos/$SCHEME.app"
+          if [ ! -d "$APP_PATH" ]; then
+            APP_PATH="$(find build/ios/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name '*.app' -type d -print -quit)"
+          fi
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "Xcode build succeeded but no iOS .app bundle was found." >&2
+            find build/ios/DerivedData/Build/Products -maxdepth 3 -print
+            exit 1
+          fi
+
+          mkdir -p build/ios/ipa/Payload
+          ditto "$APP_PATH" "build/ios/ipa/Payload/$(basename "$APP_PATH")"
+          (cd build/ios/ipa && /usr/bin/zip -qry ../SilverhartSaga-unsigned.ipa Payload)
+          test -s build/ios/SilverhartSaga-unsigned.ipa
+          echo "Created unsigned IPA for AltServer signing: build/ios/SilverhartSaga-unsigned.ipa"
+
+      - name: Upload unsigned IPA, Xcode export and build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: silverhart-ios-iphone17-${{ github.sha }}
+          path: |
+            build/ios/SilverhartSaga.zip
+            build/ios/XcodeProject.zip
+            build/ios/SilverhartSaga-unsigned.ipa
+            build/ios/xcode-project.json
+            build/ios/xcodebuild.log
+            build/ios/godot-export.log
+          if-no-files-found: warn
+          retention-days: 30

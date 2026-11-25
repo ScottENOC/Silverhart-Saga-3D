@@ -4,6 +4,7 @@ config_version=5
 
 [application]
 config/name="Silverhart Saga 3D"
+config/icon="res://art/app_icon/icon-1024.png"
 run/main_scene="res://scenes/main_menu.tscn"
 
 [display]
@@ -14,6 +15,8 @@ window/size/window_height_override=900
 window/stretch/mode="canvas_items"
 
 [rendering]
+
+textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
 renderer/rendering_method.web="gl_compatibility"
