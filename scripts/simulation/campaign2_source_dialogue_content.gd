@@ -136,12 +136,12 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 				]
 			}
 		"royal_wizard":
-			var resolution := String(context.get("wizard_resolution", ""))
+			var wizard_resolution_value := String(context.get("wizard_resolution", ""))
 			var personal_standing := float(context.get("wizard_standing", 0.0))
 			var line := "The Queen keeps me for omens and old books, mostly — court wizardry is duller than the stories make it sound. Still, I read a great deal I probably shouldn't."
-			if resolution == "wizard":
+			if wizard_resolution_value == "wizard":
 				line = "I haven't forgotten what you did for me. Ask, if you ever need it returned."
-			elif not resolution.is_empty():
+			elif not wizard_resolution_value.is_empty():
 				line = "You're a citizen of this kingdom, and I'll extend you the courtesy that demands — nothing warmer than that. Don't mistake civility for forgiveness."
 			elif personal_standing < -10.0:
 				line = "The crown speaks well of you, for whatever that's worth to me personally. I have my own opinion, and it isn't as generous."
@@ -216,10 +216,10 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 				return {"speaker": display_name, "text": "Please tell me you're not going up there without a real plan. Ashveil's no wolf pack — that thing burned the Aldric barn to cinders and carried off half our flock in one night.", "choices": [{"id": "dragon", "label": "What do you know about Ashveil?", "text": "Something's nested out east in the high rocks. Nobody's seen it up close and lived to draw it proper, but we've seen what it leaves behind."}, {"id": "leave", "label": "I'll be careful.", "text": "Petra looks unconvinced."}]}
 			return {"speaker": display_name, "text": "Don't get many travellers this far. Word is something's stirred up trouble on the road south of here — a house gone quiet, no one seen in or out for weeks. Nobody round here's brave enough to go look.", "choices": [{"id": "ashveil", "label": "What happened to the Aldric barn?", "text": "Something's nested out east in the high rocks. The Aldric barn is a scorch mark now, and we've lost more sheep than I can count."}, {"id": "quiet_house", "label": "What house has gone quiet?", "text": "South of here, along the road. No one has seen anyone come or go for weeks. Folk say it is nothing, but they say it from a safe distance."}, {"id": "leave", "label": "I'll keep an eye out.", "text": "Petra nods. She has already done all the worrying she can do from here."}]}
 		"corran_vale":
-			var goblin_resolution := String(context.get("goblin_resolution", ""))
-			if goblin_resolution == "goblin_alliance":
+			var corran_goblin_resolution := String(context.get("goblin_resolution", ""))
+			if corran_goblin_resolution == "goblin_alliance":
 				return {"speaker": display_name, "text": "Word reached us you've made peace with the Skarn-tooth tribe. Peace for Hollowmere, maybe — but they're still sitting right on our road, and I don't much trust it holding.", "choices": [{"id": "road", "label": "What would make the road safe?", "text": "A reliable agreement and a few wagons through without trouble. Until then, my crews will keep their distance."}, {"id": "leave", "label": "I'll keep watch.", "text": "Corran nods, though he remains wary."}]}
-			if goblin_resolution == "betrayal":
+			if corran_goblin_resolution == "betrayal":
 				return {"speaker": display_name, "text": "Whatever's happening with the goblins now, it's worse, not better. We've pulled everyone we can spare back behind the hall doors. Emberlode isn't shipping anything until this passes.", "choices": [{"id": "leave", "label": "Stay behind the doors.", "text": "Corran gives a grim nod."}]}
 			return {"speaker": display_name, "text": "You're not from around here. Careful on that road — the Skarn-tooth tribe's dug in east of here, and they've taken three carts off us this month alone. Half my crew won't run it anymore.", "choices": [{"id": "goblins", "label": "How dangerous are the Skarn-tooth?", "text": "Dangerous enough that the carts stopped running. They took the ore, the strongbox, the lot. Nobody was killed, small mercy, but we've nothing left to move even if the road were safe."}, {"id": "leave", "label": "I'll keep an eye on the road.", "text": "Corran nods. He has heard promises before."}]}
 		"emberlode_miner":
@@ -246,10 +246,10 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 
 
 		"chief_skarnub":
-			var resolution := String(context.get("goblin_resolution", ""))
-			if not resolution.is_empty() and resolution != "goblin_alliance":
+			var chief_resolution_value := String(context.get("goblin_resolution", ""))
+			if not chief_resolution_value.is_empty() and chief_resolution_value != "goblin_alliance":
 				return {"speaker": display_name, "text": "We have nothing left to discuss.", "choices": [{"id": "leave", "label": "...", "text": "Skarnub turns away."}]}
-			if resolution == "goblin_alliance":
+			if chief_resolution_value == "goblin_alliance":
 				if String(context.get("goblin_mine_raid_status", "")) == "completed":
 					return {"speaker": display_name, "text": "We're settled here, thanks to you. That mine haul didn't hurt either.", "choices": [{"id": "leave", "label": "Good.", "text": "Skarnub gives a short nod."}]}
 				return {"speaker": display_name, "text": "Since you've let us stay... there's a mining camp down the west road. Rich pickings, if you're willing to lead us there.", "choices": [{"id": "mine_raid", "label": "What is at the mining camp?", "text": "Emberlode's gold mine. A good haul would keep the tribe fed and armed. We can talk about it when the time is right."}, {"id": "leave", "label": "Not yet.", "text": "Skarnub waits, patient for a goblin."}]}
@@ -257,12 +257,12 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 				return {"speaker": display_name, "text": "You've done right by us. Truth told, this land's more trouble than it's worth — humans always come eventually. Guarantee us safe passage and supplies, and we'll move on. No more blood spilled, on either side.", "choices": [{"id": "passage", "label": "What would safe passage require?", "text": "Supplies enough to reach new ground, and a promise your people won't hunt us along the way. No more than that."}, {"id": "leave", "label": "Not yet.", "text": "Skarnub folds his arms and waits."}]}
 			return {"speaker": display_name, "text": "Another human, come to gawk or to fight? Speak quick.", "choices": [{"id": "goblin_favour", "label": "I could help you, for the right price.", "text": "Hah. A human with sense. Bring me what I ask, and we'll get along fine."}, {"id": "read_chief", "label": "Try to read him.", "text": "Skarnub watches your hands more than your face. He is weighing whether you came empty-handed."}, {"id": "threaten", "label": "Leave this land, or face us.", "text": "Skarnub bares his teeth. "Face us, then — see how far that gets you.""}, {"id": "leave", "label": "Just looking.", "text": "Skarnub turns his attention back to the camp."}]}
 		"nix_sharpear":
-			var goblin_resolution := String(context.get("goblin_resolution", ""))
-			if goblin_resolution == "goblin_alliance":
+			var nix_goblin_resolution := String(context.get("goblin_resolution", ""))
+			if nix_goblin_resolution == "goblin_alliance":
 				if bool(context.get("nix_recruited", false)):
 					return {"speaker": display_name, "text": "Still watching your back. What is it?", "choices": [{"id": "leave", "label": "Nothing, carry on.", "text": "Nix scans the edge of the camp."}]}
 				return {"speaker": display_name, "text": "We're not going anywhere now — you saw to that. Skarnub speaks for us, but I never much liked sitting still watching a road. You're headed for more trouble than this camp's seen in years. Room for one more?", "choices": [{"id": "nix_story", "label": "Why did you want the tribe to move on?", "text": "Because a camp this close to a human village only ends one way. I wanted our people alive when the fighting started."}, {"id": "leave", "label": "Not yet.", "text": "Nix nods, neither offended nor surprised."}]}
-			if not goblin_resolution.is_empty():
+			if not nix_goblin_resolution.is_empty():
 				return {"speaker": display_name, "text": "We're already gone from here, or will be soon enough.", "choices": [{"id": "leave", "label": "Good.", "text": "Nix gives a curt nod."}]}
 			return {"speaker": display_name, "text": "Something you need? Speak quick, this isn't a place for wandering humans.", "choices": [{"id": "why_watch", "label": "Why are you really this close to the village?", "text": "You think Skarnub chose this ground? We were told to sit here, watch the roads, count what comes and goes. Somebody's paying close attention to your precious Hollowmere, and it isn't us. I've said too much — forget I spoke."}, {"id": "leave", "label": "Just passing through.", "text": "Nix turns away, keeping one eye on you."}]}
 		"goblin_trader":
