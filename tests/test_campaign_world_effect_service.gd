@@ -116,6 +116,7 @@ func _test_invalid_effects_have_no_side_effects() -> void:
 
 func _test_recruited_aldric_can_depart_on_betrayal() -> void:
 	var journal := _journal_with_decision()
+	journal.seed_npc_reputation(ALDRIC_ID, 60.0)
 	var simulation := _simulation_with_player_and_aldric()
 	simulation.party_member_ids.append(ALDRIC_ID)
 	simulation.get_character(ALDRIC_ID).side = "player"
@@ -125,4 +126,6 @@ func _test_recruited_aldric_can_depart_on_betrayal() -> void:
 	})
 	_check(bool(result.get("ok", false)))
 	_check(not simulation.is_party_member(ALDRIC_ID), "Betrayal removes Aldric from the active party")
+	_check(simulation.get_character(ALDRIC_ID).side == "neutral", "Departing Aldric returns to a neutral world actor")
+	_check(journal.npc_standing(ALDRIC_ID) == 0.0, "Betrayal resets Aldric's attitude to zero")
 	_check(bool(journal.world_campaign_flag("aldric_leaves_if_recruited", false)))
