@@ -162,7 +162,7 @@ func _on_character_created(profile: Dictionary) -> void:
 	settlement_presentation = location_components.get("settlement") as Node3D
 	tavern = location_components.get("interior_controller") as Node3D
 	if settlement_presentation == null or tavern == null:
-		push_error("Campaign 2 location %s did not provide its settlement and interior controller." % STARTING_LOCATION.LOCATION_ID)
+		push_error("Campaign 2 location %s did not provide its settlement and interior controller." % starting_location_id)
 		return
 
 	# Register the village's existing animal actors into the shared campaign
