@@ -40,6 +40,8 @@ static func resolve_threat(
 ) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
 		return {"ok": false, "reason": "missing_simulation"}
+	if simulation.get_character(simulation.player_character_id) == null:
+		return {"ok": false, "reason": "missing_player"}
 	var journal := simulation.campaign_journal
 	var result: Dictionary = CONTENT_SCRIPT.new().resolve_threat(journal, resolution, relationships)
 	if not bool(result.get("ok", false)) or not bool(result.get("applied", false)):
@@ -62,6 +64,8 @@ static func resolve_favour(
 ) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
 		return {"ok": false, "reason": "missing_simulation"}
+	if simulation.get_character(simulation.player_character_id) == null:
+		return {"ok": false, "reason": "missing_player"}
 	var journal := simulation.campaign_journal
 	var result: Dictionary = CONTENT_SCRIPT.new().resolve_favour(journal, favour)
 	if not bool(result.get("ok", false)) or not bool(result.get("applied", false)):
@@ -200,6 +204,8 @@ static func start_mine_raid(simulation: WorldSimulation) -> Dictionary:
 static func resolve_mine_raid(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {"ok":false,"reason":"missing_simulation"}
+	if simulation.get_character(simulation.player_character_id) == null:
+		return {"ok":false,"reason":"missing_player"}
 	var journal := simulation.campaign_journal
 	var result: Dictionary = CONTENT_SCRIPT.resolve_mine_raid(journal)
 	if not bool(result.get("ok", false)) or not bool(result.get("applied", false)):
