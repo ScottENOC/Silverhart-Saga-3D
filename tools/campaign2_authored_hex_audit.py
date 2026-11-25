@@ -287,10 +287,9 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
             elif is_forest:
                 terrain = "F"
             elif is_orc:
-                rough = math.sin(
-                    column * float(hash_rule.get("x_scale", 1.0)) + float(hash_rule.get("x_offset", 0.0))
-                    + (row * float(hash_rule.get("y_scale", 1.0)) + float(hash_rule.get("y_offset", 0.0)))
-                ) * 43758.5453
+                hash_x = column * float(hash_rule.get("x_scale", 1.0)) + float(hash_rule.get("x_offset", 0.0))
+                hash_y = row * float(hash_rule.get("y_scale", 1.0)) + float(hash_rule.get("y_offset", 0.0))
+                rough = math.sin(hash_x * 12.9898 + hash_y * 78.233) * 43758.5453
                 rough -= math.floor(rough)
                 if rough > mountain_threshold:
                     terrain = "M"
@@ -642,6 +641,15 @@ def main() -> int:
     print(rendered_markdown)
     if args.source_root and report["source"]["missing_builder_symbols"]:
         print("Missing source builder symbols:", ", ".join(report["source"]["missing_builder_symbols"]))
+        return 1
+    map_check = report.get("strategic_map_validation")
+    if map_check is not None and (
+        not map_check["dimensions_match"]
+        or map_check["unmarked_terrain_faction_mismatch_count"] > 0
+        or not map_check["river_path_matches_geography"]
+        or not map_check["hollowmere_marker_at_origin"]
+    ):
+        print("Strategic map parity validation failed:", json.dumps(map_check, indent=2))
         return 1
     return 0
 
