@@ -201,8 +201,6 @@ def source_floor_cells_by_level(runtime: dict[str, Any]) -> dict[int, set[str]]:
     for key, value in runtime.get("terrain", {}).items():
         if isinstance(value, dict) and str(value.get("name", "")) in walkable_floor_names:
             result[0].add(str(key))
-            if str(value.get("name", "")) == "Cave Floor":
-                result[-9].add(str(key))
     for building in runtime.get("multiStoryBuildings", []):
         if not isinstance(building, dict):
             continue
@@ -219,7 +217,8 @@ def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, 
     """Compare authored target walkable floor coordinates with the captured source floor coordinates."""
     target = target_floor_cells_by_level(multistory)
     source = source_floor_cells_by_level(runtime)
-    levels = sorted(set(target) | set(source))
+    uncompared_negative_levels = sorted(level for level in target if level < 0)
+    levels = sorted((set(target) | set(source)) - set(uncompared_negative_levels))
     report: dict[str, Any] = {}
     for level in levels:
         target_cells = target.get(level, set())
@@ -248,7 +247,8 @@ def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, 
             if isinstance(region, dict)
         ),
         "target_locations": len(multistory.get("locations", [])),
-        "note": "Coordinate-level comparison; source surface floors are read from the captured terrain map, upper floors from source multiStoryBuildings, and target rooms/corridors from the canonical floor registry. The special -9 tunnel level is compared against source Cave Floor coordinates.",
+        "uncompared_negative_levels": uncompared_negative_levels,
+        "note": "Coordinate-level comparison; source surface floors are read from the captured terrain map, upper floors from source multiStoryBuildings, and target rooms/corridors from the canonical floor registry. Negative tunnel floors are excluded because the source runtime terrain capture is flattened and does not encode floor indices.",
     }
 
 
