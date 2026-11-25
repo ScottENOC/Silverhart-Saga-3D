@@ -1093,14 +1093,15 @@ func _begin_morning_stage(stage: int) -> void:
 			activity = "breakfast"
 			var breakfast_count := mini(party_ids.size(), int(resources.get("rations", 0)))
 			resources["rations"] = maxi(0, int(resources.get("rations", 0)) - breakfast_count)
-			for character_id in party_ids:
+			for index in range(party_ids.size()):
+				var character_id := party_ids[index]
 				var condition: Dictionary = conditions.get(character_id, {}).duplicate(true)
-				if party_ids.find(character_id) < breakfast_count:
+				if index < breakfast_count:
 					condition["hunger"] = maxf(0.0, float(condition.get("hunger", 0.0)) - 25.0)
-				condition["breakfast_eaten"] = true
-			else:
-				condition["breakfast_eaten"] = false
-				condition["hunger"] = minf(100.0, float(condition.get("hunger", 0.0)) + 5.0)
+					condition["breakfast_eaten"] = true
+				else:
+					condition["breakfast_eaten"] = false
+					condition["hunger"] = minf(100.0, float(condition.get("hunger", 0.0)) + 5.0)
 				conditions[character_id] = condition
 			morning_summary["breakfast_servings"] = breakfast_count
 			morning_summary["breakfast_shortfall"] = party_ids.size() - breakfast_count
@@ -1121,9 +1122,9 @@ func _begin_morning_stage(stage: int) -> void:
 			activity = "pack_camp"
 			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
 				environment["fire_extinguished"] = true
-			environment["fire_lit"] = false
-			environment["fire_buried"] = true
-			environment["fire_extinguishing_method"] = "covered_with_soil"
+				environment["fire_lit"] = false
+				environment["fire_buried"] = true
+				environment["fire_extinguishing_method"] = "covered_with_soil"
 			environment["camp_packed"] = true
 			phase = "resolved"
 			morning_summary["camp_packed"] = true
