@@ -160,6 +160,8 @@ jobs:
           fi
       - name: Run split combat and reaction tests
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
+      - name: Run shared encounter controller lifecycle tests
+        run: godot --headless --path . --script res://tests/test_combat_encounter_controller.gd
       - name: Run split animal and riding tests
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
       - name: Run reusable building and door tests

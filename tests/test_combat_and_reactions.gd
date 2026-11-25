@@ -2,12 +2,10 @@ extends SceneTree
 
 const INITIATIVE_MODEL = preload("res://scripts/ui/combat_initiative_model.gd")
 const COMBAT_AI = preload("res://scripts/simulation/combat_ai.gd")
-const COMBAT_ENCOUNTER_CONTROLLER = preload("res://scripts/presentation/combat_encounter_controller.gd")
 
 var _failures: int = 0
 
 func _initialize() -> void:
-    _test_shared_encounter_controller_state()
     _test_combat_turn_scheduler()
     _test_initiative_timeline_model()
     _test_simulation_ownership_snapshots_and_restore()
@@ -31,28 +29,6 @@ func _initialize() -> void:
         return
     print("Combat and reactions tests passed.")
     quit(0)
-
-func _test_shared_encounter_controller_state() -> void:
-    var controller := COMBAT_ENCOUNTER_CONTROLLER.new() as CombatEncounterController
-    var first_enemies: Array[String] = ["wolf_a"]
-    var first_party: Array[String] = ["player", "companion"]
-    var controlled: Array[String] = ["player", "companion"]
-    controller.begin_encounter(first_enemies, first_party, controlled)
-    _check(controller.active, "Shared combat controller should become active for a configured encounter")
-    _check(controller.enemy_ids == first_enemies, "Shared combat controller should retain the encounter enemy roster")
-    _check(controller.party_ids == first_party, "Shared combat controller should retain the encounter party roster")
-    _check(controller.player_controlled_ids == controlled, "Shared combat controller should retain the player-control roster")
-    controller.end_encounter()
-    _check(not controller.active, "Shared combat controller should deactivate when an encounter ends")
-    _check(controller.enemy_ids.is_empty() and controller.party_ids.is_empty(), "Ending an encounter should clear both participant rosters")
-    _check(controller.player_controlled_ids.is_empty(), "Ending an encounter should clear player-control policy")
-    var second_enemies: Array[String] = ["bandit"]
-    var second_party: Array[String] = ["player"]
-    var second_controlled: Array[String] = ["player"]
-    controller.begin_encounter(second_enemies, second_party, second_controlled)
-    _check(controller.enemy_ids == second_enemies and controller.party_ids == second_party, "A new encounter should not inherit the previous encounter roster")
-    controller.end_encounter()
-
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
     if not condition:
