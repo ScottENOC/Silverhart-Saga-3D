@@ -7,7 +7,7 @@ const FEATURES = preload("res://data/world/regions/silverhart_heartland/features
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_druid_grove_presentation_arguments"}
-	var grove := _location_by_id(terrain_data, "emberwood_grove")
+	var grove := terrain_data.encounter_site("emberwood_grove")
 	if grove.is_empty() or String(grove.get("kind", "")) != "druid_grove":
 		return {"ok": false, "reason": "missing_source_emberwood_grove_anchor"}
 	var grove_centre := Vector2i(int(grove.get("q", 0)), int(grove.get("r", 0)))
@@ -24,12 +24,6 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 			count += 1
 	return {"ok": true, "features": count, "grove_centre": grove_centre}
 
-
-static func _location_by_id(terrain_data: Campaign2WorldTerrainData, location_id: String) -> Dictionary:
-	for location in terrain_data.locations:
-		if location is Dictionary and String(location.get("id", "")) == location_id:
-			return location.duplicate(true)
-	return {}
 
 static func _add_spring(parent: Node3D, terrain_data: Campaign2WorldTerrainData, spring: Vector2i, radius: float) -> void:
 	var root := Node3D.new()
