@@ -103,7 +103,7 @@ func _test_save_restore() -> void:
 	var state := CampaignDwellingState.new()
 	var journal := CampaignJournal.new()
 	var player := _player()
-	state.complete_action("build_crossroads_cottage", journal, player)
+	state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot")
 	var restored := CampaignDwellingState.new()
 	_check(restored.from_dict(state.to_dict()), "Dwelling ownership should restore from a save.")
 	_check(restored.to_dict() == state.to_dict(), "Dwelling ownership and improvements should round-trip.")
