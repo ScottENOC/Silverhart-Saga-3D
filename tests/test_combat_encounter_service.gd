@@ -158,4 +158,7 @@ func _test_abandoned_house_uses_shared_lifecycle() -> void:
 	ABANDONED_HOUSE_QUEST.finish_encounter(simulation, previous_states)
 	_check(not simulation.is_in_combat, "Finishing the abandoned-house encounter should end combat.")
 	_check(not bystander.combat_dormant, "Abandoned-house cleanup should restore unrelated characters.")
+	for guardian_id in ABANDONED_HOUSE_QUEST.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		_check(guardian.side == "enemy" and guardian.combat_dormant, "Abandoned-house cleanup should leave guardians dormant enemies.")
 	simulation.free()
