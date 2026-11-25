@@ -48,6 +48,12 @@ def main():
     ap.add_argument("--seed", type=int, default=1401)
     ap.add_argument("--coverage", choices=("restrained", "aldric", "wren", "reyna", "dagna"), default="restrained")
     ap.add_argument("--hair-colour", default="", help="Hex RGB body-hair colour")
+    ap.add_argument("--base-texture-glb", type=Path, default=None,
+                    help="Use the skin diffuse texture from this GLB as the clean base before painting")
+    ap.add_argument("--wren-y0", type=float, default=0.535,
+                    help="Lower normalized body-height edge for Wren's landing strip")
+    ap.add_argument("--wren-y1", type=float, default=0.565,
+                    help="Upper normalized body-height edge for Wren's landing strip")
     args = ap.parse_args()
     doc, old_binary, chunks = parse_glb(args.model.read_bytes())
 
@@ -58,8 +64,21 @@ def main():
     view_index = image["bufferView"]
     view = doc["bufferViews"][view_index]
     raw = old_binary[view.get("byteOffset", 0):view.get("byteOffset", 0) + view["byteLength"]]
+    if args.base_texture_glb:
+        donor_doc, donor_binary, _ = parse_glb(args.base_texture_glb.read_bytes())
+        donor_skin = next(i for i, m in enumerate(donor_doc["materials"])
+                          if m.get("name", "").strip().lower() == "skin"
+                          or m.get("name", "").strip().lower().startswith("skin_anatomy"))
+        donor_texture = donor_doc["materials"][donor_skin]["pbrMetallicRoughness"]["baseColorTexture"]["index"]
+        donor_image = donor_doc["textures"][donor_texture]["source"]
+        donor_view_index = donor_doc["images"][donor_image]["bufferView"]
+        donor_view = donor_doc["bufferViews"][donor_view_index]
+        raw = donor_binary[donor_view.get("byteOffset", 0):
+                           donor_view.get("byteOffset", 0) + donor_view["byteLength"]]
     source = Image.open(BytesIO(raw)).convert("RGB")
     width, height = source.size
+    if args.base_texture_glb and source.size != Image.open(BytesIO(old_binary[view.get("byteOffset", 0):view.get("byteOffset", 0) + view["byteLength"]])).size:
+        raise RuntimeError("Clean donor skin texture dimensions do not match the target Wren texture")
 
     skin_primitive = next(p for m in doc["meshes"] for p in m["primitives"] if p.get("material") == skin_material)
     positions = accessor(doc, old_binary, skin_primitive["attributes"]["POSITION"]).astype(float)
@@ -140,7 +159,7 @@ def main():
         if args.coverage == "wren":
             # Keep the lower edge at the existing clitoral-hood start, shorten
             # the strip by 40%, and flare only the upper edge by 75%.
-            y0, y1 = 0.49, 0.52
+            y0, y1 = args.wren_y0, args.wren_y1
             base_half_width = 0.0065
             top_half_width = base_half_width * 1.75
             slope = (top_half_width - base_half_width) / (y1 - y0)
