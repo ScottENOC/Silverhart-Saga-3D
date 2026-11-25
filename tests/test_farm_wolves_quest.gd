@@ -30,9 +30,8 @@ func _test_source_backed_quest_flow() -> void:
 	var turn_in_dialogue := FARM_QUEST.resolve_dialogue_choice(journal, player, "farm_wolves_turn_in")
 	assert(turn_in_dialogue.handled and turn_in_dialogue.quest_completed)
 	assert(String(turn_in_dialogue.dialogue.text).contains("farm owes you"))
-	var reward_state := journal.quest_state(FARM_QUEST.QUEST_ID)
-	assert(String(reward_state.status) == "completed")
-	var reward := {"ok": true}
+	var reward: Dictionary = turn_in_dialogue.reward
+	assert(reward.ok)
 
 	assert(player.gold == 35)
 	assert(player.experience == 150)
