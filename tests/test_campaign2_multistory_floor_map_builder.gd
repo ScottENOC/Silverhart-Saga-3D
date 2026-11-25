@@ -112,7 +112,7 @@ func _initialize() -> void:
 		"silverhart_east_house_three": Vector2i(24, -470),
 		"silverhart_east_house_four": Vector2i(27, -471),
 		"silverhart_middle_ring_house_east": Vector2i(51, -496),
-		"silverhart_middle_ring_house_northeast": Vector2i(51, -536),
+		"silverhart_middle_ring_house_northeast": Vector2i(49, -538),
 		"silverhart_middle_ring_house_north": Vector2i(8, -538),
 		"silverhart_middle_ring_house_west": Vector2i(-34, -496),
 		"silverhart_middle_ring_house_southwest": Vector2i(-34, -455),
@@ -478,6 +478,27 @@ func _initialize() -> void:
 			var reddale_position: Dictionary = reddale_object.get("position", {})
 			var reddale_hex := Vector2i(int(reddale_position.get("q", 0)), int(reddale_position.get("r", 0)))
 			_check(reddale_map.is_walkable(reddale_hex), "Reddale fixture must sit on walkable floor: " + String(reddale_object.get("id", "")))
+
+
+
+	# The three additional source-authored outlying homes are independent
+	# walkable interiors; their entrances must land on their own floor maps.
+	var new_outlying_home_doors := {
+		"silverhart_outlying_house_1": Vector2i(23, -544),
+		"silverhart_outlying_house_2": Vector2i(48, -544),
+		"silverhart_outlying_house_3": Vector2i(-30, -476)
+	}
+	for location_id in new_outlying_home_doors:
+		var home_definition: Dictionary = registry.get_definition(location_id)
+		var home_state = LOCATION_STATE.new()
+		_check(bool(home_state.configure(home_definition).get("ok", false)), "Additional outlying home state must configure: " + location_id)
+		var home_result: Dictionary = FLOOR_BUILDER.build_floor_map(home_definition, 0, home_state)
+		_check(bool(home_result.get("ok", false)), "Additional outlying home floor must build: " + location_id)
+		if not bool(home_result.get("ok", false)):
+			continue
+		var home_map: HexMapData = home_result.get("map_data") as HexMapData
+		_check(home_map.is_walkable(new_outlying_home_doors[location_id]), "Additional outlying home entrance must be walkable: " + location_id)
+		_check(home_result.get("actors", []).is_empty() and home_result.get("creatures", []).is_empty(), "Outlying home must not duplicate campaign-owned residents: " + location_id)
 
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)

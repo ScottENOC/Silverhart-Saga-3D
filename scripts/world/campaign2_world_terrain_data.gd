@@ -95,7 +95,7 @@ func _load_locations() -> void:
 		if not location is Dictionary:
 			continue
 		var kind := String(location.get("kind", ""))
-		if kind not in ["wolf_den", "quest_site", "dungeon", "dragon_lair", "haunted_house"]:
+		if kind not in ["wolf_den", "quest_site", "dungeon", "dragon_lair", "haunted_house", "grave", "roaming_encounter_area"]:
 			continue
 		var site_id := String(location.get("id", "")).strip_edges()
 		if site_id.is_empty() or encounter_sites_by_id.has(site_id):

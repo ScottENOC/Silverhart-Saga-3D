@@ -48,14 +48,19 @@ const TRACKS := [
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_unicorn_track_presentation_arguments"}
+	var vale := terrain_data.encounter_site("unicorn_vale")
+	if vale.is_empty() or String(vale.get("kind", "")) != "roaming_encounter_area":
+		return {"ok": false, "reason": "missing_source_unicorn_vale_anchor"}
+	var vale_center := Vector2i(int(vale.get("q", 0)), int(vale.get("r", 0)))
+	var anchor_offset := vale_center - VALE_CENTER
 	var count := 0
 	for track in TRACKS:
-		var hex: Vector2i = track["hex"]
+		var hex: Vector2i = track["hex"] + anchor_offset
 		if not _contains(hex, chunk_min, chunk_size):
 			continue
 		_add_track(parent, terrain_data, hex, track["direction"], hex_radius)
 		count += 1
-	return {"ok": true, "features": count}
+	return {"ok": true, "features": count, "vale_center": vale_center}
 
 
 static func _add_track(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, direction: Vector2i, radius: float) -> void:
