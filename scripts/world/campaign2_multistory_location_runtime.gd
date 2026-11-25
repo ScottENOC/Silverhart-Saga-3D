@@ -304,7 +304,7 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 		var position_data: Dictionary = object_data.get("position", {})
 		var hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
 		var object_type := String(object_data.get("type", ""))
-		var marker := MeshInstance3D.new()
+		var marker := Node3D.new()
 		marker.name = String(object_data.get("id", object_type))
 		var material := StandardMaterial3D.new()
 		material.roughness = 0.82
@@ -315,49 +315,74 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 				stair_mesh.bottom_radius = HEX_RADIUS * 0.42
 				stair_mesh.height = 0.28
 				stair_mesh.radial_segments = 6
-				marker.mesh = stair_mesh
+				_add_floor_object_piece(marker, "Stair", stair_mesh, Vector3(0.0, 0.14, 0.0), material)
 				material.albedo_color = Color(0.55, 0.48, 0.32)
 				material.metallic = 0.45
 			"fireplace", "rune_forge":
-				var forge_mesh := CylinderMesh.new()
-				forge_mesh.top_radius = HEX_RADIUS * 0.38
-				forge_mesh.bottom_radius = HEX_RADIUS * 0.48
-				forge_mesh.height = 0.72
-				forge_mesh.radial_segments = 8
-				marker.mesh = forge_mesh
+				var hearth_mesh := CylinderMesh.new()
+				hearth_mesh.top_radius = HEX_RADIUS * 0.38
+				hearth_mesh.bottom_radius = HEX_RADIUS * 0.48
+				hearth_mesh.height = 0.72
+				hearth_mesh.radial_segments = 8
+				_add_floor_object_piece(marker, "Hearth", hearth_mesh, Vector3(0.0, 0.36, 0.0), material)
 				material.albedo_color = Color(0.42, 0.19, 0.10) if object_type == "fireplace" else Color(0.42, 0.25, 0.16)
 				material.emission_enabled = true
 				material.emission = Color(0.65, 0.19, 0.04) if object_type == "fireplace" else Color(0.30, 0.12, 0.04)
-			"throne", "journal":
-				var object_mesh := BoxMesh.new()
-				object_mesh.size = Vector3(HEX_RADIUS * 0.7, 0.9, HEX_RADIUS * 0.7)
-				marker.mesh = object_mesh
-				material.albedo_color = Color(0.35, 0.26, 0.17) if object_type == "throne" else Color(0.36, 0.27, 0.16)
-			"ore_node":
-				var ore_mesh := CylinderMesh.new()
-				ore_mesh.top_radius = HEX_RADIUS * 0.12
-				ore_mesh.bottom_radius = HEX_RADIUS * 0.34
-				ore_mesh.height = 0.9
-				ore_mesh.radial_segments = 6
-				marker.mesh = ore_mesh
-				var ore_type := String(object_data.get("ore_type", ""))
-				if ore_type == "ore_gold":
-					material.albedo_color = Color(0.78, 0.55, 0.16)
-					material.metallic = 0.55
-					material.roughness = 0.34
-				else:
-					material.albedo_color = Color(0.16, 0.48, 0.86)
-					material.emission_enabled = true
-					material.emission = Color(0.06, 0.19, 0.42)
-					material.roughness = 0.28
+			"throne":
+				material.albedo_color = Color(0.35, 0.26, 0.17)
+				_add_box_piece(marker, "Seat", Vector3(HEX_RADIUS * 0.72, 0.18, HEX_RADIUS * 0.68), Vector3(0.0, 0.48, 0.0), material)
+				_add_box_piece(marker, "Back", Vector3(HEX_RADIUS * 0.72, 0.9, 0.16), Vector3(0.0, 0.98, -HEX_RADIUS * 0.27), material)
+				_add_box_piece(marker, "LeftArm", Vector3(0.14, 0.42, HEX_RADIUS * 0.62), Vector3(-HEX_RADIUS * 0.34, 0.69, 0.0), material)
+				_add_box_piece(marker, "RightArm", Vector3(0.14, 0.42, HEX_RADIUS * 0.62), Vector3(HEX_RADIUS * 0.34, 0.69, 0.0), material)
+			"table":
+				material.albedo_color = Color(0.34, 0.22, 0.13)
+				_add_box_piece(marker, "Top", Vector3(HEX_RADIUS * 1.35, 0.16, HEX_RADIUS * 0.92), Vector3(0.0, 0.68, 0.0), material)
+				for x_sign in [-1.0, 1.0]:
+					for z_sign in [-1.0, 1.0]:
+						_add_box_piece(marker, "Leg_%s_%s" % [x_sign, z_sign], Vector3(0.13, 0.62, 0.13), Vector3(x_sign * HEX_RADIUS * 0.48, 0.31, z_sign * HEX_RADIUS * 0.29), material)
+			"bench":
+				material.albedo_color = Color(0.39, 0.27, 0.17)
+				_add_box_piece(marker, "Seat", Vector3(HEX_RADIUS * 1.18, 0.15, HEX_RADIUS * 0.42), Vector3(0.0, 0.43, 0.0), material)
+				_add_box_piece(marker, "LeftLeg", Vector3(0.13, 0.4, 0.13), Vector3(-HEX_RADIUS * 0.42, 0.2, 0.0), material)
+				_add_box_piece(marker, "RightLeg", Vector3(0.13, 0.4, 0.13), Vector3(HEX_RADIUS * 0.42, 0.2, 0.0), material)
+			"bed":
+				material.albedo_color = Color(0.43, 0.35, 0.28)
+				_add_box_piece(marker, "Frame", Vector3(HEX_RADIUS * 1.28, 0.28, HEX_RADIUS * 0.9), Vector3(0.0, 0.25, 0.0), material)
+				var linen := StandardMaterial3D.new()
+				linen.albedo_color = Color(0.72, 0.69, 0.60)
+				linen.roughness = 0.96
+				_add_box_piece(marker, "Mattress", Vector3(HEX_RADIUS * 1.18, 0.16, HEX_RADIUS * 0.82), Vector3(0.0, 0.46, 0.0), linen)
+				_add_box_piece(marker, "Pillow", Vector3(HEX_RADIUS * 0.42, 0.12, HEX_RADIUS * 0.72), Vector3(0.0, 0.60, -HEX_RADIUS * 0.25), linen)
+			"storage_chest":
+				material.albedo_color = Color(0.30, 0.20, 0.12)
+				_add_box_piece(marker, "ChestBody", Vector3(HEX_RADIUS * 0.76, 0.46, HEX_RADIUS * 0.62), Vector3(0.0, 0.25, 0.0), material)
+				var lid_material := StandardMaterial3D.new()
+				lid_material.albedo_color = Color(0.43, 0.30, 0.17)
+				_add_box_piece(marker, "ChestLid", Vector3(HEX_RADIUS * 0.8, 0.14, HEX_RADIUS * 0.66), Vector3(0.0, 0.55, 0.0), lid_material)
+			"door_open", "door_closed", "secret_door", "secret_passage":
+				material.albedo_color = Color(0.28, 0.19, 0.12) if object_type in ["secret_door", "secret_passage"] else Color(0.39, 0.27, 0.17)
+				_add_box_piece(marker, "DoorLeaf", Vector3(HEX_RADIUS * 0.82, 1.9, 0.16), Vector3(0.0, 0.95, 0.0), material)
+				if object_type in ["door_closed", "secret_door"]:
+					var metal := StandardMaterial3D.new()
+					metal.albedo_color = Color(0.48, 0.43, 0.31)
+					metal.metallic = 0.6
+					_add_box_piece(marker, "Handle", Vector3(0.08, 0.12, 0.08), Vector3(HEX_RADIUS * 0.25, 0.92, 0.1), metal)
+			"fence_h", "fence_v":
+				material.albedo_color = Color(0.34, 0.24, 0.14)
+				var rail_length := HEX_RADIUS * 1.45 if object_type == "fence_h" else HEX_RADIUS * 0.48
+				var rail_depth := HEX_RADIUS * 0.48 if object_type == "fence_h" else HEX_RADIUS * 1.45
+				_add_box_piece(marker, "LowerRail", Vector3(rail_length, 0.12, rail_depth), Vector3(0.0, 0.48, 0.0), material)
+				_add_box_piece(marker, "UpperRail", Vector3(rail_length, 0.12, rail_depth), Vector3(0.0, 0.88, 0.0), material)
+				_add_box_piece(marker, "PostLeft", Vector3(0.14, 1.0, 0.14), Vector3(-rail_length * 0.42, 0.5, -rail_depth * 0.42), material)
+				_add_box_piece(marker, "PostRight", Vector3(0.14, 1.0, 0.14), Vector3(rail_length * 0.42, 0.5, rail_depth * 0.42), material)
+			"journal", "evidence":
+				material.albedo_color = Color(0.43, 0.31, 0.18) if object_type == "journal" else Color(0.58, 0.48, 0.27)
+				_add_box_piece(marker, "Object", Vector3(HEX_RADIUS * 0.38, 0.12, HEX_RADIUS * 0.32), Vector3(0.0, 0.18, 0.0), material)
 			_:
-				var generic_mesh := BoxMesh.new()
-				generic_mesh.size = Vector3(HEX_RADIUS * 0.5, 0.4, HEX_RADIUS * 0.5)
-				marker.mesh = generic_mesh
 				material.albedo_color = Color(0.38, 0.36, 0.31)
-		marker.material_override = material
-		marker.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS, 0.5)
+				_add_box_piece(marker, "Generic", Vector3(HEX_RADIUS * 0.5, 0.4, HEX_RADIUS * 0.5), Vector3(0.0, 0.2, 0.0), material)
 		group.add_child(marker)
+		marker.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS)
 		if object_type in ["stair_up", "stair_down"]:
 			var label := Label3D.new()
 			label.text = "UP" if object_type == "stair_up" else "DOWN"
@@ -365,6 +390,21 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 			label.font_size = 18
 			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			group.add_child(label)
+
+
+func _add_box_piece(parent: Node3D, piece_name: String, size: Vector3, local_position: Vector3, material: Material) -> void:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	_add_floor_object_piece(parent, piece_name, mesh, local_position, material)
+
+
+func _add_floor_object_piece(parent: Node3D, piece_name: String, mesh: Mesh, local_position: Vector3, material: Material) -> void:
+	var piece := MeshInstance3D.new()
+	piece.name = piece_name
+	piece.mesh = mesh
+	piece.material_override = material
+	piece.position = local_position
+	parent.add_child(piece)
 
 func _floor_material(floor_number: int) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
