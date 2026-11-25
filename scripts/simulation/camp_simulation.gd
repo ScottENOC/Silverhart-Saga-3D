@@ -320,6 +320,7 @@ func _activate_horse_care_task_for_handler(animal_id: String, preferred_handler:
 		var action := String(task.get("action", ""))
 		if action == "rest":
 			task["status"] = "in_progress"
+			task["blocked_reason"] = ""
 			animal_care_tasks[index] = task
 			var rest_result := perform_animal_care(animal_id, "rest", "")
 			task["status"] = "completed" if bool(rest_result.get("ok", false)) else "blocked"
@@ -341,6 +342,7 @@ func _activate_horse_care_task_for_handler(animal_id: String, preferred_handler:
 			animal_care_tasks[index] = task
 			continue
 		task["status"] = "in_progress"
+		task["blocked_reason"] = ""
 		animal_care_tasks[index] = task
 		var activity := "care_horse_" + action
 		var current: Dictionary = assignments.get(handler_id, {})
