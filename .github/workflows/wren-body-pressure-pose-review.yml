@@ -64,6 +64,11 @@ jobs:
           assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})
           assert report["validation"]["buttock_pressure_preview_rendered"], report.get("buttock_pressure_preview", {})
           assert "pressure_buttock_right" in report["buttock_pressure_preview"]["active_regions"]
+          measured=report["measured_pressure_deformation"]["combined"]
+          assert measured["vertex_count"] > 0
+          assert measured["max_displacement_mm"] > 0.0, report["measured_pressure_deformation"]
+          buttock=report["measured_buttock_deformation"]["combined"]
+          assert buttock["max_displacement_mm"] > 0.0, report["measured_buttock_deformation"]
           assert report["validation"]["stiffness_sweep_glb_exported"], report.get("stiffness_sweep", {})
           assert report["validation"]["stiffness_sweep_preview_rendered"], report.get("stiffness_sweep", {})
           assert len(report["stiffness_sweep"]["cases"]) == 4
@@ -75,6 +80,8 @@ jobs:
           print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
           print("Stiffness sweep GLB:", report["stiffness_sweep"])
           print("Posterior buttock deformation preview:", report["buttock_pressure_preview"])
+          print("Measured combined pressure deformation (mm):", json.dumps(report["measured_pressure_deformation"]["combined"]))
+          print("Measured buttock deformation (mm):", json.dumps(report["measured_buttock_deformation"]["combined"]))
           print("Palm-anchor-to-selected-surface gaps (m):", json.dumps(report.get("palm_anchor_surface_gaps", {})))
           print("This verifies a bone-based palm proxy, not final hand-mesh collision or anatomical-region membership.")
           print("Selected surface anchors:", json.dumps(report["contact_target_surface_anchors"]))
