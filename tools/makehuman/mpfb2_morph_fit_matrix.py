@@ -211,6 +211,20 @@ def main():
             export_cameras=False, export_lights=False, export_apply=True,
             export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
         )
+        # Re-import the actual GLB into an empty scene and render that result.
+        # This catches differences between Blender's source scene and export.
+        for obj in list(bpy.data.objects):
+            bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.ops.import_scene.gltf(filepath=result["glb"])
+        roundtrip_meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
+        if len(roundtrip_meshes) != 2:
+            raise RuntimeError(
+                f"GLB round-trip for {label} should contain body and outfit only; "
+                f"found {len(roundtrip_meshes)} mesh objects"
+            )
+        render_character(label + "_glb_roundtrip")
+        result["glb_roundtrip_render"] = os.path.join(OUTPUT_DIR, label + "_glb_roundtrip.png")
+        result["glb_roundtrip_mesh_objects"] = [obj.name for obj in roundtrip_meshes]
         results.append(result)
 
     baseline = garment_vertices["neutral"]
