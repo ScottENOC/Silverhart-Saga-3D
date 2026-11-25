@@ -153,7 +153,7 @@ const captureCode = [
   "JSON.stringify({",
   "terrain: window.overrideTerrain,",
   "tileObjects: window.tileObjects,",
-  "npcBaseline: window._campaign2NpcBaseline || {},
+  "npcBaseline: window._campaign2NpcBaseline || {},",
   "worldMapData: window.worldMapData,",
   "worldRiverPath: window.worldRiverPath || [],",
   "interiors: window.interiorRegions,",
