@@ -40,6 +40,10 @@ Controls:
 - `feature/<topic>`: isolated work.
 - Use Git LFS selectively for source art and large audio/model files. Do not automatically put every texture or small exported asset in LFS.
 
+## Creature assets
+
+A reusable source-asset registry and visual factory are being established for dragons and future monsters. See `docs/creature_asset_pipeline.md`; open `scenes/prototypes/creature_asset_showcase.tscn` and run with F6 to inspect size, colour and animation variants once the source GLB is installed.
+
 ## Tests
 
 With Godot installed, run:
@@ -48,6 +52,7 @@ With Godot installed, run:
 godot --headless --path . --script res://tests/test_hex_grid.gd
 godot --headless --path . --script res://tests/test_simulation.gd
 godot --headless --path . --script res://tests/test_save_manager.gd
+godot --headless --path . --script res://tests/test_creature_asset_catalog.gd
 ```
 
 The test scripts are included but have not yet been executed in this environment. See `docs/` for the technical decisions and milestone plan, including `docs/save_system.md`.
