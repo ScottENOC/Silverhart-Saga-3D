@@ -373,6 +373,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		push_warning("Regional Vampire Grave presentation failed: %s" % vampire_grave_presentation)
 	var druid_grove_presentation: Dictionary = DRUID_GROVE_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
 	var unicorn_track_presentation: Dictionary = UNICORN_TRACK_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	var wolf_den_presentation: Dictionary = WOLF_DEN_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(wolf_den_presentation.get("ok", false)):
+		push_warning("Regional Old Mac wolf den presentation failed: %s" % wolf_den_presentation)
 	if not bool(unicorn_track_presentation.get("ok", false)):
 		push_warning("Regional unicorn track presentation failed: %s" % unicorn_track_presentation)
 	var wolf_den_presentation: Dictionary = WOLF_DEN_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
