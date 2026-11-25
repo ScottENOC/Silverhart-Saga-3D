@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TAB_EXTENSIONS = {".tscn", ".tres"}
 SPACE_WIDTHS = {".json": 2}
+SPACE_GDSCRIPT_FILES = {"scripts/simulation/world_simulation.gd"}
 
 
 def check_file(path: Path) -> list[tuple[int, str]]:
@@ -32,7 +33,13 @@ def check_file(path: Path) -> list[tuple[int, str]]:
         has_spaces = " " in prefix
 
         if extension == ".gd":
-            if has_spaces:
+            relative_path = path.relative_to(ROOT).as_posix()
+            if relative_path in SPACE_GDSCRIPT_FILES:
+                if has_tabs:
+                    issues.append((number, "tabs used; this legacy file uses four-space indentation"))
+                elif has_spaces and len(prefix) % 4:
+                    issues.append((number, "indentation is not a multiple of four spaces"))
+            elif has_spaces:
                 reason = "mixed tabs and spaces in indentation" if has_tabs else "spaces used; expected tabs"
                 issues.append((number, reason))
             elif prefix:

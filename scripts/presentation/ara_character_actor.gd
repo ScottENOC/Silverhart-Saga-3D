@@ -718,6 +718,77 @@ func refresh_portrait() -> void:
 		portrait_renderer.refresh_source(model_root)
 
 
+## Play the closest shipped Ara clip for a camp job. Looping clips stay active;
+## one-shot interactions are replayed after they finish by the camp director.
+static func camp_activity_animation_hints(activity: String) -> PackedStringArray:
+	match activity:
+		"gather_wood":
+			return PackedStringArray(["pick_up", "carry_idle"])
+		"set_up_tents":
+			return PackedStringArray(["pick_up", "use_press"])
+		"fetch_water", "care_horse_water":
+			return PackedStringArray(["pick_up", "carry_idle"])
+		"care_horse_feed", "care_horse_groom", "care_horse_tether":
+			return PackedStringArray(["use_press"])
+		"cook":
+			return PackedStringArray(["use_press"])
+		"repair_gear":
+			return PackedStringArray(["use_press"])
+		"study_map":
+			return PackedStringArray(["use_press"])
+		# The current Ara package has no dedicated squat/push-up, talk-gesture
+		# or lookout clips. Use its real crouch, Talk and Idle clips instead.
+		"train":
+			return PackedStringArray(["crouch_idle", "jump"])
+		"socialise":
+			return PackedStringArray(["talk", "idle"])
+		"watch":
+			return PackedStringArray(["idle"])
+		"sleep":
+			return PackedStringArray(["sleep", "lie_down"])
+		_:
+			return PackedStringArray(["idle"])
+
+func play_camp_activity(activity: String) -> bool:
+	if animation_player == null or not is_instance_valid(animation_player):
+		return false
+	var current := String(animation_player.current_animation).to_lower()
+	var current_playing := animation_player.is_playing()
+	var preferred: Array[String] = []
+	for hint in camp_activity_animation_hints(activity):
+		preferred.append(String(hint))
+	var clip := ""
+	if activity == "gather_wood" or activity == "set_up_tents" or activity == "fetch_water":
+		var pickup := _find_animation_clip(["pick_up"])
+		var follow_up := _find_animation_clip(["carry_idle"] if activity != "set_up_tents" else ["use_press"])
+		if pickup.is_empty():
+			clip = follow_up
+		elif current == pickup.to_lower() and current_playing:
+			return true
+		elif current == follow_up.to_lower() and current_playing:
+			return true
+		elif current == pickup.to_lower() and not current_playing and not follow_up.is_empty():
+			clip = follow_up
+		else:
+			clip = pickup
+	elif activity == "sleep":
+		var lie_down := _find_animation_clip(["lie_down"])
+		var sleep := _find_animation_clip(["sleep"])
+		if current == lie_down.to_lower() and current_playing:
+			return true
+		if current == sleep.to_lower() and current_playing:
+			return true
+		clip = sleep if lie_down.is_empty() or (current == lie_down.to_lower() and not current_playing) else lie_down
+	else:
+		clip = _find_animation_clip(preferred)
+	if clip.is_empty():
+		return false
+	if animation_player.current_animation == StringName(clip) and animation_player.is_playing():
+		return true
+	animation_player.play(clip, 0.18)
+	return true
+
+
 func set_moving(is_moving: bool) -> bool:
 	if animation_player == null or not is_instance_valid(animation_player):
 		return false
@@ -735,18 +806,30 @@ func play_walk() -> bool:
 func play_idle() -> bool:
 	return set_moving(false)
 
-func _find_animation_clip(preferred_tokens: Array[String]) -> String:
+func _find_animation_clip(preferred_tokens: Array) -> String:
 	if animation_player == null:
 		return ""
 	var available := animation_player.get_animation_list()
-	for token in preferred_tokens:
+	for token_value in preferred_tokens:
+		var token := _normalise_animation_token(String(token_value))
+		if token.is_empty():
+			continue
 		for animation_name in available:
-			if String(animation_name).to_lower() == token:
+			if _normalise_animation_token(String(animation_name)) == token:
 				return String(animation_name)
 		for animation_name in available:
-			if String(animation_name).to_lower().contains(token):
+			if _normalise_animation_token(String(animation_name)).contains(token):
 				return String(animation_name)
 	return ""
+
+
+## Ara exports may use CamelCase or spaced clip labels while gameplay uses
+## snake_case semantic hints. Compare names independently of separators.
+func _normalise_animation_token(value: String) -> String:
+	var normalized := value.to_lower()
+	for separator in ["_", "-", " ", ".", ":"]:
+		normalized = normalized.replace(separator, "")
+	return normalized
 
 func _play_idle_if_available() -> void:
 	if animation_player == null or not is_instance_valid(animation_player):

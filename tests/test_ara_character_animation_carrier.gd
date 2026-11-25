@@ -152,6 +152,58 @@ func _test_character(asset_path: String, label: String, check_face_rests: bool) 
 			label + " preserves native " + bone_name + " rest transform during animation")
 
 	_check(actor.set_moving(false), label + " returns to idle")
+	if check_face_rests:
+		var required_camp_clips := [
+			"pick_up", "carry_idle", "use_press", "talk", "idle",
+			"crouch_idle", "lie_down", "sleep"
+		]
+		for clip_token in required_camp_clips:
+			_check(_has_animation_token(player, clip_token),
+				label + " animation source includes camp clip " + clip_token)
+
+		var activity_cases := [
+			{"activity": "gather_wood", "expected": "pick_up"},
+			{"activity": "set_up_tents", "expected": "pick_up"},
+			{"activity": "fetch_water", "expected": "pick_up"},
+			{"activity": "cook", "expected": "use_press"},
+			{"activity": "repair_gear", "expected": "use_press"},
+			{"activity": "study_map", "expected": "use_press"},
+			{"activity": "train", "expected": "crouch_idle"},
+			{"activity": "socialise", "expected": "talk"},
+			{"activity": "watch", "expected": "idle"},
+			{"activity": "sleep", "expected": "lie_down"}
+		]
+		for activity_case in activity_cases:
+			var activity := String(activity_case.activity)
+			var expected := String(activity_case.expected)
+			var played: bool = actor.play_camp_activity(activity)
+			_check(played, label + " accepts camp activity " + activity)
+			if played:
+				_check(_animation_name_matches(String(player.current_animation), expected),
+					"Camp activity %s selects its expected Ara clip" % activity)
+
+		_check(actor.play_camp_activity("socialise"),
+			label + " returns to conversational camp animation")
+		var talk_starting_source_poses: Array[Transform3D] = []
+		_starting_target_global_poses.clear()
+		_max_processed_target_changed_bones = 0
+		for bone_index in range(source_skeleton.get_bone_count()):
+			talk_starting_source_poses.append(source_skeleton.get_bone_global_pose(bone_index))
+		for bone_index in range(target_skeleton.get_bone_count()):
+			_starting_target_global_poses.append(target_skeleton.get_bone_global_pose(bone_index))
+		await create_timer(0.3).timeout
+		var talk_changed_source_bones := 0
+		for bone_index in range(source_skeleton.get_bone_count()):
+			if not source_skeleton.get_bone_global_pose(bone_index).is_equal_approx(talk_starting_source_poses[bone_index]):
+				talk_changed_source_bones += 1
+		# Read the target during SkeletonModifier3D's post-modification callback;
+		# a direct read after the frame can observe Skeleton3D's pre-modifier pose.
+		var talk_changed_target_bones := _max_processed_target_changed_bones
+		_check(talk_changed_source_bones >= 3,
+			"Ara Talk camp animation moves its source skeleton (%d changed bones)" % talk_changed_source_bones)
+		_check(talk_changed_target_bones >= 3,
+			"Ara Talk camp animation deforms the native character skeleton (%d changed bones)" % talk_changed_target_bones)
+
 	actor.skeleton_retargeter.modification_processed.disconnect(_on_retarget_modification_processed)
 	_observed_target_skeleton = null
 	_starting_target_global_poses.clear()
@@ -167,6 +219,26 @@ func _on_retarget_modification_processed() -> void:
 		if not _observed_target_skeleton.get_bone_global_pose(bone_index).is_equal_approx(_starting_target_global_poses[bone_index]):
 			changed += 1
 	_max_processed_target_changed_bones = maxi(_max_processed_target_changed_bones, changed)
+
+
+func _normalise_animation_token(value: String) -> String:
+	var normalized := value.to_lower()
+	for separator in ["_", "-", " ", ".", ":"]:
+		normalized = normalized.replace(separator, "")
+	return normalized
+
+
+func _animation_name_matches(animation_name: String, token: String) -> bool:
+	return _normalise_animation_token(animation_name).contains(_normalise_animation_token(token))
+
+
+func _has_animation_token(player: AnimationPlayer, token: String) -> bool:
+	if player == null:
+		return false
+	for animation_name in player.get_animation_list():
+		if _animation_name_matches(String(animation_name), token):
+			return true
+	return false
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:

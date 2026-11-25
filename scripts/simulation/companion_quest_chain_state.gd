@@ -476,12 +476,11 @@ func _load_chapters() -> void:
 		push_error("Missing companion quest chain data: " + DATA_PATH)
 		return
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
-	if not (parsed is Dictionary):
-		push_error("Invalid companion quest chain JSON.")
-		return
-	var chapter_list: Variant = parsed.get("chapters", [])
+	var chapter_list: Variant = parsed
+	if parsed is Dictionary:
+		chapter_list = parsed.get("chapters", [])
 	if not (chapter_list is Array):
-		push_error("Companion quest chain JSON has no chapter list.")
+		push_error("Invalid companion quest chain JSON: expected an array or a dictionary with a chapters array.")
 		return
 	for chapter_value in chapter_list:
 		if not (chapter_value is Dictionary):
@@ -498,12 +497,11 @@ func _load_prerequisite_quests() -> void:
 		push_error("Missing companion prerequisite quest data: " + PREREQUISITE_DATA_PATH)
 		return
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PREREQUISITE_DATA_PATH))
-	if not (parsed is Dictionary):
-		push_error("Invalid companion prerequisite quest JSON.")
-		return
-	var quest_list: Variant = parsed.get("quests", [])
+	var quest_list: Variant = parsed
+	if parsed is Dictionary:
+		quest_list = parsed.get("quests", [])
 	if not (quest_list is Array):
-		push_error("Companion prerequisite quest JSON has no quest list.")
+		push_error("Invalid companion prerequisite quest JSON: expected an array or a dictionary with a quests array.")
 		return
 	for quest_value in quest_list:
 		if not (quest_value is Dictionary):

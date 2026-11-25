@@ -14,6 +14,10 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
+const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
+const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
+const DWELLING_WORLD_PRESENTATION = preload("res://scripts/presentation/campaign_dwelling_world_presentation.gd")
+const SKELETAL_GUARDIAN_ACTOR_SCRIPT = preload("res://scripts/presentation/skeletal_guardian_actor.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
@@ -31,6 +35,8 @@ const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
+const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
+const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -121,6 +127,12 @@ var wilderness_steps_since_spawn: int = 0
 var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
+var camp_presentation: CampWorldPresentation
+var camp_activity_director: CampPartyActivityDirector
+var camp_selection_mode: bool = false
+var camp_button: Button
+var camp_sleep_button: Button
+var camp_status_label: Label
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
@@ -144,13 +156,17 @@ func _ready() -> void:
 	_create_reyna_shelter()
 	_capture_initial_character_baselines()
 	_create_camera()
+	_create_camp_presentation()
 	_create_hud()
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
+	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
+	_refresh_dwelling_world_presentation()
+	_restore_abandoned_house_guardian_actors()
 	_initialise_companion_relationship_context()
 	var initial_player_state := simulation.get_character("player")
 	var player_race := initial_player_state.race if initial_player_state != null else "human"
@@ -229,6 +245,8 @@ func _configure_location_simulation() -> void:
 		push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
 		return
 	simulation.clock.ticked.connect(_on_world_clock_ticked)
+	if not simulation.weather_changed.is_connected(_on_world_weather_changed):
+		simulation.weather_changed.connect(_on_world_weather_changed)
 	simulation.action_committed.connect(_on_simulation_action_committed)
 	# Materialise the opening area through the same world provider used by the
 	# regional preview. Hollowmere is no longer a bypassed special-case radius.
@@ -247,6 +265,24 @@ func _configure_location_simulation() -> void:
 	simulation.reaction_resolved.connect(_on_reaction_resolved)
 	simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
 	simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
+
+
+func _camp_weather_summary(conditions: Dictionary) -> String:
+	return "%s · %.1f°C · wind %.0f km/h" % [
+		String(conditions.get("weather_label", "Clear")),
+		float(conditions.get("temperature_c", 0.0)),
+		float(conditions.get("wind_speed", 0.0))
+	]
+
+
+func _on_world_weather_changed(_conditions: Dictionary) -> void:
+	if simulation == null or camp_status_label == null:
+		return
+	if simulation.camp_simulation.phase != "evening":
+		return
+	var terrain_id := String(simulation.camp_simulation.site.get("terrain_id", ""))
+	var local_conditions := simulation.weather_state.conditions_at(simulation.clock.world_seconds, terrain_id)
+	camp_status_label.text = "Camp · %s. Companion routines have adjusted to the changing weather." % _camp_weather_summary(local_conditions)
 
 
 func _on_campaign_world_time_advanced(world_seconds: float) -> void:
@@ -615,6 +651,140 @@ func _create_camera() -> void:
 	add_child(camera_rig)
 	camera_rig.follow_target = actor_by_id["player"]
 
+func _create_camp_presentation() -> void:
+	camp_presentation = CAMP_WORLD_PRESENTATION_SCRIPT.new() as CampWorldPresentation
+	camp_presentation.name = "CampWorldPresentation"
+	camp_presentation.configure(Callable(self, "_hex_world_position"))
+	add_child(camp_presentation)
+	camp_activity_director = CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT.new() as CampPartyActivityDirector
+	camp_activity_director.name = "CampPartyActivityDirector"
+	camp_activity_director.configure(simulation, Callable(self, "_camp_actor_for_id"))
+	camp_activity_director.companion_exchange.connect(_on_camp_companion_exchange)
+	add_child(camp_activity_director)
+
+
+
+## Autonomous companion banter is presented over the characters themselves,
+## not as player dialogue. Each speaker gets a turn and both actors are already
+## playing their conversation animation when this arrives.
+func _on_camp_companion_exchange(exchange: Dictionary) -> void:
+	if dialogue_open or encounter_active or simulation == null or simulation.is_in_combat:
+		return
+	var lines: Array = exchange.get("lines", [])
+	for line_value in lines:
+		if dialogue_open or encounter_active or simulation == null:
+			return
+		if simulation.camp_simulation.phase != "evening" or simulation.is_in_combat:
+			return
+		var line: Dictionary = line_value
+		var speaker_id := String(line.get("character_id", ""))
+		var text := String(line.get("text", ""))
+		if speaker_id.is_empty() or text.is_empty():
+			continue
+		_show_speech_bubble(speaker_id, text)
+		await get_tree().create_timer(_speech_bubble_duration(text)).timeout
+
+
+
+func _camp_actor_for_id(character_id: String) -> AraCharacterActor:
+	var actor := actor_by_id.get(character_id) as Node3D
+	if actor == null:
+		return null
+	return actor.get_node_or_null("CharacterModel") as AraCharacterActor
+
+
+func _toggle_camp_site_selection() -> void:
+	if simulation == null or simulation.is_in_combat or simulation.has_pending_reaction():
+		return
+	if simulation.camp_simulation.phase == "evening" or simulation.camp_simulation.phase == "night":
+		if camp_status_label != null:
+			camp_status_label.text = "Your camp is already established. Finish the evening or sleep until morning."
+		return
+	camp_selection_mode = not camp_selection_mode
+	if camp_status_label != null:
+		camp_status_label.text = "Choose a clear, walkable ground hex for camp." if camp_selection_mode else "Camp placement cancelled."
+	if camp_button != null:
+		camp_button.text = "Cancel [B]" if camp_selection_mode else "Camp [B]"
+
+
+func _select_camp_site(hex: Vector2i) -> void:
+	camp_selection_mode = false
+	if camp_button != null:
+		camp_button.text = "Camp [B]"
+	if _is_upper_floor_hex(hex) or not simulation.map_data.has_cell(hex) or not simulation.map_data.is_walkable(hex):
+		camp_status_label.text = "That ground is unsuitable for a campsite."
+		return
+	if simulation.is_hex_occupied(hex):
+		camp_status_label.text = "Choose an unoccupied patch of ground."
+		return
+	var nearby_trees := false
+	var water_nearby := false
+	for candidate in simulation.map_data.cells:
+		var candidate_hex: Vector2i = candidate
+		if HexGrid.distance(hex, candidate_hex) > 4:
+			continue
+		var terrain := simulation.map_data.terrain_id_at(candidate_hex)
+		if terrain == "forest":
+			nearby_trees = true
+		elif terrain == "water":
+			water_nearby = true
+		if nearby_trees and water_nearby:
+			break
+	var site := {
+		"hex": hex,
+		"position": _hex_world_position(hex),
+		"walkable": true,
+		"occupied": false,
+		"terrain_id": simulation.map_data.terrain_id_at(hex)
+	}
+	for dwelling_site in DWELLING_WORLD_SERVICE.nearby_sites(hex, 3):
+		var dwelling_id := String(dwelling_site.get("dwelling_id", ""))
+		var dwelling_profile := simulation.campaign_dwellings.camp_profile_for(dwelling_id)
+		if not dwelling_profile.is_empty() and bool(dwelling_profile.get("is_sheltered", false)):
+			site["dwelling_id"] = dwelling_id
+			break
+	var environment := {
+		"trees_nearby": nearby_trees,
+		"water_nearby": water_nearby,
+		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
+	}
+	var result := simulation.begin_camp(site, environment, {}, active_character_id)
+	if not bool(result.get("ok", false)):
+		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
+		return
+	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+	camp_activity_director.begin_camp(simulation.camp_simulation.site)
+	var weather_summary := _camp_weather_summary(simulation.camp_simulation.environment)
+	camp_status_label.text = "Camp established · %s. The party's evening routines will adapt to the conditions." % weather_summary
+	if camp_sleep_button != null:
+		camp_sleep_button.visible = true
+		camp_sleep_button.text = "Sleep until morning"
+
+
+func _sleep_or_pack_camp() -> void:
+	if simulation == null:
+		return
+	if simulation.camp_simulation.phase == "evening":
+		camp_activity_director.stop()
+		var result := simulation.skip_camp_to_morning()
+		if not bool(result.get("ok", false)):
+			camp_status_label.text = "Could not begin the night: %s" % String(result.get("reason", "unknown"))
+			return
+		var summary: Dictionary = result.get("summary", {})
+		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		camp_status_label.text = "Morning. Camp comfort: %d/100 · estimated overnight ambush risk: %d%%." % [
+			roundi(float(summary.get("average_comfort", 0.0))),
+			roundi(float(summary.get("ambush_chance", 0.0)) * 100.0)
+		]
+		camp_sleep_button.text = "Pack camp"
+	elif simulation.camp_simulation.phase == "resolved":
+		camp_activity_director.stop()
+		camp_presentation.clear_camp()
+		camp_sleep_button.visible = false
+		camp_status_label.text = "Camp packed. Ready to continue travelling."
+		simulation.camp_simulation.phase = "inactive"
+
+
 func _create_hud() -> void:
 	var layer := CanvasLayer.new()
 	location_label = Label.new()
@@ -699,6 +869,28 @@ func _create_hud() -> void:
 	world_map_button.custom_minimum_size = Vector2(140.0, 42.0)
 	world_map_button.pressed.connect(_toggle_world_map)
 	layer.add_child(world_map_button)
+
+	camp_button = Button.new()
+	camp_button.text = "Camp [B]"
+	camp_button.position = Vector2(990.0, 18.0)
+	camp_button.custom_minimum_size = Vector2(125.0, 42.0)
+	camp_button.pressed.connect(_toggle_camp_site_selection)
+	layer.add_child(camp_button)
+
+	camp_sleep_button = Button.new()
+	camp_sleep_button.text = "Sleep until morning"
+	camp_sleep_button.position = Vector2(990.0, 66.0)
+	camp_sleep_button.custom_minimum_size = Vector2(190.0, 40.0)
+	camp_sleep_button.visible = false
+	camp_sleep_button.pressed.connect(_sleep_or_pack_camp)
+	layer.add_child(camp_sleep_button)
+
+	camp_status_label = Label.new()
+	camp_status_label.position = Vector2(990.0, 112.0)
+	camp_status_label.custom_minimum_size = Vector2(300.0, 72.0)
+	camp_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	camp_status_label.add_theme_color_override("font_color", Color("#f0dfbd"))
+	layer.add_child(camp_status_label)
 
 	combat_hud = CampaignCombatHud.new()
 	combat_hud.name = "CampaignCombatHud"
@@ -911,12 +1103,17 @@ func _build_save_snapshot() -> Dictionary:
 		"active_character_id": active_character_id,
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
+		"world_weather": simulation.weather_state.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
 		"persistent_character_relationships": PERSISTENT_RELATIONSHIP_STORE.to_dict(simulation),
 		"companion_campaign_runtime": COMPANION_RUNTIME_STORE.to_dict(simulation),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
+		"camp_simulation": simulation.camp_simulation.to_dict(),
+		"companion_bonds": simulation.companion_bonds.to_dict(),
+		"campaign_dwellings": simulation.campaign_dwellings.to_dict(),
+		"dynamic_campaign_characters": ABANDONED_HOUSE_QUEST_SCRIPT.dynamic_character_records(simulation),
 		"world_flags": {
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
@@ -958,6 +1155,15 @@ func _apply_save_data(data: Dictionary) -> void:
 	if not simulation.restore_character_states(restored_states):
 		push_error("Saved character states could not be restored without invalid occupancy or mount links.")
 		return
+	var dynamic_records: Variant = data.get("dynamic_campaign_characters", {})
+	if dynamic_records is Dictionary:
+		for character_id_value in dynamic_records.keys():
+			var character_id := String(character_id_value)
+			if simulation.get_character(character_id) != null or not (dynamic_records[character_id_value] is Dictionary):
+				continue
+			var dynamic_state := CharacterState.from_dict(dynamic_records[character_id_value])
+			if dynamic_state != null:
+				simulation.register_character(dynamic_state)
 	var appearance_diffs: Variant = data.get("appearance_diffs", {})
 	if appearance_diffs is Dictionary:
 		for actor_id_variant in appearance_diffs.keys():
@@ -991,6 +1197,26 @@ func _apply_save_data(data: Dictionary) -> void:
 	var clock_data: Variant = data.get("clock", {})
 	if clock_data is Dictionary:
 		simulation.clock.load_dict(clock_data)
+	var weather_data: Variant = data.get("world_weather", {})
+	if weather_data is Dictionary and not weather_data.is_empty():
+		if not simulation.weather_state.load_dict(weather_data):
+			push_warning("Saved world weather seed was invalid; a new weather sequence was generated.")
+	simulation.weather_state.update_to(simulation.clock.world_seconds)
+	var saved_camp: Variant = data.get("camp_simulation", {})
+	if saved_camp is Dictionary and not saved_camp.is_empty():
+		if not simulation.camp_simulation.from_dict(saved_camp):
+			push_warning("Saved camp state was invalid and has been reset.")
+			simulation.camp_simulation = CampSimulation.new()
+	var saved_dwellings: Variant = data.get("campaign_dwellings", {})
+	if saved_dwellings is Dictionary and not saved_dwellings.is_empty():
+		if not simulation.campaign_dwellings.from_dict(saved_dwellings):
+			push_warning("Saved player dwelling ownership was invalid and has been reset.")
+			simulation.campaign_dwellings = CampaignDwellingState.new()
+	var saved_bonds: Variant = data.get("companion_bonds", {})
+	if saved_bonds is Dictionary and not saved_bonds.is_empty():
+		if not simulation.companion_bonds.from_dict(saved_bonds):
+			push_warning("Saved companion-to-companion relationships were invalid and have been reset.")
+			simulation.companion_bonds = CompanionBondState.new()
 	var journal_data: Variant = data.get("campaign_journal", {})
 	if journal_data is Dictionary:
 		simulation.campaign_journal.load_dict(journal_data)
@@ -1045,6 +1271,12 @@ func _apply_save_data(data: Dictionary) -> void:
 		if is_instance_valid(defeated_wolf_actor):
 			defeated_wolf_actor.queue_free()
 		actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
+	if simulation.camp_simulation.phase in ["evening", "night", "resolved"]:
+		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		if simulation.camp_simulation.phase == "evening":
+			camp_activity_director.begin_camp(simulation.camp_simulation.site)
+		camp_sleep_button.visible = true
+		camp_sleep_button.text = "Sleep until morning" if simulation.camp_simulation.phase == "evening" else "Pack camp"
 	if camera_rig != null:
 		camera_rig.follow_target = actor_by_id.get(active_character_id, actor_by_id.get("player")) as Node3D
 		var camera_data: Dictionary = data.get("camera", {})
@@ -1100,6 +1332,50 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with("furniture_buy:"):
+		var item_id := choice_id.trim_prefix("furniture_buy:")
+		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
+		var inspection := DWELLING_WORLD_SERVICE.furniture_shop_inspection(simulation.get_character(simulation.player_character_id))
+		if bool(purchase.get("ok", false)):
+			_show_dialogue(String(inspection.get("speaker", "Furniture Shop")), "%s purchased. The piece is now in your furniture inventory.\n\n%s" % [String(CampaignFurnitureCatalog.definition(item_id).get("name", item_id)), String(inspection.get("text", ""))], inspection.get("choices", []))
+		else:
+			var reason := String(purchase.get("reason", "purchase_failed")).replace("_", " ")
+			_show_dialogue(String(inspection.get("speaker", "Furniture Shop")), "The purchase could not be completed: %s.\n\n%s" % [reason, String(inspection.get("text", ""))], inspection.get("choices", []))
+		return
+	if choice_id.begins_with("dwelling_action:"):
+		var parts := choice_id.split(":")
+		if parts.size() == 4:
+			var result := simulation.claim_dwelling(String(parts[1]), String(parts[2]), String(parts[3]), active_character_id)
+			if bool(result.get("ok", false)):
+				_refresh_dwelling_world_presentation()
+				var dwelling_name := String(result.get("dwelling_id", "Property")).replace("_", " ")
+				var layout_id := String(result.get("layout_id", ""))
+				_show_dialogue("Property", "The work is complete. %s is now yours.\nLayout identity: %s." % [dwelling_name.capitalize(), layout_id], [{"id": "continue", "label": "Continue", "text": ""}])
+			else:
+				_show_dialogue("Property", "That work cannot be completed: %s." % String(result.get("reason", "requirements_not_met")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+		else:
+			_show_dialogue("Property", "That property action is invalid.", [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
+	if choice_id == "abandoned_house_investigate":
+		var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
+		var spawned := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
+		if bool(started.get("ok", false)) and bool(spawned.get("ok", false)):
+			_restore_abandoned_house_guardian_actors()
+			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
+		else:
+			_show_dialogue("Abandoned House", "The house cannot be investigated right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if choice_id == "abandoned_house_finalize":
+		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
+		var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
+		if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
+			_show_dialogue("Abandoned House", "The last of the necromancer's undead minions is gone. The house can now be restored.", [{"id": "continue", "label": "Continue", "text": ""}])
+		else:
+			_show_dialogue("Abandoned House", "The clearing is not yet resolved: %s." % String(clearing.get("reason", "remaining necromancer minions")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
+	if choice_id == "abandoned_house_enter":
+		_begin_abandoned_house_encounter()
+		return
 	if _handle_seraphine_choice(choice):
 		return
 	if choice_id == "wren_arc_topic:why_stay":
@@ -1209,6 +1485,7 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
 		"necromancer_standing": journal.faction_standing("necromancer_cult"),
 		"phylactery_returned": bool(simulation.get_meta("phylactery_returned", false)),
+		"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
 		"has_phylactery_shard": _player_has_item("phylactery_shard"),
 		"wizard_vendetta_active": String(journal.quest_state("wizard_vendetta").get("status", "")) == "active",
 		"has_wizard_corruption_evidence": _player_has_item("wizard_corruption_evidence"),
@@ -1228,8 +1505,15 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		"seraphine_request_favour":
 			response = content.seraphine_manor_request_response()
 		"seraphine_manor_accept":
+			var grant := simulation.claim_dwelling("claim_silverhart_manor", "materials", "silverhart_palace", active_character_id)
+			if not bool(grant.get("ok", false)):
+				_show_dialogue("Queen Seraphine Corrin", "I cannot grant the townhouse just now: %s." % String(grant.get("reason", "requirements_not_met")).replace("_", " "), [{"id":"continue","label":"Understood","kind":"leave"}])
+				return true
 			simulation.set_meta("silverhart_manor_granted", true)
+			_refresh_dwelling_world_presentation()
 			response = content.seraphine_manor_granted_response()
+		"seraphine_manor_followup":
+			response = {"ok": true, "speaker": "Queen Seraphine Corrin", "text": "The grant remains yours. The townhouse is still in need of fortification; timber and stone will see it restored.", "response_label": "I will see to it."}
 		"seraphine_wizard_evidence":
 			response = content.seraphine_wizard_evidence_response()
 		"seraphine_report_chancellor_tunnel":
@@ -1243,10 +1527,13 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	if not bool(response.get("ok", false)):
 		_show_dialogue("Queen Seraphine Corrin", "That matter cannot be discussed just now.", [{"id":"continue","label":"Understood","kind":"leave"}])
 		return true
+	var response_choices: Array = response.get("choices", [])
+	if response_choices.is_empty():
+		response_choices = [{"id":"continue","label":String(response.get("response_label", "Continue")),"kind":"leave"}]
 	_show_dialogue(
 		String(response.get("speaker", "Queen Seraphine Corrin")),
 		String(response.get("text", "")),
-		[{"id":"continue","label":String(response.get("response_label", "Continue")),"kind":"leave"}]
+		response_choices
 	)
 	return true
 
@@ -1378,21 +1665,35 @@ func _refresh_nearby_interactions() -> void:
 				break
 		if not already_listed:
 			nearby.push_front({"id":party_id,"name":party_state.display_name,"hostile":false})
-	if nearby.is_empty():
+	var nearby_sites := DWELLING_WORLD_SERVICE.nearby_sites(active_state.axial, 3)
+	if nearby.is_empty() and nearby_sites.is_empty():
 		nearby_interaction_panel.visible = false
 		return
-	var heading := Label.new()
-	heading.text = "NEARBY PEOPLE"
-	heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
-	nearby_interaction_box.add_child(heading)
-	for index in range(mini(nearby.size(), 6)):
-		var entry: Dictionary = nearby[index]
-		var target_id := String(entry.id)
-		var talk_button := Button.new()
-		talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
-		talk_button.custom_minimum_size = Vector2(225.0, 34.0)
-		talk_button.pressed.connect(_on_nearby_interaction_pressed.bind(target_id))
-		nearby_interaction_box.add_child(talk_button)
+	if not nearby.is_empty():
+		var heading := Label.new()
+		heading.text = "NEARBY PEOPLE"
+		heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+		nearby_interaction_box.add_child(heading)
+		for index in range(mini(nearby.size(), 6)):
+			var entry: Dictionary = nearby[index]
+			var target_id := String(entry.id)
+			var talk_button := Button.new()
+			talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
+			talk_button.custom_minimum_size = Vector2(225.0, 34.0)
+			talk_button.pressed.connect(_on_nearby_interaction_pressed.bind(target_id))
+			nearby_interaction_box.add_child(talk_button)
+	if not nearby_sites.is_empty():
+		var property_heading := Label.new()
+		property_heading.text = "NEARBY LOCATIONS"
+		property_heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+		nearby_interaction_box.add_child(property_heading)
+		for site in nearby_sites:
+			var site_id := String(site.get("id", ""))
+			var inspect_button := Button.new()
+			inspect_button.text = "Inspect · " + String(site.get("name", "Property"))
+			inspect_button.custom_minimum_size = Vector2(225.0, 34.0)
+			inspect_button.pressed.connect(_on_nearby_dwelling_site_pressed.bind(site_id))
+			nearby_interaction_box.add_child(inspect_button)
 	nearby_interaction_panel.visible = true
 
 
@@ -1414,6 +1715,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		var journal := simulation.campaign_journal
 		var context := {
 			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+			"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
 			"goblin_standing": journal.faction_standing("goblin_tribe"),
 			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
 			"necromancer_standing": journal.faction_standing("necromancer_cult")
@@ -1423,7 +1725,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 			var supported_choices: Array[Dictionary] = []
 			for choice_value in conversation.get("choices", []):
 				var choice: Dictionary = choice_value
-				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_leave"]:
+				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
 					supported_choices.append(choice)
 			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
 		else:
@@ -1627,7 +1929,7 @@ func _move_shakedown_soldiers_inside() -> void:
 func _show_world_narration(text: String) -> void:
 	var bubble := Label3D.new()
 	bubble.name = "NarrationBubble"
-	bubble.text = text
+	bubble.text = _wrap_speech_bubble_text(text)
 	bubble.position = Vector3(0.0, 4.4, 0.0)
 	bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	bubble.font_size = 22
@@ -1637,7 +1939,7 @@ func _show_world_narration(text: String) -> void:
 	add_child(bubble)
 	var timer := Timer.new()
 	timer.one_shot = true
-	timer.wait_time = 2.15
+	timer.wait_time = _speech_bubble_duration(text)
 	add_child(timer)
 	timer.timeout.connect(func():
 		if is_instance_valid(bubble):
@@ -1673,6 +1975,29 @@ func _show_speech_bubble(character_id: String, text: String) -> void:
 			timer.queue_free()
 	)
 	timer.start()
+
+
+
+func _wrap_speech_bubble_text(value: String, max_characters: int = 34) -> String:
+	var wrapped_lines := PackedStringArray()
+	var current_line := ""
+	for word_value in value.split(" ", false):
+		var word := String(word_value)
+		if current_line.is_empty():
+			current_line = word
+		elif current_line.length() + 1 + word.length() > max_characters:
+			wrapped_lines.append(current_line)
+			current_line = word
+		else:
+			current_line += " " + word
+	if not current_line.is_empty():
+		wrapped_lines.append(current_line)
+	return "\n".join(wrapped_lines)
+
+
+func _speech_bubble_duration(value: String) -> float:
+	var line_count := _wrap_speech_bubble_text(value).split("\n", false).size()
+	return clampf(1.8 + float(line_count) * 0.85 + float(value.length()) * 0.008, 2.5, 6.5)
 
 
 func _ambient_role_for_id(character_id: String) -> String:
@@ -1888,6 +2213,104 @@ func _update_combat_ui() -> void:
 	combat_hud.present(true, player_turn, can_attack, status_text)
 
 
+func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
+	var player := simulation.get_character(simulation.player_character_id)
+	var remaining := ABANDONED_HOUSE_QUEST_SCRIPT.guardian_count_remaining(simulation) if site_id == "abandoned_house" else 0
+	var inspection := DWELLING_WORLD_SERVICE.inspection_for_site(
+		simulation.campaign_dwellings,
+		simulation.campaign_journal,
+		player,
+		site_id,
+		remaining
+	)
+	if not bool(inspection.get("ok", false)):
+		_show_dialogue("Property", "This location cannot be inspected right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	_show_dialogue(String(inspection.get("speaker", "Property")), String(inspection.get("text", "")), inspection.get("choices", []))
+
+
+func _refresh_dwelling_world_presentation() -> void:
+	if simulation == null:
+		return
+	DWELLING_WORLD_PRESENTATION.present_all(self, simulation.campaign_dwellings, HEX_RADIUS)
+
+
+func _restore_abandoned_house_guardian_actors() -> void:
+	if simulation == null:
+		return
+	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian == null or not guardian.alive or actor_by_id.has(guardian_id):
+			continue
+		_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
+
+
+func _spawn_abandoned_house_guardian_actor(guardian_id: String, hex: Vector2i) -> void:
+	if actor_by_id.has(guardian_id) and is_instance_valid(actor_by_id[guardian_id]):
+		return
+	var actor := SKELETAL_GUARDIAN_ACTOR_SCRIPT.new() as Node3D
+	actor.name = guardian_id
+	actor.position = _hex_world_position(hex)
+	actor.set_meta("character_id", guardian_id)
+	actor.set_meta("ambient_enabled", false)
+	add_child(actor)
+	actor_by_id[guardian_id] = actor
+
+
+func _check_abandoned_house_proximity() -> void:
+	if simulation == null or simulation.is_in_combat or encounter_active or dialogue_open:
+		return
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null or HexGrid.distance(active_state.axial, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE) > 8:
+		return
+	var start_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
+	if not bool(start_result.get("ok", false)) or bool(start_result.get("already_completed", false)):
+		return
+	var spawn_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
+	if not bool(spawn_result.get("ok", false)):
+		return
+	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian != null and guardian.alive:
+			_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
+
+
+func _begin_abandoned_house_encounter() -> void:
+	_close_dialogue()
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null or HexGrid.distance(active_state.axial, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE) > 2:
+		_show_dialogue("Abandoned House", "You need to be at the house before you can enter it.", [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
+	var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
+	if not bool(started.get("ok", false)):
+		_show_dialogue("Abandoned House", "The encounter cannot begin: %s." % String(started.get("reason", "unknown error")), [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	var party_ids: Array[String] = []
+	for party_id_value in simulation.get_party_member_ids():
+		party_ids.append(String(party_id_value))
+	var result := ABANDONED_HOUSE_QUEST_SCRIPT.start_encounter(simulation, party_ids)
+	if not bool(result.get("ok", false)):
+		_show_dialogue("Abandoned House", "You cannot face the guardians just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	active_encounter_character_states = result.get("previous_states", {})
+	active_combat_kind = "abandoned_house"
+	active_enemy_ids.clear()
+	active_party_ids.clear()
+	active_combat_controlled_ids.clear()
+	for enemy_id_value in result.get("enemy_ids", []):
+		active_enemy_ids.append(String(enemy_id_value))
+	for party_id_value in result.get("party_ids", []):
+		active_party_ids.append(String(party_id_value))
+		active_combat_controlled_ids.append(String(party_id_value))
+	encounter_active = true
+	enemy_turn_processed = false
+	enemy_turn_waiting_for_reaction = false
+	if not active_party_ids.has(active_character_id):
+		active_character_id = simulation.player_character_id
+	_update_combat_ui()
+	_show_dialogue("Abandoned House", "The three skeletal guardians turn as one. Rusted weapons rise from the dark, and the house erupts into violence.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
+
+
 func _farm_wolves_remaining() -> int:
 	if not farm_wolves_spawned:
 		return -1
@@ -2042,6 +2465,28 @@ func _restore_active_party_after_combat() -> void:
 
 func _check_encounter_resolution() -> void:
 	if not encounter_active:
+		return
+	if active_combat_kind == "abandoned_house":
+		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
+		if ABANDONED_HOUSE_QUEST_SCRIPT.party_defeated(simulation, active_party_ids):
+			simulation.end_combat()
+			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
+			active_encounter_character_states.clear()
+			_restore_active_party_after_combat()
+			encounter_active = false
+			_show_dialogue("Abandoned House", "The guardians drive you back. They remain in the house, but you can return when the party is ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
+		elif ABANDONED_HOUSE_QUEST_SCRIPT.enemies_defeated(simulation):
+			simulation.end_combat()
+			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
+			active_encounter_character_states.clear()
+			_restore_active_party_after_combat()
+			encounter_active = false
+			var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
+			if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
+				resource_status_label.text = "Quest complete: The Abandoned House · all three guardians defeated."
+				_show_dialogue("Abandoned House", "The last guardian collapses. The house is quiet at last. Its rooms can now be restored, though the work will still require timber and stone.", [{"id": "continue", "label": "The house is clear.", "text": ""}])
+			else:
+				_show_dialogue("Abandoned House", "The guardians are defeated, but the clearing could not be recorded: %s." % String(clearing.get("reason", "unknown error")), [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 	if active_combat_kind == "dire_wolf_hunt":
 		if FARMSTEAD_DIRE_WOLF_SCRIPT.party_defeated(simulation, active_party_ids):
@@ -2202,6 +2647,7 @@ func _process(delta: float) -> void:
 	_update_ambient_chatter(delta)
 	_check_reyna_story_proximity()
 	_check_farm_wolf_proximity()
+	_check_abandoned_house_proximity()
 	_update_combat(delta)
 	_update_combat_ui()
 	nearby_interaction_refresh += delta
@@ -2210,6 +2656,8 @@ func _process(delta: float) -> void:
 		_refresh_nearby_interactions()
 	if movement_controller != null:
 		movement_controller.process_movement(delta)
+	if camp_activity_director != null:
+		camp_activity_director.process_activity_movement(delta)
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")
@@ -2262,12 +2710,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
 			var clicked_hex: Vector2i = _screen_position_to_hex(mouse_event.position)
 			if clicked_hex != INVALID_HEX:
-				_set_move_destination(clicked_hex)
+				if camp_selection_mode:
+					_select_camp_site(clicked_hex)
+				else:
+					_set_move_destination(clicked_hex)
 				get_viewport().set_input_as_handled()
 			return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key_event := event as InputEventKey
+		if key_event.keycode == KEY_B:
+			_toggle_camp_site_selection()
+			get_viewport().set_input_as_handled()
+			return
 		if key_event.keycode == KEY_F5:
 			_quick_save()
 			get_viewport().set_input_as_handled()

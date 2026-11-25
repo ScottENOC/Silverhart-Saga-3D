@@ -12,6 +12,7 @@ signal action_committed(event: SimulationEvent)
 signal reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, source_event_id: String)
 signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int, reason: String)
 signal movement_reaction_resolved(mover_id: String, halted: bool)
+signal weather_changed(conditions: Dictionary)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
@@ -23,6 +24,7 @@ var occupied_hexes: Dictionary = {}
 var player_character_id: String = "player"
 var party_member_ids: Array[String] = []
 var clock: WorldClock = WorldClock.new()
+var weather_state: WorldWeatherState = WorldWeatherState.new()
 var turn_scheduler: CombatTurnScheduler = CombatTurnScheduler.new()
 var is_in_combat: bool = false
 var pending_reaction: Dictionary = {}
@@ -32,6 +34,9 @@ var pending_move_context: Dictionary = {}
 var pending_spell_context: Dictionary = {}
 var multistory_location_states: Dictionary = {}
 var pending_multistory_location_saves: Dictionary = {}
+var camp_simulation: CampSimulation = CampSimulation.new()
+var companion_bonds: CompanionBondState = CompanionBondState.new()
+var campaign_dwellings: CampaignDwellingState = CampaignDwellingState.new()
 
 signal multistory_transition_unlocked(location_id: String, quest_id: String, transitions: Array[Dictionary])
 
@@ -39,6 +44,7 @@ func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
+    _connect_camp_simulation_signals()
     building_registry.door_state_changed.connect(_on_door_state_changed)
 
 func _on_door_state_changed(door_id: String) -> void:
@@ -60,6 +66,17 @@ func sync_door_map_state(door_id: String) -> bool:
     cell["vision_block_height"] = 2.2
     map_data.cells[door.hex] = cell
     return true
+
+func _connect_camp_simulation_signals() -> void:
+    var callback := Callable(self, "_on_camp_animal_care_completed")
+    if not camp_simulation.animal_care_completed.is_connected(callback):
+        camp_simulation.animal_care_completed.connect(callback)
+
+func _on_camp_animal_care_completed(animal_id: String, action: String, handler_id: String, care: Dictionary) -> void:
+    action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
+        "action": action,
+        "care": care.duplicate(true)
+    }))
 
 func _on_campaign_journal_event(event: Dictionary) -> void:
     var event_type := String(event.get("event_type", "campaign_event"))
@@ -146,6 +163,8 @@ func advance_real_time(real_delta: float) -> int:
         if turn_scheduler.select_next_ready(characters) != null:
             clock.accumulator = 0.0
             return 0
+    if camp_simulation.phase == "evening":
+        camp_simulation.advance_real_time(real_delta)
     return clock.advance_real_time(real_delta, is_in_combat)
 
 func advance_world_seconds(delta_seconds: float) -> int:
@@ -158,6 +177,8 @@ func advance_world_seconds(delta_seconds: float) -> int:
         if turn_scheduler.select_next_ready(characters) != null:
             clock.accumulator = 0.0
             return 0
+    if camp_simulation.phase == "evening" and delta_seconds > 0.0:
+        camp_simulation.advance_real_time(delta_seconds / CampSimulation.EXPLORATION_SECONDS_PER_REAL_SECOND)
     return clock.advance_world_seconds(delta_seconds)
 
 func register_character(state: CharacterState) -> void:
@@ -1567,6 +1588,152 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
         state.spell_effects[index] = effect
 
 
+func claim_dwelling(action_id: String, payment: String = "materials", site_id: String = "", actor_id: String = "") -> Dictionary:
+    var player := get_character(player_character_id)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null or not campaign_dwellings.is_at_site(site_id, actor.axial):
+        return {"ok": false, "reason": "not_at_dwelling_site", "required_site": site_id}
+    return campaign_dwellings.complete_action(action_id, campaign_journal, player, payment, site_id)
+
+
+func dwelling_action_availability(action_id: String, payment: String = "materials", site_id: String = "", actor_id: String = "") -> Dictionary:
+    var player := get_character(player_character_id)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null or not campaign_dwellings.is_at_site(site_id, actor.axial):
+        return {"ok": false, "reason": "not_at_dwelling_site", "required_site": site_id}
+    return campaign_dwellings.evaluate_action(action_id, campaign_journal, player, payment, site_id)
+
+
+
+func buy_dwelling_furniture(item_id: String, quantity: int = 1, actor_id: String = "") -> Dictionary:
+    var player := get_character(player_character_id)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null:
+        return {"ok": false, "reason": "missing_player_or_actor"}
+    return campaign_dwellings.buy_furniture(item_id, player, CampaignFurnitureCatalog.SHOP_ID, actor.axial, quantity)
+
+
+func craft_dwelling_furniture(item_id: String, dwelling_id: String, actor_id: String = "") -> Dictionary:
+    var player := get_character(player_character_id)
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if player == null or actor == null:
+        return {"ok": false, "reason": "missing_player_or_actor"}
+    return campaign_dwellings.craft_furniture(item_id, player, dwelling_id, actor.axial)
+
+
+func place_dwelling_furniture(dwelling_id: String, item_id: String, local_position: Vector2, rotation_degrees: int = 0, actor_id: String = "", floor_index: int = 0) -> Dictionary:
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if actor == null:
+        return {"ok": false, "reason": "missing_actor"}
+    return campaign_dwellings.place_furniture(dwelling_id, item_id, local_position, rotation_degrees, actor.axial, floor_index)
+
+
+func remove_dwelling_furniture(dwelling_id: String, instance_id: String, actor_id: String = "") -> Dictionary:
+    var actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+    if actor == null:
+        return {"ok": false, "reason": "missing_actor"}
+    return campaign_dwellings.remove_furniture(dwelling_id, instance_id, actor.axial)
+
+
+func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}, actor_id: String = "") -> Dictionary:
+    if is_in_combat:
+        return {"ok": false, "reason": "cannot_camp_during_combat"}
+    var resolved_site := site_data.duplicate(true)
+    if resolved_site.has("dwelling_id"):
+        var dwelling_id := String(resolved_site.get("dwelling_id", ""))
+        var dwelling_profile := campaign_dwellings.camp_profile_for(dwelling_id)
+        if dwelling_profile.is_empty():
+            return {"ok": false, "reason": "dwelling_not_owned_or_not_livable", "dwelling_id": dwelling_id}
+        if not bool(dwelling_profile.get("is_sheltered", false)):
+            return {"ok": false, "reason": "dwelling_not_livable", "dwelling_id": dwelling_id}
+        var required_site_id := campaign_dwellings.site_id_for_dwelling(dwelling_id)
+        var camp_actor := get_character(actor_id if not actor_id.is_empty() else player_character_id)
+        var dwelling_hex: Variant = resolved_site.get("hex", null)
+        if camp_actor == null or not dwelling_hex is Vector2i or not campaign_dwellings.is_at_site(required_site_id, camp_actor.axial) or not campaign_dwellings.is_at_site(required_site_id, dwelling_hex):
+            return {"ok": false, "reason": "dwelling_not_at_site", "dwelling_id": dwelling_id, "required_site": required_site_id}
+        resolved_site["dwelling_profile"] = dwelling_profile
+    if site_data.has("hex"):
+        var hex_value: Variant = site_data.get("hex")
+        if not hex_value is Vector2i:
+            return {"ok": false, "reason": "invalid_camp_hex"}
+        var camp_hex: Vector2i = hex_value
+        if not map_data.has_cell(camp_hex):
+            return {"ok": false, "reason": "unknown_camp_hex"}
+        resolved_site["walkable"] = map_data.is_walkable(camp_hex)
+        var occupant_id := String(occupied_hexes.get(camp_hex, ""))
+        resolved_site["occupied"] = not occupant_id.is_empty() and not party_member_ids.has(occupant_id)
+        resolved_site["terrain_id"] = map_data.terrain_id_at(camp_hex)
+    resolved_site["in_combat"] = is_in_combat
+    var resolved_environment := environment_data.duplicate(true)
+    var camp_terrain := String(resolved_site.get("terrain_id", ""))
+    resolved_environment.merge(weather_state.conditions_at(clock.world_seconds, camp_terrain), true)
+    var companion_profiles: Dictionary = {}
+    for character_id in party_member_ids:
+        var character := get_character(String(character_id))
+        if character == null:
+            continue
+        var personality := ""
+        for tag_value in character.tags:
+            var tag := String(tag_value).to_lower()
+            if tag in ["scholarly", "curious", "methodical", "craftsman", "meticulous", "practical", "dutiful", "guardian", "gregarious", "warm", "outgoing", "nurturing", "outdoors"]:
+                personality = tag
+                break
+        companion_profiles[String(character_id)] = {
+            "role": character.character_class.to_lower(),
+            "personality": personality,
+            "injured": character.health < character.max_health * 0.65 or character.hobbled_stacks > 0,
+            "fatigue": float(camp_simulation.condition_for(String(character_id)).get("fatigue", 40.0))
+        }
+    resolved_environment["companion_profiles"] = companion_profiles
+    resolved_environment["player_character_id"] = player_character_id
+    var result := camp_simulation.begin_camp(resolved_site, party_member_ids, resolved_environment, resource_data)
+    if bool(result.get("ok", false)):
+        camp_simulation.plan_sleeping_arrangements(int(camp_simulation.resources.get("tents", 0)), companion_bonds)
+    return result
+
+
+## Public world-simulation entry point for camp animal care. Successful
+## actions become campaign events; failed actions leave supplies and state intact.
+func care_camp_animal(animal_id: String, action: String, handler_id: String = "") -> Dictionary:
+    return camp_simulation.perform_animal_care(animal_id, action, handler_id)
+
+
+## Relationship events are not gated by camp phase or a dedicated social activity.
+## Interaction systems call this only after the social/romantic outcome is resolved.
+func record_companion_interaction(from_id: String, to_id: String, interaction_kind: String, changes: Dictionary, event_key: String = "") -> Dictionary:
+    if not characters.has(from_id) or not characters.has(to_id):
+        return {"ok": false, "reason": "unknown_character"}
+    var result := companion_bonds.record_interaction(from_id, to_id, interaction_kind, changes, event_key)
+    if bool(result.get("ok", false)) and bool(result.get("changed", false)):
+        var satisfaction := 2.0
+        match interaction_kind.to_lower():
+            "flirt", "romantic":
+                satisfaction = 4.0
+            "intimate":
+                satisfaction = 5.0
+        camp_simulation.record_social_interaction(from_id, satisfaction)
+        camp_simulation.record_social_interaction(to_id, satisfaction)
+    return result
+
+
+func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> Dictionary:
+    var result := camp_simulation.skip_to_morning(hours)
+    if not bool(result.get("ok", false)):
+        return result
+    var skipped_seconds := float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR
+    var skipped_ticks := clock.skip_world_seconds(skipped_seconds)
+    for state_variant in characters.values():
+        var state := state_variant as CharacterState
+        if state == null or not state.alive:
+            continue
+        var recovery_multiplier := camp_simulation.time_point_regeneration_multiplier(state.id)
+        var bulk_ticks := maxi(0, skipped_ticks - 1)
+        var previous_tp := state.time_points
+        state.time_points = minf(150.0, state.time_points + float(bulk_ticks) * state.time_points_per_tick * recovery_multiplier)
+        _advance_character_spell_effects(state, maxf(0.0, state.time_points - previous_tp))
+    return result
+
+
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     # Guard direct/test-driven clock advancement as well as the normal
     # _process freeze: no TP or world tick work occurs during an active turn.
@@ -1576,7 +1743,7 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
         var state := value as CharacterState
         if state != null and state.alive:
             var previous_tp := state.time_points
-            state.regenerate_time_points()
+            state.regenerate_time_points(camp_simulation.time_point_regeneration_multiplier(state.id))
             var gained_tp := maxf(0.0, state.time_points - previous_tp)
             # The source engine advances poison and withering only while the
             # entity is below the 150 TP cap, using gained TP as the duration.
@@ -1599,6 +1766,12 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
                 state.health_regen_remainder = 0.0
 
     wilderness_resources.advance_time(world_seconds)
+    if weather_state.update_to(world_seconds):
+        var current_weather := weather_state.current_conditions.duplicate(true)
+        weather_changed.emit(current_weather)
+        if camp_simulation.phase == "evening":
+            var camp_terrain := String(camp_simulation.site.get("terrain_id", ""))
+            camp_simulation.update_weather(weather_state.conditions_at(world_seconds, camp_terrain))
     world_tick.emit(tick_index, world_seconds)
 
 ## Debug/prototype movement remains free so the M1 movement harness is usable.
@@ -1738,12 +1911,16 @@ func to_dict() -> Dictionary:
         character_data[character_id] = state.to_dict()
     return {
         "world_clock": clock.to_dict(),
+        "world_weather": weather_state.to_dict(),
         "is_in_combat": is_in_combat,
         "player_character_id": player_character_id,
         "party_member_ids": party_member_ids.duplicate(),
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
         "buildings": building_registry.to_dict(),
+        "camp_simulation": camp_simulation.to_dict(),
+        "companion_bonds": companion_bonds.to_dict(),
+        "campaign_dwellings": campaign_dwellings.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -1757,8 +1934,34 @@ func load_dict(data: Dictionary) -> void:
     party_member_ids.clear()
     player_character_id = String(data.get("player_character_id", "player"))
     clock.load_dict(data.get("world_clock", {}))
+    weather_state = WorldWeatherState.new()
+    var saved_weather: Variant = data.get("world_weather", {})
+    if saved_weather is Dictionary and not saved_weather.is_empty():
+        if not weather_state.load_dict(saved_weather):
+            push_warning("Save contains invalid weather state; a new regional weather seed was generated.")
+    weather_state.update_to(clock.world_seconds)
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
+    camp_simulation = CampSimulation.new()
+    _connect_camp_simulation_signals()
+    var saved_camp: Variant = data.get("camp_simulation", {})
+    if saved_camp is Dictionary and not saved_camp.is_empty():
+        if not camp_simulation.from_dict(saved_camp):
+            push_error("Save contains invalid camp simulation state; camp was reset.")
+            camp_simulation = CampSimulation.new()
+            _connect_camp_simulation_signals()
+    campaign_dwellings = CampaignDwellingState.new()
+    var saved_dwellings: Variant = data.get("campaign_dwellings", {})
+    if saved_dwellings is Dictionary and not saved_dwellings.is_empty():
+        if not campaign_dwellings.from_dict(saved_dwellings):
+            push_error("Save contains invalid campaign dwelling state; ownership was reset.")
+            campaign_dwellings = CampaignDwellingState.new()
+    companion_bonds = CompanionBondState.new()
+    var saved_bonds: Variant = data.get("companion_bonds", {})
+    if saved_bonds is Dictionary and not saved_bonds.is_empty():
+        if not companion_bonds.from_dict(saved_bonds):
+            push_error("Save contains invalid companion bond state; bonds were reset.")
+            companion_bonds = CompanionBondState.new()
     for door_id_value in building_registry.doors.keys():
         sync_door_map_state(String(door_id_value))
     is_in_combat = bool(data.get("is_in_combat", false))
