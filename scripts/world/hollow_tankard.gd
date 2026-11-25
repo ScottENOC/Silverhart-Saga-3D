@@ -14,6 +14,7 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const GOBLIN_DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
 const CAMPAIGN_QUEST_EVENT_ROUTER_SCRIPT = preload("res://scripts/simulation/campaign_quest_event_router.gd")
+const CAMPAIGN_QUEST_DEFINITION_REGISTRY_SCRIPT = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
@@ -147,6 +148,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
+	CAMPAIGN_QUEST_DEFINITION_REGISTRY_SCRIPT.register_all(simulation.campaign_journal)
 	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
 	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
