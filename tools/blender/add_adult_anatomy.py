@@ -997,7 +997,8 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
             if dist / k > 0.020:
                 continue
             outer, inner, dark = _pigment_weights((sA - s_v) / k, worlds[i].x / k, P)
-            fade = 1.0 - _ss(0.006, 0.016, dist / k)            outer, inner, dark = outer * fade, inner * fade, dark * fade
+            fade = 1.0 - _ss(0.006, 0.016, dist / k)
+            outer, inner, dark = outer * fade, inner * fade, dark * fade
             # Multipliers tint the existing skin texture rather than replacing it:
             # muted rose on outer folds, deeper rose on inner folds, warm shadow in the cleft.
             out[i * 4 + 0] = 1.0 + 0.045 * outer - 0.035 * inner - 0.12 * dark
