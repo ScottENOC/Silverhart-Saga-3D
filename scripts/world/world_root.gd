@@ -121,7 +121,9 @@ func _on_character_created(profile: Dictionary) -> void:
 	# Resolve constants dynamically from the preloaded location Script. This
 	# avoids GDScript's external-member resolution failure for the nested
 	# data-only location definition during the real save/restore scene load.
-	var starting_location_constants: Dictionary = STARTING_LOCATION.get_script_constant_map()
+	var starting_location_instance: RefCounted = STARTING_LOCATION.new()
+	var starting_location_script: Script = starting_location_instance.get_script()
+	var starting_location_constants: Dictionary = starting_location_script.get_script_constant_map()
 	var starting_location_id := String(starting_location_constants.get("LOCATION_ID", ""))
 	var starting_location_display_name := String(starting_location_constants.get("DISPLAY_NAME", ""))
 	var starting_location_definition: Dictionary = starting_location_constants.get("DEFINITION", {})
