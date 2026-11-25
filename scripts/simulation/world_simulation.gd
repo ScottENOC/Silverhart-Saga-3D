@@ -1679,13 +1679,13 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
 ## Public world-simulation entry point for camp animal care. Successful
 ## actions become campaign events; failed actions leave supplies and state intact.
 func care_camp_animal(animal_id: String, action: String, handler_id: String = "") -> Dictionary:
-	var result := camp_simulation.perform_animal_care(animal_id, action, handler_id)
-	if bool(result.get("ok", false)):
-		action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
-			"action": action,
-			"care": result.get("care", {}).duplicate(true)
-		}))
-	return result
+    var result := camp_simulation.perform_animal_care(animal_id, action, handler_id)
+    if bool(result.get("ok", false)):
+        action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
+            "action": action,
+            "care": result.get("care", {}).duplicate(true)
+        }))
+    return result
 
 
 ## Relationship events are not gated by camp phase or a dedicated social activity.
