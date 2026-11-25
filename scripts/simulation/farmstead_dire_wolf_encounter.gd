@@ -5,63 +5,63 @@ const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
 const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 
 static func create_dire_wolf(simulation: WorldSimulation, hex: Vector2i) -> Dictionary:
-    if simulation == null:
-        return {"ok": false, "reason": "missing_simulation"}
-    if simulation.get_character(DIRE_WOLF_ID) != null:
-        return {"ok": false, "reason": "dire_wolf_already_exists"}
-    var wolf := CharacterState.new(DIRE_WOLF_ID, "Dire wolf", hex)
-    wolf.race = "wolf"
-    wolf.character_class = "beast"
-    # register_character applies Health ranks: 120 base + 3 ranks = 150 HP.
-    wolf.health = 120
-    wolf.max_health = 120
-    wolf.base_damage = 7
-    wolf.to_hit_melee = 7.0
-    wolf.skills = {"bite_hit": 2, "bite_dmg": 2, "health": 3}
-    wolf.tags.append("animal")
-    wolf.tags.append("wolf")
-    wolf.tags.append("dire_wolf")
-    wolf.side = "enemy"
-    wolf.combat_dormant = true
-    wolf.time_points = 100.0
-    simulation.register_character(wolf)
-    return {"ok": simulation.get_character(DIRE_WOLF_ID) != null, "character_id": DIRE_WOLF_ID}
+	if simulation == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	if simulation.get_character(DIRE_WOLF_ID) != null:
+		return {"ok": false, "reason": "dire_wolf_already_exists"}
+	var wolf := CharacterState.new(DIRE_WOLF_ID, "Dire wolf", hex)
+	wolf.race = "wolf"
+	wolf.character_class = "beast"
+	# register_character applies Health ranks: 120 base + 3 ranks = 150 HP.
+	wolf.health = 120
+	wolf.max_health = 120
+	wolf.base_damage = 7
+	wolf.to_hit_melee = 7.0
+	wolf.skills = {"bite_hit": 2, "bite_dmg": 2, "health": 3}
+	wolf.tags.append("animal")
+	wolf.tags.append("wolf")
+	wolf.tags.append("dire_wolf")
+	wolf.side = "enemy"
+	wolf.combat_dormant = true
+	wolf.time_points = 100.0
+	simulation.register_character(wolf)
+	return {"ok": simulation.get_character(DIRE_WOLF_ID) != null, "character_id": DIRE_WOLF_ID}
 
 static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dictionary:
-    if simulation == null: return {"ok": false, "reason": "missing_simulation"}
-    if simulation.is_in_combat: return {"ok": false, "reason": "combat_already_active"}
-    var wolf := simulation.get_character(DIRE_WOLF_ID)
-    if wolf == null: return {"ok": false, "reason": "missing_dire_wolf"}
-    var valid_party: Array[String] = []
-    for character_id in party_ids:
-        var member := simulation.get_character(character_id)
-        if member != null and member.can_act() and not valid_party.has(character_id): valid_party.append(character_id)
-    if valid_party.is_empty(): return {"ok": false, "reason": "no_able_party_members"}
-    wolf.health = wolf.max_health
-    wolf.alive = true
-    wolf.unconscious = false
-    var encounter_result: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, [DIRE_WOLF_ID])
-    if not bool(encounter_result.get("ok", false)):
-        return encounter_result
-    var session: Dictionary = encounter_result.get("session", {})
-    return {
-        "ok": true,
-        "party_ids": valid_party,
-        "enemy_ids": [DIRE_WOLF_ID],
-        "previous_states": session.get("previous_states", {})
-    }
+	if simulation == null: return {"ok": false, "reason": "missing_simulation"}
+	if simulation.is_in_combat: return {"ok": false, "reason": "combat_already_active"}
+	var wolf := simulation.get_character(DIRE_WOLF_ID)
+	if wolf == null: return {"ok": false, "reason": "missing_dire_wolf"}
+	var valid_party: Array[String] = []
+	for character_id in party_ids:
+		var member := simulation.get_character(character_id)
+		if member != null and member.can_act() and not valid_party.has(character_id): valid_party.append(character_id)
+	if valid_party.is_empty(): return {"ok": false, "reason": "no_able_party_members"}
+	wolf.health = wolf.max_health
+	wolf.alive = true
+	wolf.unconscious = false
+	var encounter_result: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, [DIRE_WOLF_ID])
+	if not bool(encounter_result.get("ok", false)):
+		return encounter_result
+	var session: Dictionary = encounter_result.get("session", {})
+	return {
+		"ok": true,
+		"party_ids": valid_party,
+		"enemy_ids": [DIRE_WOLF_ID],
+		"previous_states": session.get("previous_states", {})
+	}
 
 static func finish(simulation: WorldSimulation, _party_ids: Array[String], previous_states: Dictionary) -> void:
-    if simulation == null: return
-    COMBAT_ENCOUNTER_SERVICE.finish(simulation, {"previous_states": previous_states})
+	if simulation == null: return
+	COMBAT_ENCOUNTER_SERVICE.finish(simulation, {"previous_states": previous_states})
 
 static func party_defeated(simulation: WorldSimulation, party_ids: Array[String]) -> bool:
-    if simulation == null: return true
-    for id in party_ids:
-        var member := simulation.get_character(id)
-        if member != null and member.can_act(): return false
-    return true
+	if simulation == null: return true
+	for id in party_ids:
+		var member := simulation.get_character(id)
+		if member != null and member.can_act(): return false
+	return true
 
 static func dire_wolf_defeated(simulation: WorldSimulation) -> bool:
-    var wolf := simulation.get_character(DIRE_WOLF_ID) if simulation != null else null
-    return wolf == null or not wolf.can_act()
+	var wolf := simulation.get_character(DIRE_WOLF_ID) if simulation != null else null
+	return wolf == null or not wolf.can_act()
