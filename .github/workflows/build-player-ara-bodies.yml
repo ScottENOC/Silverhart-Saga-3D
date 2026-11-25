@@ -107,7 +107,7 @@ jobs:
           for variant in female male; do
             npx --yes ara3d@0.7.4 export \
               --params "build/player-ara/$variant/profile.json" \
-              --detail high --formats glb,zip \
+              --detail high --no-animations --formats glb,zip \
               --out "build/player-ara/$variant/export"
             raw="$(find "build/player-ara/$variant/export" -maxdepth 1 -type f -name '*.glb' -print -quit)"
             test -n "$raw" && test -s "$raw"
