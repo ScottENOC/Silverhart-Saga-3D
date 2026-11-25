@@ -30,6 +30,7 @@ const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interio
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const COMBAT_ENCOUNTER_CONTROLLER_SCRIPT = preload("res://scripts/presentation/combat_encounter_controller.gd")
+const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
@@ -2282,6 +2283,7 @@ func _start_farm_wolf_encounter() -> void:
 			var spawn_hex := _find_valid_spawn_hex(preferred)
 			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
 			wolf.side = "enemy"
+			wolf.combat_dormant = true
 			wolf.max_health = 75
 			wolf.health = 75
 			wolf.base_damage = 4
@@ -2338,17 +2340,9 @@ func _check_farm_wolf_resolution() -> void:
 			party_defeated = false
 			break
 	if party_defeated:
-		simulation.end_combat()
+		COMBAT_ENCOUNTER_SERVICE.finish(simulation, active_combat_session)
+		active_combat_session.clear()
 		encounter_active = false
-		for wolf_id in active_enemy_ids:
-			var wolf := simulation.get_character(wolf_id)
-			if wolf != null:
-				wolf.combat_dormant = true
-		for party_id in active_party_ids:
-			var member := simulation.get_character(party_id)
-			if member != null:
-				member.side = "player"
-				member.combat_dormant = false
 		farm_wolves_retry_armed = false
 		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger. You can return when ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
 		return
@@ -2360,17 +2354,9 @@ func _check_farm_wolf_resolution() -> void:
 			all_defeated = false
 			break
 	if all_defeated:
-		simulation.end_combat()
+		COMBAT_ENCOUNTER_SERVICE.finish(simulation, active_combat_session)
+		active_combat_session.clear()
 		encounter_active = false
-		for wolf_id in active_enemy_ids:
-			var wolf := simulation.get_character(wolf_id)
-			if wolf != null:
-				wolf.combat_dormant = true
-		for party_id in active_party_ids:
-			var member := simulation.get_character(party_id)
-			if member != null:
-				member.side = "player"
-				member.combat_dormant = false
 		FARM_WOLVES_QUEST_SCRIPT.record_wolf_defeat(simulation.campaign_journal, FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size())
 		resource_status_label.text = "The wolf pack is defeated. Return to Old Mac."
 		_show_dialogue("Wilderness", "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.", [{"id": "continue", "label": "Return to the farm.", "text": ""}])
