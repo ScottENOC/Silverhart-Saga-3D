@@ -986,6 +986,20 @@ func _watcher_selection_score(character_id: String) -> float:
 	return perception * 2.0 - fatigue * 0.05
 
 
+func _scale_night_watch_schedule(hours: float) -> void:
+	var scheduled_hours := 0.0
+	for shift in night_watch_schedule:
+		scheduled_hours = maxf(scheduled_hours, float(shift.get("end_hour", 0.0)))
+	if scheduled_hours <= 0.0:
+		return
+	var scale := hours / scheduled_hours
+	for index in range(night_watch_schedule.size()):
+		var shift: Dictionary = night_watch_schedule[index]
+		shift["start_hour"] = float(shift.get("start_hour", 0.0)) * scale
+		shift["end_hour"] = float(shift.get("end_hour", 0.0)) * scale
+		night_watch_schedule[index] = shift
+
+
 func _watch_hours_by_character(hours: float) -> Dictionary:
 	var totals: Dictionary = {}
 	for shift in night_watch_schedule:
@@ -1077,6 +1091,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	if phase != "night":
 		return {"ok": false, "reason": "night_not_started"}
 	var night_hours := clampf(hours, 1.0, 16.0)
+	_scale_night_watch_schedule(night_hours)
 	var party_size := party_ids.size()
 	var has_fire := bool(environment.get("fire_lit", false))
 	var has_meal := bool(environment.get("meal_prepared", false))
