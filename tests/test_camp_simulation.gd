@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_indoor_floor_sleeping_and_security()
 	_test_general_camp_occupant_registry()
 	_test_world_camp_animal_care_integration()
+	_test_scheduled_horse_care_routine()
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
@@ -229,6 +230,44 @@ func _test_world_camp_animal_care_integration() -> void:
 	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("fed", false)), "World save/load should preserve camp horse feeding")
 	world.free()
 	restored.free()
+
+
+func _test_scheduled_horse_care_routine() -> void:
+	var camp := CampSimulation.new()
+	camp.begin_camp(
+		{"walkable": true, "safe_tethering": true},
+		["player", "wren"],
+		{"camp_occupants": [
+			{"occupant_id": "horse_mallow", "kind": "animal", "species": "horse", "can_sleep": true, "can_work": false},
+			{"occupant_id": "stablehand_01", "kind": "resident", "species": "humanoid", "occupation": "stablehand", "can_sleep": true, "can_work": true}
+		]},
+		{"water": 1, "fodder": 1}
+	)
+	var schedule := camp.horse_care_schedule_for("horse_mallow")
+	_check(schedule.size() == 5, "Each camp horse should receive a five-step evening care schedule")
+	_check(String(schedule[0].get("action", "")) == "water" and String(schedule[0].get("status", "")) == "in_progress", "Horse watering should be the first scheduled chore")
+	_check(String(schedule[0].get("handler_id", "")) == "stablehand_01", "A resident stablehand should be preferred over party members")
+	_check(String(camp.assignments.get("stablehand_01", {}).get("activity", "")) == "care_horse_water", "The selected worker should receive the corresponding camp activity")
+	_check(camp.party_ids.size() == 2, "A resident stablehand must not occupy a party slot")
+	camp.advance_real_time(4.0)
+	schedule = camp.horse_care_schedule_for("horse_mallow")
+	_check(String(schedule[0].get("status", "")) == "completed", "Watering should complete after its scheduled work duration")
+	_check(String(schedule[1].get("status", "")) == "in_progress", "The next chore should begin automatically when watering completes")
+	_check(int(camp.resources.water) == 0, "Water should be consumed when the watering task completes")
+	camp.advance_real_time(4.0)
+	_check(int(camp.resources.fodder) == 0, "Fodder should be consumed when feeding completes")
+	var saved := camp.to_dict()
+	var restored := CampSimulation.new()
+	_check(restored.from_dict(saved), "An in-progress horse care schedule with a non-party handler should survive save/load")
+	_check(restored.horse_care_schedule_for("horse_mallow") == camp.horse_care_schedule_for("horse_mallow"), "Task progress and handler assignment should persist")
+	restored.advance_real_time(21.0)
+	var completed_schedule := restored.horse_care_schedule_for("horse_mallow")
+	for task in completed_schedule:
+		_check(String(task.get("status", "")) == "completed", "Water, feed, grooming, tethering and rest should all finish in the evening schedule")
+	var care := restored.horse_care_for("horse_mallow")
+	_check(bool(care.get("watered", false)) and bool(care.get("fed", false)), "Scheduled care should update horse hydration and feeding state")
+	_check(bool(care.get("groomed", false)) and bool(care.get("tethered", false)) and bool(care.get("resting", false)), "Scheduled care should finish grooming, tethering and rest")
+	_check(String(restored.assignments.get("stablehand_01", {}).get("activity", "")) != "care_horse_tether", "The worker should return to their prior routine after completing horse care")
 
 
 func _test_night_resolution_and_save_load() -> void:
