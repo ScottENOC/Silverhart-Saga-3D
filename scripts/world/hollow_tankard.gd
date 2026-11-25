@@ -1311,8 +1311,10 @@ func _apply_save_data(data: Dictionary) -> void:
 		_dismiss_ironbond_soldiers()
 	elif ironbond_followup_stage > 0:
 		call_deferred("_restore_ironbond_followup_dialogue")
-	elif ironbond_soldiers_waiting_outside and not _is_tavern_interior_hex(simulation.get_character("player").axial):
-		call_deferred("_trigger_ironbond_exit_followup")
+	elif ironbond_soldiers_waiting_outside:
+		var restored_player := simulation.get_character("player")
+		if restored_player != null and not _is_tavern_interior_hex(restored_player.axial):
+			call_deferred("_trigger_ironbond_exit_followup")
 
 
 func _create_dialogue_panel(layer: CanvasLayer) -> void:
@@ -1495,10 +1497,6 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		return
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
-		return
-	if choice_id == IRONBOND_MISSING_COURIER_QUEST.CHOICE_PREFIX + "continue":
-		_close_dialogue()
-		_dismiss_ironbond_soldiers()
 		return
 	if choice_id == "continue":
 		_close_dialogue()
