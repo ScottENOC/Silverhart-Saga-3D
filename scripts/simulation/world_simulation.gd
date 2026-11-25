@@ -44,7 +44,7 @@ func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
-    camp_simulation.animal_care_completed.connect(_on_camp_animal_care_completed)
+    _connect_camp_simulation_signals()
     building_registry.door_state_changed.connect(_on_door_state_changed)
 
 func _on_door_state_changed(door_id: String) -> void:
@@ -66,6 +66,11 @@ func sync_door_map_state(door_id: String) -> bool:
     cell["vision_block_height"] = 2.2
     map_data.cells[door.hex] = cell
     return true
+
+func _connect_camp_simulation_signals() -> void:
+    var callback := Callable(self, "_on_camp_animal_care_completed")
+    if not camp_simulation.animal_care_completed.is_connected(callback):
+        camp_simulation.animal_care_completed.connect(callback)
 
 func _on_camp_animal_care_completed(animal_id: String, action: String, handler_id: String, care: Dictionary) -> void:
     action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
@@ -1937,11 +1942,13 @@ func load_dict(data: Dictionary) -> void:
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
     camp_simulation = CampSimulation.new()
+    _connect_camp_simulation_signals()
     var saved_camp: Variant = data.get("camp_simulation", {})
     if saved_camp is Dictionary and not saved_camp.is_empty():
         if not camp_simulation.from_dict(saved_camp):
             push_error("Save contains invalid camp simulation state; camp was reset.")
             camp_simulation = CampSimulation.new()
+            _connect_camp_simulation_signals()
     campaign_dwellings = CampaignDwellingState.new()
     var saved_dwellings: Variant = data.get("campaign_dwellings", {})
     if saved_dwellings is Dictionary and not saved_dwellings.is_empty():
