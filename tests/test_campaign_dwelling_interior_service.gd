@@ -91,7 +91,7 @@ func _test_restored_roadside_house() -> void:
 	var runtime = result.get("runtime") as Campaign2MultiStoryLocationRuntime
 	if runtime != null:
 		_check(runtime.has_floor_object(0, "abandoned_house_journal"), "Restoration must preserve the source journal")
-		_check(runtime.has_floor_object(0, "abandoned_house_phylactery_altar"), "Restoration must preserve the source altar")
+		_check(runtime.has_floor_object(0, "phylactery_altar"), "Restoration must preserve the source altar")
 		_check(runtime.has_floor_object(0, "abandoned_house_player_bed"), "Restoration must add the bed at centre.q - 1")
 	parent.free()
 	simulation.free()
