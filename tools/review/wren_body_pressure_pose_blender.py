@@ -160,9 +160,13 @@ def mesh_hand_contact_diagnostics(actor, report):
                 if prefix.lower() in name.lower()
                 and any(token in name.lower() for token in hand_tokens + ("forearm", "arm"))
             }
+            # Ara names the palm group exactly LeftHand/RightHand, while
+            # finger groups are LeftHandIndex1, LeftHandThumb1, etc. A broad
+            # "hand" substring also matches every finger and collapses the
+            # palm/digit split, so require an exact normalised palm-group name.
             palm_group_indices = {
                 index for index, name in group_names.items()
-                if prefix.lower() in name.lower() and "hand" in name.lower()
+                if name.lower().replace("_", "").replace(".", "") == f"{prefix.lower()}hand"
             }
             digit_group_indices = {
                 index for index, name in group_names.items()
