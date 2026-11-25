@@ -154,6 +154,9 @@ func _build_screen() -> void:
 	preview_camera.current = true
 	preview_actor = ARA_ACTOR.new() as AraCharacterActor
 	preview_actor.name = "PreviewCharacter"
+	# Gameplay models need a 180-degree local yaw correction; the creator camera
+	# looks from +Z, so cancel that correction only for this preview instance.
+	preview_actor.rotation.y = PI
 	preview_world.add_child(preview_actor)
 	preview_status = Label.new()
 	preview_status.text = "Loading character preview…"

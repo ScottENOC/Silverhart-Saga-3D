@@ -2,6 +2,7 @@ extends SceneTree
 
 func _initialize() -> void:
 	await _test_player_male_anatomy_creation_save_restore()
+	await _test_creator_preview_faces_camera()
 	_test_appearance_save_reload_and_material_application()
 	_test_materials_are_not_shared_between_characters()
 	_test_accessory_socket_attach_and_remove()
@@ -76,6 +77,22 @@ func _test_player_male_anatomy_creation_save_restore() -> void:
 		restore_file.store_string(previous_save)
 	else:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+
+func _test_creator_preview_faces_camera() -> void:
+	var creator_script := load("res://scripts/ui/player_character_creator.gd") as Script
+	assert(creator_script != null, "Player character creator script must load")
+	var creator: Variant = creator_script.new()
+	creator.preview_enabled = false
+	root.add_child(creator)
+	assert(creator.preview_actor != null, "Character creator must construct its preview actor")
+	assert(absf(absf(creator.preview_actor.rotation.y) - PI) < 0.001,
+		"Character creator preview must cancel the gameplay model's 180-degree yaw correction")
+	creator._rotate_preview(30.0)
+	assert(is_equal_approx(creator.preview_actor.rotation.y, PI + deg_to_rad(30.0)),
+		"Preview rotation controls must rotate relative to the camera-facing starting pose")
+	creator.queue_free()
+	await process_frame
+
 
 func _test_appearance_save_reload_and_material_application() -> void:
 	var appearance := CharacterAppearance.new()
