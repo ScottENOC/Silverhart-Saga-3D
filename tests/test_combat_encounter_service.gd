@@ -223,7 +223,9 @@ func _test_ironbond_resolution_is_domain_owned() -> void:
 		var enemy := simulation.get_character(enemy_id)
 		enemy.alive = false
 		enemy.health = 0
-	var party_ids: Array[String] = started.get("party_ids", [])
+	var party_ids: Array[String] = []
+	for party_id_value in started.get("party_ids", []):
+		party_ids.append(String(party_id_value))
 	var session := {"previous_states": started.get("previous_states", {})}
 	var result: Dictionary = HOLLOWMERE_ENCOUNTER.resolve_combat(simulation, journal, party_ids, session)
 	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "Ironbond should own its victory decision.")
