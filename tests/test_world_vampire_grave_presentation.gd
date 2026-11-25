@@ -11,6 +11,10 @@ func _initialize() -> void:
 
 func _test_vampire_grave_is_owned_by_one_streamed_chunk() -> void:
 	var terrain_data = TERRAIN_DATA_SCRIPT.new()
+	var site := terrain_data.encounter_site("vampire_grave")
+	assert(String(site.get("kind", "")) == "grave", "The grave presentation must resolve the canonical grave site")
+	var grave_hex := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+	assert(grave_hex == Vector2i(-256, 28), "The canonical Vampire Grave anchor must retain its source coordinate")
 	var parent := Node3D.new()
 	var wrong_chunk := PRESENTATION.present_chunk(parent, terrain_data, Vector2i(-288, 0), 24, HexGrid.DEFAULT_RADIUS_M)
 	assert(bool(wrong_chunk.get("ok", false)), "A non-owning chunk should be valid")
@@ -20,6 +24,7 @@ func _test_vampire_grave_is_owned_by_one_streamed_chunk() -> void:
 	var owner_chunk := PRESENTATION.present_chunk(parent, terrain_data, Vector2i(-264, 24), 24, HexGrid.DEFAULT_RADIUS_M)
 	assert(bool(owner_chunk.get("ok", false)), "The grave's owning chunk should compose")
 	assert(int(owner_chunk.get("features", 0)) == 1, "The grave should be emitted exactly once by its owning chunk")
+	assert(owner_chunk.get("anchor") == grave_hex, "The grave presenter should report the canonical site anchor")
 	var grave := parent.get_node_or_null("VampireGravePresentation") as Node3D
 	assert(grave != null, "The physical grave-site presentation should have a stable root")
 	assert(grave.get_node_or_null("ShallowDisturbedEarth") != null, "The site should show shallow disturbed earth")
@@ -29,6 +34,6 @@ func _test_vampire_grave_is_owned_by_one_streamed_chunk() -> void:
 	assert(grave.get_node_or_null("ShatteredFang") != null, "The source-described fang should be visible")
 	assert(grave.get_node_or_null("BuriedJournal/LeatherCover") != null, "The source Vampire Grave journal should be physically visible")
 	assert(grave.get_node_or_null("BuriedJournal/ParchmentPages") != null, "The source journal should retain a visible parchment block")
-	var expected := HexGrid.axial_to_world(Vector2i(-256, 28), HexGrid.DEFAULT_RADIUS_M, terrain_data.elevation_for_hex(Vector2i(-256, 28)))
+	var expected := HexGrid.axial_to_world(grave_hex, HexGrid.DEFAULT_RADIUS_M, terrain_data.elevation_for_hex(grave_hex))
 	assert(grave.position.distance_to(expected) < 0.001, "The presentation must use the canonical geography anchor")
 	parent.free()
