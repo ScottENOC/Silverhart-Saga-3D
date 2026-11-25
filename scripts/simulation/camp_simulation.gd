@@ -98,6 +98,9 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	}
 	assignments.clear()
 	_default_assignments.clear()
+	night_index = 0
+	night_watch_schedule.clear()
+	night_encounter_result.clear()
 	companion_profiles = environment.get("companion_profiles", {}).duplicate(true)
 	routine_stage = 0
 	_preparations_completed = false
