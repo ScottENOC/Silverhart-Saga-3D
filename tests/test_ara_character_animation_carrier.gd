@@ -105,8 +105,8 @@ func _run() -> void:
 
 	print("ARA_CAMP_ANIMATION_CATALOGUE=", animation_player.get_animation_list())
 	var required_camp_clips := [
-		"pick_up", "carry_idle", "use_press", "talk_gestures",
-		"look_around", "squat", "push_up", "lie_down", "sleep"
+		"pick_up", "carry_idle", "use_press", "talk", "idle",
+		"crouch_idle", "lie_down", "sleep"
 	]
 	for clip_token in required_camp_clips:
 		_check(_has_animation_token(animation_player, clip_token),
@@ -119,9 +119,9 @@ func _run() -> void:
 		{"activity": "cook", "expected": "use_press"},
 		{"activity": "repair_gear", "expected": "use_press"},
 		{"activity": "study_map", "expected": "use_press"},
-		{"activity": "train", "expected": "squat"},
-		{"activity": "socialise", "expected": "talk_gestures"},
-		{"activity": "watch", "expected": "look_around"},
+		{"activity": "train", "expected": "crouch_idle"},
+		{"activity": "socialise", "expected": "talk"},
+		{"activity": "watch", "expected": "idle"},
 		{"activity": "sleep", "expected": "lie_down"}
 	]
 	for activity_case in activity_cases:
