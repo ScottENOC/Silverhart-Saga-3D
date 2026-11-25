@@ -7,6 +7,7 @@ const FEATURES = preload("res://data/world/regions/silverhart_heartland/features
 var failures := 0
 
 func _initialize() -> void:
+	_test_source_ruin_footprint()
 	_test_spider_ruin_rubble()
 	_test_chunk_scoping()
 	if failures > 0:
@@ -15,6 +16,26 @@ func _initialize() -> void:
 		return
 	print("Spider ruin presentation tests passed.")
 	quit(0)
+
+func _test_source_ruin_footprint() -> void:
+	var centre: Vector2i = FEATURES.MIRABEL_SPIDER_RUIN_CENTRE
+	_check(centre == Vector2i(160, 24), "Mirabel's ruin must retain the source-derived Reddale offset anchor")
+	_check(FEATURES.MIRABEL_SPIDER_RUIN_RADIUS == 3, "Mirabel's ruin must retain the source radius-three footprint")
+	var authored_cells := 0
+	for q in range(centre.x - 3, centre.x + 4):
+		for r in range(centre.y - 3, centre.y + 4):
+			var hex := Vector2i(q, r)
+			var distance := _axial_distance(hex, centre)
+			var override: Dictionary = FEATURES.terrain_override_at(hex)
+			if distance <= 3:
+				authored_cells += 1
+				_check(String(override.get("feature_id", "")) == "reddale_mirabel_spider_ruin", "Every cell inside the source radius-three ruin must retain its feature ownership")
+				_check(String(override.get("terrain", "")) == "rocky_outcrop", "Every source ruin cell must remain rocky outcrop")
+			else:
+				_check(String(override.get("feature_id", "")) != "reddale_mirabel_spider_ruin", "The source ruin must not expand beyond its radius-three boundary")
+	_check(authored_cells == 37, "The source radius-three spider ruin must contain exactly 37 axial cells")
+	var source_spider_positions := [centre + Vector2i(-1, 0), centre + Vector2i(1, 0)]
+	_check(source_spider_positions[0] == Vector2i(159, 24) and source_spider_positions[1] == Vector2i(161, 24), "The source defender positions must remain on either side of the ruin centre")
 
 func _test_spider_ruin_rubble() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
