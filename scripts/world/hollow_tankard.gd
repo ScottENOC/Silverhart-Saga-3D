@@ -2366,14 +2366,6 @@ func _active_party_defeated() -> bool:
 	return true
 
 
-func _restore_active_party_after_combat() -> void:
-	for character_id in simulation.get_party_member_ids():
-		var member := simulation.get_character(character_id)
-		if member != null:
-			member.side = "player"
-			member.combat_dormant = false
-
-
 func _check_encounter_resolution() -> void:
 	if not encounter_active:
 		return
@@ -2383,14 +2375,12 @@ func _check_encounter_resolution() -> void:
 			simulation.end_combat()
 			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
 			active_encounter_character_states.clear()
-			_restore_active_party_after_combat()
 			encounter_active = false
 			_show_dialogue("Abandoned House", "The guardians drive you back. They remain in the house, but you can return when the party is ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
 		elif ABANDONED_HOUSE_QUEST_SCRIPT.enemies_defeated(simulation):
 			simulation.end_combat()
 			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
 			active_encounter_character_states.clear()
-			_restore_active_party_after_combat()
 			encounter_active = false
 			var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
 			if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
