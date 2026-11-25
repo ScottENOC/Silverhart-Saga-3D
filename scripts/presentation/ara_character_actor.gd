@@ -756,6 +756,8 @@ static func camp_activity_animation_hints(activity: String) -> PackedStringArray
 			return PackedStringArray(["pick_up", "crouch_idle", "use_press"])
 		"pack_camp":
 			return PackedStringArray(["pick_up", "carry_idle"])
+		"depart":
+			return PackedStringArray(["walk", "idle"])
 		_:
 			return PackedStringArray(["idle"])
 
