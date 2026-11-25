@@ -772,6 +772,17 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
         ),
         "",
+        "## Source interior door-anchor coverage",
+        "",
+        "No source interior door-anchor comparison was available." if report.get("interior_door_validation") is None else (
+            f'Source door anchors matched: {report["interior_door_validation"]["matched_source_door_anchor_count"]:,} '
+            f'of {report["interior_door_validation"]["source_regions_with_door_anchor"]:,}; '
+            f'missing: {report["interior_door_validation"]["missing_source_door_anchor_count"]:,}. '
+            f'Target unique door anchors: {report["interior_door_validation"]["target_unique_door_anchor_count"]:,}.'
+        ),
+        "",
+        "This checks only source door coordinates against target door records. It does not establish room-wall, fixture, transition or full floor-shape parity.",
+        "",
         "| Source terrain builder | Unique cells touched |",
         "|---|---:|",
     ])
