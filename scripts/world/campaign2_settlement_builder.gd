@@ -208,6 +208,7 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 	actor.set_meta("title", str(character.get("title", "")))
 	actor.set_meta("ambient_role", str(character.get("ambient_role", "civilian")))
 	actor.set_meta("monster_type", str(character.get("monster_type", "")))
+	actor.set_meta("tied_up", bool(character.get("tied_up", false)))
 	actor.set_meta("class_levels", character.get("class_levels", []))
 	actor.set_meta("skill_picks", character.get("skill_picks", []))
 	actor.set_meta("quest_hooks", character.get("quest_hooks", []))
