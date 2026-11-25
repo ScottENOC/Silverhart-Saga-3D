@@ -107,7 +107,7 @@ func _test_ironbond_domain_uses_shared_lifecycle() -> void:
 	var index := 0
 	for character_id in all_ids:
 		var state := CharacterState.new(character_id, character_id, Vector2i(index, 0))
-		if HOLLOWMERE_ENCOUNTER.PLAYER_CONTROLLED_IDS.has(character_id):
+		if HOLLOWMERE_ENCOUNTER.PLAYER_CONTROLLED_IDS.has(character_id) or character_id == "companion_aldric":
 			state.side = "player"
 		if character_id == "bystander":
 			state.combat_dormant = false
@@ -134,6 +134,7 @@ func _test_ironbond_domain_uses_shared_lifecycle() -> void:
 	_check(simulation.get_character("garrick_holt").side == "neutral" and simulation.get_character("garrick_holt").combat_dormant, "Ironbond cleanup should restore defenders to neutral and dormant.")
 	_check(simulation.get_character("dray_coltayne").side == "enemy" and simulation.get_character("dray_coltayne").combat_dormant, "Ironbond cleanup should preserve the soldiers as dormant enemies.")
 	_check(player.side == "player" and not player.combat_dormant, "Ironbond cleanup should leave the player active on the player side.")
+	_check(simulation.get_character("companion_aldric").side == "player" and not simulation.get_character("companion_aldric").combat_dormant, "Ironbond cleanup should restore additional party members to active player-side status.")
 	simulation.free()
 
 func _test_abandoned_house_uses_shared_lifecycle() -> void:
