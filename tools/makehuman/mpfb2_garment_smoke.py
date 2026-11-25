@@ -290,6 +290,8 @@ def main():
         export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
     )
 
+    source_object_diagnostics = [object_diagnostics(obj) for obj in export_objects]
+
     # Validate the deliverable, not merely the source Blender scene: clear the
     # scene, re-import the GLB, assert the expected mesh count, and render it.
     for obj in list(bpy.data.objects):
@@ -322,7 +324,7 @@ def main():
         "loaded_face_components": loaded_components,
         "removed_startup_meshes": startup_objects_removed,
         "mesh_objects": mesh_objects,
-        "source_object_diagnostics": [object_diagnostics(obj) for obj in export_objects],
+        "source_object_diagnostics": source_object_diagnostics,
         "renders": [
             os.path.join(OUTPUT_DIR, "base-human-front.png"),
             os.path.join(OUTPUT_DIR, "base-human-side.png"),
