@@ -45,26 +45,28 @@ func _capture_all_views() -> void:
 		push_error("Could not load Campaign 2 regional world preview.")
 		quit(1)
 		return
-	var preview := packed.instantiate()
+	var preview: Variant = packed.instantiate()
 	root.add_child(preview)
 	for _frame in range(12):
 		await process_frame
-	if preview.camera == null or preview.terrain_data == null:
+	var preview_camera := preview.get("camera") as Camera3D
+	var terrain_data: Variant = preview.get("terrain_data")
+	if preview_camera == null or terrain_data == null:
 		push_error("Regional preview did not initialise its camera or terrain data.")
 		quit(1)
 		return
 	for layer in preview.find_children("*", "CanvasLayer", true, false):
 		layer.visible = false
-	preview.yaw = deg_to_rad(24.0)
-	preview.pitch = deg_to_rad(58.0)
+	preview.set("yaw", deg_to_rad(24.0))
+	preview.set("pitch", deg_to_rad(58.0))
 	var output_path := ProjectSettings.globalize_path(OUTPUT_DIR)
 	DirAccess.make_dir_recursive_absolute(output_path)
 	for view in REVIEW_VIEWS:
 		var hex: Vector2i = view["hex"]
-		preview.target = HexGrid.axial_to_world(hex, HexGrid.DEFAULT_RADIUS_M, preview.terrain_data.elevation_for_hex(hex))
-		preview.camera_distance = float(view["distance"])
-		preview._update_camera()
-		preview._update_streamed_chunks(true)
+		preview.set("target", HexGrid.axial_to_world(hex, HexGrid.DEFAULT_RADIUS_M, float(terrain_data.call("elevation_for_hex", hex))))
+		preview.set("camera_distance", float(view["distance"]))
+		preview.call("_update_camera")
+		preview.call("_update_streamed_chunks", true)
 		for _frame in range(10):
 			await process_frame
 		RenderingServer.force_draw(false)
