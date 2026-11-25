@@ -4,6 +4,7 @@ const RUNTIME_SERVICE = preload("res://scripts/simulation/goblin_threat_campaign
 const SIMULATION_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
 const CHARACTER_SCRIPT = preload("res://scripts/simulation/character_state.gd")
 const RELATIONSHIP_SCRIPT = preload("res://scripts/simulation/persistent_character_relationship_state.gd")
+const DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
 
 const ALDRIC_ID := "ser_aldric_thorne"
 var _failures: int = 0
@@ -14,6 +15,9 @@ func _initialize() -> void:
 	_test_favour_effects_reach_campaign_state()
 	_test_alliance_rescues_aldric_and_completes_his_quest()
 	_test_scout_note_is_a_one_time_world_effect()
+	_test_direct_aldric_rescue()
+	_test_nix_recruitment_uses_goblin_profile()
+	_test_chief_dialogue_routes_gift_transaction()
 	if _failures > 0:
 		push_error("%d Skarn-tooth runtime assertion(s) failed." % _failures)
 		quit(1)
@@ -92,3 +96,42 @@ func _test_scout_note_is_a_one_time_world_effect() -> void:
 	var repeated := RUNTIME_SERVICE.read_scout_note(simulation)
 	_check(bool(repeated.get("ok", false)) and bool(repeated.get("already_read", false)))
 	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), -3.0))
+
+
+func _test_direct_aldric_rescue() -> void:
+	var simulation := _simulation()
+	var first := RUNTIME_SERVICE.rescue_aldric(simulation)
+	_check(bool(first.get("ok", false)))
+	_check(String(simulation.campaign_journal.quest_state("aldric_rescue").get("status", "")) == "completed")
+	_check(bool(simulation.campaign_journal.world_campaign_flag("aldric_rescued", false)))
+	_check(simulation.get_character(ALDRIC_ID).side == "neutral")
+	var repeated := RUNTIME_SERVICE.rescue_aldric(simulation)
+	_check(bool(repeated.get("ok", false)) and bool(repeated.get("already_applied", false)))
+
+
+func _test_nix_recruitment_uses_goblin_profile() -> void:
+	var simulation := _simulation()
+	var relationships := RELATIONSHIP_SCRIPT.new()
+	RUNTIME_SERVICE.give_chief_gift(simulation, relationships)
+	var resolved := RUNTIME_SERVICE.resolve_threat(simulation, "goblin_alliance", relationships)
+	_check(bool(resolved.get("ok", false)))
+	var recruited := RUNTIME_SERVICE.recruit_nix(simulation)
+	_check(bool(recruited.get("ok", false)), "Nix should be created and recruited after the alliance")
+	_check(simulation.is_party_member("nix_sharpear"))
+	var nix := simulation.get_character("nix_sharpear")
+	_check(nix != null and nix.race == "goblin", "Nix must use the source goblin race, not human")
+	_check(nix != null and nix.progression_mode == "companion")
+
+
+func _test_chief_dialogue_routes_gift_transaction() -> void:
+	var simulation := _simulation()
+	var relationships := RELATIONSHIP_SCRIPT.new()
+	var conversation := DIALOGUE_SERVICE.dialogue_for_npc(simulation, "chief_skarnub", relationships)
+	var gift_offered := false
+	for choice_value in conversation.get("choices", []):
+		if String(choice_value.get("id", "")) == "skarnub_give_gift":
+			gift_offered = true
+	_check(gift_offered, "Chief dialogue should offer the source 60-gold gift when affordable")
+	var result := DIALOGUE_SERVICE.select_choice(simulation, "chief_skarnub", "skarnub_give_gift", relationships)
+	_check(bool(result.get("handled", false)) and bool(result.get("ok", false)))
+	_check(simulation.get_character("player").gold == 40, "Dialogue choice must deduct the gift from player gold")
