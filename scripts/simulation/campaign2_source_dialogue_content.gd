@@ -30,7 +30,9 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 		"orc_standing": journal.faction_standing("orc_raiders"),
 		"orc_trust_active": String(orc_trust_state.get("status", "")) == "active",
 		"orc_trust_completed": String(orc_trust_state.get("status", "")) == "completed",
-		"nix_recruited": nix_state != null and nix_state.side == "player"
+		"nix_recruited": nix_state != null and nix_state.side == "player",
+		"kingdom_standing": journal.faction_standing("silverhart_kingdom"),
+		"thieves_guild_standing": journal.faction_standing("thieves_guild")
 	}
 	if dialogue_id in ["garrick_holt", "mira_ashbrook", "oskar_vinn", "wick_hallow", "yvette", "yvette_marlow", "hendra", "hendra_wells", "elder_marta", "marta_wynfield", "rowan_fletcher", "hollowmere_hunter", "tavern_patron", "bram_fenwick"]:
 		var shakedown_state := journal.quest_state(HollowmereCampaignContent.QUEST_ID)
@@ -284,6 +286,26 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 			if bool(context.get("orc_trust_active", false)):
 				return {"speaker": display_name, "text": "That troll still denning east of here? Deal with it and we'll talk properly.", "choices": [{"id": "troll", "label": "Where is its den?", "text": "East of the stockade, in the rocks. It has been picking off scouts and cattle. Bring proof that it is dead."}, {"id": "leave", "label": "I'm working on it.", "text": "Grukk folds his arms."}]}
 			return {"speaker": display_name, "text": "Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", "choices": [{"id": "troll", "label": "What do you know about the troll?", "text": "It denns east of the stockade, in the rocks. It has been taking scouts and cattle. Deal with it and you'll have earned a proper welcome."}, {"id": "leave", "label": "Not interested.", "text": "Grukk's expression hardens."}]}
+		"reddale_baron":
+			return {"speaker": display_name, "text": "Reddale answers to me, same as the rest of the barony. Mind your business here and we'll get along fine. Bring a gift worth the visit and I'll remember it kindly — a fine red gem would do nicely.", "choices": [{"id": "barony", "label": "How fares the barony?", "text": "The roads are watched, the tariffs are collected, and the villages know who keeps order here. That is how a barony survives."}, {"id": "tribute", "label": "A red gem would please you?", "text": "A fine stone is a suitable tribute. It shows a visitor understands the difference between an audience and an entitlement."}, {"id": "leave", "label": "Understood.", "text": "The Baron turns his attention elsewhere."}]}
+		"reddale_guildmaster":
+			return {"speaker": display_name, "text": "The Guild looks after its own here in Reddale. Trade fair with us and we'll do the same for you.", "choices": [{"id": "guild", "label": "What does the Guild deal in?", "text": "Information, opportunity, and the occasional problem that needs solving quietly. What matters is knowing who to trust."}, {"id": "leave", "label": "Good to know.", "text": "Petra Voss returns to her business."}]}
+		"thieves_guildmaster":
+			if float(context.get("thieves_guild_standing", 0.0)) < 0.0:
+				return {"speaker": display_name, "text": "You've got some nerve, showing your face here after that. Walk away while you still can.", "choices": [{"id": "leave", "label": "...", "text": "Corvin Ashe watches until you turn away."}]}
+			if float(context.get("thieves_guild_standing", 0.0)) >= 50.0:
+				return {"speaker": display_name, "text": "You've earned your place here. What do you need?", "choices": [{"id": "guild_work", "label": "Anything worth knowing?", "text": "There's always work for someone who knows when to speak and when to keep quiet."}, {"id": "leave", "label": "Just checking in.", "text": "Corvin nods once."}]}
+			return {"speaker": display_name, "text": "You've done right by us so far. Keep it that way.", "choices": [{"id": "guild_work", "label": "Is there work for me?", "text": "Earn the Guild's trust and there will be. We don't hand out opportunities to strangers."}, {"id": "leave", "label": "Understood.", "text": "Corvin turns back to his accounts."}]}
+		"elven_ambassador":
+			return {"speaker": display_name, "text": "The Sylvan Court sends its regards to the Queen, and its patience with her borders' woodcutters. Both are finite, in their way. A gift of good herbs would go some way toward the latter — three, if you can spare them.", "choices": [{"id": "elven_herbs", "label": "Why herbs?", "text": "The Court values the living things of the forest. A gift gathered with care carries more meaning than a purse of gold."}, {"id": "leave", "label": "I'll keep that in mind.", "text": "Ambassador Elarion returns to his correspondence."}]}
+		"ironbond_envoy":
+			var influence := float(context.get("ironbond_influence", 30.0))
+			var envoy_line := "Business as usual — a little coin here, a little influence there. Nothing you'd need to worry about."
+			if influence >= 60.0:
+				envoy_line = "The Company's word carries real weight in this court these days. We like it that way."
+			elif influence <= 10.0:
+				envoy_line = "Harder going for us at court lately, if I'm honest. Someone's been undoing our work."
+			return {"speaker": display_name, "text": envoy_line + " There's a general store out in Hollowmere — Wick Hallow's place. Convince him to carry Ironbond stock and there's coin in it for you.", "choices": [{"id": "company", "label": "How is the Company faring?", "text": envoy_line}, {"id": "leave", "label": "Noted.", "text": "Factor Willem Drass returns to his accounts."}]}
 		"orc_trader":
 			if float(context.get("orc_standing", 0.0)) < 20.0:
 				return {"speaker": display_name, "text": "Nothing for you here, human.", "choices": [{"id": "leave", "label": "...", "text": "Kesh turns back to his wares."}]}
