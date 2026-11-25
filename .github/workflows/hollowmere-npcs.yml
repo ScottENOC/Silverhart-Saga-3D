@@ -77,7 +77,7 @@ jobs:
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
-          mkdir -p art/characters/hollowmere/review
+          mkdir -p build/character-review
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
@@ -89,7 +89,7 @@ jobs:
               config["model"] = character["model"]
               config_path = Path("/tmp/character-review-profile.json")
               config_path.write_text(json.dumps(config))
-              output = root / "review" / character_id
+              output = Path("build/character-review") / character_id
               subprocess.run([
                   "blender", "--background", "--python-exit-code", "1",
                   "--python", "tools/review/render_character_preview.py", "--",
@@ -118,7 +118,7 @@ jobs:
             art/characters/hollowmere/*.glb
             art/characters/hollowmere/*.params.json
             art/characters/hollowmere/profiles.json
-            art/characters/hollowmere/review/**/*.png
+            build/character-review/**/*.png
           if-no-files-found: error
           retention-days: 90
 
