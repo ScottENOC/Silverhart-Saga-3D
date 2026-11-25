@@ -3,6 +3,7 @@ extends SceneTree
 var _failures := 0
 var _camp_actor_probes: Dictionary = {}
 var _camp_animal_care_events := 0
+var _camp_night_events := 0
 
 
 class CampActivityProbe extends RefCounted:
@@ -22,6 +23,9 @@ func _camp_actor_for_id(character_id: String) -> Object:
 func _on_camp_action_committed(event: SimulationEvent) -> void:
 	if event.event_type == "camp_animal_care":
 		_camp_animal_care_events += 1
+
+func _on_camp_night_encounter_resolved(result: Dictionary) -> void:
+	_camp_night_events += 1
 
 
 func _initialize() -> void:
@@ -423,6 +427,21 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(bool(missed_event.get("attacked", false)), "The second deterministic danger roll should produce an attack")
 	_check(not bool(missed_event.get("detected", true)), "An exhausted novice watch should be capable of missing an attack")
 	_check(float(missed_event.get("detection_chance", 1.0)) < 0.2, "Exhaustion should materially reduce detection chance")
+
+	var world := WorldSimulation.new()
+	_camp_night_events = 0
+	world.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
+	world.camp_simulation.begin_camp(
+		{"walkable": true, "site_id": "world_watch_test"},
+		["a", "b"],
+		{"danger": 1.0, "night_seed": detected_seed, "companion_profiles": {
+			"a": {"perception": 10.0}, "b": {"perception": 0.0}
+		}},
+		{}
+	)
+	world.camp_simulation.skip_to_morning()
+	_check(_camp_night_events == 1, "WorldSimulation should publish a detected night attack for encounter presentation")
+	world.free()
 
 
 func _test_world_simulation_integration() -> void:
