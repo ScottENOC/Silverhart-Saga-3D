@@ -6,6 +6,7 @@ const CHARACTER_SCRIPT = preload("res://scripts/simulation/character_state.gd")
 const RELATIONSHIP_SCRIPT = preload("res://scripts/simulation/persistent_character_relationship_state.gd")
 const DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
 const EVENT_ROUTER = preload("res://scripts/simulation/campaign_quest_event_router.gd")
+const QUEST_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
 
 const ALDRIC_ID := "ser_aldric_thorne"
 var _failures: int = 0
@@ -167,10 +168,20 @@ func _test_alliance_follow_up_mine_raid_and_spy_quest() -> void:
 	var spy_started := RUNTIME_SERVICE.start_greenskin_spy(simulation)
 	_check(bool(spy_started.get("ok", false)))
 	_check(String(simulation.campaign_journal.quest_state("greenskin_spy").get("status", "")) == "active")
-	var spy_completed := RUNTIME_SERVICE.complete_greenskin_spy(simulation)
+
+	var saved_journal := simulation.campaign_journal.to_dict()
+	var restored_simulation := _simulation()
+	QUEST_REGISTRY.register_all(restored_simulation.campaign_journal)
+	restored_simulation.campaign_journal.load_dict(saved_journal)
+	_check(String(restored_simulation.campaign_journal.quest_state("goblin_mine_raid").get("status", "")) == "completed")
+	_check(String(restored_simulation.campaign_journal.quest_state("goblin_scout_note").get("status", "")) == "completed")
+	_check(String(restored_simulation.campaign_journal.quest_state("greenskin_spy").get("status", "")) == "active")
+	_check(bool(restored_simulation.campaign_journal.world_campaign_flag("goblin_mine_raid_completed", false)))
+
+	var spy_completed := RUNTIME_SERVICE.complete_greenskin_spy(restored_simulation)
 	_check(bool(spy_completed.get("ok", false)))
-	_check(String(simulation.campaign_journal.quest_state("greenskin_spy").get("status", "")) == "completed")
-	_check(bool(simulation.campaign_journal.world_campaign_flag("northwatch_taken_by_greenskins", false)))
+	_check(String(restored_simulation.campaign_journal.quest_state("greenskin_spy").get("status", "")) == "completed")
+	_check(bool(restored_simulation.campaign_journal.world_campaign_flag("northwatch_taken_by_greenskins", false)))
 
 
 func _test_chief_death_resolves_assault() -> void:
