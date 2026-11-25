@@ -1120,15 +1120,15 @@ func _begin_morning_stage(stage: int) -> void:
 			return
 		4:
 			activity = "depart"
-			for character_id in party_ids:
-				_set_assignment(character_id, "depart")
-			return
-		5:
 			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
 				environment["fire_extinguished"] = true
 				environment["fire_lit"] = false
 				environment["fire_buried"] = true
 				environment["fire_extinguishing_method"] = "covered_with_soil"
+			for character_id in party_ids:
+				_set_assignment(character_id, "depart")
+			return
+		5:
 			environment["camp_packed"] = true
 			phase = "resolved"
 			morning_summary["camp_packed"] = true
