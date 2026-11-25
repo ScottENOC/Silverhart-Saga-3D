@@ -23,6 +23,7 @@ func _initialize() -> void:
 	_test_activity_planning_and_player_override()
 	_test_tent_capacity_and_relationship_matching()
 	_test_indoor_floor_sleeping_and_security()
+	_test_general_camp_occupant_registry()
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
@@ -146,6 +147,39 @@ func _test_indoor_floor_sleeping_and_security() -> void:
 	)
 	var unsafe_arrangement := uninhabitable.plan_sleeping_arrangements(0)
 	_check(String(unsafe_arrangement[0].shelter_type) == "open_air", "A structurally uninhabitable dwelling must not provide indoor sleeping space")
+
+
+func _test_general_camp_occupant_registry() -> void:
+	var camp := CampSimulation.new()
+	camp.begin_camp(
+		{"walkable": true},
+		["player", "druid"],
+		{"camp_occupants": [
+			{"occupant_id": "moss", "kind": "animal", "species": "wolf", "bonded_to": "druid", "can_sleep": true, "can_work": false, "needs": ["food", "water", "shelter", "sleep", "safety", "social"]},
+			{"occupant_id": "refugee_01", "kind": "follower", "species": "humanoid", "can_sleep": true, "can_work": false},
+			{"occupant_id": "cook_01", "kind": "resident", "species": "humanoid", "can_sleep": true, "can_work": true},
+			{"occupant_id": "traveller_01", "kind": "guest", "species": "humanoid", "staying_overnight": true}
+		]}
+	)
+	_check(camp.occupants.size() == 6, "Camp registry should include party members and independent camp occupants")
+	_check(camp.party_ids.size() == 2, "Followers, animals, residents and guests must not consume party slots")
+	_check(String(camp.occupant_for("moss").kind) == "animal", "Animal companions should retain their distinct occupant kind")
+	_check(String(camp.occupant_for("moss").species) == "wolf", "Animal occupants should retain species information")
+	_check(String(camp.occupant_for("refugee_01").kind) == "follower", "A protected traveller should be represented as a follower")
+	_check(String(camp.occupant_for("cook_01").kind) == "resident", "Household workers should have a resident category")
+	_check(bool(camp.occupant_for("traveller_01").can_sleep), "Overnight guests should be eligible for sleeping allocation")
+	_check(not bool(camp.occupant_for("traveller_01").can_work), "Guests should not default to camp duties")
+	_check(camp.occupants_of_kind("animal").size() == 1, "Occupants should be queryable by category")
+	_check(not bool(camp.remove_camp_occupant("player").ok), "Party members cannot be removed through the non-party occupant API")
+	_check(bool(camp.remove_camp_occupant("traveller_01").ok), "Non-party occupants should be removable when they leave")
+	_check(not bool(camp.register_camp_occupant({"occupant_id": "bad", "kind": "spaceship"}).ok), "Unknown occupant kinds should be rejected")
+	_check(not bool(camp.register_camp_occupant({"occupant_id": "player", "kind": "follower"}).ok), "A party member cannot be reclassified as a non-party follower")
+
+	var saved := camp.to_dict()
+	var restored := CampSimulation.new()
+	_check(restored.from_dict(saved), "The full camp occupant registry should survive save/load")
+	_check(restored.occupant_for("moss") == camp.occupant_for("moss"), "Animal identity and care metadata should persist")
+	_check(restored.occupant_for("cook_01") == camp.occupant_for("cook_01"), "Resident metadata should persist")
 
 
 func _test_night_resolution_and_save_load() -> void:
