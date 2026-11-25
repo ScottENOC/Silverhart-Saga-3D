@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_test_scout_note_is_a_one_time_world_effect()
 	_test_direct_aldric_rescue()
 	_test_nix_recruitment_uses_goblin_profile()
+	_test_existing_lieutenant_is_converted_on_recruitment()
 	_test_chief_dialogue_routes_gift_transaction()
 	_test_alliance_follow_up_mine_raid_and_spy_quest()
 	_test_chief_death_resolves_assault()
@@ -204,3 +205,22 @@ func _test_assassination_opens_nix_succession() -> void:
 	_check(bool(resolved.get("ok", false)))
 	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "stealth_succession")
 	_check(simulation.get_character("player").experience == 250)
+
+
+func _test_existing_lieutenant_is_converted_on_recruitment() -> void:
+	var simulation := _simulation()
+	var lieutenant := CHARACTER_SCRIPT.new("nix_sharpear", "Nix Sharpear")
+	lieutenant.side = "neutral"
+	lieutenant.axial = Vector2i(2, 0)
+	simulation.register_character(lieutenant)
+	var relationships := RELATIONSHIP_SCRIPT.new()
+	RUNTIME_SERVICE.give_chief_gift(simulation, relationships)
+	var alliance := RUNTIME_SERVICE.resolve_threat(simulation, "goblin_alliance", relationships)
+	_check(bool(alliance.get("ok", false)))
+	var recruited := RUNTIME_SERVICE.recruit_nix(simulation)
+	_check(bool(recruited.get("ok", false)))
+	_check(simulation.is_party_member("nix_sharpear"))
+	_check(lieutenant.race == "goblin", "The pre-existing lieutenant actor must be converted to the playable goblin race")
+	_check(lieutenant.progression_mode == "companion")
+	_check(int(lieutenant.skills.get("dagger_hit", 0)) > 0)
+	_check(int(lieutenant.skills.get("stealth_rogue", 0)) > 0)
