@@ -436,7 +436,7 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 		_check(String(scout_note.get("source", "")).contains("goblin_scout_note"), "Goblin scout note must retain source journal identity")
 	_check(String(definition.get("source", "")).contains("buildGoblinCamp"), "Goblin camp must retain source traceability")
 	var placements: Array = definition.get("placements", {}).get("characters", [])
-	_check(placements.size() == 7, "Skarn-tooth Camp should populate its chief, lieutenant, shaman, trader and three guards")
+	_check(placements.size() == 8, "Skarn-tooth Camp should populate its chief, lieutenant, shaman, trader and three guards")
 	var ids: Dictionary = {}
 	for placement in placements:
 		ids[String(placement.get("character_id", ""))] = placement
@@ -448,7 +448,8 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 		"grondle_camp_trader": Vector2i(202, 24),
 		"skarn_goblin_guard_01": Vector2i(203, 24),
 		"skarn_goblin_guard_02": Vector2i(204, 24),
-		"skarn_goblin_skulker": Vector2i(203, 25)
+		"skarn_goblin_skulker": Vector2i(203, 25),
+		"ser_aldric_thorne": Vector2i(204, 22)
 	}
 	for character_id in expected_npcs:
 		_check(ids.has(character_id), "Skarn-tooth Camp should place " + character_id)
@@ -460,6 +461,9 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 			_check(profile.has("source_position"), "Skarn-tooth NPC should retain its original source placement: " + character_id)
 	_check(String(registry.get_character("chief_skarnub").get("dialogue_id", "")) == "chief_skarnub", "Chief Skarnub should retain his source dialogue ID")
 	_check(String(registry.get_character("nix_sharpear").get("dialogue_id", "")) == "nix_sharpear", "Nix Sharpear should retain his source dialogue ID")
+	var aldric_profile := registry.get_character("ser_aldric_thorne")
+	_check(String(aldric_profile.get("dialogue_id", "")) == "ser_aldric_captive", "Ser Aldric should retain his captive dialogue ID")
+	_check(bool(aldric_profile.get("tied_up", false)), "Ser Aldric should enter the camp as a captive")
 
 
 func _test_skarnaks_hold(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
