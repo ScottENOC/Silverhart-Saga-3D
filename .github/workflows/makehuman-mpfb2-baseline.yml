@@ -30,6 +30,11 @@ jobs:
         with:
           version: "4.2"
 
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1 libgl1 libxrender1 libxi6 libxfixes3
+
       - name: Verify Blender installation
         run: blender --version
 
