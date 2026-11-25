@@ -71,7 +71,8 @@ func _source_door_hex(data: Campaign2WorldTerrainData, entrance: Dictionary) -> 
 			break
 	assert(not location.is_empty(), "%s must exist in canonical geography" % entrance_id)
 	var centre := Vector2i(int(location.get("q", 0)), int(location.get("r", 0)))
-	return centre + (entrance["door_offset"] as Vector2i)
+	var door_offset: Vector2i = entrance["door_offset"]
+	return centre + door_offset
 
 
 func _check(condition: bool, message: String) -> void:
