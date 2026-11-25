@@ -621,12 +621,32 @@ func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -
 ## Male body exports append anatomy bones for independently controlled poses;
 ## ordinary clips leave these bones alone unless they contain explicit tracks.
 ## Keeping the shared prefix unchanged preserves the Skin's original bone indices.
+const MAX_SHARED_BONE_REST_ORIGIN_DELTA_METRES := 0.025
+
+
 func _extend_animation_carrier_skeleton(carrier: Skeleton3D, source: Skeleton3D) -> bool:
 	if carrier.get_bone_count() > source.get_bone_count():
+		push_warning("Ara animation carrier has more bones than source rig; retaining native model.")
 		return false
 	var shared_bone_count := carrier.get_bone_count()
 	for index in range(shared_bone_count):
-		if carrier.get_bone_name(index) != source.get_bone_name(index):
+		var carrier_name := carrier.get_bone_name(index)
+		var source_name := source.get_bone_name(index)
+		if carrier_name != source_name:
+			push_warning("Ara animation carrier bone order differs at %d: carrier=%s source=%s; retaining native model." % [index, carrier_name, source_name])
+			return false
+		var carrier_parent := carrier.get_bone_parent(index)
+		var source_parent := source.get_bone_parent(index)
+		var carrier_parent_name := carrier.get_bone_name(carrier_parent) if carrier_parent >= 0 else ""
+		var source_parent_name := source.get_bone_name(source_parent) if source_parent >= 0 else ""
+		if carrier_parent_name != source_parent_name:
+			push_warning("Ara animation carrier parent mismatch for bone %s: carrier=%s source=%s; retaining native model." % [source_name, carrier_parent_name, source_parent_name])
+			return false
+		var carrier_rest := carrier.get_bone_rest(index)
+		var source_rest := source.get_bone_rest(index)
+		var origin_delta := carrier_rest.origin.distance_to(source_rest.origin)
+		if origin_delta > MAX_SHARED_BONE_REST_ORIGIN_DELTA_METRES or not carrier_rest.basis.is_equal_approx(source_rest.basis):
+			push_warning("Ara animation carrier rest mismatch for bone %s: origin delta %.2f mm; retaining native model." % [source_name, origin_delta * 1000.0])
 			return false
 	for source_index in range(shared_bone_count, source.get_bone_count()):
 		var bone_name := source.get_bone_name(source_index)
