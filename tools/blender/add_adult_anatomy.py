@@ -26,6 +26,7 @@ def arguments():
     parser.add_argument("--profile", choices=("female", "none"), default=os.environ.get("ARA_PROFILE"), required=not bool(os.environ.get("ARA_PROFILE")))
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
+    parser.add_argument("--preserve-topology", action="store_true", help="Skip adaptive subdivision so matching source meshes retain matching topology")
     parser.add_argument("--deformation-scale", type=float, default=1.65, help="Scale the enhanced female anatomy relief targets")
     parser.add_argument("--no-canal", action="store_true", help="Skip the collapsed vaginal canal")
     parser.add_argument("--no-anus", action="store_true", help="Skip the anus and anal canal")
@@ -813,7 +814,7 @@ def _prep_anus(bm, mw, inv, yz, k):
 
 
 def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None,
-                                  canal=True, anus=True):
+                                  canal=True, anus=True, preserve_topology=False):
     """Sculpt the existing skin mesh in place (UVs, material, weights and rig are kept)."""
     import bmesh
     P = dict(FEMALE_ANATOMY)
@@ -857,23 +858,24 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
 
     # adaptive local refinement: split whole faces (not lone edges) so the region
     # stays a regular grid and the folds do not pick up sliver triangles
-    target = P["target_edge"] * k
-    for _ in range(4):
-        cand = []
-        for f in bm.faces:
-            c = mw @ f.calc_center_median()
-            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
-                    and f.calc_perimeter() / len(f.verts) > target * 1.6:
-                cand.append((f, c))
-        if not cand:
-            break
-        ts, ds = coords_for([c for _f, c in cand])
-        faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_ref_hi and dd <= 0.016]
-        if not faces:
-            break
-        edges = list({e for f in faces for e in f.edges})
-        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=1, use_grid_fill=True)
-        bm.normal_update()
+    if not preserve_topology:
+        target = P["target_edge"] * k
+        for _ in range(4):
+            cand = []
+            for f in bm.faces:
+                c = mw @ f.calc_center_median()
+                if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
+                        and f.calc_perimeter() / len(f.verts) > target * 1.6:
+                    cand.append((f, c))
+            if not cand:
+                break
+            ts, ds = coords_for([c for _f, c in cand])
+            faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_ref_hi and dd <= 0.016]
+            if not faces:
+                break
+            edges = list({e for f in faces for e in f.edges})
+            bmesh.ops.subdivide_edges(bm, edges=edges, cuts=1, use_grid_fill=True)
+            bm.normal_update()
 
     sel = []
     for v in bm.verts:
@@ -1576,7 +1578,7 @@ def main():
     anatomy = None
     if args.profile == "female":
         anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale,
-                                              canal=not args.no_canal, anus=not args.no_anus)
+                                              canal=not args.no_canal, anus=not args.no_anus, preserve_topology=args.preserve_topology)
         apply_anatomy_pigmentation(skin, anatomy_z, width, height)
         skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
         wire_vertex_colour_to_skin_material(skin_material, "Color")
