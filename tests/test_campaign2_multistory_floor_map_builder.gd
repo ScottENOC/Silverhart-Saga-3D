@@ -550,7 +550,7 @@ func _test_every_registered_floor_map(registry: Campaign2MultiStoryLocationRegis
 		_check(bool(location_state.configure(location_definition).get("ok", false)), "Every registered location must configure: " + location_id)
 		for floor_definition in location_definition.get("floors", []):
 			var floor_number := int(floor_definition.get("floor", 0))
-			var has_floor_geometry := not floor_definition.get("rooms", []).is_empty() or not floor_definition.get("corridors", []).is_empty() or not floor_definition.get("floor_hexes", []).is_empty() or not floor_definition.get("tile_objects", []).is_empty()
+			var has_floor_geometry: bool = not floor_definition.get("rooms", []).is_empty() or not floor_definition.get("corridors", []).is_empty() or not floor_definition.get("floor_hexes", []).is_empty() or not floor_definition.get("tile_objects", []).is_empty()
 			if not has_floor_geometry:
 				var is_tunnel_host_anchor := location_id in ["silverhart_city_tunnel", "silverhart_palace_tunnel"] and floor_number == 0
 				_check(is_tunnel_host_anchor, "Only the two source tunnel host anchors may have no floor geometry: %s floor %d" % [location_id, floor_number])
