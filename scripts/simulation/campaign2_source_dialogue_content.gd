@@ -7,6 +7,8 @@ extends RefCounted
 static func greeting_for_npc(dialogue_id: String, character: CharacterState, actor: Node3D, simulation: WorldSimulation) -> Dictionary:
 	if character == null or simulation == null:
 		return {}
+	if dialogue_id == "orc_warlord":
+		return OrcStrongholdCampaignContent.warlord_greeting(simulation.campaign_journal, simulation, character)
 	var journal := simulation.campaign_journal
 	var guild_favor_state := journal.quest_state("guild_favor")
 	var wizard_vendetta_state := journal.quest_state("wizard_vendetta")
