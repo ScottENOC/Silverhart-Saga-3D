@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -162,8 +163,9 @@ def source_interior_door_parity_report(
     runtime: dict[str, Any],
     multistory: dict[str, Any],
     layouts: dict[str, Any],
+    regional_features_text: str = "",
 ) -> dict[str, Any]:
-    """Compare source interior door anchors with target floor/building door records."""
+    """Compare source interior door anchors with target doors and fort gate access points."""
     source_regions = runtime.get("interiors", [])
     source_doors: list[dict[str, Any]] = []
     for index, region in enumerate(source_regions if isinstance(source_regions, list) else []):
@@ -207,18 +209,38 @@ def source_interior_door_parity_report(
             if isinstance(door, dict) and "q" in door and "r" in door:
                 target_doors.add(axial_key(int(door["q"]), int(door["r"])))
 
+    target_gate_anchors = {
+        axial_key(int(match.group(2)), int(match.group(3)))
+        for match in re.finditer(
+            r"const\s+(NORTHWATCH_GATE|RIDGEHOLD_GATE)\s*:=\s*Vector2i\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)",
+            regional_features_text,
+        )
+    }
+    matched_door_objects = [
+        record for record in source_doors
+        if axial_key(record["q"], record["r"]) in target_doors
+    ]
+    matched_gate_access = [
+        record for record in source_doors
+        if axial_key(record["q"], record["r"]) not in target_doors
+        and axial_key(record["q"], record["r"]) in target_gate_anchors
+    ]
     missing = [
         record for record in source_doors
         if axial_key(record["q"], record["r"]) not in target_doors
+        and axial_key(record["q"], record["r"]) not in target_gate_anchors
     ]
     return {
         "source_interior_region_count": len(source_regions) if isinstance(source_regions, list) else 0,
         "source_regions_with_door_anchor": len(source_doors),
         "target_unique_door_anchor_count": len(target_doors),
+        "target_gate_access_anchor_count": len(target_gate_anchors),
+        "matched_source_door_object_count": len(matched_door_objects),
+        "matched_source_gate_access_count": len(matched_gate_access),
         "matched_source_door_anchor_count": len(source_doors) - len(missing),
         "missing_source_door_anchor_count": len(missing),
         "missing_source_door_anchors": missing,
-        "method_note": "Matches source interior doorHex coordinates to target multi-story door tile objects and settlement building door records; does not compare complete floor shapes or furnishings.",
+        "method_note": "Matches source interior doorHex coordinates to target door tile objects/building door records or explicitly declared Northwatch/Ridgehold gate access anchors; does not compare complete floor shapes or furnishings.",
     }
 
 
@@ -628,8 +650,10 @@ def build_report(
         if source_runtime_data is not None and source_runtime_data.get("worldMapData")
         else None
     )
+    regional_features_path = project_root / "data" / "world" / "regions" / "silverhart_heartland" / "features.gd"
+    regional_features_text = regional_features_path.read_text(encoding="utf-8") if regional_features_path.is_file() else ""
     interior_door_validation = (
-        source_interior_door_parity_report(source_runtime_data, multistory, layouts)
+        source_interior_door_parity_report(source_runtime_data, multistory, layouts, regional_features_text)
         if source_runtime_data is not None and source_runtime_data.get("interiors") is not None
         else None
     )
@@ -777,8 +801,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         "No source interior door-anchor comparison was available." if report.get("interior_door_validation") is None else (
             f'Source door anchors matched: {report["interior_door_validation"]["matched_source_door_anchor_count"]:,} '
             f'of {report["interior_door_validation"]["source_regions_with_door_anchor"]:,}; '
+            f'{report["interior_door_validation"]["matched_source_door_object_count"]:,} via target door objects and '
+            f'{report["interior_door_validation"]["matched_source_gate_access_count"]:,} via declared fort gate access points; '
             f'missing: {report["interior_door_validation"]["missing_source_door_anchor_count"]:,}. '
-            f'Target unique door anchors: {report["interior_door_validation"]["target_unique_door_anchor_count"]:,}.'
+            f'Target unique door objects: {report["interior_door_validation"]["target_unique_door_anchor_count"]:,}.'
         ),
         "",
         "This checks only source door coordinates against target door records. It does not establish room-wall, fixture, transition or full floor-shape parity.",
