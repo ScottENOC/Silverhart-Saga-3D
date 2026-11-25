@@ -339,6 +339,9 @@ func _test_campaign2_source_dialogue_content() -> void:
 	var hendra_state := CharacterState.new("hendra_wells", "Hendra Wells", Vector2i.ZERO)
 	var hendra_live := Campaign2SourceDialogueContent.greeting_for_npc("hendra_wells", hendra_state, innkeeper_actor, simulation)
 	_check(String(hendra_live.get("text", "")).contains("Tam"), "Hendra's missing-child conversation should remain available through streamed NPC Talk")
+	var grondle_state := CharacterState.new("grondle_camp_trader", "Grondle", Vector2i.ZERO)
+	var grondle_live := Campaign2SourceDialogueContent.greeting_for_npc("goblin_trader", grondle_state, innkeeper_actor, simulation)
+	_check(String(grondle_live.get("text", "")).contains("Nothing for you here"), "The streamed goblin trader should use his faction-gated dialogue rather than the merchant fallback")
 	innkeeper_actor.free()
 	simulation.free()
 
