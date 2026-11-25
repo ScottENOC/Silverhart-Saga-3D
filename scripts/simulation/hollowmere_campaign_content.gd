@@ -299,10 +299,6 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
                     {"id": "leave", "label": "Enjoy your evening.", "text": "Bram raises his mug in reply."}
                 ]
             }
-        "yvette_marlow":
-            return {"speaker": "Yvette Marlow", "text": "There is always something happening in this village. Usually just outside my window.", "choices": [{"id": "ironbond", "label": "What do you make of Ironbond?", "text": "They call it a fee. Funny how the fee always rises when someone says no."}, {"id": "news", "label": "Anything else happening?", "text": "The north road has been busy with levy riders. More than I remember seeing in spring."}, {"id": "leave", "label": "Fair enough.", "text": "Yvette gives you a small smile."}]}
-        "hendra_wells":
-            return {"speaker": "Hendra Wells", "text": "Sit if you like. The bench wobbles, but it has never thrown anyone who was not already falling.", "choices": [{"id": "village", "label": "How long have you lived here?", "text": "Long enough to know the river moods and which roofs leak. Not long enough to stop being surprised by people."}, {"id": "ironbond", "label": "Does Ironbond trouble the village often?", "text": "Often enough that people know when to look away. That is the part I dislike most."}, {"id": "leave", "label": "Thanks.", "text": "Hendra returns to her drink."}]}
         "companion_wren_talbot":
             return {"speaker": "Wren Talbot", "text": "Well, here we are then. Try not to get us both killed, yeah?", "choices": [{"id": "leave", "label": "I'll do my best.", "text": "Wren grins."}]}
         _:
