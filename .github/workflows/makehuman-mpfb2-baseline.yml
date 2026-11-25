@@ -91,6 +91,18 @@ jobs:
           test -s makehuman-baseline/base-human-front.png
           test -s makehuman-baseline/base-human-side.png
 
+      - name: Run controlled body-morph garment fit matrix
+        run: |
+          set -euo pipefail
+          blender -b --factory-startup --python-exit-code 1 --python tools/makehuman/mpfb2_morph_fit_matrix.py
+          test -s makehuman-morph-fit/morph-fit-report.json
+          test -s makehuman-morph-fit/neutral.glb
+          test -s makehuman-morph-fit/lean_muscular.glb
+          test -s makehuman-morph-fit/heavier_less_muscular.glb
+          test -s makehuman-morph-fit/neutral.png
+          test -s makehuman-morph-fit/lean_muscular.png
+          test -s makehuman-morph-fit/heavier_less_muscular.png
+
       - name: Upload baseline diagnostics
         if: always()
         uses: actions/upload-artifact@v4
