@@ -38,6 +38,7 @@ func _test_group_following_toggle() -> void:
 	var controller: Variant = CONTROLLER_SCRIPT.new()
 	presentation_root.add_child(controller)
 	controller.configure(simulation, presentation_root, BoxMesh.new(), StandardMaterial3D.new(), Callable(self, "_hex_world_position"), "leader")
+	controller.set_group_movement_enabled(true)
 	controller.set_destination(Vector2i(5, 0))
 	controller.process_movement(0.40)
 	_check(leader.axial == Vector2i(3, 0), "Group movement should preserve normal leader path movement")
