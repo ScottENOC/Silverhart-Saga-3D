@@ -8,6 +8,7 @@ var failures := 0
 func _initialize() -> void:
 	_test_ring_road_geometry()
 	_test_ring_roads_are_composed_by_the_streamed_chunk_pipeline()
+	_test_entire_city_feature_set_streams_once()
 	if failures > 0:
 		push_error("%d Silverhart ring-road streaming test(s) failed." % failures)
 		quit(1)
@@ -85,6 +86,34 @@ func _test_ring_roads_are_composed_by_the_streamed_chunk_pipeline() -> void:
 	for route_id in seen:
 		_check(int(seen[route_id]) >= 3, "%s should render in multiple independently streamed chunks" % route_id)
 
+
+
+func _test_entire_city_feature_set_streams_once() -> void:
+	var entry := _silverhart_entry()
+	if entry.is_empty():
+		return
+	var layout: Dictionary = entry.get("definition", {}).get("layout", {})
+	var building_count := 0
+	var prop_count := 0
+	var route_fragment_count := 0
+	# Covers the full authored city envelope: q=-37..88, r=-548..-426.
+	# Each chunk is composed independently, matching the runtime streamer's
+	# 24-hex ownership windows.
+	for chunk_q in range(-48, 96, 24):
+		for chunk_r in range(-552, -408, 24):
+			var parent := Node3D.new()
+			root.add_child(parent)
+			var result: Dictionary = FEATURE_COMPOSER.compose_chunk(
+				parent, entry, Vector2i(chunk_q, chunk_r), 24, HexGrid.DEFAULT_RADIUS_M
+			)
+			_check(bool(result.get("ok", false)), "Silverhart city chunk (%d,%d) must compose successfully" % [chunk_q, chunk_r])
+			building_count += int(result.get("buildings", 0))
+			prop_count += int(result.get("props", 0))
+			route_fragment_count += int(result.get("routes", 0))
+			parent.free()
+	_check(building_count == layout.get("buildings", []).size(), "Every Silverhart building must be owned by exactly one streamed chunk")
+	_check(prop_count == layout.get("props", []).size(), "Every Silverhart prop must be owned by exactly one streamed chunk")
+	_check(route_fragment_count >= layout.get("paths", []).size(), "Every Silverhart road and street must produce at least one streamed route fragment")
 
 func _silverhart_entry() -> Dictionary:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
