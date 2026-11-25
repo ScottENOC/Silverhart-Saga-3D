@@ -236,6 +236,24 @@ func _test_hollowmere_campaign_content() -> void:
     _check(chatter._is_eligible(night_exchange, "civilian", "civilian", 23, 50, false), "Night chatter should wrap across midnight")
     _check(not chatter._is_eligible(night_exchange, "civilian", "civilian", 12, 50, false), "Night chatter should not run at midday")
 
+
+func _test_campaign2_source_dialogue_content() -> void:
+    var chancellor := Campaign2SourceDialogueContent.greeting("palace_chancellor", "Chancellor Merric Vane")
+    _check(String(chancellor.get("text", "")).contains("Her Majesty's ledgers"), "The Palace Chancellor should use source-authored dialogue")
+    _check(chancellor.get("choices", []).size() == 2, "The Chancellor should offer a border-news topic and a leave option")
+    var guard := Campaign2SourceDialogueContent.greeting("reddale_guard", "Watchman Bram Oswick")
+    _check(String(guard.get("text", "")).contains("Captain Rennick"), "Reddale guards should retain their source watch-chain dialogue")
+    var wizard := Campaign2SourceDialogueContent.greeting("royal_wizard", "Court Wizard Thessaly")
+    _check(String(wizard.get("text", "")).contains("old books"), "The Court Wizard should no longer use the generic streamed-NPC fallback")
+    var debtor := Campaign2SourceDialogueContent.greeting("thieves_guild_debtor", "Marsh Dobbins")
+    _check(String(debtor.get("text", "")).contains("whatever I owe"), "The guild debtor should retain his default source greeting")
+    var active_debtor := Campaign2SourceDialogueContent.greeting("thieves_guild_debtor", "Marsh Dobbins", {"guild_favor_active": true})
+    _check(String(active_debtor.get("text", "")).contains("Corvin"), "The guild debtor should change his dialogue while the favour is active")
+    var guard_fallback := Campaign2SourceDialogueContent.role_greeting("wall_guard_brennan", "Brennan", "Wall Guard", "guard")
+    var merchant_fallback := Campaign2SourceDialogueContent.role_greeting("factor_willem_drass", "Willem", "Factor", "merchant")
+    _check(not String(guard_fallback.get("text", "")).is_empty() and not String(merchant_fallback.get("text", "")).is_empty(), "Unported streamed NPCs should receive occupation-aware dialogue")
+    _check(String(guard_fallback.get("text", "")) != String(merchant_fallback.get("text", "")), "Guards and merchants should not share the same fallback conversation")
+
 func _test_companion_campaign_dialogue_and_recruitment() -> void:
     var journal := CampaignJournal.new()
     CompanionCampaignContent.register_quest_definitions(journal)
