@@ -259,6 +259,15 @@ func _initialize() -> void:
 		var crypt_map: HexMapData = crypt_result.get("map_data") as HexMapData
 		_check(_has_walkable_path(crypt_map, Vector2i(29, -154), Vector2i(49, -154)), "Crypt entrance, ossuary and ritual chambers must form one connected walkable layout")
 		_check(_has_object(crypt_result.get("tile_objects", []), "crypt_entrance_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ossuary_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ritual_door"), "Crypt must emit all three source door openings")
+		var crypt_note_found := false
+		for object_variant in crypt_result.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			var note_position: Dictionary = object_data.get("position", {})
+			if String(object_data.get("id", "")) == "crypt_entrance_note" and String(object_data.get("type", "")) == "journal" and int(note_position.get("q", 0)) == 32 and int(note_position.get("r", 0)) == -155:
+				crypt_note_found = true
+		_check(crypt_note_found, "Crypt entrance must present the source journal at (32,-155)")
 		_check(crypt_result.get("actors", []).is_empty() and crypt_result.get("creatures", []).is_empty(), "Map-only crypt floor must leave encounters to campaign systems")
 	var barrow_definition: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
 	var barrow_state = LOCATION_STATE.new()
