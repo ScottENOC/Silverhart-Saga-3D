@@ -294,6 +294,8 @@ static func aldric_captive_greeting(simulation: WorldSimulation) -> Dictionary:
 		return {}
 	var context := {
 		"aldric_recruited": simulation.is_party_member(FOLLOWUP_SCRIPT.ALDRIC_ID),
-		"aldric_rescued": bool(simulation.campaign_journal.world_campaign_flag("aldric_rescued", false))
+		"aldric_rescued": bool(simulation.campaign_journal.world_campaign_flag("aldric_rescued", false)),
+		"aldric_attitude": simulation.campaign_journal.npc_standing(FOLLOWUP_SCRIPT.ALDRIC_ID),
+		"aldric_leaves_if_recruited": bool(simulation.campaign_journal.world_campaign_flag("aldric_leaves_if_recruited", false))
 	}
 	return FOLLOWUP_SCRIPT.new().aldric_captive_greeting(context)
