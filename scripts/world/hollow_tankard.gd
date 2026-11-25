@@ -853,7 +853,7 @@ func _create_hud() -> void:
 	group_movement_button = Button.new()
 	group_movement_button.text = "Group Move: OFF"
 	group_movement_button.tooltip_text = "When enabled, travelling companions follow the active character during exploration."
-	group_movement_button.position = Vector2(145.0, 66.0)
+	group_movement_button.position = Vector2(390.0, 66.0)
 	group_movement_button.custom_minimum_size = Vector2(180.0, 38.0)
 	group_movement_button.pressed.connect(_toggle_group_movement)
 	layer.add_child(group_movement_button)
