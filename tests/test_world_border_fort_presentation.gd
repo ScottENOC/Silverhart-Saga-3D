@@ -8,10 +8,12 @@ var failures := 0
 
 func _initialize() -> void:
 	_test_northwatch_keep_dressing()
+	_test_northwatch_gate_door_mesh()
 	_test_northwatch_siege_engine()
 	_test_northwatch_catapult()
 	_test_northwatch_oil_barrels()
 	_test_ridgehold_keep_dressing()
+	_test_ridgehold_source_gate_arch()
 	if failures > 0:
 		push_error("%d border fort presentation test(s) failed." % failures)
 		quit(1)
@@ -29,6 +31,27 @@ func _test_northwatch_keep_dressing() -> void:
 	_check(parent.get_node_or_null("BorderFortHearth_%d_%d" % [centre.x, centre.y]) != null, "Northwatch keep should have its source-authored hearth")
 	_check(_count_named_prefix(parent, "NorthwatchWallLadder_") > 0, "Northwatch's six source ladder posts should be dressed in the chunks that contain them")
 	parent.free()
+
+
+func _test_northwatch_gate_door_mesh() -> void:
+	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
+	var gate: Vector2i = FEATURES.NORTHWATCH_GATE
+	var parent := Node3D.new()
+	root.add_child(parent)
+	var result := _present_at(data, parent, gate)
+	var gate_root := parent.get_node_or_null("NorthwatchGate") as Node3D
+	_check(bool(result.get("ok", false)), "Northwatch gate presentation should succeed")
+	_check(data.terrain_for_hex(gate) == "climbable_wall", "Northwatch's source gate must remain on its climbable-wall elevation")
+	_check(gate_root != null, "Northwatch must render its source closable gate at the south gate anchor")
+	if gate_root != null:
+		var leaf := gate_root.get_node_or_null("GateLeaf") as Node3D
+		_check(leaf != null, "Northwatch gate must expose a separate leaf node for campaign door-state animation")
+		if leaf != null:
+			_check(_count_named_prefix(leaf, "Plank_") == 6, "Northwatch gate leaf must have six timber planks")
+			_check(leaf.get_node_or_null("DiagonalBraceA") != null and leaf.get_node_or_null("DiagonalBraceB") != null, "Northwatch gate leaf must retain both diagonal braces")
+	parent.free()
+
+
 
 func _test_northwatch_siege_engine() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
@@ -70,6 +93,23 @@ func _test_ridgehold_keep_dressing() -> void:
 	_check(parent.get_node_or_null("BorderFortHearth_%d_%d" % [centre.x, centre.y]) != null, "Ridgehold keep should have a hearth")
 	_check(parent.get_node_or_null("NorthwatchSiegeEngine") == null, "Ridgehold must remain the non-besieged reserve fort")
 	parent.free()
+
+
+func _test_ridgehold_source_gate_arch() -> void:
+	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
+	var gate: Vector2i = FEATURES.RIDGEHOLD_GATE
+	var parent := Node3D.new()
+	root.add_child(parent)
+	var result := _present_at(data, parent, gate)
+	var gate_root := parent.get_node_or_null("RidgeholdGateArch") as Node3D
+	_check(gate == Vector2i(406, 35), "Ridgehold gate must use the original buildRidgeholdFort gateHex")
+	_check(data.terrain_for_hex(gate) == "path", "Ridgehold's source gate must remain an open walkable wall gap")
+	_check(bool(result.get("ok", false)) and gate_root != null, "Ridgehold must render a stone arch at its source gate anchor")
+	if gate_root != null:
+		_check(gate_root.get_node_or_null("GateArchLintel") != null, "Ridgehold gate arch must have a lintel")
+		_check(gate_root.get_node_or_null("GatePier_-1.0") != null and gate_root.get_node_or_null("GatePier_1.0") != null, "Ridgehold gate arch must have both stone piers")
+	parent.free()
+
 
 func _present_at(data: Campaign2WorldTerrainData, parent: Node3D, hex: Vector2i) -> Dictionary:
 	var chunk := data.chunk_for_hex(hex, 24)
