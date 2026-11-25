@@ -3,7 +3,7 @@ name: Build Hollowmere Ara characters
 on:
   workflow_dispatch:
   push:
-    branches: [dev, feature/opening-village, feature/character-runtime-asset-integration]
+    branches: [dev, feature/opening-village, feature/character-runtime-asset-integration, feature/unified-female-anatomy-v2]
     paths:
       - "data/characters/hollowmere_npcs.json"
       - "tools/ara/build_hollowmere_npcs.py"
