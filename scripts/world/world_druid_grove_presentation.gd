@@ -7,18 +7,31 @@ const FEATURES = preload("res://data/world/regions/silverhart_heartland/features
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_druid_grove_presentation_arguments"}
+	var grove := _location_by_id(terrain_data, "emberwood_grove")
+	if grove.is_empty() or String(grove.get("kind", "")) != "druid_grove":
+		return {"ok": false, "reason": "missing_source_emberwood_grove_anchor"}
+	var grove_centre := Vector2i(int(grove.get("q", 0)), int(grove.get("r", 0)))
+	var anchor_offset := grove_centre - FEATURES.DRUID_GROVE_CENTRE
+	var spring_hex := FEATURES.DRUID_GROVE_SPRING + anchor_offset
 	var count := 0
-	if _contains(FEATURES.DRUID_GROVE_SPRING, chunk_min, chunk_size):
-		_add_spring(parent, terrain_data, hex_radius)
+	if _contains(spring_hex, chunk_min, chunk_size):
+		_add_spring(parent, terrain_data, spring_hex, hex_radius)
 		count += 1
-	for hex in FEATURES.HERB_PATCH_HEXES:
+	for source_hex in FEATURES.HERB_PATCH_HEXES:
+		var hex: Vector2i = source_hex + anchor_offset
 		if _contains(hex, chunk_min, chunk_size):
 			_add_herb_patch(parent, terrain_data, hex, hex_radius)
 			count += 1
-	return {"ok": true, "features": count}
+	return {"ok": true, "features": count, "grove_centre": grove_centre}
 
-static func _add_spring(parent: Node3D, terrain_data: Campaign2WorldTerrainData, radius: float) -> void:
-	var spring := FEATURES.DRUID_GROVE_SPRING
+
+static func _location_by_id(terrain_data: Campaign2WorldTerrainData, location_id: String) -> Dictionary:
+	for location in terrain_data.locations:
+		if location is Dictionary and String(location.get("id", "")) == location_id:
+			return location.duplicate(true)
+	return {}
+
+static func _add_spring(parent: Node3D, terrain_data: Campaign2WorldTerrainData, spring: Vector2i, radius: float) -> void:
 	var root := Node3D.new()
 	root.name = "DruidGroveSpringPresentation"
 	root.position = HexGrid.axial_to_world(spring, radius, terrain_data.elevation_for_hex(spring))
