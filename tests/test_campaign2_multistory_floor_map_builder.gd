@@ -112,7 +112,7 @@ func _initialize() -> void:
 		"silverhart_east_house_three": Vector2i(24, -470),
 		"silverhart_east_house_four": Vector2i(27, -471),
 		"silverhart_middle_ring_house_east": Vector2i(51, -496),
-		"silverhart_middle_ring_house_northeast": Vector2i(51, -536),
+		"silverhart_middle_ring_house_northeast": Vector2i(49, -538),
 		"silverhart_middle_ring_house_north": Vector2i(8, -538),
 		"silverhart_middle_ring_house_west": Vector2i(-34, -496),
 		"silverhart_middle_ring_house_southwest": Vector2i(-34, -455),
