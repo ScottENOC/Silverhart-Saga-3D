@@ -180,8 +180,40 @@ def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
         for floor in building.get("floors", []):
             if isinstance(floor, dict) and isinstance(floor.get("terrain"), dict):
                 floors += 1
+    world_grid = runtime.get("worldMapData", [])
+    world_markers = []
+    terrain_counts: dict[str, int] = defaultdict(int)
+    faction_counts: dict[str, int] = defaultdict(int)
+    for row_index, row in enumerate(world_grid if isinstance(world_grid, list) else []):
+        if not isinstance(row, list):
+            continue
+        for column_index, cell in enumerate(row):
+            if not isinstance(cell, dict):
+                continue
+            terrain_counts[str(cell.get("t", "unknown"))] += 1
+            faction = str(cell.get("o", ""))
+            faction_counts[faction or "unclaimed"] += 1
+            if str(cell.get("n", "")).strip():
+                world_markers.append({
+                    "name": str(cell.get("n", "")),
+                    "row": row_index,
+                    "column": column_index,
+                    "shape": str(cell.get("f", "")),
+                    "faction": faction,
+                })
+    world_map_summary = {
+        "rows": len(world_grid) if isinstance(world_grid, list) else 0,
+        "columns": len(world_grid[0]) if isinstance(world_grid, list) and world_grid and isinstance(world_grid[0], list) else 0,
+        "cells": sum(len(row) for row in world_grid if isinstance(row, list)) if isinstance(world_grid, list) else 0,
+        "terrain_counts": dict(sorted(terrain_counts.items())),
+        "faction_counts": dict(sorted(faction_counts.items())),
+        "markers": world_markers,
+        "river_waypoints": len(runtime.get("worldRiverPath", [])),
+        "river_path": runtime.get("worldRiverPath", []),
+    }
     return {
         "terrain_cells": int(runtime.get("counts", {}).get("terrainCells", 0)),
+        "strategic_map": world_map_summary,
         "terrain_by_name": runtime.get("counts", {}).get("terrainByName", {}),
         "base_setup_builder_cells": len(base_cells),
         "feature_builder_cells_unique": len(feature_cells),
