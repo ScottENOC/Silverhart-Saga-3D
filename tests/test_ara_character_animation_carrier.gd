@@ -121,13 +121,26 @@ func _test_character(asset_path: String, label: String, check_face_rests: bool) 
 		label + " plays a locomotion clip")
 
 	var starting_poses: Array[Transform3D] = []
+	var starting_source_poses: Array[Transform3D] = []
 	for bone_index in range(target_skeleton.get_bone_count()):
 		starting_poses.append(target_skeleton.get_bone_global_pose(bone_index))
+	for bone_index in range(source_skeleton.get_bone_count()):
+		starting_source_poses.append(source_skeleton.get_bone_global_pose(bone_index))
+	var modifier_calls_before: int = actor.skeleton_retargeter.process_call_count
 	await create_timer(0.3).timeout
 	var changed_bones := 0
+	var changed_source_bones := 0
+	for bone_index in range(source_skeleton.get_bone_count()):
+		if not source_skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_source_poses[bone_index]):
+			changed_source_bones += 1
 	for bone_index in range(target_skeleton.get_bone_count()):
 		if not target_skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
 			changed_bones += 1
+	print("ARA_RETARGET_DIAGNOSTIC label=%s clip=%s source_changed=%d modifier_calls=%d target_changed=%d source_root=%s" % [label, player.current_animation, changed_source_bones, actor.skeleton_retargeter.process_call_count - modifier_calls_before, changed_bones, player.root_node])
+	_check(changed_source_bones >= 5,
+		label + " locomotion animates the benchmark source skeleton (%d changed bones)" % changed_source_bones)
+	_check(actor.skeleton_retargeter.process_call_count > modifier_calls_before,
+		label + " executes the SkeletonModifier3D callback")
 	_check(changed_bones >= 5,
 		label + " locomotion drives the native skeleton (%d changed bones)" % changed_bones)
 
