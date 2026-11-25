@@ -146,6 +146,21 @@ static func recruit_nix(simulation: WorldSimulation) -> Dictionary:
 	return {"ok": true, "reason": "new_companion_recruited", "character_id": FOLLOWUP_SCRIPT.NIX_ID}
 
 
+static func mark_chief_assassinated(simulation: WorldSimulation) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok":false,"reason":"missing_simulation"}
+	var journal := simulation.campaign_journal
+	if not journal.quest_definitions.has(CONTENT_SCRIPT.QUEST_ID):
+		var registered := journal.register_quest_definition(CONTENT_SCRIPT.quest_definition())
+		if not bool(registered.get("ok", false)):
+			return registered
+	if journal.quest_state(CONTENT_SCRIPT.QUEST_ID).is_empty():
+		var started := journal.start_quest(CONTENT_SCRIPT.QUEST_ID)
+		if not bool(started.get("ok", false)):
+			return started
+	return journal.apply_world_campaign_flags({"skarnub_assassinated":true})
+
+
 static func start_mine_raid(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {"ok":false,"reason":"missing_simulation"}
