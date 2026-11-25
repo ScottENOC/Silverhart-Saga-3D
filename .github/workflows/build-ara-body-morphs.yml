@@ -102,7 +102,7 @@ jobs:
               --python tools/blender/add_adult_anatomy.py -- \
               --input "$input" \
               --output "build/ara-morph/$state/anatomy.glb" \
-              --profile female --adult --preserve-topology
+              --profile female --adult --method integrated --deformation-scale 1.65 --preserve-topology --no-canal --no-anus
             test -s "build/ara-morph/$state/anatomy.glb"
           done
 
