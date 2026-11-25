@@ -9,6 +9,7 @@ const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const IRONBOND_MISSING_COURIER_QUEST = preload("res://scripts/simulation/ironbond_missing_courier_quest.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
@@ -106,6 +107,11 @@ var ambient_exchange_running: bool = false
 var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
+var ironbond_soldiers_waiting_outside: bool = false
+var ironbond_followup_fired: bool = false
+var ironbond_soldiers_departed: bool = false
+var ironbond_followup_stage: int = 0
+var ironbond_followup_response: String = ""
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
@@ -243,6 +249,10 @@ func _configure_location_simulation() -> void:
 	# Register this location's map, building, floor and presentation hooks.
 	if simulation == null:
 		push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
+		return
+	var courier_quest_registration := IRONBOND_MISSING_COURIER_QUEST.register(simulation.campaign_journal)
+	if not bool(courier_quest_registration.get("ok", false)):
+		push_error("Could not register the Ironbond missing courier quest: %s" % courier_quest_registration)
 		return
 	simulation.clock.ticked.connect(_on_world_clock_ticked)
 	if not simulation.weather_changed.is_connected(_on_world_weather_changed):
@@ -1118,6 +1128,11 @@ func _build_save_snapshot() -> Dictionary:
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
 			"shakedown_resolved": shakedown_resolved,
+			"ironbond_soldiers_waiting_outside": ironbond_soldiers_waiting_outside,
+			"ironbond_followup_fired": ironbond_followup_fired,
+			"ironbond_soldiers_departed": ironbond_soldiers_departed,
+			"ironbond_followup_stage": ironbond_followup_stage,
+			"ironbond_followup_response": ironbond_followup_response,
 			"farm_wolves_spawned": farm_wolves_spawned,
 			"farm_wolves_retry_armed": farm_wolves_retry_armed,
 			"wilderness_steps_since_spawn": wilderness_steps_since_spawn
@@ -1244,6 +1259,11 @@ func _apply_save_data(data: Dictionary) -> void:
 	ambient_security = int(flags.get("ambient_security", ambient_security))
 	shakedown_started = bool(flags.get("shakedown_started", false))
 	shakedown_resolved = bool(flags.get("shakedown_resolved", false))
+	ironbond_soldiers_waiting_outside = bool(flags.get("ironbond_soldiers_waiting_outside", false))
+	ironbond_followup_fired = bool(flags.get("ironbond_followup_fired", false))
+	ironbond_soldiers_departed = bool(flags.get("ironbond_soldiers_departed", false))
+	ironbond_followup_stage = clampi(int(flags.get("ironbond_followup_stage", 0)), 0, 3)
+	ironbond_followup_response = String(flags.get("ironbond_followup_response", ""))
 	farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
 	farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
 	wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
@@ -1287,6 +1307,14 @@ func _apply_save_data(data: Dictionary) -> void:
 		character_panel.set_character(active_character_id)
 	_update_combat_ui()
 	_refresh_resource_visuals()
+	if ironbond_soldiers_departed:
+		_dismiss_ironbond_soldiers()
+	elif ironbond_followup_stage > 0:
+		call_deferred("_restore_ironbond_followup_dialogue")
+	elif ironbond_soldiers_waiting_outside:
+		var restored_player := simulation.get_character("player")
+		if restored_player != null and not _is_tavern_interior_hex(restored_player.axial):
+			call_deferred("_trigger_ironbond_exit_followup")
 
 
 func _create_dialogue_panel(layer: CanvasLayer) -> void:
@@ -1332,6 +1360,27 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with(IRONBOND_MISSING_COURIER_QUEST.CHOICE_PREFIX):
+		var courier_result := IRONBOND_MISSING_COURIER_QUEST.handle_dialogue_choice(simulation.campaign_journal, choice_id)
+		if not bool(courier_result.get("ok", false)):
+			_show_dialogue("Dray Coltayne", "That offer is no longer available.", [{"id":"continue","label":"Continue","text":""}])
+			return
+		if bool(courier_result.get("dismiss_now", false)):
+			_close_dialogue()
+			_dismiss_ironbond_soldiers()
+			return
+		var next_dialogue: Dictionary = courier_result.get("dialogue", {})
+		if not next_dialogue.is_empty():
+			if choice_id.ends_with(":ask"):
+				ironbond_followup_stage = 2
+			elif choice_id.ends_with(":accept"):
+				ironbond_followup_stage = 3
+				ironbond_followup_response = "accepted"
+			elif choice_id.ends_with(":decline"):
+				ironbond_followup_stage = 3
+				ironbond_followup_response = "declined"
+			_show_dialogue(String(next_dialogue.get("speaker", "Dray Coltayne")), String(next_dialogue.get("text", "")), next_dialogue.get("choices", []))
+		return
 	if choice_id.begins_with("furniture_buy:"):
 		var item_id := choice_id.trim_prefix("furniture_buy:")
 		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
@@ -1904,6 +1953,59 @@ func _move_shakedown_soldiers_outside() -> void:
 			await get_tree().create_timer(0.24).timeout
 			if not is_instance_valid(self):
 				return
+	ironbond_soldiers_waiting_outside = true
+
+
+func _is_tavern_interior_hex(hex: Vector2i) -> bool:
+	if simulation == null or not simulation.map_data.has_cell(hex):
+		return false
+	return simulation.map_data.terrain_id_at(hex) in ["timber_floor", "wood_floor"]
+
+
+func _trigger_ironbond_exit_followup() -> void:
+	if not ironbond_soldiers_waiting_outside or ironbond_followup_fired or ironbond_soldiers_departed:
+		return
+	ironbond_followup_fired = true
+	ironbond_followup_stage = 1
+	ironbond_followup_response = ""
+	if simulation.campaign_journal.quest_state(IRONBOND_MISSING_COURIER_QUEST.QUEST_ID).is_empty():
+		var dialogue: Dictionary = IRONBOND_MISSING_COURIER_QUEST.opening_dialogue()
+		_show_dialogue(String(dialogue.get("speaker", "Dray Coltayne")), String(dialogue.get("text", "")), dialogue.get("choices", []))
+	else:
+		_dismiss_ironbond_soldiers()
+
+
+func _restore_ironbond_followup_dialogue() -> void:
+	if ironbond_soldiers_departed or ironbond_followup_stage <= 0:
+		return
+	var dialogue: Dictionary = {}
+	match ironbond_followup_stage:
+		1:
+			dialogue = IRONBOND_MISSING_COURIER_QUEST.opening_dialogue()
+		2:
+			dialogue = IRONBOND_MISSING_COURIER_QUEST.mission_dialogue()
+		3:
+			dialogue = IRONBOND_MISSING_COURIER_QUEST.confirmation_dialogue(ironbond_followup_response)
+	if not dialogue.is_empty():
+		_show_dialogue(String(dialogue.get("speaker", "Dray Coltayne")), String(dialogue.get("text", "")), dialogue.get("choices", []))
+
+
+func _dismiss_ironbond_soldiers() -> void:
+	if simulation == null:
+		return
+	for character_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+		var actor := actor_by_id.get(character_id) as Node3D
+		if actor != null and is_instance_valid(actor):
+			actor.remove_from_group("campaign2_npc")
+			actor.queue_free()
+		actor_by_id.erase(character_id)
+		var state := simulation.get_character(character_id)
+		if state != null:
+			state.combat_dormant = true
+	ironbond_soldiers_waiting_outside = false
+	ironbond_soldiers_departed = true
+	ironbond_followup_stage = 0
+	ironbond_followup_response = ""
 
 
 func _move_shakedown_soldiers_inside() -> void:
@@ -2881,6 +2983,8 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 		_refresh_tavern_floor_presentation()
 	if character_id == "player":
 		_maybe_spawn_wilderness_creature(to_hex)
+		if _is_tavern_interior_hex(from_hex) and not _is_tavern_interior_hex(to_hex):
+			_trigger_ironbond_exit_followup()
 
 func _movement_direction_index(from_hex: Vector2i, to_hex: Vector2i) -> int:
 	var step := to_hex - from_hex
