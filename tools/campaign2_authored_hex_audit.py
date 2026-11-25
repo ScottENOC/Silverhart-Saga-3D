@@ -683,7 +683,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'The scene also produced {report["source_runtime"]["tile_object_placements"]:,} physical object placements, '
             f'{report["source_runtime"]["interior_regions"]:,} interior regions and '
             f'{report["source_runtime"]["multi_story_buildings"]:,} multi-storey definitions, and '
-            f'{report["source_runtime"]["npc_placement_count"]:,} named NPC baseline placements. '
+            f'{report["source_runtime"]["npc_placement_count"]:,} NPC/creature baseline placements. '
             "These are source-side runtime totals, not target coverage."
         ),
         "",
