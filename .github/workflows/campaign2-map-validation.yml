@@ -44,18 +44,31 @@ jobs:
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_authored_settlement_terrain_registry.gd
       - name: Verify settlement definitions, layouts and chunk composition
         run: |
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_cell_loader.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_definition_registry.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_source_adapters.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_definition_validator.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_authored_settlement_presenter.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_data_modules.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_warrens_presentation.gd
       - name: Verify interiors and multi-storey source floor maps
         run: |
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_floor_map_builder.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_state.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_runtime.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_interior_feature_factory.gd
-      - name: Verify streaming, border forts and physical wilderness sites
+      - name: Verify streaming, border forts, regional features and physical wilderness sites
         run: |
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_campaign_terrain_stream.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_features.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_player_cottage_plot.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_hydrology.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_heartland_biomes.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_border_fort_presentation.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_dragon_lair_presentation.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_spider_ruin_presentation.gd
@@ -68,7 +81,9 @@ jobs:
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_canopy_settlement_presentation.gd
       - name: Verify Silverhart walls, gates, diplomacy and route geometry
         run: |
-          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_city_wall_and_gate.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_building_factory.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wall_feature_factory.gd
+          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_city_wall_gate.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_diplomatic_quarter.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_polyline_feature_factory.gd
           bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_bridge_feature_factory.gd
