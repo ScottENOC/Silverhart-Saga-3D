@@ -477,10 +477,14 @@ func _test_ara_camp_animation_mapping() -> void:
 	var watch_hints := AraCharacterActor.camp_activity_animation_hints("watch")
 	var sleep_hints := AraCharacterActor.camp_activity_animation_hints("sleep")
 	var study_hints := AraCharacterActor.camp_activity_animation_hints("study_map")
+	var horse_water_hints := AraCharacterActor.camp_activity_animation_hints("care_horse_water")
+	var horse_groom_hints := AraCharacterActor.camp_activity_animation_hints("care_horse_groom")
 	_check(social_hints.has("talk_gestures"), "Social camp duty should use Ara's looping conversational animation")
 	_check(watch_hints.has("look_around"), "Night watch should use Ara's looping look-around animation")
 	_check(sleep_hints.has("sleep"), "Sleep should use Ara's sleep animation")
 	_check(study_hints.has("use_press"), "Map study should use Ara's seated idle animation")
+	_check(horse_water_hints.has("pick_up"), "Horse watering should use Ara pickup/carry animation")
+	_check(horse_groom_hints.has("use_press"), "Horse grooming should use Ara interaction animation")
 
 
 func _test_dwelling_layout_station_selection() -> void:
