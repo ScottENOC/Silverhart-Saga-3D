@@ -48,6 +48,8 @@ jobs:
           test -s build/wren-body-pressure-pose/wren-body-pressure-pose.glb
           test -s build/wren-body-pressure-pose/wren-body-pressure-report.json
           test -s build/wren-body-pressure-pose/wren-body-pressure-compressed-preview.png
+          test -s build/wren-body-pressure-pose/wren-buttock-stiffness-sweep.glb
+          test -s build/wren-body-pressure-pose/wren-stiffness-sweep-preview.png
           python - <<'PY'
           import json
           from pathlib import Path
@@ -58,12 +60,15 @@ jobs:
           assert report["validation"]["posed_glb_exported"]
           assert report["validation"]["pressure_shapes_authored"], report.get("authored_pressure_shapes", [])
           assert report["validation"]["pressure_compressed_preview_rendered"], report.get("pressure_preview", {})
+          assert report["validation"]["stiffness_sweep_glb_exported"], report.get("stiffness_sweep", {})
+          assert report["validation"]["stiffness_sweep_preview_rendered"], report.get("stiffness_sweep", {})
+          assert len(report["stiffness_sweep"]["cases"]) == 4
           assert report["contact_target_surface_anchors"]["target_clearance_m"] == 0.0
           assert report["validation"]["palm_anchor_within_5mm_of_selected_surface"], report["palm_anchor_surface_gaps"]
           assert all(report["contact_target_surface_anchors"][side] for side in ("left_breast","right_hip"))
           assert all(report["palm_target_errors"].get(side) is not None for side in ("left","right"))
           print("Wren-only pose and localized pressure-shape package passed structural checks.")
-          print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])
+          print("Pressure shapes found:", report["deformation_status"]["pressure_shapes_found"])\n          print("Stiffness sweep GLB:", report["stiffness_sweep"])
           print("Palm-anchor-to-selected-surface gaps (m):", json.dumps(report.get("palm_anchor_surface_gaps", {})))
           print("This verifies a bone-based palm proxy, not final hand-mesh collision or anatomical-region membership.")
           print("Selected surface anchors:", json.dumps(report["contact_target_surface_anchors"]))
