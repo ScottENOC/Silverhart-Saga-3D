@@ -4,6 +4,8 @@ const ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_ser
 const DIRE_WOLF_ENCOUNTER = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_ENCOUNTER = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const ABANDONED_HOUSE_QUEST = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
+const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 
 var _failures: int = 0
 
@@ -14,6 +16,9 @@ func _initialize() -> void:
 	_test_dire_wolf_domain_uses_shared_lifecycle()
 	_test_ironbond_domain_uses_shared_lifecycle()
 	_test_abandoned_house_uses_shared_lifecycle()
+	_test_farm_wolf_resolution_is_domain_owned()
+	_test_ironbond_resolution_is_domain_owned()
+	_test_abandoned_house_resolution_is_domain_owned()
 	if _failures > 0:
 		push_error("%d combat encounter service assertion(s) failed." % _failures)
 		quit(1)
@@ -162,4 +167,86 @@ func _test_abandoned_house_uses_shared_lifecycle() -> void:
 	for guardian_id in ABANDONED_HOUSE_QUEST.GUARDIAN_IDS:
 		var guardian := simulation.get_character(guardian_id)
 		_check(guardian.side == "enemy" and guardian.combat_dormant, "Abandoned-house cleanup should leave guardians dormant enemies.")
+	simulation.free()
+
+func _test_farm_wolf_resolution_is_domain_owned() -> void:
+	var simulation := WorldSimulation.new()
+	var journal := simulation.campaign_journal
+	journal.register_quest_definition(FARM_WOLVES_QUEST.definition())
+	journal.start_quest(FARM_WOLVES_QUEST.QUEST_ID)
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.side = "player"
+	simulation.register_character(player)
+	for wolf_id in FARM_WOLVES_QUEST.WOLF_IDS:
+		var wolf := CharacterState.new(wolf_id, "Wolf", Vector2i(1, 0))
+		wolf.side = "enemy"
+		simulation.register_character(wolf)
+	var party_ids: Array[String] = ["player"]
+	var started: Dictionary = FARM_WOLVES_QUEST.start_encounter(simulation, party_ids)
+	_check(bool(started.get("ok", false)), "The farm wolf quest should start its encounter through the shared lifecycle.")
+	for wolf_id in FARM_WOLVES_QUEST.WOLF_IDS:
+		var wolf := simulation.get_character(wolf_id)
+		wolf.alive = false
+		wolf.health = 0
+	var session: Dictionary = started.get("session", {})
+	var result: Dictionary = FARM_WOLVES_QUEST.resolve_combat(simulation, journal, party_ids, session)
+	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "The farm wolf quest should own its victory decision.")
+	_check(not simulation.is_in_combat, "The farm wolf domain resolver should finish simulation combat.")
+	var quest := journal.quest_state(FARM_WOLVES_QUEST.QUEST_ID)
+	var objectives: Dictionary = quest.get("objectives", {})
+	var objective: Dictionary = objectives.get(FARM_WOLVES_QUEST.OBJECTIVE_ID, {})
+	_check(bool(objective.get("completed", false)), "Farm wolf victory should update its authored quest objective.")
+	simulation.free()
+
+
+func _test_ironbond_resolution_is_domain_owned() -> void:
+	var simulation := WorldSimulation.new()
+	var journal := simulation.campaign_journal
+	journal.register_quest_definition(HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_quest_definition())
+	journal.start_quest(HOLLOWMERE_CAMPAIGN_CONTENT.QUEST_ID)
+	journal.record_decision(HOLLOWMERE_CAMPAIGN_CONTENT.QUEST_ID, "response", "fight")
+	var all_ids: Array[String] = HOLLOWMERE_ENCOUNTER.COMBAT_ALLY_IDS.duplicate()
+	all_ids.append_array(HOLLOWMERE_ENCOUNTER.ENEMY_IDS)
+	var index := 0
+	for character_id in all_ids:
+		var state := CharacterState.new(character_id, character_id, Vector2i(index, 0))
+		if HOLLOWMERE_ENCOUNTER.PLAYER_CONTROLLED_IDS.has(character_id):
+			state.side = "player"
+		simulation.register_character(state)
+		index += 1
+	var started: Dictionary = HOLLOWMERE_ENCOUNTER.start(simulation)
+	_check(bool(started.get("ok", false)), "Ironbond should start before domain resolution.")
+	for enemy_id in HOLLOWMERE_ENCOUNTER.ENEMY_IDS:
+		var enemy := simulation.get_character(enemy_id)
+		enemy.alive = false
+		enemy.health = 0
+	var party_ids: Array[String] = started.get("party_ids", [])
+	var session := {"previous_states": started.get("previous_states", {})}
+	var result: Dictionary = HOLLOWMERE_ENCOUNTER.resolve_combat(simulation, journal, party_ids, session)
+	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "Ironbond should own its victory decision.")
+	_check(String(journal.quest_state(HOLLOWMERE_CAMPAIGN_CONTENT.QUEST_ID).get("status", "")) == "completed", "Ironbond victory should complete its campaign quest.")
+	_check(not simulation.is_in_combat, "Ironbond domain resolution should end simulation combat.")
+	simulation.free()
+
+
+func _test_abandoned_house_resolution_is_domain_owned() -> void:
+	var simulation := WorldSimulation.new()
+	var journal := simulation.campaign_journal
+	ABANDONED_HOUSE_QUEST.ensure_started(journal)
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.side = "player"
+	simulation.register_character(player)
+	var party_ids: Array[String] = ["player"]
+	var started: Dictionary = ABANDONED_HOUSE_QUEST.start_encounter(simulation, party_ids)
+	_check(bool(started.get("ok", false)), "The abandoned house should start before domain resolution.")
+	for guardian_id in ABANDONED_HOUSE_QUEST.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		guardian.alive = false
+		guardian.health = 0
+	var session := {"previous_states": started.get("previous_states", {})}
+	var result: Dictionary = ABANDONED_HOUSE_QUEST.resolve_combat(simulation, journal, party_ids, session)
+	_check(bool(result.get("resolved", false)) and String(result.get("outcome", "")) == "victory", "The abandoned-house quest should own its victory decision.")
+	_check(bool(result.get("status_text", "").contains("Quest complete")), "The abandoned-house resolver should return its quest presentation result.")
+	_check(String(journal.quest_state(ABANDONED_HOUSE_QUEST.QUEST_ID).get("status", "")) == "completed", "The abandoned-house resolver should complete the quest.")
+	_check(not simulation.is_in_combat, "The abandoned-house resolver should end simulation combat.")
 	simulation.free()
