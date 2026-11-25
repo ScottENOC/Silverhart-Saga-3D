@@ -65,6 +65,52 @@ def material_diagnostics(obj):
     return result
 
 
+def object_diagnostics(obj):
+    from mathutils import Vector
+    world_vertices = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
+    bounds = None
+    if world_vertices:
+        bounds = {
+            "min": [min(v[i] for v in world_vertices) for i in range(3)],
+            "max": [max(v[i] for v in world_vertices) for i in range(3)],
+        }
+    materials = []
+    for slot in obj.material_slots:
+        material = slot.material
+        if not material:
+            continue
+        nodes = []
+        links = []
+        if material.node_tree:
+            for node in material.node_tree.nodes:
+                item = {"name": node.name, "type": node.type}
+                if node.type == "TEX_IMAGE":
+                    item["image"] = node.image.name if node.image else None
+                nodes.append(item)
+            for link in material.node_tree.links:
+                links.append({
+                    "from_node": link.from_node.name,
+                    "from_socket": link.from_socket.name,
+                    "to_node": link.to_node.name,
+                    "to_socket": link.to_socket.name,
+                })
+        materials.append({"name": material.name, "nodes": nodes, "links": links})
+    return {
+        "name": obj.name,
+        "type": obj.type,
+        "parent": obj.parent.name if obj.parent else None,
+        "parent_type": obj.parent_type,
+        "matrix_local": [list(row) for row in obj.matrix_local],
+        "matrix_world": [list(row) for row in obj.matrix_world],
+        "location": list(obj.location),
+        "rotation_euler": list(obj.rotation_euler),
+        "scale": list(obj.scale),
+        "bounds_world": bounds,
+        "vertex_count": len(obj.data.vertices) if obj.type == "MESH" else None,
+        "materials": materials,
+    }
+
+
 def point_camera(camera, location, target):
     from mathutils import Vector
     camera.location = location
@@ -266,7 +312,7 @@ def main():
         "phenotype": macro,
         "exported_mesh_objects": export_object_names,
         "packed_image_count": sum(1 for image in bpy.data.images if image.packed_file),
-        "glb_roundtrip_mesh_objects": [obj.name for obj in roundtrip_meshes],
+        "glb_roundtrip_mesh_objects": [obj.name for obj in roundtrip_meshes],\n        "roundtrip_object_diagnostics": [object_diagnostics(obj) for obj in roundtrip_meshes],
         "asset_inventory": {
             key: sorted(str(label) for label in values.keys())
             for key, values in inventories.items()
@@ -274,7 +320,7 @@ def main():
         "asset_counts": {key: len(values) for key, values in inventories.items()},
         "loaded_face_components": loaded_components,
         "removed_startup_meshes": startup_objects_removed,
-        "mesh_objects": mesh_objects,
+        "mesh_objects": mesh_objects,\n        "source_object_diagnostics": [object_diagnostics(obj) for obj in export_objects],
         "renders": [
             os.path.join(OUTPUT_DIR, "base-human-front.png"),
             os.path.join(OUTPUT_DIR, "base-human-side.png"),
