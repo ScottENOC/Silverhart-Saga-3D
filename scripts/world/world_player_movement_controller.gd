@@ -138,8 +138,8 @@ func _advance_group_followers() -> void:
 			followers.append(character_id)
 	if followers.is_empty():
 		return
-	# Rotate the first follower each tick so a larger party gets fair movement
-	# opportunities without trying to move several occupants through one hex.
+	# Rotate processing priority, but let every eligible follower advance once
+	# per leader step so a larger party does not progressively fall behind.
 	_follower_cursor = posmod(_follower_cursor, followers.size())
 	for offset in range(followers.size()):
 		var index := (_follower_cursor + offset) % followers.size()
@@ -158,9 +158,8 @@ func _advance_group_followers() -> void:
 		var next_hex: Vector2i = route[1]
 		if follower.time_points < simulation.movement_cost(follower_id, next_hex):
 			continue
-		if simulation.try_move_character_step(follower_id, next_hex):
-			_follower_cursor = (index + 1) % followers.size()
-			return
+		simulation.try_move_character_step(follower_id, next_hex)
+	_follower_cursor = (_follower_cursor + 1) % followers.size()
 
 func _best_following_hex(follower_id: String, follower_hex: Vector2i, leader_hex: Vector2i) -> Vector2i:
 	var best_hex := follower_hex
