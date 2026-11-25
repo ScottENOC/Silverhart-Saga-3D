@@ -44,6 +44,7 @@ func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
+    camp_simulation.animal_care_completed.connect(_on_camp_animal_care_completed)
     building_registry.door_state_changed.connect(_on_door_state_changed)
 
 func _on_door_state_changed(door_id: String) -> void:
@@ -65,6 +66,12 @@ func sync_door_map_state(door_id: String) -> bool:
     cell["vision_block_height"] = 2.2
     map_data.cells[door.hex] = cell
     return true
+
+func _on_camp_animal_care_completed(animal_id: String, action: String, handler_id: String, care: Dictionary) -> void:
+    action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
+        "action": action,
+        "care": care.duplicate(true)
+    }))
 
 func _on_campaign_journal_event(event: Dictionary) -> void:
     var event_type := String(event.get("event_type", "campaign_event"))
@@ -165,6 +172,8 @@ func advance_world_seconds(delta_seconds: float) -> int:
         if turn_scheduler.select_next_ready(characters) != null:
             clock.accumulator = 0.0
             return 0
+    if camp_simulation.phase == "evening" and delta_seconds > 0.0:
+        camp_simulation.advance_real_time(delta_seconds / CampSimulation.EXPLORATION_SECONDS_PER_REAL_SECOND)
     return clock.advance_world_seconds(delta_seconds)
 
 func register_character(state: CharacterState) -> void:
@@ -1680,13 +1689,7 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
 ## Public world-simulation entry point for camp animal care. Successful
 ## actions become campaign events; failed actions leave supplies and state intact.
 func care_camp_animal(animal_id: String, action: String, handler_id: String = "") -> Dictionary:
-    var result := camp_simulation.perform_animal_care(animal_id, action, handler_id)
-    if bool(result.get("ok", false)):
-        action_committed.emit(SimulationEvent.new("camp_animal_care", handler_id, animal_id, {
-            "action": action,
-            "care": result.get("care", {}).duplicate(true)
-        }))
-    return result
+    return camp_simulation.perform_animal_care(animal_id, action, handler_id)
 
 
 ## Relationship events are not gated by camp phase or a dedicated social activity.
