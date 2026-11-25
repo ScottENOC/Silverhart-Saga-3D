@@ -157,6 +157,101 @@ def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
     return total, unique
 
 
+
+def target_floor_cells_by_level(multistory: dict[str, Any]) -> dict[int, set[str]]:
+    """Collect target walkable interior cells by authored floor number."""
+    result: dict[int, set[str]] = defaultdict(set)
+    for location in multistory.get("locations", []):
+        if not isinstance(location, dict):
+            continue
+        for floor in location.get("floors", []):
+            if not isinstance(floor, dict):
+                continue
+            floor_number = int(floor.get("floor", 0))
+            for value in floor.get("floor_hexes", []):
+                if isinstance(value, dict) and "q" in value and "r" in value:
+                    result[floor_number].add(axial_key(int(value["q"]), int(value["r"])))
+            for room in floor.get("rooms", []):
+                if not isinstance(room, dict):
+                    continue
+                centre = room.get("center", {})
+                if not isinstance(centre, dict):
+                    continue
+                q, r = int(centre.get("q", 0)), int(centre.get("r", 0))
+                half_q, half_r = int(room.get("half_width", 0)), int(room.get("half_height", 0))
+                row_shift_mode = str(room.get("row_shift_mode", "flat"))
+                for delta_q in range(-half_q + 1, half_q):
+                    row_shift = (
+                        math.floor(delta_q / 2)
+                        if row_shift_mode == "source_building"
+                        else -math.floor(delta_q / 2)
+                    )
+                    for delta_r in range(-half_r + 1, half_r):
+                        result[floor_number].add(axial_key(q + delta_q, r + delta_r + row_shift))
+            for corridor in floor.get("corridors", []):
+                if isinstance(corridor, dict) and isinstance(corridor.get("from"), dict) and isinstance(corridor.get("to"), dict):
+                    result[floor_number].update(rasterize_segment(corridor["from"], corridor["to"]))
+    return dict(result)
+
+
+def source_floor_cells_by_level(runtime: dict[str, Any]) -> dict[int, set[str]]:
+    """Collect source walkable floor cells; surface interiors live in terrain, upper floors in multiStoryBuildings."""
+    result: dict[int, set[str]] = defaultdict(set)
+    walkable_floor_names = {"Wood Floor", "Stone Floor", "Cave Floor"}
+    for key, value in runtime.get("terrain", {}).items():
+        if isinstance(value, dict) and str(value.get("name", "")) in walkable_floor_names:
+            result[0].add(str(key))
+            if str(value.get("name", "")) == "Cave Floor":
+                result[-9].add(str(key))
+    for building in runtime.get("multiStoryBuildings", []):
+        if not isinstance(building, dict):
+            continue
+        for floor_number, floor in enumerate(building.get("floors", [])):
+            if floor_number <= 0 or not isinstance(floor, dict):
+                continue
+            for key, terrain_name in floor.get("terrain", {}).items():
+                if str(terrain_name) in walkable_floor_names:
+                    result[floor_number].add(str(key))
+    return dict(result)
+
+
+def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, Any]) -> dict[str, Any]:
+    """Compare authored target walkable floor coordinates with the captured source floor coordinates."""
+    target = target_floor_cells_by_level(multistory)
+    source = source_floor_cells_by_level(runtime)
+    levels = sorted(set(target) | set(source))
+    report: dict[str, Any] = {}
+    for level in levels:
+        target_cells = target.get(level, set())
+        source_cells = source.get(level, set())
+        missing = sorted(source_cells - target_cells)
+        extra = sorted(target_cells - source_cells)
+        report[str(level)] = {
+            "source_cells": len(source_cells),
+            "target_cells": len(target_cells),
+            "matching_cells": len(source_cells & target_cells),
+            "source_only_cells": len(missing),
+            "target_only_cells": len(extra),
+            "source_only_samples": missing[:20],
+            "target_only_samples": extra[:20],
+        }
+    return {
+        "levels": report,
+        "source_interior_regions": len(runtime.get("interiors", [])),
+        "source_interior_regions_with_explicit_floor_hexes": sum(
+            1 for region in runtime.get("interiors", [])
+            if isinstance(region, dict) and region.get("floorHexes")
+        ),
+        "source_explicit_interior_floor_hexes": sum(
+            len(region.get("floorHexes", []))
+            for region in runtime.get("interiors", [])
+            if isinstance(region, dict)
+        ),
+        "target_locations": len(multistory.get("locations", [])),
+        "note": "Coordinate-level comparison; source surface floors are read from the captured terrain map, upper floors from source multiStoryBuildings, and target rooms/corridors from the canonical floor registry. The special -9 tunnel level is compared against source Cave Floor coordinates.",
+    }
+
+
 def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
     """Summarise the original scene builder's resolved writes without counting overlaps twice."""
     builder_cells = {
@@ -563,6 +658,11 @@ def build_report(
         if source_runtime_data is not None and source_runtime_data.get("worldMapData")
         else None
     )
+    interior_floor_validation = (
+        interior_floor_parity_report(source_runtime_data, multistory)
+        if source_runtime_data is not None
+        else None
+    )
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -604,6 +704,7 @@ def build_report(
         "source": source_validation,
         "source_runtime": source_runtime_report,
         "strategic_map_validation": strategic_map_validation,
+        "interior_floor_validation": interior_floor_validation,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
