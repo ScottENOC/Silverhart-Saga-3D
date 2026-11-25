@@ -195,6 +195,8 @@ func _run() -> void:
 		_check(mine_runtime.get_floor_tile_count(0) > 0 and mine_runtime.get_floor_tile_count(-1) > 0 and mine_runtime.get_floor_tile_count(-2) > 0, "Emberlode must present its surface entrance and both underground floors")
 		_check(mine_runtime.has_floor_object(0, "emberlode_ledger"), "Emberlode surface must present the source ledger")
 		_check(mine_runtime.has_floor_object(-1, "working_vein_gold"), "Working Vein must present the gold deposit")
+		var gold_ore_model := mine_runtime.floor_groups[-1].get_node_or_null("working_vein_gold") as Node3D
+		_check(gold_ore_model != null and gold_ore_model.get_child_count() == 1 and gold_ore_model.get_child(0) is MeshInstance3D and gold_ore_model.get_child(0).mesh is CylinderMesh, "Mine ore nodes must retain their tapered crystal presentation")
 		_check(mine_runtime.has_floor_object(-2, "old_seam_blue_gem"), "Old Seam must present the blue-gem deposit")
 		var mine_player := CharacterState.new("emberlode_test_player", "Mine Test Player", Vector2i(-252, 15))
 		mine_simulation.register_character(mine_player)
