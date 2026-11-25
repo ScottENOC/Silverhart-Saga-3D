@@ -1670,6 +1670,7 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
             "fatigue": float(camp_simulation.condition_for(String(character_id)).get("fatigue", 40.0))
         }
     resolved_environment["companion_profiles"] = companion_profiles
+    resolved_environment["player_character_id"] = player_character_id
     var result := camp_simulation.begin_camp(resolved_site, party_member_ids, resolved_environment, resource_data)
     if bool(result.get("ok", false)):
         camp_simulation.plan_sleeping_arrangements(int(camp_simulation.resources.get("tents", 0)), companion_bonds)
