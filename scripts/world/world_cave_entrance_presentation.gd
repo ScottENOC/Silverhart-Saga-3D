@@ -5,12 +5,11 @@ extends RefCounted
 ## quest/encounter state remain owned by the multi-story and campaign systems.
 
 const ENTRANCES: Array[Dictionary] = [
-	# buildThievesCoveCaves: entrance room centre (-274,40), west door (-277,40).
-	{"id": "thieves_cove", "node": "ThievesCoveEntrance", "hex": Vector2i(-277, 40)},
-	# buildNecromancerCrypt: entrance room centre (32,-154), west door (29,-154).
-	{"id": "vessel_seekers_crypt", "node": "VesselSeekersCryptEntrance", "hex": Vector2i(29, -154)},
-	# buildLichBarrow: antechamber centre (63,-160), west door (60,-160).
-	{"id": "corvin_ashgrave_barrow", "node": "CorvinAshgraveBarrowEntrance", "hex": Vector2i(60, -160)}
+	# Source POI centres come from campaign2_geography.json; each west doorway
+	# is three axial q-steps west of its authored room centre.
+	{"id": "thieves_cove", "node": "ThievesCoveEntrance", "door_offset": Vector2i(-3, 0)},
+	{"id": "vessel_seekers_crypt", "node": "VesselSeekersCryptEntrance", "door_offset": Vector2i(-3, 0)},
+	{"id": "corvin_ashgrave_barrow", "node": "CorvinAshgraveBarrowEntrance", "door_offset": Vector2i(-3, 0)}
 ]
 
 static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainData, chunk_min: Vector2i, chunk_size: int, hex_radius: float) -> Dictionary:
@@ -18,14 +17,21 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 		return {"ok": false, "reason": "invalid_cave_entrance_presentation_arguments"}
 	var count := 0
 	var presented: Array[String] = []
+	var door_hexes: Dictionary = {}
 	for entrance in ENTRANCES:
-		var hex: Vector2i = entrance["hex"]
+		var entrance_id := String(entrance["id"])
+		var location := terrain_data.encounter_site(entrance_id)
+		if location.is_empty():
+			return {"ok": false, "reason": "missing_source_cave_location:%s" % entrance_id}
+		var centre := Vector2i(int(location.get("q", 0)), int(location.get("r", 0)))
+		var hex: Vector2i = centre + entrance["door_offset"]
 		if not _contains(hex, chunk_min, chunk_size):
 			continue
 		_add_entrance(parent, terrain_data, entrance, hex, hex_radius)
-		presented.append(String(entrance["id"]))
+		presented.append(entrance_id)
+		door_hexes[entrance_id] = hex
 		count += 1
-	return {"ok": true, "features": count, "entrances": presented}
+	return {"ok": true, "features": count, "entrances": presented, "door_hexes": door_hexes}
 
 static func _add_entrance(parent: Node3D, terrain_data: Campaign2WorldTerrainData, definition: Dictionary, hex: Vector2i, radius: float) -> void:
 	var root := Node3D.new()
