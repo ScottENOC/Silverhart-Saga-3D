@@ -121,7 +121,7 @@ func _test_dwelling_camp_lodging() -> void:
 	camp.begin_camp({"walkable": true, "dwelling_profile": profile}, ["player", "companion"], {}, {"tents": 0})
 	_check(camp.sleeping_arrangements.size() == 2, "The party should receive one arrangement per member.")
 	_check(String(camp.sleeping_arrangements[0].get("shelter_type", "")) == "dwelling", "The cottage bed should be assigned before open-air sleeping.")
-	_check(String(camp.sleeping_arrangements[1].get("shelter_type", "")) == "open_air", "Party members beyond dwelling capacity should retain ordinary outdoor sleeping.")
+	_check(String(camp.sleeping_arrangements[1].get("shelter_type", "")) == "dwelling" and String(camp.sleeping_arrangements[1].get("sleeping_surface", "")) == "floor", "Party members without a bed should use indoor floor capacity before outdoor sleeping.")
 	var result := camp.skip_to_morning()
 	_check(bool(result.get("ok", false)), "A mixed indoor/outdoor night should resolve.")
 	var indoor: Dictionary = result.summary.characters.player
