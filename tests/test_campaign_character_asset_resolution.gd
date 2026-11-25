@@ -4,8 +4,6 @@ const FACTORY = preload("res://scripts/presentation/campaign_character_actor_fac
 
 func _initialize() -> void:
 	var expected_companions := {
-		"companion_wren_talbot": "res://art/characters/companions/wren.glb",
-		"companion_ser_aldric_thorne": "res://art/characters/companions/aldric.glb",
 		"companion_dagna_stoneward": "res://art/characters/companions/dagna.glb"
 	}
 	for character_id in expected_companions:
@@ -13,7 +11,7 @@ func _initialize() -> void:
 		var resolved := FACTORY._resolve_character_model_path(
 			character_id,
 			{},
-			"male" if character_id.contains("aldric") else "female"
+			"female"
 		)
 		if resolved != expected_path or not ResourceLoader.exists(resolved):
 			_fail("Approved companion asset was not selected for %s (got %s)" % [character_id, resolved])
@@ -21,6 +19,8 @@ func _initialize() -> void:
 
 	var authored_npcs := {
 		"garrick_holt": "res://art/characters/hollowmere/garrick_holt.glb",
+		"companion_wren_talbot": "res://art/characters/hollowmere/wren_talbot.glb",
+		"companion_ser_aldric_thorne": "res://art/characters/hollowmere/ser_aldric_thorne.glb",
 		"mira_ashbrook": "res://art/characters/hollowmere/mira_ashbrook.glb"
 	}
 	if FACTORY._hollowmere_body_variant_for("garrick_holt", "female") != "male":
@@ -49,7 +49,7 @@ func _initialize() -> void:
 		_fail("Unknown male NPC did not use the current male runtime base")
 		return
 
-	print("CAMPAIGN_CHARACTER_ASSET_TEST: PASS (approved companions, authored NPCs and gendered fallbacks)")
+	print("CAMPAIGN_CHARACTER_ASSET_TEST: PASS (canonical named cast, Dagna companion and gendered fallbacks)")
 	quit(0)
 
 
