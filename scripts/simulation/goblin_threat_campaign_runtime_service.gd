@@ -117,13 +117,40 @@ static func recruit_nix(simulation: WorldSimulation) -> Dictionary:
 	if not bool(recruitment.get("ok", false)):
 		return recruitment
 	var existing := simulation.get_character(FOLLOWUP_SCRIPT.NIX_ID)
-	if existing != null:
-		return simulation.recruit_companion(FOLLOWUP_SCRIPT.NIX_ID)
 	var player := simulation.get_character(simulation.player_character_id)
 	if player == null:
 		return {"ok": false, "reason": "missing_player"}
 	var profile: Dictionary = recruitment.get("character", {}).duplicate(true)
 	profile["party"] = {"starts_in_party": true}
+	if existing != null:
+		var progression: Dictionary = profile.get("progression", {})
+		var class_sequence: Array[String] = []
+		for class_id in progression.get("class_levels", []):
+			class_sequence.append(String(class_id))
+		var preferred_skills: Dictionary = {}
+		for skill_id in progression.get("skill_picks", []):
+			var skill_key := String(skill_id)
+			preferred_skills[skill_key] = int(preferred_skills.get(skill_key, 0)) + 1
+		var build_result := NPCSkillSpending.build_authored(
+			existing,
+			String(progression.get("race", "goblin")),
+			class_sequence,
+			preferred_skills,
+			String(progression.get("seed", "canonical-companion:" + FOLLOWUP_SCRIPT.NIX_ID))
+		)
+		if not bool(build_result.get("ok", false)):
+			return {"ok": false, "reason": "nix_profile_build_failed", "detail": build_result}
+		for extra_item_id in profile.get("extra_inventory", []):
+			var extra_item := ItemCatalog.create_instance(String(extra_item_id), "start_%s_extra_%s" % [FOLLOWUP_SCRIPT.NIX_ID, String(extra_item_id)])
+			if not extra_item.is_empty():
+				existing.add_inventory_item(extra_item)
+		for item_id_value in profile.get("equip_items", []):
+			var instance_id := "start_%s_extra_%s" % [FOLLOWUP_SCRIPT.NIX_ID, String(item_id_value)]
+			existing.equip_inventory_item(instance_id)
+		existing.side = "player"
+		existing.companion_recruitment_initialized = true
+		existing.progression_mode = "companion"
+		return simulation.recruit_companion(FOLLOWUP_SCRIPT.NIX_ID)
 	var spawn_hex := Vector2i(999999, 999999)
 	for candidate in HexGrid.neighbors(player.axial):
 		if not simulation.occupied_hexes.has(candidate):
