@@ -19,7 +19,7 @@ func bind(simulation: WorldSimulation, scene_tree: SceneTree = null, local_actor
 	for state in _simulation.character_states():
 		if state == null:
 			continue
-		var callback := Callable(self, "_on_character_lifecycle_changed").bind(state.id)
+		var callback := Callable(self, "_on_character_lifecycle_changed")
 		if not state.lifecycle_changed.is_connected(callback):
 			state.lifecycle_changed.connect(callback)
 
