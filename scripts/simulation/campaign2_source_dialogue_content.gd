@@ -16,6 +16,8 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 	var goblin_mine_state := journal.quest_state("goblin_mine_raid")
 	var orc_trust_state := journal.quest_state("orc_stronghold_trust")
 	var nix_state := simulation.get_character("nix_sharpear")
+	var player_state := simulation.get_character(simulation.player_character_id)
+	var player_level := int(player_state.level) if player_state != null else 1
 	var context := {
 		"guild_favor_active": String(guild_favor_state.get("status", "")) == "active",
 		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
@@ -32,7 +34,8 @@ static func greeting_for_npc(dialogue_id: String, character: CharacterState, act
 		"orc_trust_completed": String(orc_trust_state.get("status", "")) == "completed",
 		"nix_recruited": nix_state != null and nix_state.side == "player",
 		"kingdom_standing": journal.faction_standing("silverhart_kingdom"),
-		"thieves_guild_standing": journal.faction_standing("thieves_guild")
+		"thieves_guild_standing": journal.faction_standing("thieves_guild"),
+		"player_level": player_level
 	}
 	if dialogue_id in ["garrick_holt", "mira_ashbrook", "oskar_vinn", "wick_hallow", "yvette", "yvette_marlow", "hendra", "hendra_wells", "elder_marta", "marta_wynfield", "rowan_fletcher", "hollowmere_hunter", "tavern_patron", "bram_fenwick"]:
 		var shakedown_state := journal.quest_state(HollowmereCampaignContent.QUEST_ID)
@@ -286,6 +289,18 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 			if bool(context.get("orc_trust_active", false)):
 				return {"speaker": display_name, "text": "That troll still denning east of here? Deal with it and we'll talk properly.", "choices": [{"id": "troll", "label": "Where is its den?", "text": "East of the stockade, in the rocks. It has been picking off scouts and cattle. Bring proof that it is dead."}, {"id": "leave", "label": "I'm working on it.", "text": "Grukk folds his arms."}]}
 			return {"speaker": display_name, "text": "Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", "choices": [{"id": "troll", "label": "What do you know about the troll?", "text": "It denns east of the stockade, in the rocks. It has been taking scouts and cattle. Deal with it and you'll have earned a proper welcome."}, {"id": "leave", "label": "Not interested.", "text": "Grukk's expression hardens."}]}
+		"thieves_guild_fence":
+			var standing := float(context.get("thieves_guild_standing", 0.0))
+			if standing < 0.0:
+				return {"speaker": display_name, "text": "You're not welcome here. Corvin's word, not mine — take it up with him if you've got a death wish.", "choices": [{"id": "leave", "label": "...", "text": "The fence turns away."}]}
+			if standing < 20.0:
+				return {"speaker": display_name, "text": "I don't know you. Whatever you're after, you won't find it from me.", "choices": [{"id": "leave", "label": "Fair enough.", "text": "The fence goes back to watching the room."}]}
+			return {"speaker": display_name, "text": "You've earned enough trust to ask what moves through the Guild. Goods, information, and work — but every favour has a price.", "choices": [{"id": "guild_goods", "label": "What sort of goods?", "text": "The sort that don't appear on ordinary market stalls. Ask Corvin if you want the Guild's better stock."}, {"id": "leave", "label": "I'll keep that in mind.", "text": "The fence gives a knowing nod."}]}
+		"silverhart_mercenary_broker":
+			return {"speaker": display_name, "text": "Looking for some extra muscle? One hundred gold and I'll find you a capable fighter. A good sellsword can make the difference between a close fight and a short one.", "choices": [{"id": "mercenary_terms", "label": "What sort of fighter?", "text": "A reliable blade, equipped for the road. The price is one hundred gold, whether they march beside you now or wait until you have room."}, {"id": "leave", "label": "Not right now.", "text": "The recruiter folds his arms and waits."}]}
+		"silverhart_retrainer":
+			var retraining_cost := 50 + int(context.get("player_level", 1)) * 25
+			return {"speaker": display_name, "text": "Spent your points somewhere you regret? For %d gold I'll set every skill you've bought back to points, keeping only what's outside my trade — your unnatural gifts, whatever the arena burned into you, that sort of thing. Race and the classes you've taken decide how many points you'll have to spend again." % retraining_cost, "choices": [{"id": "retraining_terms", "label": "What would be reset?", "text": "Only purchased skill ranks. Your race, class choices and anything innate remain yours; you would redistribute the returned points yourself."}, {"id": "leave", "label": "Not right now.", "text": "Old Hessa nods and returns to her work."}]}
 		"reddale_baron":
 			return {"speaker": display_name, "text": "Reddale answers to me, same as the rest of the barony. Mind your business here and we'll get along fine. Bring a gift worth the visit and I'll remember it kindly — a fine red gem would do nicely.", "choices": [{"id": "barony", "label": "How fares the barony?", "text": "The roads are watched, the tariffs are collected, and the villages know who keeps order here. That is how a barony survives."}, {"id": "tribute", "label": "A red gem would please you?", "text": "A fine stone is a suitable tribute. It shows a visitor understands the difference between an audience and an entitlement."}, {"id": "leave", "label": "Understood.", "text": "The Baron turns his attention elsewhere."}]}
 		"reddale_guildmaster":
