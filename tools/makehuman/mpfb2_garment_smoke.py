@@ -121,6 +121,7 @@ def main():
 
     HumanService = dynamic_import("mpfb.services.humanservice", "HumanService")
     AssetService = dynamic_import("mpfb.services.assetservice", "AssetService")
+    TargetService = dynamic_import("mpfb.services.targetservice", "TargetService")
 
     AssetService.update_all_asset_lists()
     categories = {
@@ -136,7 +137,15 @@ def main():
     for key, (subdir, extension) in categories.items():
         inventories[key] = AssetService.get_asset_list(subdir, extension)
 
-    basemesh = HumanService.create_human()
+    # Explicitly create a fully female young-adult phenotype. A female skin
+    # texture alone does not change the underlying body geometry.
+    macro = TargetService.get_default_macro_info_dict()
+    macro.update({
+        "gender": 0.0, "age": 0.5, "muscle": 0.5, "weight": 0.5,
+        "proportions": 0.5, "height": 0.5, "cupsize": 0.5, "firmness": 0.5,
+        "race": {"asian": 0.0, "caucasian": 1.0, "african": 0.0},
+    })
+    basemesh = HumanService.create_human(macro_detail_dict=macro)
     if basemesh is None:
         raise RuntimeError("MPFB2 create_human() did not return a base mesh")
 
@@ -217,13 +226,31 @@ def main():
     render_view("base-human-side", (5.0, 0.0, 1.0), (0.0, 0.0, 0.9))
 
     glb_path = os.path.join(OUTPUT_DIR, "makehuman-base-human.glb")
-    bpy.ops.export_scene.gltf(filepath=glb_path, export_format="GLB")
+    # Pack all source images and export only the intended character meshes.
+    # This prevents stray Blender scene objects and external texture paths
+    # from leaking into the deliverable GLB.
+    for image in bpy.data.images:
+        if image.source == "FILE" and image.has_data and not image.packed_file:
+            image.pack()
+    export_objects = [obj for obj in bpy.data.objects if obj.type == "MESH" and obj.name in keep]
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in export_objects:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = basemesh
+    bpy.ops.export_scene.gltf(
+        filepath=glb_path, export_format="GLB", use_selection=True,
+        export_cameras=False, export_lights=False, export_apply=True,
+        export_materials="EXPORT", export_image_format="AUTO", export_extras=False,
+    )
 
     report = {
         "mpfb2": "upstream source checkout",
         "blender_version": bpy.app.version_string,
         "skin_asset_label": skin_label,
         "skin_asset_path": skin_path,
+        "phenotype": macro,
+        "exported_mesh_objects": [obj.name for obj in export_objects],
+        "packed_image_count": sum(1 for image in bpy.data.images if image.packed_file),
         "asset_inventory": {
             key: sorted(str(label) for label in values.keys())
             for key, values in inventories.items()
