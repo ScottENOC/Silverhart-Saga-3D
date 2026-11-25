@@ -24,6 +24,7 @@ func _initialize() -> void:
 	_test_tent_capacity_and_relationship_matching()
 	_test_indoor_floor_sleeping_and_security()
 	_test_general_camp_occupant_registry()
+	_test_world_camp_animal_care_integration()
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
@@ -195,6 +196,35 @@ func _test_general_camp_occupant_registry() -> void:
 	_check(restored.occupant_for("moss") == camp.occupant_for("moss"), "Animal identity and care metadata should persist")
 	_check(restored.horse_care_for("horse_01") == camp.horse_care_for("horse_01"), "Horse care state should persist through save/load")
 	_check(restored.occupant_for("cook_01") == camp.occupant_for("cook_01"), "Resident metadata should persist")
+
+
+func _test_world_camp_animal_care_integration() -> void:
+	var world := WorldSimulation.new()
+	var player := CharacterState.new("player", "Player")
+	player.side = "player"
+	world.register_character(player)
+	var horse := AnimalCatalog.create_state("horse", "camp_horse", "Mallow", Vector2i(1, 0), 4812)
+	_check(bool(world.register_animal(horse).get("ok", false)), "A registered world horse should be available to the camp system")
+	var started := world.begin_camp(
+		{"walkable": true, "safe_tethering": true},
+		{"camp_occupants": [
+			{"occupant_id": "camp_horse", "kind": "animal", "species": "horse", "can_sleep": true, "can_work": false}
+		]},
+		{"water": 1, "fodder": 1}
+	)
+	_check(bool(started.get("ok", false)), "World camp setup should accept an explicitly registered horse occupant")
+	var watered := world.care_camp_animal("camp_horse", "water", "player")
+	_check(bool(watered.get("ok", false)), "World simulation should expose camp horse watering")
+	_check(int(world.camp_simulation.resources.water) == 0, "World-level animal care should consume camp water")
+	var fed := world.care_camp_animal("camp_horse", "feed", "player")
+	_check(bool(fed.get("ok", false)), "World simulation should expose camp horse feeding")
+	var saved := world.to_dict()
+	var restored := WorldSimulation.new()
+	restored.load_dict(saved)
+	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("watered", false)), "World save/load should preserve camp horse care state")
+	_check(bool(restored.camp_simulation.horse_care_for("camp_horse").get("fed", false)), "World save/load should preserve camp horse feeding")
+	world.free()
+	restored.free()
 
 
 func _test_night_resolution_and_save_load() -> void:
