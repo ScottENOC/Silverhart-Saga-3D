@@ -1,1 +1,0 @@
-/mnt/data/add_adult_anatomy.py
