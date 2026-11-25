@@ -27,9 +27,9 @@ const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_intera
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
-const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
+const COMBAT_ENCOUNTER_CONTROLLER_SCRIPT = preload("res://scripts/presentation/combat_encounter_controller.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
@@ -109,6 +109,7 @@ var shakedown_resolved: bool = false
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
+var combat_controller: CombatEncounterController
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
@@ -125,8 +126,6 @@ var reyna_clue_visual: Node3D
 var active_encounter_character_states: Dictionary = {}
 var wilderness_steps_since_spawn: int = 0
 var wilderness_creature_nodes: Array[Node3D] = []
-var enemy_turn_processed: bool = false
-var enemy_turn_waiting_for_reaction: bool = false
 var camp_presentation: CampWorldPresentation
 var camp_activity_director: CampPartyActivityDirector
 var camp_selection_mode: bool = false
@@ -604,10 +603,9 @@ func _begin_dire_wolf_hunt_combat() -> void:
 		active_party_ids.append(String(value))
 		active_combat_controlled_ids.append(String(value))
 	encounter_active = true
-	enemy_turn_processed = false
-	enemy_turn_waiting_for_reaction = false
 	if not active_party_ids.has(active_character_id):
 		active_character_id = "player"
+	_activate_combat_controller()
 	_update_combat_ui()
 
 func _load_starting_loadouts() -> Dictionary:
@@ -895,6 +893,9 @@ func _create_hud() -> void:
 	combat_hud = CampaignCombatHud.new()
 	combat_hud.name = "CampaignCombatHud"
 	layer.add_child(combat_hud)
+	combat_controller = COMBAT_ENCOUNTER_CONTROLLER_SCRIPT.new() as CombatEncounterController
+	combat_controller.configure(simulation, combat_hud)
+	combat_controller.resolution_check_requested.connect(_check_encounter_resolution)
 	combat_hud.attack_requested.connect(_attack_active_character)
 	combat_hud.end_turn_requested.connect(_end_active_turn)
 
@@ -2101,120 +2102,41 @@ func _begin_shakedown_combat() -> void:
 			party_state.side = "player"
 			party_state.combat_dormant = false
 			party_state.time_points = 100.0
-	enemy_turn_processed = false
-	enemy_turn_waiting_for_reaction = false
 	if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
 		active_character_id = "player"
+	_activate_combat_controller()
 	_update_combat_ui()
 
 
 func _on_combat_turn_started(_character_id: String) -> void:
-	enemy_turn_processed = false
+	if combat_controller != null:
+		combat_controller.on_combat_turn_started()
 
 
 func _update_combat(_delta: float) -> void:
-	if not encounter_active or simulation == null or not simulation.is_in_combat:
-		return
-	_check_encounter_resolution()
-	if not encounter_active or not simulation.is_in_combat:
-		return
-	if enemy_turn_waiting_for_reaction and not simulation.has_pending_reaction():
-		enemy_turn_waiting_for_reaction = false
-		simulation.try_end_current_turn(true)
-		return
-	if simulation.has_pending_reaction():
-		return
-	var current := simulation.get_current_turn_character()
-	if current == null or enemy_turn_processed:
-		return
-	var is_ai_turn := current.side == "enemy" or (current.side == "player" and not active_combat_controlled_ids.has(current.id))
-	if not is_ai_turn:
-		return
-	enemy_turn_processed = true
-	_run_ai_combat_turn(current)
-
-
-func _run_ai_combat_turn(combatant: CharacterState) -> void:
-	enemy_turn_waiting_for_reaction = COMBAT_AI_SCRIPT.take_turn(
-		simulation,
-		combatant,
-		active_enemy_ids,
-		active_party_ids
-	)
+	if combat_controller != null:
+		combat_controller.update_combat(encounter_active, active_character_id)
 
 
 func _attack_active_character() -> void:
-	if not encounter_active or not simulation.is_in_combat or simulation.has_pending_reaction():
-		return
-	var current := simulation.get_current_turn_character()
-	if current == null or current.id != active_character_id or current.side != "player":
-		combat_hud.set_status_text("It is not this character turn. Switch party members with Tab.")
-		return
-	var target := _nearest_enemy_in_attack_range(current)
-	if target == null:
-		combat_hud.set_status_text("No enemy in reach. Move closer to an enemy first.")
-		return
-	var weapon_id := String(current.equipment.get("weapon", ""))
-	var result := simulation.try_attack_character(current.id, target.id, {
-		"time_point_cost": 10.0,
-		"weapon_id": weapon_id
-	}, int(current.id.hash() + target.id.hash()))
-	if bool(result.get("pending", false)) or simulation.has_pending_reaction():
-		combat_hud.set_status_text("Resolving a defensive reaction...")
-	elif bool(result.get("ok", false)):
-		combat_hud.set_status_text("Attack resolved against %s." % target.display_name)
-	else:
-		combat_hud.set_status_text("Attack unavailable: %s" % String(result.get("reason", "unknown")))
-	_check_encounter_resolution()
-
-
-func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
-	var best: CharacterState
-	var best_distance := 999
-	for enemy_id in active_enemy_ids:
-		var enemy := simulation.get_character(enemy_id)
-		if enemy == null or not enemy.can_act():
-			continue
-		var distance := HexGrid.distance(attacker.axial, enemy.axial)
-		if distance <= COMBAT_AI_SCRIPT.attack_range_for(attacker) and distance < best_distance:
-			best_distance = distance
-			best = enemy
-	return best
+	if combat_controller != null:
+		combat_controller.request_player_attack(encounter_active, active_character_id)
 
 
 func _end_active_turn() -> void:
-	if not encounter_active or not simulation.is_in_combat or simulation.has_pending_reaction():
-		return
-	var current := simulation.get_current_turn_character()
-	if current == null or current.id != active_character_id or current.side != "player":
-		return
-	simulation.try_end_current_turn(true)
+	if combat_controller != null:
+		combat_controller.request_end_player_turn(encounter_active, active_character_id)
 
 
 func _update_combat_ui() -> void:
-	if combat_hud == null:
+	if combat_controller != null:
+		combat_controller.update_hud(encounter_active, active_character_id)
+
+
+func _activate_combat_controller() -> void:
+	if combat_controller == null:
 		return
-	var combat_visible := encounter_active and simulation != null and simulation.is_in_combat
-	if not combat_visible:
-		combat_hud.present(false, false, false, "")
-		return
-	var current := simulation.get_current_turn_character()
-	var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and not simulation.has_pending_reaction()
-	var can_attack := player_turn and _nearest_enemy_in_attack_range(current) != null
-	var status_text := ""
-	if simulation.has_pending_reaction():
-		status_text = "Reaction pending..."
-	elif current == null:
-		status_text = "Waiting for the next combat turn..."
-	elif current.side == "enemy":
-		status_text = "%s is acting..." % current.display_name
-	elif current.id != active_character_id and active_combat_controlled_ids.has(current.id):
-		status_text = "Switch to %s with Tab." % current.display_name
-	elif current.id != active_character_id:
-		status_text = "%s is acting..." % current.display_name
-	else:
-		status_text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
-	combat_hud.present(true, player_turn, can_attack, status_text)
+	combat_controller.begin_encounter(active_enemy_ids, active_party_ids, active_combat_controlled_ids)
 
 
 func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
@@ -2307,10 +2229,9 @@ func _begin_abandoned_house_encounter() -> void:
 		active_party_ids.append(String(party_id_value))
 		active_combat_controlled_ids.append(String(party_id_value))
 	encounter_active = true
-	enemy_turn_processed = false
-	enemy_turn_waiting_for_reaction = false
 	if not active_party_ids.has(active_character_id):
 		active_character_id = simulation.player_character_id
+	_activate_combat_controller()
 	_update_combat_ui()
 	_show_dialogue("Abandoned House", "The three skeletal guardians turn as one. Rusted weapons rise from the dark, and the house erupts into violence.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
@@ -2397,10 +2318,9 @@ func _start_farm_wolf_encounter() -> void:
 			state.time_points = state.max_time_points
 	simulation.start_combat()
 	encounter_active = true
-	enemy_turn_processed = false
-	enemy_turn_waiting_for_reaction = false
 	if not active_party_ids.has(active_character_id):
 		active_character_id = "player"
+	_activate_combat_controller()
 	_update_combat_ui()
 	_show_dialogue("Wilderness", "A low growl rolls through the trees. Three wolves emerge from the den and spread out to surround you.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
