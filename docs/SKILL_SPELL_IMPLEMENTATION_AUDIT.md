@@ -1050,3 +1050,54 @@ However, the branch comparison against current `dev` reports **12 commits ahead 
 5. **Keep general humanoid systems separate from creature species:** the existing NPC skill-spending and character presentation infrastructure can support humanoid enemies, but it does not prove that all original enemy templates, equipment, AI or species visuals have been ported.
 
 Source boundary: roster count and template assignments are from original `monsters.js`; 2D art cross-check is from `images/characters/creatures/`; current model inventory is from the recursive `dev` repository tree; scene placement is from `scripts/world/hollowmere_village.gd`; animal profile status is from `feature/animal-attributes`; encounter/quest status is from the current `dev` simulation scripts. Findings are scoped to those sources and do not claim that no other unreviewed branch or future asset work exists.
+
+---
+
+## Refresh addendum — 18 November 2026 (post skill UI merge)
+
+This addendum supersedes older status statements where they conflict with the current dev tree. The earlier inventory remains useful as a record of source IDs and historical investigation, but its branch/status notes must not be treated as current without this reconciliation.
+
+### Player skill interface — now present on dev
+
+PR #154 (c08d969) added a Skills tab to CharacterPanel and the K campaign shortcut. It uses the shared SkillProgression.purchase() API, displays pool balances, ranks, prerequisites and lock reasons, and supports player/recruited-companion selection. tests/test_skill_progression_ui.gd and tests/test_skill_tree_panel.gd cover progression and UI purchase/save behaviour. The dedicated player/companion UI test passed in the PR workflow.
+
+This closes the previously recorded missing player-facing skill-tree UI gap at the basic browse-and-purchase level. It does not close the 257-skill gameplay-effect parity gap, nor does it establish that every skill tree has an original-style connected-node visual layout. The current UI is a tree selector with skill cards, not a graphical node-and-connection diagram.
+
+### Vision and stealth — current-dev correction
+
+The earlier statement that current dev had no VisionRules is stale. Current dev contains scripts/simulation/vision_rules.gd, and tests/test_world_movement.gd calls _test_vision_rules(). The existing tests cover:
+
+- Base vision range (25) and separate exploration range (30).
+- Elf Vision and Deep Sense range modifiers.
+- Low-light range reduction and Elf Darkvision / Goblin Low-light Eyes exemptions.
+- Goblin Keen Senses.
+- Keen Perception detection bonus.
+- Inconspicuous (stealth_agility) and Shadow Weaver (stealth_rogue) helper bonuses.
+- Clear line of sight, opaque cells, palisade walls, ridge occlusion, visibility range limits, reciprocal LOS in all six axial directions.
+
+These are genuine helper-level tests, so the relevant vision calculation skills should no longer be labelled merely as off-branch candidates. However, the reviewed current tree does not contain a FogOfWar presentation module, and this evidence does not establish integration with live actor visibility, AI detection/search, stealth movement, suspicion, hearing, disguise or party-shared sightings. Mark the helper calculations IMPLEMENTED + TESTED, and the end-to-end vision/stealth gameplay loop INCOMPLETE.
+
+### Spellcasting — confirmed current-dev gap
+
+Current dev contains data/magic/base_spells.json with all 15 base spell definitions, and CharacterState contains mana, school caps, spell-slot capacity and unlocked-base-spell storage. Those fields and the JSON are data/state foundations only.
+
+The reviewed current scripts/simulation/ directory has no spell catalogue, spell builder, cast resolver or active-spell lifecycle manager. SimulationActionRequest and WorldSimulation.submit_action() currently dispatch movement, attacks and feints; there is no spell-cast action. scripts/ui/ has no spellbook or spell builder. StatusEffectRules currently handles poison and withering, not the general timed buffs/debuffs and active-spell effects needed by the original spell set.
+
+The original source implementation is broader than the 15-entry base catalogue:
+- spells.js defines the 15 base spell behaviours and target restrictions.
+- spellPlanner.js builds prepared spell variants from learned base spells and school/rogue metamagic skills, including mana/time costs, range, magnitude, radius, targets, burst, subtle and touch options.
+- gameEngine.js owns casting delay, mana/armour costs, Counterspell reactions, active effects, ongoing upkeep and spell resolution.
+- ui.js provides the player spell builder and target-selection interface.
+
+Therefore all 15 spells remain DATA ONLY / UNVERIFIED in the current 3D build. The next implementation should not mark the spell system complete merely by making Firebolt and Heal work. It needs a shared spell action contract, validated costs/range/targets, a persistent active-effect model, school-specific spell-building rules, Counterspell/reaction integration, and a usable spellbook/targeting UI. Implement and test the spell families in vertical slices, recording unsupported effects explicitly until ported.
+
+### Test inventory correction
+
+The current dev/tests/ directory does not contain tests/test_simulation.gd, despite older audit references to that path. Current progression coverage is split across the existing test files, including test_character_systems.gd, test_skill_progression_ui.gd and test_skill_tree_panel.gd. Future audit references should name the current test files rather than the historical monolithic path.
+
+### Current priority after skill UI
+
+1. Keep the 257-skill effect audit open; the new UI exposes ranks but does not make unported effects work.
+2. Complete the spellcasting vertical slice and spellbook, beginning with the shared action/effect architecture rather than a one-off UI-only implementation.
+3. Integrate the existing VisionRules queries into actor visibility and AI perception, then add tests for actual gameplay outcomes.
+4. Continue the source-backed audit of the remaining campaign, economy, world simulation and persistence systems.
