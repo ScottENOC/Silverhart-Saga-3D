@@ -58,7 +58,7 @@ Existing regression coverage verifies:
 
 The registry currently has 71 multi-story/location definitions and 89 floor definitions. A new exhaustive floor-builder sweep is being added to require every registered floor to return a non-empty logical map.
 
-A source-to-target door-anchor comparison now matches 67 of the 69 source interior regions that declare a door hex against target multi-story door objects and settlement building door records. The two unmatched anchors are `(268, -2)` in the Northwatch fort region and `(406, 35)` in the Ridgehold fort region. They may be outdoor fort access points rather than building doors, but they must be checked against the target wall gaps and approach routes before being marked intentional. Three of the 72 source regions have no source door anchor.
+A source-to-target door-anchor comparison matches all 69 of the 69 source interior regions that declare a door hex: 67 match target multi-story door objects or settlement building door records, and the remaining two are explicitly classified as fort gate access anchors at `(268, -2)` (Northwatch) and `(406, 35)` (Ridgehold). These are outdoor access points, not interior building doors; their target terrain gaps/doorway presentations have dedicated regression coverage. Three of the 72 source regions have no source door anchor. This is coordinate coverage only, not proof of complete wall, room, fixture or transition parity.
 
 ## Wilderness and physical-site verification (step 3)
 
