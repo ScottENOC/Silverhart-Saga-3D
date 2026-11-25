@@ -57,7 +57,7 @@ The 25-anchor geography manifest has six canonical settlement definitions above;
 | Thieves' Cove Caves | Three-level source-authored cave network and reciprocal stairs; source journal in the Smugglers' Den, guild-cache evidence in the Hidden Vault and wilderness tunnel-junction marker are registered as physical map objects | Guild residents, services and quest content; visual review and runtime traversal/interaction wiring |
 | Old Mac's Wolf Den | Source-derived anchor at (-59,204) and chunk-owned natural cave-mouth, rock overhang and scattered-bone dressing are implemented; no interior or wolves are invented by the map layer; encounter trigger, live wolf spawning and quest persistence remain campaign-owned, with visual review outstanding
 | Unicorn Vale | Source-derived vale centre, eight patrol waypoints and all 24 directional hoofprint markers are represented in the streamed map; live unicorn actor, patrol AI and discovery behaviour remain campaign-owned, with visual review outstanding
-| Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn coordinates are registered with the shared multi-story floor builder; exterior entry/exit wiring remains |
+| Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn coordinates are registered with the shared multi-story floor builder; exterior entry/exit wiring remains |; canonical `mine` site lookup now resolves its source anchor
 
 ## Authored-hex inventory snapshot
 
