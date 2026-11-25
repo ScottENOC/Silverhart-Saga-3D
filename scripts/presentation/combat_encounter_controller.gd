@@ -1,8 +1,8 @@
 class_name CombatEncounterController
 extends RefCounted
 ## Shared combat-loop and HUD orchestration.
-## Encounter content and location scripts provide rosters and resolve outcomes;
-## WorldSimulation remains authoritative for all combat rules and state.
+## Encounter content supplies rosters and domain resolvers; location scripts present
+## their results. WorldSimulation remains authoritative for combat rules and state.
 
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 
