@@ -21,7 +21,7 @@ permissions:
 jobs:
   mpfb2-garment-baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -51,8 +51,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data"
-          curl -L --retry 3 -o "$RUNNER_TEMP/makehuman_system_assets_cc0.zip" \
-            https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip
+          asset_url="https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip"
+          asset_archive="$RUNNER_TEMP/makehuman_system_assets_cc0.zip"
+          # The upstream 268 MB archive is served slowly and has reset mid-transfer
+          # on GitHub-hosted runners. Resume partial downloads and retry transient
+          # network failures instead of restarting from zero.
+          curl --fail --location --show-error \
+            --connect-timeout 30 --max-time 0 \
+            --retry 10 --retry-all-errors --retry-delay 10 \
+            --continue-at - --output "$asset_archive" "$asset_url"
+          python3 - "$asset_archive" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as zf:
+              bad = zf.testzip()
+              if bad:
+                  raise SystemExit(f"Corrupt member in MakeHuman asset archive: {bad}")
+          PY
           python3 - "$RUNNER_TEMP/makehuman_system_assets_cc0.zip" "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data" <<'PY'
           import sys, zipfile
           archive, destination = sys.argv[1:]
