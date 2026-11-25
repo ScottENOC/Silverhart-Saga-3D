@@ -190,11 +190,11 @@ def main():
 
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
-    if args.coverage == "aldric" and "pubic" in missing:
-        # The updated anatomy surface can occupy the former pubic skin UV patch.
-        # Keep the build moving with the other verified regions rather than
-        # failing the entire companion export for this optional texture detail.
-        print("Warning: no separate pubic skin UV faces for Aldric; skipping only that body-hair region.")
+    if args.coverage in ("aldric", "reyna", "dagna") and "pubic" in missing:
+        # Some Ara body variants have no separate pubic UV island after the
+        # integrated anatomy pass. Keep the export valid and retain any other
+        # verified body-hair regions rather than failing over an optional detail.
+        print(f"Warning: no separate pubic skin UV faces for {args.coverage}; skipping only that body-hair region.")
         required.remove("pubic")
         names.remove("pubic")
         masks.pop("pubic", None)
