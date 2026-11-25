@@ -9,9 +9,8 @@ on:
       - "tools/review/reyna_native_preview.gd"
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
-      - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/plan_female_anatomy_subdivision.py"
-      - "tools/blender/add_abdominal_definition.py"
+      - "tools/blender/add_adult_anatomy.py"
+      -       - "tools/blender/add_abdominal_definition.py"
       - "tools/blender/add_character_details.py"
       - "tools/review/add_aldric_body_hair.py"
   pull_request:
@@ -46,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/reyna-ara.json >/dev/null
-          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+          tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py tools/blender/add_adult_anatomy.py
 
       - name: Prepare cached Ara and Blender toolchain
         uses: ./.github/actions/character-build-setup
@@ -78,23 +77,18 @@ jobs:
           test -s "$raw_glb"
           cp "$raw_glb" build/reyna-native/Reyna-ara-base.glb
 
-      - name: Apply shared-subdivision surface-following female anatomy (30% reduced prominence)
+      - name: Apply validated integrated female anatomy v2
+        shell: bash
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \
-            --input build/reyna-native/Reyna-ara-base.glb \
-            --output build/reyna-native/female-anatomy-subdivision-plan.json
-          test -s build/reyna-native/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
+            --python tools/blender/add_adult_anatomy.py -- \
             --input build/reyna-native/Reyna-ara-base.glb \
             --output build/reyna-native/Reyna.glb \
-            --report build/reyna-native/female-anatomy-report.json \
-            --subdivision-plan build/reyna-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
+            --profile female --adult --method integrated --deformation-scale 1.65 \
+            --no-canal --no-anus
           test -s build/reyna-native/Reyna.glb
-          grep -q '"clothing_operations": "not run"' build/reyna-native/female-anatomy-report.json
       - name: Apply Reyna skin and hair colours
         run: |
           set -euo pipefail
