@@ -327,7 +327,7 @@ func _test_night_resolution_and_save_load() -> void:
 		{"walkable": true},
 		["player", "wren", "aldric"],
 		{"night_temperature_c": 2.0, "danger": 0.6, "fire_lit": true},
-		{"wood": 2, "rations": 3, "water": 3, "tents": 1, "sleeping_bags": 3}
+		{"wood": 2, "rations": 5, "water": 3, "tents": 1, "sleeping_bags": 3}
 	)
 	camp.plan_sleeping_arrangements(1)
 	var saved := camp.to_dict()
@@ -341,17 +341,23 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(float(result.summary.characters.player.comfort) > 0.0)
 	_check(String(restored.phase) == "morning", "Night resolution should hand off to a distinct morning routine.")
 	_check(String(restored.assignments.player.activity) == "wake", "The party should begin with a wake-up activity.")
+	_check(String(restored.assignments.wren.activity) == "wake", "Companions should be assigned the same wake-up stage.")
 	_check(int(restored.resources.water) == 0, "Drinking water should be consumed once for the whole party, not once per character")
 	_check(String(restored.next_day_effects("player").get("fatigue_band", "")) == "rested")
 	_check(restored.time_point_regeneration_multiplier("player") > 1.0, "A well-rested character should receive a modest next-day recovery bonus")
-	restored.advance_real_time(30.0)
-	_check(String(restored.phase) == "resolved", "The morning sequence should finish after wake-up, dressing, breakfast and camp packing.")
-	_check(bool(restored.environment.get("fire_buried", false)), "A wilderness campfire should be extinguished and covered with soil before departure.")
-	_check(bool(restored.environment.get("camp_packed", false)), "The camp should be marked packed only after the morning routine completes.")
-	var after_night := restored.condition_for("player")
-	restored.begin_camp({"walkable": true}, ["player", "wren"])
-	_check(restored.condition_for("player") == after_night, "Fatigue, hunger and thirst must persist between camp sessions")
-	_check(not bool(restored.resolve_night().ok), "A resolved camp cannot resolve twice")
+	var morning_save := restored.to_dict()
+	var morning_restored := CampSimulation.new()
+	_check(morning_restored.from_dict(morning_save), "An in-progress morning routine should survive save/load.")
+	morning_restored.advance_real_time(30.0)
+	_check(int(morning_restored.morning_summary.get("breakfast_servings", 0)) == 2, "Breakfast should consume the rations left after the evening meal.")
+	_check(int(morning_restored.morning_summary.get("breakfast_shortfall", 0)) == 1, "Breakfast should record any party ration shortfall.")
+	_check(String(morning_restored.phase) == "resolved", "The morning sequence should finish after wake-up, dressing, breakfast and camp packing.")
+	_check(bool(morning_restored.environment.get("fire_buried", false)), "A wilderness campfire should be extinguished and covered with soil before departure.")
+	_check(bool(morning_restored.environment.get("camp_packed", false)), "The camp should be marked packed only after the morning routine completes.")
+	var after_night := morning_restored.condition_for("player")
+	morning_restored.begin_camp({"walkable": true}, ["player", "wren"])
+	_check(morning_restored.condition_for("player") == after_night, "Fatigue, hunger and thirst must persist between camp sessions")
+	_check(not bool(morning_restored.resolve_night().ok), "A resolved camp cannot resolve twice")
 
 
 
