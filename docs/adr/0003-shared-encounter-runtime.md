@@ -77,6 +77,17 @@ It may not own shared turn processing, AI dispatch, attack targeting, combat HUD
 
 Camp, farmstead, tavern, ruins and future encounters must use the same runtime. Location-specific geometry and authored placement remain with their location data/presenter; quest and camp consequences remain with their respective domain services.
 
+## Current implementation status
+
+The first incremental slice is now present:
+
+- `CombatEncounterController` owns shared turn-loop orchestration, AI dispatch, player attack requests, pending-reaction handling and combat HUD state.
+- `CombatEncounterService` owns participant validation, side/dormancy setup, combat start/end and restoration of the pre-encounter side/dormancy state. It has no Node, scene, HUD or location dependency.
+- The farm-wolf pack encounter and Reyna's dire-wolf hunt both use the shared simulation lifecycle service and the same presentation controller.
+- The farm-wolf location path retains only its wolf spawn/presentation and quest outcome work; it no longer repeats the generic participant setup loop.
+
+This is not yet the target architecture. The service does not yet own spawn/remove requests, encounter identity, save/load serialization or surprise modifiers. The tavern Ironbond/abandoned-house encounters and other farm encounters still need migration, and `HollowTankard` still owns encounter rosters and a resolution dispatcher. Those gaps remain explicit work, not implied as complete.
+
 ## Migration sequence
 
 1. Audit current combat call sites and record ownership before moving code.
