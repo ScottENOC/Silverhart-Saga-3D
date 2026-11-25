@@ -47,6 +47,9 @@ var _preparations_completed: bool = false
 var companion_profiles: Dictionary = {}
 var _default_assignments: Dictionary = {}
 var lodging_profile: Dictionary = {}
+var night_index: int = 0
+var night_watch_schedule: Array[Dictionary] = []
+var night_encounter_result: Dictionary = {}
 
 
 func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
@@ -95,6 +98,9 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	}
 	assignments.clear()
 	_default_assignments.clear()
+	night_index = 0
+	night_watch_schedule.clear()
+	night_encounter_result.clear()
 	companion_profiles = environment.get("companion_profiles", {}).duplicate(true)
 	routine_stage = 0
 	_preparations_completed = false
@@ -925,19 +931,125 @@ func begin_night() -> Dictionary:
 	for character_id in party_ids:
 		evening_activity_history[character_id] = String(assignments.get(character_id, {}).get("activity", ""))
 	phase = "night"
-	var available_watchers := party_ids.duplicate()
+	night_index += 1
+	night_watch_schedule = _build_night_watch_schedule(DEFAULT_NIGHT_HOURS)
+	night_encounter_result.clear()
+	var first_shift_watchers: Array = night_watch_schedule[0].get("watcher_ids", []) if not night_watch_schedule.is_empty() else []
 	for character_id in party_ids:
-		var current: Dictionary = assignments.get(character_id, {})
-		if String(current.get("activity", "")) == "watch":
-			available_watchers.erase(character_id)
-	var required_watchers := watch_slots_for_party(party_ids.size())
-	while _count_watchers() < required_watchers and not available_watchers.is_empty():
-		var watcher_id := String(available_watchers.pop_back())
-		_set_assignment(watcher_id, "watch")
-	for character_id in party_ids:
-		if String(assignments.get(character_id, {}).get("activity", "")) != "watch":
-			_set_assignment(character_id, "sleep")
-	return {"ok": true, "watchers": _count_watchers()}
+		_set_assignment(character_id, "watch" if first_shift_watchers.has(character_id) else "sleep")
+	return {"ok": true, "watchers": _count_watchers(), "watch_schedule": night_watch_schedule.duplicate(true)}
+
+
+## Split the night into three watches. The schedule rotates across the whole
+## party where possible; the same companion is not kept awake for every shift.
+func _build_night_watch_schedule(hours: float) -> Array[Dictionary]:
+	var schedule: Array[Dictionary] = []
+	var slots := watch_slots_for_party(party_ids.size())
+	if slots <= 0:
+		return schedule
+	var candidates := party_ids.duplicate()
+	candidates.sort_custom(func(a: String, b: String) -> bool:
+		var score_a := _watcher_selection_score(a)
+		var score_b := _watcher_selection_score(b)
+		if not is_equal_approx(score_a, score_b):
+			return score_a > score_b
+		return a < b
+	)
+	var shift_count := 3
+	var shift_hours := hours / float(shift_count)
+	var rotation_offset := (night_index - 1) % maxi(1, candidates.size())
+	for shift_index in range(shift_count):
+		var selected: Array[String] = []
+		var cursor := (rotation_offset + shift_index * slots) % maxi(1, candidates.size())
+		var attempts := 0
+		while selected.size() < slots and attempts < candidates.size() * 2:
+			var candidate := String(candidates[cursor % candidates.size()])
+			if not selected.has(candidate):
+				selected.append(candidate)
+			cursor += 1
+			attempts += 1
+		schedule.append({
+			"shift_index": shift_index,
+			"start_hour": float(shift_index) * shift_hours,
+			"end_hour": float(shift_index + 1) * shift_hours,
+			"watcher_ids": selected
+		})
+	return schedule
+
+
+func _watcher_selection_score(character_id: String) -> float:
+	var profile: Dictionary = companion_profiles.get(character_id, {})
+	var skills: Dictionary = profile.get("skills", {}) if profile.get("skills", {}) is Dictionary else {}
+	var perception := float(profile.get("perception", skills.get("keen_perception", skills.get("perception", skills.get("awareness", 0.0)))))
+	var condition: Dictionary = conditions.get(character_id, {})
+	var fatigue := float(condition.get("fatigue", 40.0))
+	return perception * 2.0 - fatigue * 0.05
+
+
+func _scale_night_watch_schedule(hours: float) -> void:
+	var scheduled_hours := 0.0
+	for shift in night_watch_schedule:
+		scheduled_hours = maxf(scheduled_hours, float(shift.get("end_hour", 0.0)))
+	if scheduled_hours <= 0.0:
+		return
+	var scale := hours / scheduled_hours
+	for index in range(night_watch_schedule.size()):
+		var shift: Dictionary = night_watch_schedule[index]
+		shift["start_hour"] = float(shift.get("start_hour", 0.0)) * scale
+		shift["end_hour"] = float(shift.get("end_hour", 0.0)) * scale
+		night_watch_schedule[index] = shift
+
+
+func _watch_hours_by_character(hours: float) -> Dictionary:
+	var totals: Dictionary = {}
+	for shift in night_watch_schedule:
+		var duration := maxf(0.0, float(shift.get("end_hour", 0.0)) - float(shift.get("start_hour", 0.0)))
+		for watcher_id in shift.get("watcher_ids", []):
+			var key := String(watcher_id)
+			totals[key] = float(totals.get(key, 0.0)) + duration
+	return totals
+
+
+func _resolve_night_threat(ambush_chance: float) -> Dictionary:
+	var seed_value := int(environment.get("night_seed", 0))
+	if seed_value == 0:
+		var seed_text := String(site.get("site_id", site.get("location_id", "camp")))
+		for character_id in party_ids:
+			seed_text += ":" + character_id
+		seed_value = int(seed_text.hash()) + night_index * 7919
+	if seed_value == 0:
+		seed_value = 1
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var attack_roll := rng.randf()
+	var attacked := attack_roll < ambush_chance
+	if not attacked:
+		return {"attacked": false, "detected": false, "attack_roll": attack_roll, "detection_chance": 0.0, "seed": seed_value}
+	var best_detection := 0.0
+	var detecting_watcher := ""
+	var visibility := clampf(float(environment.get("visibility_multiplier", 1.0)), 0.1, 1.5)
+	if bool(environment.get("fog", false)) or bool(environment.get("heavy_rain", false)):
+		visibility *= 0.7
+	for shift in night_watch_schedule:
+		var shift_detection := 0.0
+		var shift_watcher := ""
+		for watcher_value in shift.get("watcher_ids", []):
+			var watcher_id := String(watcher_value)
+			var profile: Dictionary = companion_profiles.get(watcher_id, {})
+			var skills: Dictionary = profile.get("skills", {}) if profile.get("skills", {}) is Dictionary else {}
+			var perception := float(profile.get("perception", skills.get("keen_perception", skills.get("perception", skills.get("awareness", 0.0)))))
+			var fatigue := float(conditions.get(watcher_id, {}).get("fatigue", 40.0))
+			var chance := clampf((0.35 + perception * 0.05 - fatigue * 0.002) * visibility, 0.05, 0.9)
+			if chance > shift_detection:
+				shift_detection = chance
+				shift_watcher = watcher_id
+		if shift_detection > best_detection:
+			best_detection = shift_detection
+			detecting_watcher = shift_watcher
+		var detection_roll := rng.randf()
+		if detection_roll < shift_detection:
+			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "seed": seed_value}
+	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "seed": seed_value}
 
 
 func _has_activity(activity: String) -> bool:
@@ -981,6 +1093,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	if phase != "night":
 		return {"ok": false, "reason": "night_not_started"}
 	var night_hours := clampf(hours, 1.0, 16.0)
+	_scale_night_watch_schedule(night_hours)
 	var party_size := party_ids.size()
 	var has_fire := bool(environment.get("fire_lit", false))
 	var has_meal := bool(environment.get("meal_prepared", false))
@@ -1001,6 +1114,9 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	# A solid dwelling substantially reduces exposure; tents provide partial cover.
 	var shelter_multiplier := 0.35 + 0.65 * exposure_ratio
 	var ambush_chance := base_ambush_chance * shelter_multiplier
+	var threat_result := _resolve_night_threat(ambush_chance)
+	night_encounter_result = threat_result.duplicate(true)
+	var watch_hours_by_character := _watch_hours_by_character(night_hours)
 	var starting_temperature := float(environment.get("night_temperature_c", 10.0))
 	var temperature_change := float(environment.get("temperature_change_per_hour", -0.4))
 	var temperature := starting_temperature + temperature_change * night_hours
@@ -1041,7 +1157,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var dwelling_comfort := float(lodging_profile.get("comfort_bonus", 0.0)) if in_dwelling else 0.0
 		var surface_comfort := 10.0 if sleeping_surface == "bed" else (3.0 if has_sleeping_bag else 0.0)
 		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10) + dwelling_comfort + surface_comfort, 0.0, 100.0)
-		var watch_penalty := 10.0 if String(assignments.get(character_id, {}).get("activity", "")) == "watch" else 0.0
+		var watched_hours := float(watch_hours_by_character.get(character_id, 0.0))
+		var watch_penalty := clampf(watched_hours / maxf(1.0, night_hours) * 10.0, 0.0, 10.0)
 		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, 20.0 + comfort * 0.35 - watch_penalty))
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
 		condition["hunger"] = clampf(float(condition.hunger) + night_hours * 2.0 - (25.0 if has_meal else 0.0), 0.0, 100.0)
@@ -1061,6 +1178,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	var summary := {
 		"hours": night_hours, "party_size": party_size, "watchers": watchers,
 		"ambush_chance": ambush_chance, "base_ambush_chance": base_ambush_chance,
+		"night_index": night_index, "watch_schedule": night_watch_schedule.duplicate(true),
+		"night_encounter": threat_result.duplicate(true),
 		"exposure_ratio": exposure_ratio, "shelter_multiplier": shelter_multiplier,
 		"average_comfort": total_comfort / float(maxi(1, party_size)),
 		"characters": results,
@@ -1081,7 +1200,9 @@ func to_dict() -> Dictionary:
 		"routine_stage": routine_stage, "preparations_completed": _preparations_completed,
 		"companion_profiles": companion_profiles.duplicate(true),
 		"occupants": occupants.duplicate(true), "animal_care": animal_care.duplicate(true),
-		"animal_care_tasks": animal_care_tasks.duplicate(true)
+		"animal_care_tasks": animal_care_tasks.duplicate(true),
+		"night_index": night_index, "night_watch_schedule": night_watch_schedule.duplicate(true),
+		"night_encounter_result": night_encounter_result.duplicate(true)
 	}
 
 
@@ -1098,6 +1219,10 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_occupants: Variant = data.get("occupants", {})
 	var saved_animal_care: Variant = data.get("animal_care", {})
 	var saved_animal_care_tasks: Variant = data.get("animal_care_tasks", [])
+	var saved_watch_schedule: Variant = data.get("night_watch_schedule", [])
+	var saved_encounter_result: Variant = data.get("night_encounter_result", {})
+	if not saved_watch_schedule is Array or not saved_encounter_result is Dictionary:
+		return false
 	if not saved_animal_care_tasks is Array:
 		return false
 	if not saved_animal_care is Dictionary:
@@ -1110,6 +1235,12 @@ func from_dict(data: Dictionary) -> bool:
 		if character_id.is_empty() or ids.has(character_id):
 			return false
 		ids.append(character_id)
+	for shift in saved_watch_schedule:
+		if not shift is Dictionary or not shift.get("watcher_ids", []) is Array:
+			return false
+		for watcher_id in shift.get("watcher_ids", []):
+			if not ids.has(String(watcher_id)):
+				return false
 	for character_id in saved_assignments:
 		if (not ids.has(String(character_id)) and not saved_occupants.has(character_id)) or not saved_assignments[character_id] is Dictionary:
 			return false
@@ -1150,6 +1281,11 @@ func from_dict(data: Dictionary) -> bool:
 			if not saved_occupants.has(character_id):
 				return false
 	phase = saved_phase
+	night_index = maxi(0, int(data.get("night_index", 0)))
+	night_watch_schedule.clear()
+	for shift in saved_watch_schedule:
+		night_watch_schedule.append(shift.duplicate(true))
+	night_encounter_result = saved_encounter_result.duplicate(true)
 	site = data.get("site", {}).duplicate(true)
 	lodging_profile = saved_lodging.duplicate(true)
 	party_ids = ids

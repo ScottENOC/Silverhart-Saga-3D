@@ -3,6 +3,7 @@ extends SceneTree
 var _failures := 0
 var _camp_actor_probes: Dictionary = {}
 var _camp_animal_care_events := 0
+var _camp_night_events := 0
 
 
 class CampActivityProbe extends RefCounted:
@@ -23,6 +24,9 @@ func _on_camp_action_committed(event: SimulationEvent) -> void:
 	if event.event_type == "camp_animal_care":
 		_camp_animal_care_events += 1
 
+func _on_camp_night_encounter_resolved(result: Dictionary) -> void:
+	_camp_night_events += 1
+
 
 func _initialize() -> void:
 	_test_site_validation()
@@ -33,6 +37,7 @@ func _initialize() -> void:
 	_test_world_camp_animal_care_integration()
 	_test_scheduled_horse_care_routine()
 	_test_night_resolution_and_save_load()
+	_test_night_watch_rotation_and_detection()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
 	_test_dwelling_layout_station_selection()
@@ -348,6 +353,149 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(restored.condition_for("player") == after_night, "Fatigue, hunger and thirst must persist between camp sessions")
 	_check(not bool(restored.resolve_night().ok), "A resolved camp cannot resolve twice")
 
+
+
+func _find_night_seed(ambush_limit: float, detection_limit: float, want_detected: bool) -> int:
+	for seed_value in range(1, 10000):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var attack_roll := rng.randf()
+		var detection_rolls: Array[float] = [rng.randf(), rng.randf(), rng.randf()]
+		if attack_roll >= ambush_limit:
+			continue
+		if want_detected and detection_rolls[0] < detection_limit:
+			return seed_value
+		if not want_detected:
+			var all_missed := true
+			for detection_roll in detection_rolls:
+				if detection_roll < detection_limit:
+					all_missed = false
+					break
+			if all_missed:
+				return seed_value
+	return 0
+
+
+func _find_shift_isolation_seed(attack_limit: float, strong_limit: float, weak_limit: float) -> int:
+	for seed_value in range(1, 10000):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var attack_roll := rng.randf()
+		var first_shift_roll := rng.randf()
+		var second_shift_roll := rng.randf()
+		var third_shift_roll := rng.randf()
+		if attack_roll < attack_limit and first_shift_roll >= strong_limit and second_shift_roll >= weak_limit and second_shift_roll < strong_limit and third_shift_roll >= strong_limit:
+			return seed_value
+	return 0
+
+
+func _test_night_watch_rotation_and_detection() -> void:
+	var detected_camp := CampSimulation.new()
+	var detected_seed := _find_night_seed(0.38, 0.42, true)
+	_check(detected_seed > 0, "A deterministic seed should be available for a detected ambush test")
+	detected_camp.begin_camp(
+		{"walkable": true, "site_id": "watch_test"},
+		["a", "b"],
+		{"danger": 1.0, "night_seed": detected_seed, "companion_profiles": {
+			"a": {"perception": 3.0}, "b": {"perception": 0.0}
+		}},
+		{}
+	)
+	var started := detected_camp.begin_night()
+	_check(bool(started.get("ok", false)), "Night should begin before the watch schedule is generated")
+	_check(detected_camp.night_watch_schedule.size() == 3, "An eight-hour night should be divided into three watch shifts")
+	var first_watchers: Array = detected_camp.night_watch_schedule[0].get("watcher_ids", [])
+	var second_watchers: Array = detected_camp.night_watch_schedule[1].get("watcher_ids", [])
+	_check(first_watchers.size() == 1 and second_watchers.size() == 1, "A two-person party should assign one watcher per shift")
+	_check(first_watchers[0] != second_watchers[0], "Two-person parties should rotate watch rather than leave one person awake all night")
+	var saved := detected_camp.to_dict()
+	var restored := CampSimulation.new()
+	_check(restored.from_dict(saved), "The watch rotation should survive saving during the night")
+	_check(restored.night_watch_schedule == detected_camp.night_watch_schedule, "The exact watch roster should be restored")
+	var detected_result := restored.resolve_night()
+	_check(bool(detected_result.ok), "A saved night should resolve normally")
+	var detected_event: Dictionary = detected_result.summary.get("night_encounter", {})
+	_check(bool(detected_event.get("attacked", false)), "The deterministic danger roll should produce an attack")
+	_check(bool(detected_event.get("detected", false)), "A perceptive watcher should detect the deterministic attack")
+	_check(String(detected_event.get("watcher_id", "")) == "a", "The strongest scheduled watcher should be credited with detection")
+	var saved_resolved := restored.to_dict()
+	var restored_resolved := CampSimulation.new()
+	_check(restored_resolved.from_dict(saved_resolved), "Resolved encounter information should survive save/load")
+	_check(restored_resolved.night_encounter_result == detected_event, "Loading must not reroll or duplicate a resolved night event")
+
+	var mixed_seed := _find_shift_isolation_seed(0.38, 0.42, 0.27)
+	_check(mixed_seed > 0, "A deterministic seed should isolate the weaker watch shift")
+	var mixed_camp := CampSimulation.new()
+	mixed_camp.begin_camp(
+		{"walkable": true, "site_id": "mixed_watch_test"},
+		["a", "b"],
+		{"danger": 1.0, "night_seed": mixed_seed, "companion_profiles": {
+			"a": {"perception": 3.0}, "b": {"perception": 0.0}
+		}},
+		{}
+	)
+	mixed_camp.begin_night()
+	var mixed_result := mixed_camp.resolve_night()
+	var mixed_event: Dictionary = mixed_result.summary.get("night_encounter", {})
+	_check(bool(mixed_event.get("attacked", false)), "The mixed-skill deterministic roll should produce an attack")
+	_check(not bool(mixed_event.get("detected", true)), "A weaker later shift must not inherit the earlier shift's higher detection chance")
+	_check(is_equal_approx(float(mixed_event.get("detection_chance", 0.0)), 0.42), "The encounter should report the strongest individual shift chance")
+
+	var short_night := CampSimulation.new()
+	short_night.begin_camp({"walkable": true, "site_id": "short_watch_test"}, ["a", "b"], {"danger": 0.0}, {})
+	short_night.begin_night()
+	var short_result := short_night.resolve_night(6.0)
+	_check(bool(short_result.get("ok", false)), "A shorter sleep duration should still resolve")
+	var safe_night_event: Dictionary = short_result.get("summary", {}).get("night_encounter", {})
+	_check(not bool(safe_night_event.get("attacked", true)), "A zero-danger site should not produce a night attack")
+	_check(short_night.night_encounter_result == safe_night_event, "A peaceful night result should also be retained as the resolved encounter state")
+	_check(is_equal_approx(float(short_night.night_watch_schedule[2].get("end_hour", 0.0)), 6.0), "Watch shift boundaries should scale to the actual sleep duration")
+	var short_watch_hours := short_night._watch_hours_by_character(6.0)
+	var total_short_watch_hours := 0.0
+	for watched_hours in short_watch_hours.values():
+		total_short_watch_hours += float(watched_hours)
+	_check(is_equal_approx(total_short_watch_hours, 6.0), "Total scheduled watch hours should equal the resolved night duration")
+
+	var missed_camp := CampSimulation.new()
+	var missed_seed := _find_night_seed(0.38, 0.15, false)
+	_check(missed_seed > 0, "A deterministic seed should be available for an undetected ambush test")
+	missed_camp.begin_camp(
+		{"walkable": true, "site_id": "missed_watch_test"},
+		["a", "b"],
+		{"danger": 1.0, "night_seed": missed_seed},
+		{}
+	)
+	missed_camp.conditions["a"]["fatigue"] = 100.0
+	missed_camp.conditions["b"]["fatigue"] = 100.0
+	missed_camp.begin_night()
+	var missed_result := missed_camp.resolve_night()
+	var missed_event: Dictionary = missed_result.summary.get("night_encounter", {})
+	_check(bool(missed_event.get("attacked", false)), "The second deterministic danger roll should produce an attack")
+	_check(not bool(missed_event.get("detected", true)), "An exhausted novice watch should be capable of missing an attack")
+	_check(not String(missed_event.get("watcher_id", "")).is_empty(), "An undetected attack should still identify the strongest watcher who tried to spot it")
+	_check(float(missed_event.get("detection_chance", 1.0)) < 0.2, "Exhaustion should materially reduce detection chance")
+
+	var world := WorldSimulation.new()
+	world.player_character_id = "a"
+	var watch_leader := CharacterState.new("a", "Watch Leader", Vector2i(0, 0))
+	watch_leader.side = "player"
+	world.register_character(watch_leader)
+	watch_leader.skills["keen_perception"] = 3
+	var watch_partner := CharacterState.new("b", "Watch Partner", Vector2i(1, 0))
+	watch_partner.side = "player"
+	world.register_character(watch_partner)
+	_camp_night_events = 0
+	world.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
+	var world_camp := world.begin_camp(
+		{"walkable": true, "site_id": "world_watch_test"},
+		{"danger": 1.0, "night_seed": detected_seed},
+		{}
+	)
+	_check(bool(world_camp.get("ok", false)), "WorldSimulation should begin a camp with registered party members")
+	_check(float(world.camp_simulation.companion_profiles["a"].get("perception", 0.0)) == 3.0, "WorldSimulation should pass the authored keen perception skill into camp profiles")
+	world.skip_camp_to_morning()
+	_check(_camp_night_events == 1, "WorldSimulation should publish a detected night attack for encounter presentation")
+	world.free()
 
 
 func _test_world_simulation_integration() -> void:
