@@ -746,8 +746,10 @@ static func camp_activity_animation_hints(activity: String) -> PackedStringArray
 			return PackedStringArray(["pick_up", "carry_idle"])
 		"set_up_tents":
 			return PackedStringArray(["pick_up", "use_press"])
-		"fetch_water":
+		"fetch_water", "care_horse_water":
 			return PackedStringArray(["pick_up", "carry_idle"])
+		"care_horse_feed", "care_horse_groom", "care_horse_tether":
+			return PackedStringArray(["use_press"])
 		"cook":
 			return PackedStringArray(["use_press"])
 		"repair_gear":
