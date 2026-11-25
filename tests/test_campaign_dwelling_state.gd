@@ -329,7 +329,14 @@ func _test_dwelling_world_sites_and_inspection() -> void:
 	_check(body.contains("missing 8 wood") and body.contains("8 stone"), "The inspection should show the exact missing construction materials.")
 	var parent := Node3D.new()
 	var presentation := CampaignDwellingWorldPresentation.present_all(parent, state, 1.0)
-	_check(bool(presentation.get("ok", false)) and int(presentation.get("site_count", 0)) == 3, "The three property sites should receive world presentations.")
-	_check(parent.get_node_or_null("CampaignDwellingPresentation") != null, "Dwelling exteriors should be attached to the world scene.")
+	_check(bool(presentation.get("ok", false)) and int(presentation.get("site_count", 0)) == 4, "The three property sites and capital furniture shop should receive world presentations.")
+	_check(parent.get_node_or_null("CampaignDwellingPresentation") != null, "Dwelling exteriors and the furniture shop should be attached to the world scene.")
+	var presentation_root := parent.get_node("CampaignDwellingPresentation")
+	var shop_model := presentation_root.get_node_or_null("SilverhartFurnitureShopSite") as Node3D
+	_check(shop_model != null, "Silverhart Furnishings should have a distinct 3D storefront.")
+	if shop_model != null:
+		_check(shop_model.position.is_equal_approx(HexGrid.axial_to_world(Vector2i(8, -496), 1.0)), "The storefront should align with the existing capital shop interaction hex.")
+		_check(shop_model.get_node_or_null("ShopSign") is Label3D, "The storefront should carry a readable FURNISHINGS sign.")
+		_check(shop_model.get_node_or_null("ShopCounter") != null and shop_model.get_node_or_null("ShopDisplayBedBase") != null and shop_model.get_node_or_null("ShopDisplayTableTop") != null, "The shop should visibly display furniture stock.")
 	parent.free()
 
