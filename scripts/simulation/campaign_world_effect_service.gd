@@ -85,7 +85,7 @@ static func apply_effects(
 		if not bool(rescue_result.get("ok", false)):
 			return rescue_result
 		var aldric := simulation.get_character(ALDRIC_ID)
-		if aldric != null:
+		if aldric != null and not simulation.is_party_member(ALDRIC_ID):
 			aldric.side = "neutral"
 			aldric.combat_dormant = false
 		_sync_aldric_actor(scene_tree, local_actor_by_id, false)
