@@ -7,6 +7,7 @@ const ALLY_IDS: Array[String] = ["garrick_holt", "mira_ashbrook", "oskar_vinn"]
 const COMBAT_ALLY_IDS: Array[String] = ["player", "companion_wren_talbot", "garrick_holt", "mira_ashbrook", "oskar_vinn"]
 const ENEMY_IDS: Array[String] = ["dray_coltayne", "tomlin_brask", "hask_greel"]
 const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
+const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 
 const ALLY_PROFILES := {
 	"garrick_holt": {"health": 100, "damage": 3, "melee_hit": 5, "skills": {"club_hit": 1, "club_dmg": 1}},
@@ -118,12 +119,45 @@ static func enemies_defeated(simulation: WorldSimulation) -> bool:
 	return true
 
 
-static func party_defeated(simulation: WorldSimulation) -> bool:
+static func party_defeated(simulation: WorldSimulation, party_ids: Array[String] = COMBAT_ALLY_IDS) -> bool:
 	if simulation == null:
 		return true
-	for party_id in COMBAT_ALLY_IDS:
+	for party_id in party_ids:
 		var member := simulation.get_character(party_id)
 		if member != null and member.can_act():
 			return false
 	return true
 
+static func resolve_combat(
+	simulation: WorldSimulation,
+	journal: CampaignJournal,
+	party_ids: Array[String],
+	session: Dictionary
+) -> Dictionary:
+	if simulation == null or journal == null:
+		return {"ok": false, "resolved": false, "reason": "missing_simulation_or_journal"}
+	if party_defeated(simulation, party_ids):
+		finish(simulation, session.get("previous_states", {}))
+		journal.fail_quest(HOLLOWMERE_CAMPAIGN_CONTENT.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
+		return {
+			"ok": true,
+			"resolved": true,
+			"outcome": "defeat",
+			"speaker": "Garrick Holt",
+			"message": "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.",
+			"choice_label": "Continue."
+		}
+	if not enemies_defeated(simulation):
+		return {"ok": true, "resolved": false}
+	finish(simulation, session.get("previous_states", {}))
+	var completed := HOLLOWMERE_CAMPAIGN_CONTENT.complete_shakedown(journal)
+	var victory_text := HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_victory_text()
+	return {
+		"ok": bool(completed.get("ok", false)),
+		"resolved": true,
+		"outcome": "victory",
+		"speaker": "Garrick Holt",
+		"message": victory_text,
+		"choice_label": "Continue.",
+		"speech_bubble_character_id": "garrick_holt"
+	}
