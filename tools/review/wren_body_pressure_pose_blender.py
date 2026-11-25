@@ -256,6 +256,116 @@ def render_scene(actor, lo, hi):
     scene.render.filepath=os.path.join(OUT_DIR,"wren-body-pressure-preview.png")
     bpy.ops.render.render(write_still=True)
 
+
+def export_stiffness_sweep(actor, lo, hi, report):
+    # Build a single inspection GLB containing four baked Wren copies. Each copy
+    # uses the same authored hip pressure shape, scaled to the spring equilibrium
+    # for 1 N at the candidate stiffness. This is a visual comparison, not a
+    # claim that the native Ara mesh is a validated tissue model.
+    cases = [(850.0, 1.0 / 850.0), (400.0, 1.0 / 400.0),
+             (200.0, 1.0 / 200.0), (100.0, 1.0 / 100.0)]
+    max_shape_depth = 0.022
+    spacing = max(0.72, (hi.x - lo.x) * 1.35)
+    collection = bpy.data.collections.new("Wren_Buttock_Stiffness_Comparison")
+    bpy.context.scene.collection.children.link(collection)
+    exportables = []
+    case_report = []
+    shape_name = "pressure_hip_right"
+
+    for case_index, (stiffness, compression_m) in enumerate(cases):
+        shape_value = min(1.0, compression_m / max_shape_depth)
+        for source in actor["meshes"]:
+            keys = source.data.shape_keys
+            if keys is not None:
+                for key in keys.key_blocks:
+                    if key.name.lower() == shape_name:
+                        key.value = shape_value
+            bpy.context.view_layer.update()
+            deps = bpy.context.evaluated_depsgraph_get()
+            evaluated = source.evaluated_get(deps)
+            mesh_data = bpy.data.meshes.new_from_object(
+                evaluated, preserve_all_data_layers=True, depsgraph=deps)
+            if mesh_data is None:
+                continue
+            duplicate = bpy.data.objects.new(
+                "Wren_%03dNpm_%s" % (int(stiffness), source.name), mesh_data)
+            collection.objects.link(duplicate)
+            duplicate.matrix_world = source.matrix_world.copy()
+            duplicate.location.x += (case_index - 1.5) * spacing
+            exportables.append(duplicate)
+
+        label = bpy.data.curves.new("StiffnessLabel_%d" % int(stiffness), "FONT")
+        label.body = "%d N/m\\n%.2f mm" % (int(stiffness), compression_m * 1000.0)
+        label.size = 0.075
+        label.align_x = "CENTER"
+        label.extrude = 0.001
+        label_obj = bpy.data.objects.new("Label_%dNpm" % int(stiffness), label)
+        collection.objects.link(label_obj)
+        label_obj.rotation_euler = (math.radians(90), 0.0, 0.0)
+        label_obj.location = (
+            (case_index - 1.5) * spacing,
+            lo.y - 0.16,
+            lo.z + 0.04)
+        bpy.context.view_layer.objects.active = label_obj
+        label_obj.select_set(True)
+        bpy.ops.object.convert(target="MESH")
+        label_obj = bpy.context.object
+        label_obj.select_set(False)
+        exportables.append(label_obj)
+        case_report.append({
+            "stiffness_n_per_m": stiffness,
+            "force_n": 1.0,
+            "equilibrium_compression_mm": round(compression_m * 1000.0, 3),
+            "shape_value": round(shape_value, 5),
+            "copy_offset_x_m": round((case_index - 1.5) * spacing, 3)
+        })
+
+    # Render the four side-by-side models for a quick visual check.
+    scene = bpy.context.scene
+    if scene.camera is not None:
+        centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, (lo.z + hi.z) * 0.5))
+        centre.x = 0.0
+        cam = scene.camera
+        cam.location = centre + Vector((1.7, -4.8, 0.55))
+        cam.rotation_euler = (centre - cam.location).to_track_quat("-Z", "Y").to_euler()
+        cam.data.type = "ORTHO"
+        cam.data.ortho_scale = max(3.6, spacing * 4.2)
+        scene.render.resolution_x = 1800
+        scene.render.resolution_y = 900
+        scene.render.resolution_percentage = 100
+        scene.render.filepath = os.path.join(OUT_DIR, "wren-stiffness-sweep-preview.png")
+        bpy.ops.render.render(write_still=True)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in exportables:
+        obj.select_set(True)
+    if exportables:
+        bpy.context.view_layer.objects.active = exportables[0]
+    output_path = os.path.join(OUT_DIR, "wren-buttock-stiffness-sweep.glb")
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format="GLB",
+        use_selection=True, export_animations=False, export_skins=False,
+        export_draco_mesh_compression_enable=False)
+
+    # Restore the original source shape values so the ordinary posed GLB remains
+    # independent of this comparison package.
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is not None:
+            for key in keys.key_blocks:
+                if key.name.lower().startswith("pressure_"):
+                    key.value = 0.0
+    bpy.context.view_layer.update()
+    report["stiffness_sweep"] = {
+        "cases": case_report,
+        "glb": "wren-buttock-stiffness-sweep.glb",
+        "preview": "wren-stiffness-sweep-preview.png",
+        "glb_exported": os.path.exists(output_path),
+        "preview_rendered": os.path.exists(os.path.join(OUT_DIR, "wren-stiffness-sweep-preview.png")),
+        "note": "Four baked Wren copies show the hip pressure shape scaled to F/k for 1 N. The visual is an authored shape-key response, not tissue calibration."
+    }
+    return report["stiffness_sweep"]["glb_exported"]
+
+
 def main():
     if not os.path.exists(WREN_GLB): raise RuntimeError("Native Wren GLB missing: "+WREN_GLB)
     actor=import_wren(WREN_GLB)
@@ -392,13 +502,14 @@ def main():
     bpy.ops.export_scene.gltf(filepath=os.path.join(OUT_DIR,"wren-body-pressure-pose.glb"),
         export_format="GLB",use_selection=True,export_animations=False,export_skins=False,
         export_draco_mesh_compression_enable=False)
+    stiffness_sweep_exported = export_stiffness_sweep(actor, lo, hi, report)
     palm_anchor_gaps = [v["gap_m"] for v in report["palm_anchor_surface_gaps"].values()]
     report["validation"]={"wren_only":True,"both_arm_ik_created":all(v.get("created",False) for v in report["ik"].values()),
         "preview_rendered":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-preview.png")),
         "posed_glb_exported":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-pose.glb")),
         "palm_anchor_within_5mm_of_selected_surface":len(palm_anchor_gaps) == 2 and all(gap <= 0.005 for gap in palm_anchor_gaps),
         "pressure_shapes_authored":len(authored_shapes) >= 4 and all(x["affected_vertices"] > 0 for x in authored_shapes),
-        "pressure_compressed_preview_rendered":pressure_preview_rendered}
+        "pressure_compressed_preview_rendered":pressure_preview_rendered,\n        "stiffness_sweep_glb_exported":stiffness_sweep_exported,\n        "stiffness_sweep_preview_rendered":report["stiffness_sweep"]["preview_rendered"]}
     with open(os.path.join(OUT_DIR,"wren-body-pressure-report.json"),"w",encoding="utf-8") as f: json.dump(report,f,indent=2)
     print("WREN_BODY_PRESSURE_REPORT="+json.dumps(report))
 
