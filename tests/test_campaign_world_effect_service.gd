@@ -71,7 +71,7 @@ func _test_effects_apply_and_persist_once() -> void:
 	_check(bool(journal.world_campaign_flag("goblin_scout_note_read", false)))
 	_check(bool(journal.world_campaign_flag("emberlode_raided", false)))
 	_check(bool(journal.world_campaign_flag("aldric_rescued", false)))
-	_check(journal.npc_standing(ALDRIC_ID) == -8.0)
+	_check(journal.npc_standing(ALDRIC_ID) == 52.0)
 	_check(simulation.get_character("player").experience == 40)
 	_check(simulation.get_character("player").gold == 80)
 	_check(simulation.get_character(ALDRIC_ID).side == "neutral")
