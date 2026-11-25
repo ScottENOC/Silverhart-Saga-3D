@@ -247,3 +247,40 @@ func _initialize() -> void:
 	_verify_all_silverhart_buildings_stream(builder, terrain)
 	print("Campaign 2 canonical settlement builder tests passed.")
 	quit(0)
+
+
+func _verify_all_silverhart_buildings_stream(builder: Campaign2SettlementBuilder, terrain: Campaign2WorldTerrainData) -> void:
+	var silverhart_entry: Dictionary = {}
+	for entry in terrain.settlement_layouts:
+		if String(entry.get("id", "")) == "silverhart":
+			silverhart_entry = entry
+			break
+	if silverhart_entry.is_empty():
+		push_error("Silverhart settlement definition must be available for full city streaming verification.")
+		return
+	var origin: Vector2i = silverhart_entry.get("origin", Vector2i.ZERO)
+	var definition: Dictionary = silverhart_entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	var expected_by_chunk: Dictionary = {}
+	for building in layout.get("buildings", []):
+		if not building is Dictionary:
+			continue
+		var centre_data: Dictionary = building.get("center", {})
+		var centre := Vector2i(int(centre_data.get("q", 0)), int(centre_data.get("r", 0))) + origin
+		var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24, floori(float(centre.y) / 24.0) * 24)
+		if not expected_by_chunk.has(chunk_min):
+			expected_by_chunk[chunk_min] = []
+		expected_by_chunk[chunk_min].append(String(building.get("id", "")))
+	var streamed := 0
+	for chunk_min in expected_by_chunk:
+		var parent := Node3D.new()
+		root.add_child(parent)
+		builder.add_settlements_in_chunk(parent, chunk_min, 24)
+		for building_id in expected_by_chunk[chunk_min]:
+			if parent.get_node_or_null(building_id) == null:
+				push_error("Silverhart building %s must stream in owning chunk %s." % [building_id, chunk_min])
+			else:
+				streamed += 1
+		parent.free()
+	if streamed != 40:
+		push_error("All 40 retained Silverhart baseline buildings must stream exactly once; got %d." % streamed)
