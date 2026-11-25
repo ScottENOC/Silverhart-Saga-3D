@@ -443,12 +443,12 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 	var registry := CHARACTER_REGISTRY.new()
 	var expected_npcs := {
 		"chief_skarnub": Vector2i(203, 22),
-		"nix_sharpear": Vector2i(201, 23),
-		"gralk_bonecaster": Vector2i(205, 23),
-		"grondle_camp_trader": Vector2i(202, 25),
-		"skarn_goblin_guard_01": Vector2i(200, 24),
-		"skarn_goblin_guard_02": Vector2i(206, 24),
-		"skarn_goblin_skulker": Vector2i(203, 24)
+		"nix_sharpear": Vector2i(202, 23),
+		"gralk_bonecaster": Vector2i(204, 23),
+		"grondle_camp_trader": Vector2i(202, 24),
+		"skarn_goblin_guard_01": Vector2i(203, 24),
+		"skarn_goblin_guard_02": Vector2i(204, 24),
+		"skarn_goblin_skulker": Vector2i(203, 25)
 	}
 	for character_id in expected_npcs:
 		_check(ids.has(character_id), "Skarn-tooth Camp should place " + character_id)
@@ -456,6 +456,8 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 			_assert_axial(ids[character_id].get("position", {}), expected_npcs[character_id], character_id + " source position")
 		var profile := registry.get_character(character_id)
 		_check(not profile.is_empty(), "Skarn-tooth NPC profile should resolve: " + character_id)
+		if not profile.is_empty():
+			_check(profile.has("source_position"), "Skarn-tooth NPC should retain its original source placement: " + character_id)
 	_check(String(registry.get_character("chief_skarnub").get("dialogue_id", "")) == "chief_skarnub", "Chief Skarnub should retain his source dialogue ID")
 	_check(String(registry.get_character("nix_sharpear").get("dialogue_id", "")) == "nix_sharpear", "Nix Sharpear should retain his source dialogue ID")
 
