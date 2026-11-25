@@ -312,7 +312,8 @@ def main():
         "phenotype": macro,
         "exported_mesh_objects": export_object_names,
         "packed_image_count": sum(1 for image in bpy.data.images if image.packed_file),
-        "glb_roundtrip_mesh_objects": [obj.name for obj in roundtrip_meshes],\n        "roundtrip_object_diagnostics": [object_diagnostics(obj) for obj in roundtrip_meshes],
+        "glb_roundtrip_mesh_objects": [obj.name for obj in roundtrip_meshes],
+        "roundtrip_object_diagnostics": [object_diagnostics(obj) for obj in roundtrip_meshes],
         "asset_inventory": {
             key: sorted(str(label) for label in values.keys())
             for key, values in inventories.items()
@@ -320,7 +321,8 @@ def main():
         "asset_counts": {key: len(values) for key, values in inventories.items()},
         "loaded_face_components": loaded_components,
         "removed_startup_meshes": startup_objects_removed,
-        "mesh_objects": mesh_objects,\n        "source_object_diagnostics": [object_diagnostics(obj) for obj in export_objects],
+        "mesh_objects": mesh_objects,
+        "source_object_diagnostics": [object_diagnostics(obj) for obj in export_objects],
         "renders": [
             os.path.join(OUTPUT_DIR, "base-human-front.png"),
             os.path.join(OUTPUT_DIR, "base-human-side.png"),
