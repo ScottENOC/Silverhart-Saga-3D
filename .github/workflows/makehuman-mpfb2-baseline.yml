@@ -110,5 +110,6 @@ jobs:
           name: makehuman-mpfb2-baseline
           path: |
             makehuman-baseline/
+            makehuman-morph-fit/
             mpfb2-source-commit.txt
           if-no-files-found: warn
