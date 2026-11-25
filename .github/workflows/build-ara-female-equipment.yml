@@ -47,7 +47,7 @@ jobs:
             --python tools/blender/add_adult_anatomy.py -- \
             --input art/characters/ara_runtime/ara_person_body.glb \
             --output art/characters/ara_runtime/ara_person_body_anatomy.glb \
-            --profile female --adult
+            --profile female --adult --method integrated --deformation-scale 1.65 --no-canal --no-anus
           test -s art/characters/ara_runtime/ara_person_body_anatomy.glb
 
       - name: Generate independent Ara garment exports
