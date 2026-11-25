@@ -1050,3 +1050,28 @@ However, the branch comparison against current `dev` reports **12 commits ahead 
 5. **Keep general humanoid systems separate from creature species:** the existing NPC skill-spending and character presentation infrastructure can support humanoid enemies, but it does not prove that all original enemy templates, equipment, AI or species visuals have been ported.
 
 Source boundary: roster count and template assignments are from original `monsters.js`; 2D art cross-check is from `images/characters/creatures/`; current model inventory is from the recursive `dev` repository tree; scene placement is from `scripts/world/hollowmere_village.gd`; animal profile status is from `feature/animal-attributes`; encounter/quest status is from the current `dev` simulation scripts. Findings are scoped to those sources and do not claim that no other unreviewed branch or future asset work exists.
+
+
+## Refresh addendum — 18 November 2026
+
+### Player-facing skill tree UI: missing
+
+Current dev was rechecked. scripts/ui/ contains no skill-tree/skill-spending controller or scene. scripts/ui/character_panel.gd renders identity/progression, attribute pools and Time Points, but does not render skill ranks or provide a purchase interaction. There is therefore no demonstrated player-facing way to browse the skill trees or spend skill points in the playable UI.
+
+This does **not** mean the progression backend is absent. Current dev includes:
+
+- data/skills/skill_definitions.json: 257 source-derived runtime skill records across 24 tree labels.
+- scripts/simulation/skill_catalog.gd: metadata loading and validation.
+- scripts/simulation/skill_progression.gd: point accounting, purchase eligibility, prerequisites, rank caps, purchases, grants and accounting reports.
+- scripts/simulation/npc_skill_spending.gd: shared purchase-path allocation for authored/generated NPC builds.
+- CharacterState: persistent skill ranks, paid-point ledgers, pool budgets, grants and companion recruitment markers.
+
+The original source has 186 direct declarations plus 71 generated weapon/magic skills = 257 runtime IDs. All 257 metadata rows currently set requires_runtime_port: true, so do not infer effects from catalogue presence. The existing audit records 22 IDs with direct effect-test coverage; every other effect remains unverified until code and a deterministic test establish it.
+
+### Required next implementation
+
+Build a player skill-tree UI that groups the 257 definitions by tree, shows rank/max rank, description, prerequisites, funding pool, points remaining and purchase eligibility, and invokes SkillProgression.purchase(). The UI must distinguish unavailable trees, dynamic/quest-only prerequisites and wildcard/misc funding choices. Add integration tests for purchase, rejected purchase, immediate effect/UI refresh, save/load, level-up grants and no duplicate point spending. Do not implement a second point-accounting system in the UI.
+
+### Audit maintenance correction
+
+The older audit summary refers to tests/test_simulation.gd for progression plumbing, but that file is not present in the current dev/tests/ directory listing inspected on 18 November. Reconcile the exact current test location and assertions before relying on that sentence as evidence. This is a documentation discrepancy, not proof that progression tests do not exist.
