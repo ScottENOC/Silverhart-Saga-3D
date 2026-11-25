@@ -24,24 +24,6 @@ jobs:
           ref: ${{ github.ref_name }}
           persist-credentials: true
 
-      - name: Download Wren build #184 with integrated anatomy v2
-        uses: actions/download-artifact@v8
-        with:
-          name: wren-native-ara-184
-          repository: ${{ github.repository }}
-          run-id: 45550489788
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: /tmp/accepted-wren
-
-      - name: Download the accepted Aldric build #125
-        uses: actions/download-artifact@v8
-        with:
-          name: aldric-native-ara-125
-          repository: ${{ github.repository }}
-          run-id: 44641513062
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: /tmp/accepted-aldric
-
       - name: Download Dagna build #131 with integrated anatomy v2
         uses: actions/download-artifact@v8
         with:
@@ -56,19 +38,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p art/characters/companions
-          test -s /tmp/accepted-wren/Wren.glb
-          test -s /tmp/accepted-aldric/Aldric.glb
           test -s /tmp/accepted-dagna/Dagna.glb
-          cp /tmp/accepted-wren/Wren.glb art/characters/companions/wren.glb
-          cp /tmp/accepted-aldric/Aldric.glb art/characters/companions/aldric.glb
+          # Wren Talbot and Ser Aldric Thorne are now sourced from the canonical
+          # campaign cast models. Remove their superseded duplicate companion exports.
+          find art/characters/companions -maxdepth 1 -type f \\( -name 'wren*' -o -name 'aldric*' \\) -delete
           cp /tmp/accepted-dagna/Dagna.glb art/characters/companions/dagna.glb
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
           root = Path("art/characters/companions")
           sources = {
-              "wren.glb": {"character": "Wren Talbot", "workflow_run": 45550489788, "build": 184, "accepted_source_commit": "1fd6d6ab65b2f1e8cd9f6d1f7cfd59d8a8fa8500"},
-              "aldric.glb": {"character": "Ser Aldric Thorne", "workflow_run": 44641513062, "build": 125, "accepted_source_commit": "8681bc9f6ad4e2c651d6fd8bf937fdfc95538555"},
               "dagna.glb": {"character": "Dagna Stoneward", "workflow_run": 45550892688, "build": 131, "accepted_source_commit": "768adfcf1db2ded39329e00215c874347d3892f6"},
           }
           manifest = {"schema_version": 1, "assets": {}}
@@ -104,7 +83,7 @@ jobs:
             echo "Companion assets are already current."
             exit 0
           fi
-          git commit -m "Install Wren and Dagna with integrated female anatomy v2"
+          git commit -m "Keep Dagna companion asset; resolve Wren and Aldric from canonical cast"
           git stash push --include-untracked -m "temporary Godot import side effects"
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
