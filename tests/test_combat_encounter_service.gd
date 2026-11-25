@@ -1,6 +1,7 @@
 extends SceneTree
 
 const ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
+const DIRE_WOLF_ENCOUNTER = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 
 var _failures: int = 0
 
@@ -8,6 +9,7 @@ var _failures: int = 0
 func _initialize() -> void:
 	_test_begin_and_restore_all_participants()
 	_test_reject_invalid_rosters_without_mutation()
+	_test_dire_wolf_domain_uses_shared_lifecycle()
 	if _failures > 0:
 		push_error("%d combat encounter service assertion(s) failed." % _failures)
 		quit(1)
@@ -70,4 +72,23 @@ func _test_reject_invalid_rosters_without_mutation() -> void:
 	var duplicate: Dictionary = ENCOUNTER_SERVICE.begin(simulation, ["player"], ["player"])
 	_check(not bool(duplicate.get("ok", false)), "A participant cannot be on both sides.")
 	_check(not simulation.is_in_combat, "A duplicate roster must not start combat.")
+	simulation.free()
+
+func _test_dire_wolf_domain_uses_shared_lifecycle() -> void:
+	var simulation := WorldSimulation.new()
+	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.side = "player"
+	var bystander := CharacterState.new("bystander", "Bystander", Vector2i(1, 0))
+	bystander.combat_dormant = false
+	simulation.register_character(player)
+	simulation.register_character(bystander)
+	var created: Dictionary = DIRE_WOLF_ENCOUNTER.create_dire_wolf(simulation, Vector2i(2, 0))
+	_check(bool(created.get("ok", false)), "The dire wolf encounter should create its authored enemy.")
+	var started: Dictionary = DIRE_WOLF_ENCOUNTER.start(simulation, ["player"])
+	_check(bool(started.get("ok", false)), "The dire wolf encounter should start through the shared lifecycle.")
+	_check(simulation.is_in_combat, "The dire wolf encounter should activate WorldSimulation combat.")
+	_check(bystander.combat_dormant, "The shared lifecycle should suspend unrelated characters during the hunt.")
+	DIRE_WOLF_ENCOUNTER.finish(simulation, ["player"], started.get("previous_states", {}))
+	_check(not simulation.is_in_combat, "Finishing the dire wolf encounter should end combat.")
+	_check(not bystander.combat_dormant, "The dire wolf encounter should restore unrelated characters afterwards.")
 	simulation.free()
