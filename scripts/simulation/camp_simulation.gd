@@ -1068,7 +1068,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 			"sleeping_surface": sleeping_surface,
 			"shelter_type": "dwelling" if in_dwelling else ("tent" if in_tent else "open_air")
 		}
- 	phase = "morning"
+	phase = "morning"
 	morning_elapsed_world_seconds = 0.0
 	routine_stage = 0
 	morning_summary = {
