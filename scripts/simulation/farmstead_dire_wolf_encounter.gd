@@ -2,6 +2,7 @@ class_name FarmsteadDireWolfEncounter
 extends RefCounted
 ## Snapshot and restore world-side/dormancy state around the farmstead encounter.
 const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
+const CombatEncounterService = preload("res://scripts/simulation/combat_encounter_service.gd")
 
 static func create_dire_wolf(simulation: WorldSimulation, hex: Vector2i) -> Dictionary:
     if simulation == null:
@@ -36,32 +37,23 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
         var member := simulation.get_character(character_id)
         if member != null and member.can_act() and not valid_party.has(character_id): valid_party.append(character_id)
     if valid_party.is_empty(): return {"ok": false, "reason": "no_able_party_members"}
-    var previous_states: Dictionary = {}
-    for state in simulation.character_states():
-        previous_states[state.id] = {"side": state.side, "combat_dormant": state.combat_dormant}
-        state.combat_dormant = true
-    for id in valid_party:
-        var member := simulation.get_character(id)
-        member.side = "player"
-        member.combat_dormant = false
-        member.time_points = 100.0
     wolf.health = wolf.max_health
     wolf.alive = true
     wolf.unconscious = false
-    wolf.side = "enemy"
-    wolf.combat_dormant = false
-    wolf.time_points = 100.0
-    simulation.start_combat()
-    return {"ok": true, "party_ids": valid_party, "enemy_ids": [DIRE_WOLF_ID], "previous_states": previous_states}
+    var encounter_result: Dictionary = CombatEncounterService.begin(simulation, valid_party, [DIRE_WOLF_ID])
+    if not bool(encounter_result.get("ok", false)):
+        return encounter_result
+    var session: Dictionary = encounter_result.get("session", {})
+    return {
+        "ok": true,
+        "party_ids": valid_party,
+        "enemy_ids": [DIRE_WOLF_ID],
+        "previous_states": session.get("previous_states", {})
+    }
 
 static func finish(simulation: WorldSimulation, _party_ids: Array[String], previous_states: Dictionary) -> void:
     if simulation == null: return
-    for key in previous_states.keys():
-        var state := simulation.get_character(String(key))
-        var previous: Dictionary = previous_states[key]
-        if state == null: continue
-        state.side = String(previous.get("side", state.side))
-        state.combat_dormant = bool(previous.get("combat_dormant", state.combat_dormant))
+    CombatEncounterService.finish(simulation, {"previous_states": previous_states})
 
 static func party_defeated(simulation: WorldSimulation, party_ids: Array[String]) -> bool:
     if simulation == null: return true
