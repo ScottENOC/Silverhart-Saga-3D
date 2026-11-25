@@ -201,6 +201,12 @@ static func _ensure_hollowmere_model_index() -> void:
 	if not parsed is Dictionary or not parsed.get("characters", []) is Array:
 		push_warning("Hollowmere character model index is invalid.")
 		return
+	# Keep legacy identity aliases pointed at the same canonical cast GLB.
+	for alias in {"wren": "wren_talbot", "aldric_thorne": "ser_aldric_thorne", "ser_aldric_thorne_human_male": "ser_aldric_thorne"}:
+		var target := String({"wren": "wren_talbot", "aldric_thorne": "ser_aldric_thorne", "ser_aldric_thorne_human_male": "ser_aldric_thorne"}[alias])
+		if _hollowmere_model_index.has(target):
+			_hollowmere_model_index[alias] = _hollowmere_model_index[target]
+			_hollowmere_body_variant_index[alias] = _hollowmere_body_variant_index.get(target, "female")
 	for value in parsed.get("characters", []):
 		if not value is Dictionary:
 			continue
