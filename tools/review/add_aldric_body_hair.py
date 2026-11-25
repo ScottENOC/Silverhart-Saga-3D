@@ -188,6 +188,50 @@ def main():
             paint_clipped("armpits", tri, band(0.70, 0.76, 0.105, 0.155, front=True))
             paint_clipped("pubic", tri, band(0.27, 0.35, -0.13, 0.13))
 
+    # Reyna's shorter, more muscular profile shifts the lower-pelvis UV
+    # projection outside the standard Ara pubic band. If the standard region
+    # is empty, locate the nearest populated narrow front-skin band rather than
+    # failing the entire character export or painting a broad guessed patch.
+    if args.coverage == "reyna" and not regions.get("pubic"):
+        original_mask = masks["pubic"]
+        original_draw = draws["pubic"]
+        best = None
+        x_centre = float((positions[:, 0].min() + positions[:, 0].max()) * 0.5)
+        centres = sorted(
+            (round(v, 3) for v in np.arange(0.20, 0.451, 0.01)),
+            key=lambda value: abs(value - 0.325),
+        )
+        for half_width in (0.055, 0.070, 0.085):
+            for centre in centres:
+                candidate_mask = Image.new("L", (width, height), 0)
+                masks["pubic"] = candidate_mask
+                draws["pubic"] = ImageDraw.Draw(candidate_mask)
+                regions["pubic"] = 0
+                for candidate_tri in indices.reshape(-1, 3):
+                    paint_clipped(
+                        "pubic", candidate_tri,
+                        band(centre - 0.035, centre + 0.035,
+                             x_centre - half_width, x_centre + half_width),
+                    )
+                pixel_area = int(np.count_nonzero(np.asarray(candidate_mask)))
+                if pixel_area and (best is None or pixel_area > best[0]):
+                    best = (pixel_area, centre, half_width,
+                            candidate_mask.copy(), regions["pubic"])
+            if best is not None:
+                break
+        masks["pubic"] = original_mask
+        draws["pubic"] = original_draw
+        if best is not None:
+            _area, centre, half_width, selected_mask, selected_faces = best
+            masks["pubic"] = selected_mask
+            draws["pubic"] = ImageDraw.Draw(selected_mask)
+            regions["pubic"] = selected_faces
+            print(
+                "REYNA_PUBIC_UV_FALLBACK "
+                f"centre_y={centre:.3f} half_width={half_width:.3f} "
+                f"eligible_faces={selected_faces} uv_pixels={_area}"
+            )
+
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
     if args.coverage == "aldric" and "pubic" in missing:
