@@ -87,7 +87,9 @@ func _test_alliance_rescues_aldric_and_completes_his_quest() -> void:
 	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("status", "")) == "completed")
 	_check(String(simulation.campaign_journal.quest_state("aldric_rescue").get("status", "")) == "completed")
 	_check(bool(simulation.campaign_journal.world_campaign_flag("aldric_rescued", false)))
+	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 60.0)
 	_check(simulation.get_character(ALDRIC_ID).side == "neutral")
+	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 40.0)
 	_check(simulation.get_character("player").experience == 100)
 	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), -10.0))
 
@@ -224,3 +226,19 @@ func _test_existing_lieutenant_is_converted_on_recruitment() -> void:
 	_check(lieutenant.progression_mode == "companion")
 	_check(int(lieutenant.skills.get("dagger_hit", 0)) > 0)
 	_check(int(lieutenant.skills.get("stealth_rogue", 0)) > 0)
+
+
+func _test_betrayal_blocks_aldric_recruitment_if_not_already_recruited() -> void:
+	var simulation := _simulation()
+	var rescued := RUNTIME_SERVICE.rescue_aldric(simulation)
+	_check(bool(rescued.get("ok", false)))
+	simulation.campaign_journal.adjust_faction_standing("goblin_tribe", 25.0, "test betrayal")
+	var betrayal := RUNTIME_SERVICE.resolve_favour(simulation, "raid")
+	_check(bool(betrayal.get("ok", false)))
+	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 0.0)
+	var greeting := RUNTIME_SERVICE.aldric_captive_greeting(simulation)
+	var recruit_offered := false
+	for choice_value in greeting.get("choices", []):
+		if String(choice_value.get("id", "")).begins_with("recruit:"):
+			recruit_offered = true
+	_check(not recruit_offered, "Aldric must refuse recruitment after the betrayal outcome")
