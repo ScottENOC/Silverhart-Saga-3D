@@ -131,7 +131,7 @@ func _test_autonomous_director_exchange() -> void:
 	quest_chain.register_quest_definitions(world.campaign_journal)
 	world.campaign_journal.quests["aldric_measure_of_oath"] = {
 		"status": "completed",
-		"completed_at": 100.0
+		"completed_at": 50000.0
 	}
 	var relationship_state := CAMPAIGN_RUNTIME_STORE.relationship_state_for(world)
 	var chapter_start := quest_chain.start(
@@ -139,17 +139,17 @@ func _test_autonomous_director_exchange() -> void:
 		world.campaign_journal,
 		world.get_party_member_ids(),
 		relationship_state,
-		100.0
+		50000.0
 	)
 	_check(bool(chapter_start.get("ok", false)), "Aldric's next campaign chapter should start when its prerequisite is complete")
-	var consultation := quest_chain.consult("aldric_weight_of_command", world.campaign_journal, "adelram", 110.0)
+	var consultation := quest_chain.consult("aldric_weight_of_command", world.campaign_journal, "adelram", 50010.0)
 	_check(bool(consultation.get("ok", false)), "The supporting character should be consulted before resolving the chapter")
 	var resolution := quest_chain.resolve(
 		"aldric_weight_of_command",
 		"shared_command",
 		world.campaign_journal,
 		relationship_state,
-		120.0
+		50020.0
 	)
 	_check(bool(resolution.get("ok", false)), "The authored chapter resolution should be recorded in the campaign journal")
 	var reyna_memory := SERVICE.build_campaign_memory_exchange(
@@ -168,7 +168,7 @@ func _test_autonomous_director_exchange() -> void:
 	# personal chapters. This Fenn outcome is authored in the prerequisite data.
 	world.campaign_journal.quests["fenn_living_boundary"] = {
 		"status": "completed",
-		"completed_at": 130.0,
+		"completed_at": 50030.0,
 		"resolution": "managed_spillway"
 	}
 	var fenn_memory := SERVICE.build_campaign_memory_exchange(
