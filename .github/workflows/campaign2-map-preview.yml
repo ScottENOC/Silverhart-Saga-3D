@@ -43,6 +43,9 @@ jobs:
       - name: Import project resources
         run: godot --headless --editor --path . --quit
 
+      - name: Verify regional terrain triangle winding
+        run: godot --headless --path . --script res://tests/test_campaign2_terrain_mesh_winding.gd
+
       - name: Install virtual display
         run: |
           sudo apt-get update
