@@ -356,15 +356,25 @@ func _find_night_seed(ambush_limit: float, detection_limit: float, want_detected
 		var rng := RandomNumberGenerator.new()
 		rng.seed = seed_value
 		var attack_roll := rng.randf()
-		var detection_roll := rng.randf()
-		if attack_roll < ambush_limit and ((detection_roll < detection_limit) == want_detected):
+		var detection_rolls: Array[float] = [rng.randf(), rng.randf(), rng.randf()]
+		if attack_roll >= ambush_limit:
+			continue
+		if want_detected and detection_rolls[0] < detection_limit:
 			return seed_value
+		if not want_detected:
+			var all_missed := true
+			for detection_roll in detection_rolls:
+				if detection_roll < detection_limit:
+					all_missed = false
+					break
+			if all_missed:
+				return seed_value
 	return 0
 
 
 func _test_night_watch_rotation_and_detection() -> void:
 	var detected_camp := CampSimulation.new()
-	var detected_seed := _find_night_seed(0.38, 0.8, true)
+	var detected_seed := _find_night_seed(0.38, 0.77, true)
 	_check(detected_seed > 0, "A deterministic seed should be available for a detected ambush test")
 	detected_camp.begin_camp(
 		{"walkable": true, "site_id": "watch_test"},
