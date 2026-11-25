@@ -117,7 +117,7 @@ static func warlord_greeting(journal: CampaignJournal, simulation: WorldSimulati
 			{"id":"leave","label":"Good to know.","text":"Grukk gives a short, approving nod."}
 		])
 	return _conversation("Humans don't usually walk in here and expect to walk out. Something's been picking off our scouts and cattle east of the stockade — a troll, denned in the rocks. Kill it, and maybe you're worth talking to.", [
-		{"id":"orc_stronghold_accept","label":"I'll deal with it.","text":"Grukk nods. "Then prove it. The den is east of the stockade, among the rocks.""},
+		{"id":"orc_stronghold_accept","label":"I'll deal with it.","text":"Grukk nods. Then prove it. The den is east of the stockade, among the rocks."},
 		{"id":"leave","label":"Not interested.","text":"Grukk's expression hardens."}
 	])
 
