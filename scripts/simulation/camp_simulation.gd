@@ -6,6 +6,7 @@ extends RefCounted
 signal camp_started(site: Dictionary)
 signal activity_assigned(character_id: String, activity: String)
 signal night_resolved(summary: Dictionary)
+signal animal_care_completed(animal_id: String, action: String, handler_id: String, care: Dictionary)
 
 const EXPLORATION_SECONDS_PER_REAL_SECOND := 5.0
 const DEFAULT_NIGHT_HOURS := 8.0
@@ -217,6 +218,7 @@ func perform_animal_care(occupant_id: String, action: String, handler_id: String
 	state["last_care"] = action
 	state["handler_id"] = handler_id
 	animal_care[occupant_id] = state
+	animal_care_completed.emit(occupant_id, action, handler_id, state.duplicate(true))
 	return {"ok": true, "animal_id": occupant_id, "care": state.duplicate(true), "resources_remaining": resources.duplicate(true)}
 
 
@@ -245,11 +247,7 @@ func _plan_horse_care_tasks() -> void:
 		assigned_handlers[handler_id] = true
 		for action in ["water", "feed", "groom", "tether", "rest"]:
 			var initial_status := "pending"
-			if action == "water" and int(resources.get("water", 0)) <= 0:
-				initial_status = "blocked"
-			elif action == "feed" and int(resources.get("fodder", 0)) <= 0:
-				initial_status = "blocked"
-			elif action == "tether" and not bool(site.get("safe_tethering", environment.get("safe_tethering", false))):
+			if action == "tether" and not bool(site.get("safe_tethering", environment.get("safe_tethering", false))):
 				initial_status = "blocked"
 			animal_care_tasks.append(_new_horse_care_task(animal_id, action, handler_id, initial_status))
 		_activate_next_horse_care_task(animal_id)
@@ -325,6 +323,16 @@ func _activate_horse_care_task_for_handler(animal_id: String, preferred_handler:
 			animal_care_tasks[index] = task
 			var rest_result := perform_animal_care(animal_id, "rest", "")
 			task["status"] = "completed" if bool(rest_result.get("ok", false)) else "blocked"
+			animal_care_tasks[index] = task
+			continue
+		if action == "water" and int(resources.get("water", 0)) <= 0:
+			task["status"] = "pending"
+			task["blocked_reason"] = "awaiting_water"
+			animal_care_tasks[index] = task
+			continue
+		if action == "feed" and int(resources.get("fodder", 0)) <= 0:
+			task["status"] = "pending"
+			task["blocked_reason"] = "awaiting_fodder"
 			animal_care_tasks[index] = task
 			continue
 		if handler_id.is_empty():
