@@ -214,6 +214,18 @@ static func greeting(dialogue_id: String, display_name: String, context: Diction
 
 static func role_greeting(character_id: String, display_name: String, title: String, ambient_role: String) -> Dictionary:
 	var role := ambient_role.to_lower()
+	var title_key := title.to_lower()
+	if role == "civilian" or role.is_empty():
+		if title_key.contains("guard") or title_key.contains("watch") or title_key.contains("captain"):
+			role = "guard"
+		elif title_key.contains("merchant") or title_key.contains("shop") or title_key.contains("innkeeper") or title_key.contains("factor") or title_key.contains("trader"):
+			role = "merchant"
+		elif title_key.contains("miner") or title_key.contains("smith") or title_key.contains("blacksmith"):
+			role = "miner"
+		elif title_key.contains("cleric") or title_key.contains("priest") or title_key.contains("chapel"):
+			role = "clergy"
+		elif title_key.contains("farmer") or title_key.contains("herder") or title_key.contains("stable"):
+			role = "farmer"
 	var variants: Array[Dictionary] = []
 	match role:
 		"guard":
@@ -246,16 +258,15 @@ static func role_greeting(character_id: String, display_name: String, title: Str
 			]
 		_:
 			variants = [
-				{"text": "Hollowmere's a small place, but there's always something happening if you know where to look.", "reply": "What sort of thing?", "response": "The sort folk stop talking about when strangers come close."},
+				{"text": "This is a small place, but there's always something happening if you know where to look.", "reply": "What sort of thing?", "response": "The sort folk stop talking about when strangers come close."},
 				{"text": "You passing through, or thinking of staying?", "reply": "Still deciding.", "response": "Then take your time. The roads will still be here tomorrow."},
 				{"text": "People have been asking more questions lately. Usually means something is about to change.", "reply": "What have you heard?", "response": "Only fragments. The useful bits rarely travel with the loud ones."}
 			]
 	var variant_index := posmod(character_id.hash(), variants.size())
 	var selected: Dictionary = variants[variant_index]
-	var resolved_title := title.strip_edges()
 	return {
 		"speaker": display_name,
-		"text": String(selected.get("text", "")) if resolved_title.is_empty() else String(selected.get("text", "")),
+		"text": String(selected.get("text", "")),
 		"choices": [
 			{"id": "role_topic", "label": String(selected.get("reply", "Tell me more.")), "text": String(selected.get("response", ""))},
 			{"id": "leave", "label": "Good day.", "text": "They return to their duties."}
