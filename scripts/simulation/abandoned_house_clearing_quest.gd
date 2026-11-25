@@ -216,3 +216,45 @@ static func resolve_clearing(journal: CampaignJournal, simulation: WorldSimulati
 			return completed
 		return {"ok": true, "completed": true, "defeated": defeated_count}
 	return {"ok": true, "completed": false, "defeated": defeated_count, "remaining": guardian_count_remaining(simulation)}
+
+static func resolve_combat(
+	simulation: WorldSimulation,
+	journal: CampaignJournal,
+	party_ids: Array[String],
+	session: Dictionary
+) -> Dictionary:
+	if simulation == null or journal == null:
+		return {"ok": false, "resolved": false, "reason": "missing_simulation_or_journal"}
+	apply_defeat_consequences(journal, simulation)
+	if party_defeated(simulation, party_ids):
+		finish_encounter(simulation, session.get("previous_states", {}))
+		return {
+			"ok": true,
+			"resolved": true,
+			"outcome": "defeat",
+			"speaker": "Abandoned House",
+			"message": "The guardians drive you back. They remain in the house, but you can return when the party is ready.",
+			"choice_label": "Retreat."
+		}
+	if not enemies_defeated(simulation):
+		return {"ok": true, "resolved": false}
+	finish_encounter(simulation, session.get("previous_states", {}))
+	var clearing := resolve_clearing(journal, simulation)
+	if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
+		return {
+			"ok": true,
+			"resolved": true,
+			"outcome": "victory",
+			"speaker": "Abandoned House",
+			"message": "The last guardian collapses. The house is quiet at last. Its rooms can now be restored, though the work will still require timber and stone.",
+			"choice_label": "The house is clear.",
+			"status_text": "Quest complete: The Abandoned House · all three guardians defeated."
+		}
+	return {
+		"ok": bool(clearing.get("ok", false)),
+		"resolved": true,
+		"outcome": "victory",
+		"speaker": "Abandoned House",
+		"message": "The guardians are defeated, but the clearing could not be recorded: %s." % String(clearing.get("reason", "unknown error")),
+		"choice_label": "Continue."
+	}
