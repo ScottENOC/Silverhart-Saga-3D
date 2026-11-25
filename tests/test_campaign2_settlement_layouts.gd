@@ -149,7 +149,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var props: Array = layout.get("props", [])
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
 	var placements: Array = definition.get("placements", {}).get("characters", [])
-	_check(placements.size() == 38, "Silverhart must retain its 38 named palace, guard, merchant, diplomatic, residential and guild NPCs")
+	_check(placements.size() == 40, "Silverhart must retain its 40 named palace, guard, merchant, diplomatic, residential, guild and service NPCs")
 	var character_registry = CHARACTER_REGISTRY.new()
 	var placement_ids: Dictionary = {}
 	for placement in placements:
@@ -163,7 +163,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		"ambassador_elarion", "ambassador_brokk_stonehammer", "ambassador_cassia_wren",
 		"ambassador_toren_aldwyn", "factor_willem_drass", "high_cleric_adelram",
 		"hollis_vane", "sergeant_bell", "nix_the_cutpurse", "osric_fenn", "greta_aldwyn", "tomlin_reed",
-		"tessa_nightshade", "corvin_ashe_guildmaster", "marsh_dobbins", "silas_crane"
+		"tessa_nightshade", "corvin_ashe_guildmaster", "marsh_dobbins", "silas_crane", "old_hessa", "silverhart_mercenary_recruiter"
 	]:
 		_check(placement_ids.has(required_id), "Silverhart must preserve source NPC placement " + required_id)
 	_check(layout.get("buildings", []).size() == 40, "Silverhart must include palace, merchant, noble, diplomatic, commons, middle-ring and Warrens buildings")
@@ -435,6 +435,35 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 		_check(scout_note.get("parts", []).size() == 4, "Goblin scout note must render parchment and its three ink lines")
 		_check(String(scout_note.get("source", "")).contains("goblin_scout_note"), "Goblin scout note must retain source journal identity")
 	_check(String(definition.get("source", "")).contains("buildGoblinCamp"), "Goblin camp must retain source traceability")
+	var placements: Array = definition.get("placements", {}).get("characters", [])
+	_check(placements.size() == 8, "Skarn-tooth Camp should populate its chief, lieutenant, shaman, trader and three guards")
+	var ids: Dictionary = {}
+	for placement in placements:
+		ids[String(placement.get("character_id", ""))] = placement
+	var registry := CHARACTER_REGISTRY.new()
+	var expected_npcs := {
+		"chief_skarnub": Vector2i(203, 22),
+		"nix_sharpear": Vector2i(202, 23),
+		"gralk_bonecaster": Vector2i(204, 23),
+		"grondle_camp_trader": Vector2i(202, 24),
+		"skarn_goblin_guard_01": Vector2i(203, 24),
+		"skarn_goblin_guard_02": Vector2i(204, 24),
+		"skarn_goblin_skulker": Vector2i(203, 25),
+		"ser_aldric_thorne": Vector2i(204, 22)
+	}
+	for character_id in expected_npcs:
+		_check(ids.has(character_id), "Skarn-tooth Camp should place " + character_id)
+		if ids.has(character_id):
+			_assert_axial(ids[character_id].get("position", {}), expected_npcs[character_id], character_id + " source position")
+		var profile := registry.get_character(character_id)
+		_check(not profile.is_empty(), "Skarn-tooth NPC profile should resolve: " + character_id)
+		if not profile.is_empty():
+			_check(profile.has("source_position"), "Skarn-tooth NPC should retain its original source placement: " + character_id)
+	_check(String(registry.get_character("chief_skarnub").get("dialogue_id", "")) == "chief_skarnub", "Chief Skarnub should retain his source dialogue ID")
+	_check(String(registry.get_character("nix_sharpear").get("dialogue_id", "")) == "nix_sharpear", "Nix Sharpear should retain his source dialogue ID")
+	var aldric_profile := registry.get_character("ser_aldric_thorne")
+	_check(String(aldric_profile.get("dialogue_id", "")) == "ser_aldric_captive", "Ser Aldric should retain his captive dialogue ID")
+	_check(bool(aldric_profile.get("tied_up", false)), "Ser Aldric should enter the camp as a captive")
 
 
 func _test_skarnaks_hold(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
@@ -466,6 +495,28 @@ func _test_skarnaks_hold(terrain: Campaign2WorldTerrainData, entries: Array) -> 
 	_check(terrain.terrain_for_hex(Vector2i(420, 17)) == "path", "Stronghold west gate must connect to the authored road approach")
 	_check(terrain.terrain_for_hex(Vector2i(436, 17)) == "climbable_wall", "Orc stronghold perimeter must remain a climbable wall")
 	_check(String(definition.get("source", "")).contains("buildOrcStronghold"), "Orc stronghold must retain source traceability")
+	var placements: Array = definition.get("placements", {}).get("characters", [])
+	_check(placements.size() == 6, "Skarnak's Hold should populate its warlord, trader and four guards")
+	var ids: Dictionary = {}
+	for placement in placements:
+		ids[String(placement.get("character_id", ""))] = placement
+	var registry := CHARACTER_REGISTRY.new()
+	var expected_npcs := {
+		"warlord_grukk_ironhide": Vector2i(428, 15),
+		"kesh_stronghold_trader": Vector2i(427, 19),
+		"skarnak_orc_guard_01": Vector2i(425, 18),
+		"skarnak_orc_guard_02": Vector2i(431, 18),
+		"skarnak_orc_skirmisher": Vector2i(425, 19),
+		"skarnak_orc_guard_04": Vector2i(431, 19)
+	}
+	for character_id in expected_npcs:
+		_check(ids.has(character_id), "Skarnak's Hold should place " + character_id)
+		if ids.has(character_id):
+			_assert_axial(ids[character_id].get("position", {}), expected_npcs[character_id], character_id + " source position")
+		var profile := registry.get_character(character_id)
+		_check(not profile.is_empty(), "Skarnak's Hold NPC profile should resolve: " + character_id)
+	_check(String(registry.get_character("warlord_grukk_ironhide").get("dialogue_id", "")) == "orc_warlord", "Grukk should retain his source dialogue ID")
+	_check(String(registry.get_character("kesh_stronghold_trader").get("dialogue_id", "")) == "orc_trader", "Kesh should retain his source dialogue ID")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:

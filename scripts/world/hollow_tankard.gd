@@ -34,6 +34,7 @@ const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
+const CAMPAIGN2_SOURCE_DIALOGUE_CONTENT = preload("res://scripts/simulation/campaign2_source_dialogue_content.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
@@ -1453,6 +1454,34 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
+	if choice_id == "rescue:ser_aldric_thorne":
+		var rescued := COMPANION_CAMPAIGN_SCRIPT.rescue_aldric(simulation.campaign_journal)
+		if bool(rescued.get("ok", false)):
+			var captive_actor := CampaignNpcInteractionService.actor_for(get_tree(), actor_by_id, "ser_aldric_thorne")
+			if captive_actor != null:
+				captive_actor.set_meta("tied_up", false)
+				captive_actor.set_meta("ambient_enabled", false)
+			_show_companion_dialogue("ser_aldric_thorne")
+		else:
+			_show_dialogue("Ser Aldric Thorne", "The ropes won't give way just now. We need to try again when the camp is secure.", [{"id":"continue","label":"Understood.","text":""}])
+		return
+	if choice_id == "orc_stronghold_accept":
+		var accepted := OrcStrongholdCampaignContent.accept(simulation.campaign_journal)
+		if bool(accepted.get("ok", false)):
+			_show_dialogue("Warlord Grukk Ironhide", "Quest added: Prove Your Strength. The troll den is east of the stockade, among the rocks.", [{"id":"continue","label":"I'll find it.","text":""}])
+		else:
+			_show_dialogue("Warlord Grukk Ironhide", "That matter cannot be taken up just now: %s." % String(accepted.get("reason", "unknown reason")).replace("_", " "), [{"id":"continue","label":"Understood.","text":""}])
+		return
+	if choice_id == "orc_grukk_recruit":
+		var recruited := OrcStrongholdCampaignContent.recruit_grukk(simulation)
+		if bool(recruited.get("ok", false)):
+			var grukk_actor := CampaignNpcInteractionService.actor_for(get_tree(), actor_by_id, OrcStrongholdCampaignContent.GRUKK_ID)
+			if grukk_actor != null:
+				grukk_actor.set_meta("ambient_enabled", false)
+			_show_dialogue("Warlord Grukk Ironhide", "Grukk Ironhide joins your party. His existing skills and equipment are preserved.", [{"id":"continue","label":"Continue","text":""}])
+		else:
+			_show_dialogue("Recruitment", "Grukk cannot join you yet: %s." % String(recruited.get("reason", "unknown reason")).replace("_", " "), [{"id":"continue","label":"Understood.","text":""}])
+		return
 	if choice_id == "continue":
 		_close_dialogue()
 		return
@@ -1724,23 +1753,26 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
 			"necromancer_standing": journal.faction_standing("necromancer_cult")
 		}
-		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
-		if bool(conversation.get("ok", false)):
+		var queen_conversation: Dictionary = content.seraphine_greeting(context, relationships)
+		if bool(queen_conversation.get("ok", false)):
 			var supported_choices: Array[Dictionary] = []
-			for choice_value in conversation.get("choices", []):
+			for choice_value in queen_conversation.get("choices", []):
 				var choice: Dictionary = choice_value
 				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
 					supported_choices.append(choice)
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
+			_show_dialogue(String(queen_conversation.get("speaker", target_state.display_name)), String(queen_conversation.get("text", "")), supported_choices)
 		else:
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
+			_show_dialogue(String(queen_conversation.get("speaker", target_state.display_name)), String(queen_conversation.get("text", "The Queen has no audience for you.")), queen_conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
 		return
-	var title := String(actor.get_meta("title", ""))
-	var body := "They regard you with measured curiosity, but have little to say just now."
-	if not title.is_empty():
-		body = "%s acknowledges you. Their duties leave little time for conversation." % title
-	_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
-
+	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(target_state.id):
+		_show_companion_dialogue(target_state.id)
+		return
+	var conversation: Dictionary = CAMPAIGN2_SOURCE_DIALOGUE_CONTENT.greeting_for_npc(dialogue_id, target_state, actor, simulation)
+	var choices: Array[Dictionary] = []
+	for choice_value in conversation.get("choices", []):
+		if choice_value is Dictionary:
+			choices.append(choice_value.duplicate(true))
+	_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), choices)
 
 func _player_has_item(item_id: String) -> bool:
 	var player := simulation.get_character(simulation.player_character_id)
@@ -1840,9 +1872,10 @@ func _recruit_staged_companion(character_id: String) -> void:
 	if character_id == "companion_fenn_oakheart":
 		COMPANION_CAMPAIGN_SCRIPT.consume_item(player_state.inventory, "herbs", 3)
 		COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "fenn_herb_gathering", "herbs_delivered")
-	var actor := actor_by_id.get(character_id) as Node3D
+	var actor := CampaignNpcInteractionService.actor_for(get_tree(), actor_by_id, character_id)
 	if actor != null:
 		actor.set_meta("ambient_enabled", false)
+		actor.set_meta("tied_up", false)
 	if party_switch_button != null and active_character_id == character_id:
 		party_switch_button.text = "Active: %s  [Tab] Switch" % state.display_name
 	if character_panel != null and active_character_id == character_id:
