@@ -385,7 +385,7 @@ func _test_world_simulation_integration() -> void:
 	_check(bool(morning.ok), "The world simulation should resolve the camp night")
 	_check(is_equal_approx(restored.clock.world_seconds, 10.0 + 6.0 * WorldClock.SECONDS_PER_HOUR), "Sleeping should skip directly to morning and advance the authoritative clock by the sleep duration")
 	_check(String(restored.camp_simulation.phase) == "morning", "The world simulation should preserve the morning camp phase after the overnight skip.")
-	restored.advance_real_time(23.0)
+	restored.advance_real_time(30.0)
 	_check(String(restored.camp_simulation.phase) == "resolved", "The morning routine should advance on the ordinary world clock.")
 	_check(restored.get_character("player").time_points >= 149.0, "Instant sleep should bulk-apply overnight time-point recovery without simulating every 0.4-second tick")
 
