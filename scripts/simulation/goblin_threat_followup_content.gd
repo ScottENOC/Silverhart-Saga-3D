@@ -102,11 +102,15 @@ func grondle_greeting(context: Dictionary) -> Dictionary:
 func aldric_captive_greeting(context: Dictionary) -> Dictionary:
 	if bool(context.get("aldric_recruited", false)):
 		return {"ok":true,"already_rescued":true,"speaker":"Ser Aldric Thorne","text":"","choices":[]}
+	if bool(context.get("aldric_rescued", false)):
+		return _conversation("Ser Aldric Thorne", "You cut me loose. I will not forget that. Whatever happens with the goblins, I owe you a debt — and I would rather repay it at your side. Will you have me?", [
+			{"id":"recruit:ser_aldric_thorne","label":"Join us.","kind":"recruit_companion"},
+			{"id":"aldric_leave","label":"Not yet.","kind":"leave"}
+		])
 	return _conversation("Ser Aldric Thorne", ALDRIC_CAPTIVE_LINE, [
 		{"id":"aldric_free","label":"I'll free you now.","kind":"rescue_aldric"},
 		{"id":"aldric_leave","label":"Not yet.","kind":"leave"}
 	])
-
 
 func aldric_recruitment_profile() -> Dictionary:
 	return {
