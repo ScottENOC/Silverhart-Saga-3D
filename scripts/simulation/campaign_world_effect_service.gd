@@ -65,6 +65,16 @@ static func apply_effects(
 		region_results.append(journal.apply_region_campaign_state(
 			String(region_id_value), {"prosperity": float(prosperity[region_id_value])}
 		))
+	var cascaded_security: Dictionary = effects.get("cascade_region_security", {})
+	for region_id_value in cascaded_security.keys():
+		region_results.append(journal.cascade_region_campaign_state(
+			String(region_id_value), "security", float(cascaded_security[region_id_value])
+		))
+	var cascaded_prosperity: Dictionary = effects.get("cascade_region_prosperity", {})
+	for region_id_value in cascaded_prosperity.keys():
+		region_results.append(journal.cascade_region_campaign_state(
+			String(region_id_value), "prosperity", float(cascaded_prosperity[region_id_value])
+		))
 
 	var flags: Dictionary = effects.get("set_world_flag", {}).duplicate(true)
 	if effects.has("emberlode_raided"):
@@ -119,7 +129,7 @@ static func apply_effects(
 
 
 static func _validate_effects(effects: Dictionary) -> Dictionary:
-	for map_key in ["region_security", "region_prosperity"]:
+	for map_key in ["region_security", "region_prosperity", "cascade_region_security", "cascade_region_prosperity"]:
 		var region_values: Variant = effects.get(map_key, {})
 		if not region_values is Dictionary:
 			return {"ok": false, "reason": "invalid_" + map_key}
