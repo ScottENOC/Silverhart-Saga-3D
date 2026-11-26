@@ -15,7 +15,6 @@ const FACTION_RACES := {
 }
 const IRONBOND_STANDING_THRESHOLD: float = 10.0
 const IRONBOND_INFLUENCE_DRIFT_PER_HOUR: float = 0.02
-const GOBLIN_REPORTING_FRACTION: float = 0.35
 
 var last_world_seconds: float = 0.0
 
@@ -47,14 +46,9 @@ static func adjust_goblin_reputation(journal: CampaignJournal, standing_delta: f
 	var result := journal.adjust_faction_reputation("goblin_tribe", standing_delta, knowledge_delta, reason)
 	if not bool(result.get("ok", false)):
 		return result
-	# Hex-crpg's Skarn-tooth scouts report 35% of every reputation/knowledge
-	# change to the wider orc raiders. This is intentionally one-way.
-	result["cascade"] = journal.adjust_faction_reputation(
-		"orc_raiders",
-		standing_delta * GOBLIN_REPORTING_FRACTION,
-		knowledge_delta * GOBLIN_REPORTING_FRACTION,
-		reason + " (reported from the Skarn-tooth tribe)"
-	)
+	# CampaignJournal owns the one-way source cascade so every goblin
+	# reputation path (not just this helper) applies it exactly once.
+	result["cascade"] = result.get("orc_raiders_cascade", {})
 	return result
 
 

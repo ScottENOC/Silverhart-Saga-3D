@@ -91,7 +91,7 @@ func _test_scout_note() -> void:
 	var content := GoblinThreatFollowupContent.new()
 	var first := content.read_scout_note({})
 	_check(not bool(first.get("already_read", true)))
-	_check(int(first.get("effects", {}).get("region_security", {}).get("hollowmere", 0)) == -3)
+	_check(int(first.get("effects", {}).get("cascade_region_security", {}).get("hollowmere", 0)) == -3)
 	_check(bool(first.get("effects", {}).get("set_world_flag", {}).get("goblin_scout_note_read", false)))
 	var repeated := content.read_scout_note({"goblin_scout_note_read":true})
 	_check(bool(repeated.get("already_read", false)))

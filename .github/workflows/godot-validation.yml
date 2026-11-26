@@ -137,6 +137,10 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_campaign_content.gd
       - name: Run Skarn-tooth follow-up content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_followup_content.gd
+      - name: Run persistent campaign world effect tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_world_effect_service.gd
+      - name: Run Skarn-tooth campaign runtime tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_campaign_runtime_service.gd
       - name: Run companion quest chain tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_quest_chain_state.gd
       - name: Run companion campaign runtime tests

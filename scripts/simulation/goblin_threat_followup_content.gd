@@ -5,6 +5,8 @@ extends RefCounted
 ## world flags and party membership remain owned by the campaign runtime.
 
 const ALDRIC_ID := "ser_aldric_thorne"
+const MARTA_SPY_QUEST_ID := "goblin_spy_for_humans"
+const MARTA_VOUCHED_FLAG := "goblin_vouched_by_marta"
 const NIX_ID := "nix_sharpear"
 const GRONDLE_STOCK := ["axe", "spear", "club", "medium_armor", "wooden_shield", "torch", "potion_health"]
 
@@ -68,11 +70,11 @@ func nix_recruitment(context: Dictionary) -> Dictionary:
 		"character":{
 			"id":NIX_ID,
 			"display_name":"Nix Sharpear",
-			"race":"human",
+			"race":"goblin",
 			"body_variant":"male",
 			"height_scale":0.90,
 			"build_scale":0.84,
-			"progression":{"race":"human","class_levels":["rogue"],"skill_picks":["dagger_hit","dagger_dmg","stealth_rogue","stealth_agility"]},
+			"progression":{"race":"goblin","class_levels":["rogue"],"skill_picks":["dagger_hit","dagger_dmg","stealth_rogue","stealth_agility"]},
 			"extra_inventory":["dagger","light_armor"],
 			"equip_items":["dagger","light_armor"],
 			"faction_id":"goblin_tribe",
@@ -102,11 +104,19 @@ func grondle_greeting(context: Dictionary) -> Dictionary:
 func aldric_captive_greeting(context: Dictionary) -> Dictionary:
 	if bool(context.get("aldric_recruited", false)):
 		return {"ok":true,"already_rescued":true,"speaker":"Ser Aldric Thorne","text":"","choices":[]}
+	if bool(context.get("aldric_rescued", false)):
+		if bool(context.get("aldric_leaves_if_recruited", false)) or float(context.get("aldric_attitude", 60.0)) <= 0.0:
+			return _conversation("Ser Aldric Thorne", "You freed me, but then led the tribe against the very people I swore to protect. I cannot travel with you. Leave me be.", [
+				{"id":"aldric_leave","label":"I understand.","kind":"leave"}
+			])
+		return _conversation("Ser Aldric Thorne", "You cut me loose. I will not forget that. Whatever happens with the goblins, I owe you a debt — and I would rather repay it at your side. Will you have me?", [
+			{"id":"recruit:ser_aldric_thorne","label":"Join us.","kind":"recruit_companion"},
+			{"id":"aldric_leave","label":"Not yet.","kind":"leave"}
+		])
 	return _conversation("Ser Aldric Thorne", ALDRIC_CAPTIVE_LINE, [
 		{"id":"aldric_free","label":"I'll free you now.","kind":"rescue_aldric"},
 		{"id":"aldric_leave","label":"Not yet.","kind":"leave"}
 	])
-
 
 func aldric_recruitment_profile() -> Dictionary:
 	return {
@@ -130,8 +140,54 @@ func read_scout_note(context: Dictionary) -> Dictionary:
 		"ok":true,
 		"already_read":false,
 		"text":SCOUT_NOTE_TEXT,
-		"effects":{"set_world_flag":{"goblin_scout_note_read":true},"region_security":{"hollowmere":-3}}
+		"effects":{"set_world_flag":{"goblin_scout_note_read":true},"cascade_region_security":{"hollowmere":-3}}
 	}
+
+
+func goblin_spy_for_humans_quest_definition() -> Dictionary:
+	return {
+		"id": MARTA_SPY_QUEST_ID,
+		"title": "Prove Your Worth",
+		"giver": "Elder Marta Wynfield",
+		"description": "Learn what your own leader intends for Hollowmere and report back to Elder Marta.",
+		"objectives": []
+	}
+
+
+func accept_goblin_spy_for_humans(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_campaign_journal"}
+	if not journal.quest_definitions.has(MARTA_SPY_QUEST_ID):
+		var registered := journal.register_quest_definition(goblin_spy_for_humans_quest_definition())
+		if not bool(registered.get("ok", false)):
+			return registered
+	var current := journal.quest_state(MARTA_SPY_QUEST_ID)
+	var status := String(current.get("status", ""))
+	if status == "active":
+		return {"ok": true, "already_active": true}
+	if status == "completed":
+		return {"ok": false, "reason": "already_completed"}
+	return journal.start_quest(MARTA_SPY_QUEST_ID)
+
+
+func marta_greeting(context: Dictionary) -> Dictionary:
+	if not bool(context.get("is_greenskin", false)):
+		return {}
+	if bool(context.get("vouched_by_marta", false)):
+		return _conversation("Elder Marta Wynfield", "I still don't sleep easy seeing you on this street, but you kept your word to us. That's more than most of your lot manage — or most of ours, some days.", [
+			{"id":"marta_spy_leave","label":"..."}
+		])
+	var leader_noun := String(context.get("leader_noun", "chief"))
+	var faction_noun := String(context.get("faction_noun", "the Skarn-tooth tribe"))
+	if String(context.get("quest_status", "")) == "active":
+		return _conversation("Elder Marta Wynfield", "Well? What word do you bring of your %s's true plans?" % leader_noun, [
+			{"id":"marta_spy_report","label":"They mean Hollowmere no harm, so far as I've seen."},
+			{"id":"marta_spy_wait","label":"Not yet — give me more time."}
+		])
+	return _conversation("Elder Marta Wynfield", "A greenskin, bold as you like, walking Hollowmere's own streets? Give me one reason the Watch shouldn't drag you out right now.", [
+		{"id":"marta_spy_accept","label":"I'll bring you word of my own %s's plans, if that buys me anything." % leader_noun,"description":"Report what %s truly intends." % faction_noun},
+		{"id":"marta_spy_leave","label":"..."}
+	])
 
 
 func _conversation(speaker: String, body: String, choices: Array[Dictionary]) -> Dictionary:

@@ -15,6 +15,7 @@ var loading_label: Label
 var loading_bar: ProgressBar
 var loading_detail: Label
 var pending_save_data: Dictionary = {}
+var _last_region_world_seconds: float = 0.0
 
 func _ready() -> void:
 	_create_loading_overlay()
@@ -61,6 +62,22 @@ func _initialize_campaign_simulation(profile: Dictionary) -> void:
 		simulation.campaign_journal,
 		String(profile.get("race", "human"))
 	)
+
+func _connect_campaign_region_clock() -> void:
+	_last_region_world_seconds = simulation.clock.world_seconds
+	var callback := Callable(self, "_on_campaign_clock_ticked")
+	if not simulation.clock.ticked.is_connected(callback):
+		simulation.clock.ticked.connect(callback)
+
+
+func _on_campaign_clock_ticked(_tick_index: int, world_seconds: float) -> void:
+	if simulation == null:
+		return
+	var elapsed := maxf(0.0, world_seconds - _last_region_world_seconds)
+	_last_region_world_seconds = world_seconds
+	if elapsed > 0.0:
+		simulation.campaign_journal.tick_region_campaign_states(elapsed)
+
 
 func _create_loading_overlay() -> void:
 	loading_layer = CanvasLayer.new()
@@ -158,6 +175,7 @@ func _on_character_created(profile: Dictionary) -> void:
 	if not bool(location_result.get("ok", false)):
 		push_error("Could not load Campaign 2 location %s: %s" % [starting_location_id, location_result])
 		return
+	_connect_campaign_region_clock()
 	var location_components: Dictionary = location_result.get("components", {})
 	settlement_presentation = location_components.get("settlement") as Node3D
 	tavern = location_components.get("interior_controller") as Node3D

@@ -20,7 +20,9 @@ static func quest_definition() -> Dictionary:
 		"title":"The Skarn-tooth Tribe",
 		"giver":"Elder Marta Wynfield",
 		"description":"Resolve the threat posed by the Skarn-tooth tribe.",
-		"objectives":[]
+		"objectives":[
+			{"id":"resolved","description":"Resolve the Skarn-tooth threat and determine the tribe's fate.","target":1.0,"required":true}
+		]
 	}
 
 
@@ -35,6 +37,8 @@ func chief_greeting(relationships: PersistentCharacterRelationshipState, context
 	var options: Array[Dictionary] = []
 	if relationships.has_recorded_event(CHIEF_ID, GIFT_EVENT_KEY):
 		options.append({"id":"skarnub_offer_alliance","label":"You don't have to leave. Stay.","kind":"goblin_alliance_offer"})
+	elif int(context.get("player_gold", 0)) >= GIFT_COST:
+		options.append({"id":"skarnub_give_gift","label":"Offer 60 gold as a gift.","kind":"goblin_gift"})
 	options.append({"id":"skarnub_offer_favour","label":"I could help you, for the right price.","kind":"goblin_favour_offer"})
 	options.append({"id":"skarnub_read_chief","label":"Try to read him.","kind":"relationship_read"})
 	options.append({"id":"skarnub_threaten","label":"Leave this land, or face us.","kind":"threat"})
@@ -162,6 +166,11 @@ func resolve_threat(journal: CampaignJournal, resolution: String, relationships:
 	var effects: Dictionary = outcome.get("effects", {})
 	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), 15.0, "goblin_threat:" + resolution)
 	var goblin_change := FACTION_SIMULATION_SCRIPT.adjust_goblin_reputation(journal, float(outcome.goblin), 20.0, "goblin_threat:" + resolution)
+	var current_objectives: Dictionary = journal.quest_state(QUEST_ID).get("objectives", {})
+	if current_objectives.has("resolved"):
+		var objective_result := journal.set_objective_progress(QUEST_ID, "resolved", 1.0)
+		if not bool(objective_result.get("ok", false)):
+			return objective_result
 	var completed := journal.complete_quest(QUEST_ID)
 	if not bool(completed.get("ok", false)):
 		return completed
@@ -214,6 +223,135 @@ func _ensure_threat_quest_started(journal: CampaignJournal) -> Dictionary:
 	if not journal.quests.has(QUEST_ID):
 		return journal.start_quest(QUEST_ID)
 	return {"ok":true,"quest_id":QUEST_ID}
+
+
+const MINE_RAID_QUEST_ID := "goblin_mine_raid"
+const GREENSKIN_SPY_QUEST_ID := "greenskin_spy"
+
+
+static func mine_raid_quest_definition() -> Dictionary:
+	return {
+		"id": MINE_RAID_QUEST_ID,
+		"title": "A Favor for the Tribe",
+		"giver": "Chief Skarnub",
+		"description": "Help the Skarn-tooth tribe raid Emberlode's gold mine.",
+		"objectives": [{"id":"raid_completed","description":"Lead the Skarn-tooth raid on Emberlode.","target":1.0,"required":true}]
+	}
+
+
+static func greenskin_spy_quest_definition() -> Dictionary:
+	return {
+		"id": GREENSKIN_SPY_QUEST_ID,
+		"title": "A Hand on the Inside",
+		"giver": "Chief Skarnub",
+		"description": "Help the greenskin warband take Northwatch Fort.",
+		"objectives": [{"id":"fort_taken","description":"Help the greenskin warband capture Northwatch Fort.","target":1.0,"required":true}]
+	}
+
+
+static func start_mine_raid(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_campaign_journal"}
+	var threat := journal.quest_state(QUEST_ID)
+	if String(threat.get("decisions", {}).get("resolution", "")) != "goblin_alliance":
+		return {"ok":false,"reason":"goblin_alliance_required"}
+	if bool(journal.world_campaign_flag("goblin_mine_raid_completed", false)):
+		return {"ok":true,"already_completed":true}
+	if not journal.quest_definitions.has(MINE_RAID_QUEST_ID):
+		var registered := journal.register_quest_definition(mine_raid_quest_definition())
+		if not bool(registered.get("ok", false)):
+			return registered
+	var current := journal.quest_state(MINE_RAID_QUEST_ID)
+	if String(current.get("status", "")) == "active":
+		return {"ok":true,"already_started":true}
+	if String(current.get("status", "")) == "completed":
+		return {"ok":true,"already_completed":true}
+	var started := journal.start_quest(MINE_RAID_QUEST_ID)
+	if not bool(started.get("ok", false)):
+		return started
+	journal.apply_world_campaign_flags({"goblin_mine_raid_started":true})
+	return {"ok":true,"quest_id":MINE_RAID_QUEST_ID}
+
+
+static func resolve_mine_raid(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_campaign_journal"}
+	var quest := journal.quest_state(MINE_RAID_QUEST_ID)
+	if String(quest.get("status", "")) != "active":
+		return {"ok":false,"reason":"mine_raid_not_active"}
+	var recorded := journal.record_decision(MINE_RAID_QUEST_ID, "raid", "raid_mine")
+	if not bool(recorded.get("ok", false)):
+		return recorded
+	var goblin_change := FACTION_SIMULATION_SCRIPT.adjust_goblin_reputation(journal, 15.0, 15.0, "goblin_mine_raid")
+	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", -15.0, 15.0, "goblin_mine_raid")
+	var progress := journal.set_objective_progress(MINE_RAID_QUEST_ID, "raid_completed", 1.0)
+	if not bool(progress.get("ok", false)):
+		return progress
+	var completed := journal.complete_quest(MINE_RAID_QUEST_ID)
+	if not bool(completed.get("ok", false)):
+		return completed
+	journal.apply_world_campaign_flags({"goblin_mine_raid_completed":true})
+	return {
+		"ok":true,
+		"applied":true,
+		"reputation":{"goblin_tribe":goblin_change,"silverhart_kingdom":kingdom_change},
+		"effects":{
+			"region_security":{"emberlode":-20},
+			"region_prosperity":{"emberlode":-25},
+			"emberlode_raided":true,
+			"player_gold":60,
+			"experience":50,
+			"aldric_attitude":-15,
+			"message":"You lead the raid on Emberlode. Its strongbox and ore stores are taken."
+		}
+	}
+
+
+static func start_greenskin_spy(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_campaign_journal"}
+	var threat := journal.quest_state(QUEST_ID)
+	if String(threat.get("decisions", {}).get("resolution", "")) != "goblin_alliance":
+		return {"ok":false,"reason":"goblin_alliance_required"}
+	if not bool(journal.world_campaign_flag("goblin_scout_note_read", false)):
+		return {"ok":false,"reason":"scout_note_required"}
+	if not bool(journal.world_campaign_flag("goblin_mine_raid_completed", false)):
+		return {"ok":false,"reason":"mine_raid_required"}
+	if not journal.quest_definitions.has(GREENSKIN_SPY_QUEST_ID):
+		var registered := journal.register_quest_definition(greenskin_spy_quest_definition())
+		if not bool(registered.get("ok", false)):
+			return registered
+	var current := journal.quest_state(GREENSKIN_SPY_QUEST_ID)
+	if String(current.get("status", "")) == "active":
+		return {"ok":true,"already_started":true}
+	if String(current.get("status", "")) == "completed":
+		return {"ok":true,"already_completed":true}
+	var started := journal.start_quest(GREENSKIN_SPY_QUEST_ID)
+	if not bool(started.get("ok", false)):
+		return started
+	journal.apply_world_campaign_flags({"greenskin_spy_started":true})
+	return {"ok":true,"quest_id":GREENSKIN_SPY_QUEST_ID}
+
+
+static func complete_greenskin_spy(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_campaign_journal"}
+	var quest := journal.quest_state(GREENSKIN_SPY_QUEST_ID)
+	if String(quest.get("status", "")) == "completed":
+		return {"ok":true,"already_completed":true}
+	if String(quest.get("status", "")) != "active":
+		return {"ok":false,"reason":"greenskin_spy_not_active"}
+	var recorded := journal.record_decision(GREENSKIN_SPY_QUEST_ID, "fort_taken", "greenskin_victory")
+	if not bool(recorded.get("ok", false)):
+		return recorded
+	var progress := journal.set_objective_progress(GREENSKIN_SPY_QUEST_ID, "fort_taken", 1.0)
+	if not bool(progress.get("ok", false)):
+		return progress
+	var completed := journal.complete_quest(GREENSKIN_SPY_QUEST_ID)
+	if not bool(completed.get("ok", false)):
+		return completed
+	journal.apply_world_campaign_flags({"greenskin_spy_completed":true,"northwatch_taken_by_greenskins":true})
+	return {"ok":true,"completed":true}
 
 
 func _alliance_greeting(context: Dictionary) -> Dictionary:

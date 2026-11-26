@@ -1,5 +1,7 @@
 extends SceneTree
 
+const QUEST_DEFINITION_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
+
 var _failures: int = 0
 
 
@@ -8,6 +10,7 @@ func _initialize() -> void:
 	_test_favour_negotiation_and_options()
 	_test_alliance_follow_up_dialogue()
 	_test_threat_resolution_paths()
+	_test_resolution_with_registered_companion_quest()
 	_test_favour_consequences()
 	if _failures > 0:
 		push_error("%d Skarn-tooth campaign assertion(s) failed." % _failures)
@@ -93,7 +96,7 @@ func _test_alliance_follow_up_dialogue() -> void:
 func _test_threat_resolution_paths() -> void:
 	var content := GoblinThreatCampaignContent.new()
 	var diplomacy_journal := CampaignJournal.new()
-	diplomacy_journal.seed_faction_reputation("goblin_tribe", 45.0)
+	diplomacy_journal.adjust_faction_standing("goblin_tribe", 45.0, "test diplomacy threshold")
 	var diplomacy := content.resolve_threat(diplomacy_journal, "goblin_diplomacy")
 	_check(bool(diplomacy.get("ok", false)), "High-standing diplomacy resolves the threat")
 	_check(bool(diplomacy.get("applied", false)))
@@ -156,3 +159,19 @@ func _test_favour_consequences() -> void:
 	var raid := content.resolve_favour(raid_journal, "raid")
 	_check(bool(raid.get("ok", false)))
 	_check(str(raid_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "betrayal")
+
+
+func _test_resolution_with_registered_companion_quest() -> void:
+	for resolution in ["goblin_diplomacy", "goblin_alliance", "assault", "stealth_succession", "betrayal"]:
+		var journal := CampaignJournal.new()
+		QUEST_DEFINITION_REGISTRY.register_all(journal)
+		if resolution == "goblin_diplomacy":
+			journal.seed_faction_reputation("goblin_tribe", 45.0)
+		var relationships := PersistentCharacterRelationshipState.new()
+		if resolution == "goblin_alliance":
+			GoblinThreatCampaignContent.new().give_chief_gift(relationships, 60)
+		var result := GoblinThreatCampaignContent.new().resolve_threat(journal, resolution, relationships)
+		_check(bool(result.get("ok", false)), "Registered companion quest definition must resolve: " + resolution)
+		var state := journal.quest_state("goblin_threat")
+		_check(String(state.get("status", "")) == "completed", "Goblin threat must complete with the shared quest definition: " + resolution)
+		_check(bool(state.get("objectives", {}).get("resolved", {}).get("completed", false)), "Shared goblin quest objective must complete: " + resolution)
