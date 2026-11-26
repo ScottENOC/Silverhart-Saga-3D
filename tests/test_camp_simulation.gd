@@ -169,7 +169,7 @@ func _test_overnight_guest_sleep_and_dawn_departure() -> void:
 	var camp := CampSimulation.new()
 	var started := camp.begin_camp(
 		{"walkable": true}, ["player", "aldric"],
-		{"danger": 0.2}, {"rations": 2, "water": 2, "tents": 1}
+		{"danger": 0.2}, {"rations": 0, "water": 0, "tents": 1}
 	)
 	_check(bool(started.get("ok", false)), "Camp should start before a guest arrives")
 	var guest := {
