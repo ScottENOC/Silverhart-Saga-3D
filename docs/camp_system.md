@@ -140,3 +140,10 @@ This is a simulation foundation, not yet a full atmospheric renderer: rain/snow 
 ### Visible dwelling stations
 
 A livable owned dwelling now presents visible station props at the same layout anchors used by companion routing. The hearth has a stone surround and optional firelight; the table, workshop bench/tool rack, study desk/books, common-room bench, threshold/lantern, yard log stack/barrel and bedroom bed are built only when those stations exist in the selected layout. The nameplate identifies the actual property. Wilderness camps retain the exposed fire ring, tents and bedrolls and do not receive permanent furniture. These are still outdoor staging props on the current continuous map, not a complete enclosed or walkable interior; the room geometry and interior navigation remain a separate step.
+
+
+### Recurring overnight guests
+
+A registered non-party guest can arrive after camp is established, receive a separate sleeping arrangement, and have their rest simulated without consuming party rations or water or contributing to party ambush exposure. Guest rest is recorded in the night summary. Guests marked `leaves_at_dawn` are removed as the morning routine begins, including when the player ends an interrupted night early.
+
+Rowan Fletcher's world actor uses this lifecycle. Interacting with him while he is within normal range of an active evening camp presents a visit-specific conversation based on his saved familiarity, trust, friendship and attraction. Accepting his invitation registers him as a guest and lets the existing camp activity director move his actor to a camp station. He returns to his authored roaming hex after dawn; his visit history and return point survive saves. He never joins the party or becomes a permanent household resident.
