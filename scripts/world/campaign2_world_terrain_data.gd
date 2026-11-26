@@ -336,6 +336,9 @@ func elevation_for_hex(hex: Vector2i) -> float:
 	return result
 
 func _elevation_for_hex_uncached(hex: Vector2i) -> float:
+	var regional_elevation: Variant = REGIONAL_FEATURES.elevation_override_at(hex)
+	if regional_elevation != null:
+		return float(regional_elevation)
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
