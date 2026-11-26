@@ -16,14 +16,16 @@ func _test_stream_network_is_continuous() -> void:
 		Vector2i(-1, 0), Vector2i(-1, 1), Vector2i(0, 1)
 	]
 	var visited: Dictionary = {}
-	var queue: Array[Vector2i] = [stream_cells.keys()[0]]
-	visited[queue[0]] = true
+	var first_cell: Vector2i = stream_cells.keys()[0]
+	var queue: Array[Vector2i] = [first_cell]
+	visited[first_cell] = true
 	var cursor := 0
 	while cursor < queue.size():
 		var current: Vector2i = queue[cursor]
 		cursor += 1
-		for direction in directions:
-			var neighbour: Vector2i = current + direction
+		for direction_variant in directions:
+			var direction: Vector2i = direction_variant
+			var neighbour := current + direction
 			if stream_cells.has(neighbour) and not visited.has(neighbour):
 				visited[neighbour] = true
 				queue.append(neighbour)
