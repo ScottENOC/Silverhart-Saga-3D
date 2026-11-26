@@ -632,7 +632,7 @@ func from_dict(data: Dictionary) -> bool:
 	for character_id_value in saved_residents:
 		var character_id := String(character_id_value)
 		var resident_value: Variant = saved_residents[character_id_value]
-		if character_id.is_empty() or not resident_value is Dictionary:
+		if character_id.is_empty() or CompanionCampaignContent.is_companion_id(character_id) or not resident_value is Dictionary:
 			return false
 		var resident: Dictionary = resident_value
 		var dwelling_id := String(resident.get("dwelling_id", ""))
