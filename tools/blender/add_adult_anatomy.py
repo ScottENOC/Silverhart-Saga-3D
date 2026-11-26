@@ -472,7 +472,7 @@ CANAL = {   # vagina: anterior and posterior walls in contact (slit wide lateral
 }
 
 ANUS = {    # anus + anal canal (~40 mm) continuing as the rectum; closed as a front-to-back slit
-    "perineal_body": 0.025,   # posterior fourchette to anal verge centre
+    "perineal_body": 0.033,   # target posterior fourchette to anal verge centre (33 mm absolute; contour-shortfall fallback)
     "length": 0.200,
     "axis": (5.0, 15.0, 0.035, 0.090),   # near vertical through the canal, then curving back along the sacrum
     "axis_candidates": [(5.0, 15.0), (10.0, 15.0), (0.0, 15.0), (5.0, 10.0), (10.0, 10.0), (5.0, 20.0),
@@ -857,12 +857,21 @@ def _perineal_anchor(skin, hipline_z, k, line, arc, sA, P):
     iA = min(range(len(arc)), key=lambda q: abs(arc[q] - sA))
     y0, z0 = line[iA]
     j0 = min(range(len(out)), key=lambda q: (out[q][0] - y0) ** 2 + (out[q][1] - z0) ** 2)
-    want = int(round((abs(P["t_fourchette"]) + ANUS["perineal_body"]) * k / step))
-    j1 = j0 + want
-    if j1 > len(out) - 1:
-        print(f"Anus: contour ends {len(out) - 1 - j0} samples past the introitus (wanted {want}); using its end")
-        j1 = len(out) - 1
-    print(f"Anus anchor: {(j1 - j0) * step / k * 1000:.1f} mm behind the introitus along the midline, "
+    # Keep the target perineal-body distance absolute. The fourchette location
+    # still scales with character proportions. If the posterior contour is too
+    # short, clamp to its available endpoint rather than failing the build.
+    target_distance = abs(P["t_fourchette"]) * k + ANUS["perineal_body"]
+    want = int(round(target_distance / step))
+    available = max(0, len(out) - 1 - j0)
+    j1 = j0 + min(want, available)
+    achieved_distance = (j1 - j0) * step
+    achieved_perineal = max(0.0, achieved_distance - abs(P["t_fourchette"]) * k)
+    if available < want:
+        print(f"Anus spacing fallback: target {ANUS['perineal_body'] * 1000:.1f} mm after "
+              f"fourchette; contour supports {achieved_perineal * 1000:.1f} mm; "
+              "using the longest available contour")
+    print(f"Anus anchor: {achieved_distance * 1000:.1f} mm behind the introitus along the midline "
+          f"(fourchette-to-verge approx. {achieved_perineal * 1000:.1f} mm), "
           f"y={out[j1][0]:.4f} z={out[j1][1]:.4f}")
     return out[j1]
 
