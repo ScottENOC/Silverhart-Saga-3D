@@ -49,6 +49,11 @@ func _initialize() -> void:
 	assert(int(location_by_id["lich_chapterhouse"]["q"]) == -39, "Chapterhouse must be offset west of Millbrook centre")
 	assert(int(location_by_id["mirabel_spider_ruin"]["q"]) == 160 and int(location_by_id["mirabel_spider_ruin"]["r"]) == 24, "Mirabel's ruin must be anchored from the Reddale Guildhouse source offset")
 
+	var ridgehold_hex := Vector2i(int(location_by_id["ridgehold_fort"]["q"]), int(location_by_id["ridgehold_fort"]["r"]))
+	var skarnaks_hex := Vector2i(int(location_by_id["skarnaks_hold"]["q"]), int(location_by_id["skarnaks_hold"]["r"]))
+	assert(MAP_DATA.world_cell_from_local_hex(skarnaks_hex) == Vector2i(11, 6), "Skarnak's Hold must sit well inside orc territory, east of the human border forts")
+	assert(HexGrid.distance(ridgehold_hex, skarnaks_hex) >= 200, "Opposing Ridgehold and Skarnak's Hold fortresses must remain beyond direct sight and immediate tactical range")
+
 	var connections: Array = parsed.get("connections", [])
 	assert(connections.size() == 22, "The current first-pass travel graph should contain 22 connections")
 	for connection in connections:
@@ -98,7 +103,7 @@ func _initialize() -> void:
 		"reddale": Vector2i(7, 6),
 		"northwatch_fort": Vector2i(9, 6),
 		"ridgehold_fort": Vector2i(10, 6),
-		"skarnaks_hold": Vector2i(9, 7),
+		"skarnaks_hold": Vector2i(11, 6),
 		"kragmoor": Vector2i(13, 1),
 		"silthandriel": Vector2i(4, 13)
 	}
