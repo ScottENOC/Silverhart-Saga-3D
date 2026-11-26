@@ -3018,6 +3018,16 @@ func _interact_with_multistory_tunnels() -> bool:
 		return true
 	var junction_node := active_multistory_runtime.get_tunnel_junction_node(active_character_id)
 	if junction_node.is_empty():
+		# The wilderness node uses ordinary authored stairs: surface → cave
+		# level → tunnel junction. Keep this on the same F-key interaction path.
+		var stair_result: Dictionary = active_multistory_runtime.interact_with_stair(active_character_id)
+		if bool(stair_result.get("ok", false)):
+			if movement_controller != null:
+				movement_controller.clear_path()
+			return true
+		if String(stair_result.get("reason", "")) != "no_stair_nearby":
+			_show_dialogue("Passage", "You cannot use those stairs: %s." % String(stair_result.get("reason", "travel_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+			return true
 		return false
 	var choices: Array[Dictionary] = []
 	for destination in active_multistory_runtime.get_tunnel_junction_destinations(active_character_id):
@@ -3039,18 +3049,6 @@ func _interact_with_multistory_tunnels() -> bool:
 	choices.append({"id": "continue", "label": "Stay at the junction.", "text": ""})
 	_show_dialogue("Tunnel Junction", "Old brick, worn smooth by years of foot traffic. Passages lead off in more than one direction.", choices)
 	return true
-
-	# The wilderness node uses ordinary authored stairs: surface → cave level
-	# → tunnel junction. Keep this on the same F-key interaction path.
-	var stair_result: Dictionary = active_multistory_runtime.interact_with_stair(active_character_id)
-	if bool(stair_result.get("ok", false)):
-		if movement_controller != null:
-			movement_controller.clear_path()
-		return true
-	if String(stair_result.get("reason", "")) != "no_stair_nearby":
-		_show_dialogue("Passage", "You cannot use those stairs: %s." % String(stair_result.get("reason", "travel_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
-		return true
-	return false
 
 
 func _handle_tunnel_search(choice_id: String) -> void:
