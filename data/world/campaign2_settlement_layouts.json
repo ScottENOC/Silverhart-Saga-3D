@@ -3979,7 +3979,17 @@
           "appearance": {
             "body_variant": "male",
             "gender_presentation": "Masculine",
-            "pronouns": "he/him"
+            "pronouns": "he/him",
+            "skin_colour": "#B98260",
+            "eye_colour": "brownlight",
+            "hair_colour": "#4B2F24",
+            "hair_style": "box_braids",
+            "height": 0.35,
+            "muscle": 0.57,
+            "weight": 0.65,
+            "proportions": 0.54,
+            "breasts": 0,
+            "legs": 0.54
           },
           "source": "Hex-crpg/campaign2Content.js"
         },
@@ -4003,7 +4013,17 @@
           "appearance": {
             "body_variant": "male",
             "gender_presentation": "Masculine",
-            "pronouns": "he/him"
+            "pronouns": "he/him",
+            "skin_colour": "#C18A68",
+            "eye_colour": "green",
+            "hair_colour": "#6A3B24",
+            "hair_style": "long01",
+            "height": 0.75,
+            "muscle": 0.61,
+            "weight": 0.59,
+            "proportions": 0.48,
+            "breasts": 0,
+            "legs": 0.35
           },
           "source": "Hex-crpg/campaign2Content.js"
         },
@@ -4061,7 +4081,17 @@
           "appearance": {
             "body_variant": "male",
             "gender_presentation": "Masculine",
-            "pronouns": "he/him"
+            "pronouns": "he/him",
+            "skin_colour": "#70452F",
+            "eye_colour": "darkbrown",
+            "hair_colour": "#17120F",
+            "hair_style": "buzz",
+            "height": 0.42,
+            "muscle": 0.52,
+            "weight": 0.25,
+            "proportions": 0.53,
+            "breasts": 0,
+            "legs": 0.57
           },
           "source": "Hex-crpg/campaign2Content.js"
         },
