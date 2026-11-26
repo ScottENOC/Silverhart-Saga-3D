@@ -515,6 +515,8 @@ func _test_night_watch_rotation_and_detection() -> void:
 	restored_world.load_dict(interrupted_save)
 	_check(restored_world.camp_simulation.phase == "interrupted", "Interrupted sleep should survive a save/load cycle")
 	_check(is_equal_approx(restored_world.camp_simulation.night_elapsed_hours, float(world_night_result.summary.hours)), "The resumed save should retain the exact elapsed sleep time")
+	var blocked_resume := world.continue_camp_sleep()
+	_check(not bool(blocked_resume.get("ok", false)) and String(blocked_resume.get("reason", "")) == "combat_active", "Sleep must not resume until the encounter has ended")
 	world.end_combat()
 	var resumed_result := world.continue_camp_sleep()
 	_check(bool(resumed_result.get("ok", false)), "The party should be able to resume sleep after winning the ambush")
