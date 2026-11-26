@@ -16,6 +16,8 @@ const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_q
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
 const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
+const DWARVEN_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
+const CORVANE_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/corvane_ambassador_content.gd")
 const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
@@ -172,6 +174,8 @@ func _ready() -> void:
 	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
 	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+	CORVANE_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		var saved_multistory_location := String(pending_save_data.get("active_multistory_location_id", ""))
@@ -1513,6 +1517,49 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
 				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
 			return
+	if choice_id.begins_with("brokk_"):
+		var brokk_result := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(brokk_result.get("ok", false)):
+			_show_dialogue("Ambassador Brokk Stonehammer", "That could not be completed: %s." % String(brokk_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(brokk_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: Coin for the Deepholds  ·  -15 gold  ·  +60 XP"
+		var brokk_dialogue: Variant = brokk_result.get("dialogue", {})
+		if brokk_dialogue is Dictionary and not brokk_dialogue.is_empty():
+			_show_dialogue(String(brokk_dialogue.get("speaker", "Ambassador Brokk Stonehammer")), String(brokk_dialogue.get("text", "")), brokk_dialogue.get("choices", []))
+		elif bool(brokk_result.get("quest_completed", false)):
+			var brokk_completed := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+			_show_dialogue(String(brokk_completed.get("speaker", "Ambassador Brokk Stonehammer")), String(brokk_completed.get("text", "")), brokk_completed.get("choices", []))
+		elif bool(brokk_result.get("handled", false)):
+			_close_dialogue()
+		return
+	if choice_id.begins_with("toren_"):
+		var toren_result := CORVANE_AMBASSADOR_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(toren_result.get("ok", false)):
+			_show_dialogue("Ambassador Toren Aldwyn", "That could not be completed: %s." % String(toren_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(toren_result.get("quest_started", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest added: Eyes on the Border."
+		if bool(toren_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: Eyes on the Border  ·  +15 gold  ·  +60 XP"
+		var toren_dialogue: Variant = toren_result.get("dialogue", {})
+		if toren_dialogue is Dictionary and not toren_dialogue.is_empty():
+			var toren_response: Dictionary = toren_dialogue
+			_show_dialogue(String(toren_response.get("speaker", "Ambassador Toren Aldwyn")), String(toren_response.get("text", "")), toren_response.get("choices", []))
+		elif bool(toren_result.get("quest_completed", false)):
+			var toren_completed := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+			_show_dialogue(String(toren_completed.get("speaker", "Ambassador Toren Aldwyn")), String(toren_completed.get("text", "")), toren_completed.get("choices", []))
+		elif bool(toren_result.get("handled", false)):
+			_close_dialogue()
+		return
 	if choice_id.begins_with("cassia_"):
 		var cassia_result := ALDENREACH_MESSAGE_CONTENT_SCRIPT.resolve_choice(
 			simulation.campaign_journal,
@@ -1864,6 +1911,16 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		var baron_conversation := BARON_TRIBUTE_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
 		if bool(baron_conversation.get("ok", false)):
 			_show_dialogue(String(baron_conversation.get("speaker", target_state.display_name)), String(baron_conversation.get("text", "")), baron_conversation.get("choices", []))
+		return
+	if dialogue_id == "dwarven_ambassador":
+		var brokk_conversation := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		if bool(brokk_conversation.get("ok", false)):
+			_show_dialogue(String(brokk_conversation.get("speaker", target_state.display_name)), String(brokk_conversation.get("text", "")), brokk_conversation.get("choices", []))
+		return
+	if dialogue_id == "corvane_ambassador":
+		var toren_conversation := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		if bool(toren_conversation.get("ok", false)):
+			_show_dialogue(String(toren_conversation.get("speaker", target_state.display_name)), String(toren_conversation.get("text", "")), toren_conversation.get("choices", []))
 		return
 	if dialogue_id == "aldenreach_ambassador":
 		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
