@@ -1847,9 +1847,6 @@ func _interact_with_character(character_id: String) -> void:
 	var target_state := simulation.get_character(character_id)
 	if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
 		return
-	if character_id == HALVARD_CHARACTER_ID:
-		_show_halvard_household_dialogue()
-		return
 	if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
 		if not _reyna_objective_done("child_rescued"):
 			_show_dialogue("Dire wolf", "The dire wolf circles the shepherd's shelter. You cannot safely engage it while Tessa is still inside.", [{"id":"continue","label":"Understood","text":""}])
@@ -1892,6 +1889,9 @@ func _interact_with_character(character_id: String) -> void:
 		var marta_conversation := ELDER_MARTA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, marta_player)
 		if bool(marta_conversation.get("ok", false)):
 			_show_dialogue(String(marta_conversation.get("speaker", "Elder Marta Wynfield")), String(marta_conversation.get("text", "")), marta_conversation.get("choices", []))
+		return
+	if character_id == HALVARD_CHARACTER_ID:
+		_show_halvard_household_dialogue()
 		return
 	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
