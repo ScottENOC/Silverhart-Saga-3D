@@ -232,7 +232,7 @@ I compared each target definition and its stated objective against the source qu
 
 ### Exact ID matches already present — 20
 
-`a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `toll_ogre`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`.
+`a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `toll_ogre`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `ironbond_missing_courier`.
 
 These are exact-ID matches only. Their runtime triggers, all choices, completion conditions, rewards and consequences still need to pass their own parity checks.
 
