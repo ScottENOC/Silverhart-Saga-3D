@@ -265,7 +265,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 ## 4. Work order — smallest verifiable steps first
 
 1. [ ] **NPC reconciliation:** resolve the 48 missing active profile/placement records, starting with named NPCs already referenced by implemented quests or dialogue. Do not generate a model before confirming the character is meant to be a persistent/spawned actor.
-2. [x] **Quest semantic mapping:** reviewed all eight target-only IDs against source quest and event scripts. No one-to-one source quest equivalence is safe to accept yet; two partial overlap candidates are documented above, so the exact-ID gap remains 59.
+2. [x] **Quest semantic mapping:** reviewed all eight target-only IDs against source quest and event scripts. No one-to-one source quest equivalence is safe to accept yet; two partial overlap candidates are documented above; the exact-ID gap is now 57 after the two small quest ports.
 3. [ ] **Quest branch parity:** for each source quest, compare start gates, objectives, decision branches, completion, failure/alternate outcomes, rewards and world-state consequences.
 4. [ ] **Dialogue tree mapping:** reconcile the 69 dialogue IDs and then map each source call-site/branch to target nodes and typed effects.
 5. [ ] **Runtime integration:** verify persistence, actor spawning, interaction routing, schedules, companion reactivity and save/load. Static data alone does not close a row.
