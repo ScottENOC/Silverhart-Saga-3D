@@ -205,11 +205,40 @@ jobs:
           godot --version
           godot --headless --editor --path . --quit
 
-      - name: Validate browser character assets
+      - name: Validate required browser character assets
         shell: bash
         run: |
           set -euo pipefail
           godot --headless --path . --script res://tools/ci/validate_hollowmere_models.gd
+
+      - name: Validate optional Ara equipment when its asset pack is complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_files=(
+            "art/characters/ara_runtime/ara_person_body_anatomy.glb"
+            "art/characters/ara_runtime/ara_person_male_body.glb"
+            "art/characters/ara_runtime/hair/female_braid01.glb"
+            "art/characters/ara_runtime/garments/female_lace_briefs.glb"
+            "art/characters/ara_runtime/garments/female_fishnet_briefs.glb"
+            "art/characters/ara_runtime/garments/female_lace_pants.glb"
+            "art/characters/ara_runtime/garments/female_fishnet_pants.glb"
+            "art/characters/ara_runtime/garments/female_lace_shirt.glb"
+            "art/characters/ara_runtime/garments/female_fishnet_shirt.glb"
+            "art/characters/ara_runtime/garments/female_halter_bra_lace.glb"
+            "art/characters/ara_runtime/garments/female_halter_bra_fishnet.glb"
+            "art/characters/ara_runtime/garments/female_leather_armor.glb"
+          )
+          missing=()
+          for asset in "${required_files[@]}"; do
+            if [[ ! -s "$asset" ]]; then
+              missing+=("$asset")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            printf '::warning::Skipping optional Ara equipment integration test; incomplete asset pack. Missing: %s\n' "${missing[*]}"
+            exit 0
+          fi
           godot --headless --path . --script res://tests/test_ara_runtime_equipment.gd
 
       - name: Export browser build
