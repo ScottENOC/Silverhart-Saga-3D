@@ -58,13 +58,18 @@ static func build_floor_map(
 		var position := _position_from(tile_object.get("position", {}))
 		if not _is_valid_position(position):
 			return {"ok": false, "reason": "tile_object_missing_position"}
+		var object_type := String(tile_object.get("type", ""))
 		var hidden_by_secret := String(tile_object.get("hidden_by_secret", "")).strip_edges()
-		if String(tile_object.get("type", "")) == "secret_door" and bool(tile_object.get("hidden", true)):
+		if object_type in ["secret_door", "secret_passage"] and bool(tile_object.get("hidden", true)):
 			hidden_by_secret = String(tile_object.get("id", ""))
 		if not hidden_by_secret.is_empty() and not _is_secret_discovered(location_state, hidden_by_secret):
-			if String(tile_object.get("type", "")) == "secret_door":
+			if object_type in ["secret_door", "secret_passage"]:
 				wall_cells[position] = true
+				floor_cells.erase(position)
 			continue
+		if object_type == "secret_passage":
+			# This is a cross-location entrance, not a stair within this floor stack.
+			tile_object["type"] = "tunnel_entrance"
 		floor_cells[position] = true
 		wall_cells.erase(position)
 		tile_objects.append(tile_object)
