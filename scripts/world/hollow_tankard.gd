@@ -1632,7 +1632,7 @@ func _interact_with_character(character_id: String) -> void:
 			consultation_text += "\n\n" + consultation_prompt
 		_show_dialogue(String(chapter_consultation.get("actor", target_state.display_name)), consultation_text, [{"id":"continue","label":"I'll speak with them.","text":""}])
 		return
-	if GOBLIN_DIALOGUE_SERVICE.handles_npc(character_id):
+	if GOBLIN_DIALOGUE_SERVICE.handles_npc(character_id, simulation):
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var goblin_conversation: Dictionary = GOBLIN_DIALOGUE_SERVICE.dialogue_for_npc(simulation, character_id, relationships)
 		if bool(goblin_conversation.get("ok", false)):

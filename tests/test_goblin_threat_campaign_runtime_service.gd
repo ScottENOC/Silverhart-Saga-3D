@@ -175,6 +175,9 @@ func _test_greenskin_can_earn_marta_vouch() -> void:
 	player.race = "goblin"
 	var relationships := RELATIONSHIP_SCRIPT.new()
 	var greeting := RUNTIME_SERVICE.marta_greeting(simulation)
+	_check(DIALOGUE_SERVICE.handles_npc("elder_marta", simulation), "The live Elder Marta actor should route to the greenskin quest dialogue")
+	var live_greeting := DIALOGUE_SERVICE.dialogue_for_npc(simulation, "elder_marta", relationships)
+	_check(bool(live_greeting.get("ok", false)) and String(live_greeting.get("speaker", "")) == "Elder Marta Wynfield", "Interacting with Elder Marta should open the campaign quest dialogue")
 	_check(bool(greeting.get("ok", false)), "Goblin players should receive Marta's Prove Your Worth dialogue")
 	_check(String(greeting.get("choices", [])[0].get("id", "")) == "marta_spy_accept")
 	var accepted := DIALOGUE_SERVICE.select_choice(simulation, "marta_wynfield", "marta_spy_accept", relationships)
@@ -204,6 +207,7 @@ func _test_greenskin_can_earn_marta_vouch() -> void:
 
 	var human_simulation := _simulation()
 	var human_greeting := RUNTIME_SERVICE.marta_greeting(human_simulation)
+	_check(not DIALOGUE_SERVICE.handles_npc("elder_marta", human_simulation), "Human players must continue through ordinary Elder Marta dialogue")
 	_check(not bool(human_greeting.get("ok", true)), "Human players should retain Marta's ordinary dialogue rather than receive the greenskin-only quest")
 
 

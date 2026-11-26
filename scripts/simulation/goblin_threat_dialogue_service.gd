@@ -8,7 +8,14 @@ const FOLLOWUP_SCRIPT = preload("res://scripts/simulation/goblin_threat_followup
 const RUNTIME_SERVICE = preload("res://scripts/simulation/goblin_threat_campaign_runtime_service.gd")
 
 
-static func handles_npc(npc_id: String) -> bool:
+static func handles_npc(npc_id: String, simulation: WorldSimulation = null) -> bool:
+	if npc_id in ["marta_wynfield", "elder_marta", "elder_marta_wynfield"]:
+		if simulation == null:
+			return false
+		var player := simulation.get_character(simulation.player_character_id)
+		if player == null:
+			return false
+		return String(player.race).strip_edges().to_lower() in ["goblin", "orc"]
 	return npc_id in [
 		"chief_skarnub",
 		"nix_sharpear",
@@ -61,6 +68,8 @@ static func dialogue_for_npc(
 			return aldric_conversation
 		"goblin_trader", "grondle":
 			return RUNTIME_SERVICE.grondle_greeting(simulation)
+		"marta_wynfield", "elder_marta", "elder_marta_wynfield":
+			return RUNTIME_SERVICE.marta_greeting(simulation)
 	return {"ok": false, "reason": "unsupported_goblin_npc"}
 
 
