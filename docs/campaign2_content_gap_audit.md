@@ -263,13 +263,13 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 
 - [x] Added `DwarvenAmbassadorContent` with the source toll dialogue, 15-gold payment, quest completion, +60 experience and +10 standing / +15 knowledge for Brokk and the dwarven kingdom.
 - [x] Added headless regression coverage for acceptance, insufficient funds, exact payment, rewards, reputation/knowledge and duplicate-payment prevention.
-- [ ] Connect Brokk's content to a live actor interaction route. His appearance profile exists in the legacy roster, but that is not evidence of an active placed actor.
+- [x] Confirmed Brokk is an authored Silverhart settlement NPC (`ambassador_brokk_stonehammer`, dialogue ID `dwarven_ambassador`) and connected his streamed greeting, toll choices, quest registration and completion feedback to the live interaction dispatcher. Added runtime-wiring regression coverage.
 
 **Eyes on the Border**
 
 - [x] Added `CorvaneAmbassadorContent` with source start/wait/report/completed dialogue, gated on the `goblin_threat` quest leaving its active state.
 - [x] Added headless regression coverage for the active-threat gate, integration with the existing goblin resolution service, +15 gold, +60 experience, +10 standing / +15 knowledge and duplicate-claim prevention.
-- [ ] Connect Toren's content to a live actor interaction route. His appearance profile is not proof of an active placed actor.
+- [x] Confirmed Toren is an authored Silverhart settlement NPC (`ambassador_toren_aldwyn`, dialogue ID `corvane_ambassador`) and connected his streamed greeting, report choices, quest registration and completion feedback to the live interaction dispatcher. Added runtime-wiring regression coverage.
 
 **A Missing Locket**
 
