@@ -1,7 +1,7 @@
 # Campaign 2 content gap audit — NPCs, dialogue and quests
 
 **Source:** [Hex-crpg](https://github.com/ScottENOC/Hex-crpg), `main` at `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
-**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `b006f4b8828422ab1b0e6e44ef2e20e6dd3238d7` (before this audit update)  
+**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `bdad41d75a4042fcac447a51d83694bbb64604fb` (after the Toll-Taker and Missing Courier integrations)  
 **Audit date:** 2026-11-26  
 **Scope:** Named NPC roster, authored dialogue volume/coverage, explicit quest IDs and campaign-content migration status.
 
@@ -154,7 +154,7 @@ An exact-ID difference is not proof that an entire storyline is absent. Some tar
 
 ### Semantic review of the nine target-only IDs
 
-I compared each target definition and its stated objective against the source quest definitions and the source's non-quest encounter/recruitment scripts. **None of the eight is a defensible one-to-one replacement for a source quest ID.** Two have meaningful overlap with source quest arcs, but only at sub-plot/encounter level.
+I compared each target definition and its stated objective against the source quest definitions and the source's non-quest encounter/recruitment scripts. **None of the nine is a defensible one-to-one replacement for a source quest ID.** Two have meaningful overlap with source quest arcs, but only at sub-plot/encounter level.
 
 | Target-only ID | Closest source material | Assessment | Migration decision |
 |---|---|---|---|
@@ -246,16 +246,16 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 
 **The Missing Courier — `ironbond_missing_courier`**
 
-- [~] Added `IronbondMissingCourierContent` with Dray Coltayne's source offer, accept/decline choices, journal registration, and the source's +10 Ironbond reputation / +10 knowledge on acceptance.
-- [~] Added headless regression coverage for decline, acceptance, one-time faction reward and journal save/restore.
-- [x] Connected the offer and choice handling to Dray Coltayne's existing Hollowmere actor (`dialogue_id: dray_coltayne`, authored placement `Vector2i(-1, 6)`) and registered the quest with the campaign journal at startup.
+- [x] Added `IronbondMissingCourierContent` with Dray Coltayne's source offer, accept/decline choices, journal registration, and the source's +10 Ironbond reputation / +10 knowledge on acceptance.
+- [x] Added headless regression coverage for decline, acceptance, one-time faction reward and journal save/restore.
+- [x] Connected the offer and choice handling to Dray Coltayne's existing Hollowmere actor (`dialogue_id: dray_coltayne`, authored placement `Vector2i(-1, 6)`) and registered the quest with the campaign journal at startup. Merged in PR #445 (`bdad41d`) after all latest-head validation checks passed, including the 118-step Godot suite.
 - [ ] The source itself contains no courier recovery encounter or completion branch; those gameplay stages remain unported. Count this as a playable offer/acceptance beat, not a complete quest.
 
 **The Toll-Taker — `toll_ogre`**
 
-- [~] Added a standalone quest content resource for Petra Hollis's offer, active/defeated/completed dialogue states, the ogre-defeated objective, and the source reward (+30 gold, +120 experience, +10 Silverhart reputation / knowledge).
-- [~] Added headless regression coverage for acceptance, objective gating, one-time rewards and journal save/restore.
-- [ ] Still requires a live ogre actor, Petra's active world placement/interaction route, and save/load integration before it is a playable port. Do not count this as fully migrated.
+- [x] Added the standalone quest content resource for Petra Hollis's source offer, active/defeated/completed dialogue states, the ogre-defeated objective and source rewards (+30 gold, +120 experience, +10 Silverhart reputation / knowledge).
+- [x] Added headless regression coverage for acceptance, objective gating, one-time rewards and journal save/restore.
+- [x] Connected Petra's authored world actor to the live interaction route, integrated the ogre encounter/defeat state, and wired quest registration plus save restoration. Merged in PR #443 (`dee3570`) after the full 117-step Godot suite and companion checks passed.
 ### Small quest ports completed
 
 **The Baron's Tribute**
@@ -301,7 +301,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 ## 4. Work order — smallest verifiable steps first
 
 1. [ ] **NPC reconciliation:** resolve the 48 missing active profile/placement records, starting with named NPCs already referenced by implemented quests or dialogue. Do not generate a model before confirming the character is meant to be a persistent/spawned actor.
-2. [x] **Quest semantic mapping:** reviewed all eight target-only IDs against source quest and event scripts. No one-to-one source quest equivalence is safe to accept yet; two partial overlap candidates are documented above; the exact-ID gap is now 53 after six small quest-content ports.
+2. [x] **Quest semantic mapping:** reviewed all eight target-only IDs against source quest and event scripts. No one-to-one source quest equivalence is safe to accept yet; two partial overlap candidates are documented above; the exact-ID gap is 52 after the latest source/target reconciliation.
 3. [ ] **Quest branch parity:** for each source quest, compare start gates, objectives, decision branches, completion, failure/alternate outcomes, rewards and world-state consequences.
 4. [ ] **Dialogue tree mapping:** reconcile the 69 dialogue IDs and then map each source call-site/branch to target nodes and typed effects.
 5. [ ] **Runtime integration:** verify persistence, actor spawning, interaction routing, schedules, companion reactivity and save/load. Static data alone does not close a row.
