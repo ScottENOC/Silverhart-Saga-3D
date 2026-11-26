@@ -44,7 +44,7 @@ func _test_cottage_routes() -> void:
 	var player := _player()
 	_check(bool(state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot").get("ok", false)), "The starting cottage should have no reputation or quest gate.")
 	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 0, "An unfurnished cottage should not invent a bed.")
-	_place_beds(state, "crossroads_cottage", "bed_single", Vector2i(13, 27), [Vector2(-2.0, 0.0)])
+	_place_beds(state, "crossroads_cottage", "bed_single", Vector2i(13, 27), [Vector2(-1.5, 0.0)])
 	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 1, "A placed single bed should provide one indoor sleeping place.")
 	_check(not bool(state.evaluate_action("upgrade_country_house", journal, player, "materials", "crossroads_plot").get("ok", false)), "The country-house upgrade should require materials or gold.")
 	_add_item(player, "wood", 6)
