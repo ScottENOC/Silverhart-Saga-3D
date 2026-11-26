@@ -538,7 +538,7 @@ func _test_night_watch_rotation_and_detection() -> void:
 	world.end_combat()
 	var resumed_result := world.continue_camp_sleep()
 	_check(bool(resumed_result.get("ok", false)), "The party should be able to resume sleep after winning the ambush")
-	_check(world.camp_simulation.phase == "resolved", "Resuming sleep should complete the remaining night")
+	_check(world.camp_simulation.phase == "morning", "Resuming sleep should finish the night and hand off to the morning routine")
 	_check(is_equal_approx(world.camp_simulation.night_elapsed_hours, CampSimulation.DEFAULT_NIGHT_HOURS), "Resumed sleep should finish the original planned eight-hour rest")
 	var total_elapsed_seconds := world.clock.world_seconds - world_start_seconds
 	_check(is_equal_approx(total_elapsed_seconds, CampSimulation.DEFAULT_NIGHT_HOURS * WorldClock.SECONDS_PER_HOUR), "World time should include the interrupted segment and the resumed remainder exactly once")
