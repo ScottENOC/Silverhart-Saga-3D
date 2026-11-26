@@ -30,7 +30,7 @@ func _test_source_backed_nella_quest() -> void:
 
 	var initial := INNKEEPER_CONTENT.greeting(journal, player)
 	_check(String(initial.get("speaker", "")) == "Nella Brook")
-	_check(String(initial.get("text", "")).contains("rooms are warm"))
+	_check(String(initial.get("text", "")).contains("Rooms are warm"))
 	_check(String(initial.choices[0].get("id", "")) == "nella_offer_stone")
 
 	var gated := INNKEEPER_CONTENT.greeting(journal, player, true)
