@@ -18,8 +18,9 @@ func _initialize() -> void:
 
 func _test_spring_and_herbs() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
-	var grove := data.location_at(FEATURES.DRUID_GROVE_CENTRE)
+	var grove := data.encounter_site("emberwood_grove")
 	_check(String(grove.get("id", "")) == "emberwood_grove", "Druid Grove must resolve from canonical geography")
+	_check(String(grove.get("kind", "")) == "druid_grove", "Druid Grove must retain its source-authored kind in the canonical site registry")
 	var centre := Vector2i(int(grove.get("q", 0)), int(grove.get("r", 0)))
 	_check(centre == FEATURES.DRUID_GROVE_CENTRE, "Druid Grove geography and terrain feature anchors must agree")
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24, floori(float(centre.y) / 24.0) * 24)
@@ -52,6 +53,7 @@ func _test_chunk_scoping() -> void:
 	var data := TERRAIN_DATA.new() as Campaign2WorldTerrainData
 	var grove := data.location_at(FEATURES.DRUID_GROVE_CENTRE)
 	_check(String(grove.get("id", "")) == "emberwood_grove", "Druid Grove must resolve from canonical geography")
+	_check(String(grove.get("kind", "")) == "druid_grove", "Druid Grove must retain its source-authored kind in the canonical site registry")
 	var centre := Vector2i(int(grove.get("q", 0)), int(grove.get("r", 0)))
 	_check(centre == FEATURES.DRUID_GROVE_CENTRE, "Druid Grove geography and terrain feature anchors must agree")
 	var chunk_min := Vector2i(floori(float(centre.x) / 24.0) * 24 + 24, floori(float(centre.y) / 24.0) * 24)
