@@ -398,6 +398,27 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 	var materials: Dictionary = definition.get("presentation", {}).get("materials", {})
 	_check(materials.get("agriculture", {}).has("pasture") and materials.get("agriculture", {}).has("fence"), "Farmstead agriculture must have shared material bindings")
 	_check(layout.get("fields", []).size() > 0 and layout.fields[0].get("corners", []).size() == 4, "Pasture boundary must remain a four-corner authored polygon")
+	var pasture: Dictionary = layout.fields[0]
+	var expected_pasture := [Vector2i(-9, 190), Vector2i(-3, 190), Vector2i(-3, 198), Vector2i(-9, 198)]
+	_check(pasture.get("corners", []) == expected_pasture, "Pasture corners must preserve the source-authored -9..-3 by 190..198 footprint")
+	var expected_fences := {
+		"old_mac_pasture_north_fence": [Vector2i(-9, 190), Vector2i(-3, 190)],
+		"old_mac_pasture_south_fence": [Vector2i(-9, 198), Vector2i(-3, 198)],
+		"old_mac_pasture_west_fence_upper": [Vector2i(-9, 190), Vector2i(-9, 193)],
+		"old_mac_pasture_west_fence_lower": [Vector2i(-9, 195), Vector2i(-9, 198)],
+		"old_mac_pasture_east_fence_upper": [Vector2i(-3, 190), Vector2i(-3, 191)],
+		"old_mac_pasture_east_fence_lower": [Vector2i(-3, 197), Vector2i(-3, 198)]
+	}
+	for fence_id in expected_fences:
+		var fence := _find_record(layout.get("fields", []), fence_id)
+		_check(not fence.is_empty(), "Source pasture fence run must be present: " + fence_id)
+		if not fence.is_empty():
+			_check(fence.get("points", []) == expected_fences[fence_id], "Pasture fence run must preserve source endpoints: " + fence_id)
+	var farmhouse_spur := _find_record(layout.get("paths", []), "old_mac_farmhouse_road_spur")
+	_check(not farmhouse_spur.is_empty(), "Farmhouse door-to-road spur must retain its stable source ID")
+	if not farmhouse_spur.is_empty():
+		_assert_axial(farmhouse_spur.get("from", {}), Vector2i(4, 194), "Farmhouse spur start outside east door")
+		_assert_axial(farmhouse_spur.get("to", {}), Vector2i(5, 194), "Farmhouse spur road endpoint")
 
 
 func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
