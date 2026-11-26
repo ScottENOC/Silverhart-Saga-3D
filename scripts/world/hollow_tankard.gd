@@ -13,6 +13,7 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
@@ -1448,6 +1449,23 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
 				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
 			return
+	if choice_id.begins_with("marta_"):
+		var marta_result := ELDER_MARTA_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(marta_result.get("ok", false)):
+			_show_dialogue("Elder Marta Wynfield", "That could not be completed: %s." % String(marta_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(marta_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: A Missing Locket  ·  +20 gold  ·  +100 XP"
+		if marta_result.get("dialogue", {}) is Dictionary and not marta_result.get("dialogue", {}).is_empty():
+			var marta_response: Dictionary = marta_result.dialogue
+			_show_dialogue(String(marta_response.get("speaker", "Elder Marta Wynfield")), String(marta_response.get("text", "")), marta_response.get("choices", []))
+		elif bool(marta_result.get("handled", false)):
+			_close_dialogue()
+		return
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
@@ -1613,6 +1631,12 @@ func _interact_with_character(character_id: String) -> void:
 	if character_id == "old_mac":
 		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
+		return
+	if character_id in ["elder_marta", "marta_wynfield"]:
+		var marta_player := simulation.get_character(simulation.player_character_id)
+		var marta_conversation := ELDER_MARTA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, marta_player)
+		if bool(marta_conversation.get("ok", false)):
+			_show_dialogue(String(marta_conversation.get("speaker", "Elder Marta Wynfield")), String(marta_conversation.get("text", "")), marta_conversation.get("choices", []))
 		return
 	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
