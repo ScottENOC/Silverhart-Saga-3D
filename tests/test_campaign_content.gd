@@ -4,6 +4,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
 	_test_campaign_journal()
+	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
 	_test_companion_campaign_dialogue_and_recruitment()
 	_test_farmstead_dire_wolf_encounter()
@@ -85,6 +86,35 @@ func _test_campaign_journal() -> void:
 	simulation.campaign_journal.start_quest("hollowmere_arrival")
 	_check(not forwarded.is_empty(), "Journal events flow through the simulation event stream")
 	_check(String(forwarded[0].event_type) == "quest_started")
+
+func _test_ironbond_missing_courier_content() -> void:
+	var journal := CampaignJournal.new()
+	var first_greeting := IronbondMissingCourierContent.greeting(journal)
+	_check(bool(first_greeting.get("ok", false)))
+	_check(String(first_greeting.get("speaker", "")) == "Dray Coltayne")
+	_check(first_greeting.get("choices", []).size() == 2)
+	_check(String(first_greeting.get("choices", [])[0].get("id", "")) == "ironbond_courier_accept")
+	var declined := IronbondMissingCourierContent.resolve_choice(journal, "ironbond_courier_decline")
+	_check(bool(declined.get("ok", false)) and not journal.quests.has(IronbondMissingCourierContent.QUEST_ID))
+	_check(journal.faction_standing(IronbondMissingCourierContent.FACTION_ID) == 0.0)
+
+	var accepted := IronbondMissingCourierContent.resolve_choice(journal, "ironbond_courier_accept")
+	_check(bool(accepted.get("ok", false)) and bool(accepted.get("quest_started", false)))
+	_check(String(journal.quest_state(IronbondMissingCourierContent.QUEST_ID).get("status", "")) == "active")
+	_check(String(journal.quest_state(IronbondMissingCourierContent.QUEST_ID).get("decisions", {}).get("accepted", "")) == "yes")
+	_check(journal.faction_standing(IronbondMissingCourierContent.FACTION_ID) == 10.0)
+	_check(journal.faction_knowledge.get(IronbondMissingCourierContent.FACTION_ID, -1.0) == 10.0)
+	var active_greeting := IronbondMissingCourierContent.greeting(journal)
+	_check(active_greeting.get("choices", []).size() == 1, "An active courier job must not offer acceptance again")
+	var duplicate := IronbondMissingCourierContent.accept(journal)
+	_check(not bool(duplicate.get("ok", true)), "The one-time acceptance reward cannot be farmed")
+	_check(journal.faction_standing(IronbondMissingCourierContent.FACTION_ID) == 10.0)
+	var saved := journal.to_dict()
+	var restored := CampaignJournal.new()
+	IronbondMissingCourierContent.register_definition(restored)
+	restored.load_dict(saved)
+	_check(restored.to_dict() == saved, "The courier quest and its faction reward survive save/restore")
+
 
 func _test_hollowmere_campaign_content() -> void:
 	var definition := HollowmereCampaignContent.shakedown_quest_definition()
