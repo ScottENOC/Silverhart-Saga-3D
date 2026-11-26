@@ -95,6 +95,7 @@ static func resolve_choice(
 			accepted = true
 		"ask_about_travels":
 			delta = {"familiarity": 2, "trust": 1}
+			accepted = true
 		"share_stories":
 			delta = {"familiarity": 2, "trust": 2, "friendship": 3}
 			accepted = true
