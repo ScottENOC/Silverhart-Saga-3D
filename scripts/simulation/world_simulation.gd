@@ -1760,6 +1760,8 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
 
 
 func continue_camp_sleep() -> Dictionary:
+    if is_in_combat:
+        return {"ok": false, "reason": "combat_active"}
     var result := camp_simulation.continue_sleep()
     if not bool(result.get("ok", false)):
         return result
