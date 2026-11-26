@@ -47,6 +47,8 @@ const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
+const HALVARD_CHARACTER_ID := "steward_halvard_greer"
+const HALVARD_MANOR_HEX := Vector2i(39, -502)
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -144,6 +146,8 @@ var camp_selection_mode: bool = false
 var camp_button: Button
 var camp_sleep_button: Button
 var camp_status_label: Label
+var halvard_routine_accumulator: float = 0.0
+var halvard_routine_busy: bool = false
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
@@ -311,6 +315,11 @@ func _on_campaign_world_time_advanced(world_seconds: float) -> void:
 	if campaign_faction_simulation == null or simulation == null:
 		return
 	campaign_faction_simulation.advance_to(simulation.campaign_journal, world_seconds)
+	var player := simulation.get_character(simulation.player_character_id)
+	var cooked := simulation.campaign_dwellings.prepare_steward_meal(world_seconds, player)
+	if bool(cooked.get("ok", false)) and resource_status_label != null:
+		var meal_name := "breakfast" if String(cooked.get("meal_slot", "")) == "breakfast" else "supper"
+		resource_status_label.text = "Halvard has prepared %s at Silverhart Manor." % meal_name.capitalize()
 
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
 	if event == null or spell_vfx == null:
@@ -830,10 +839,15 @@ func _select_camp_site(hex: Vector2i) -> void:
 		"water_nearby": water_nearby,
 		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
 	}
+	var manor_meal_available := String(site.get("dwelling_id", "")) == "silverhart_manor" and simulation.campaign_dwellings.steward_meals_ready > 0
+	if manor_meal_available:
+		environment["meal_prepared"] = true
 	var result := simulation.begin_camp(site, environment, {}, active_character_id)
 	if not bool(result.get("ok", false)):
 		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
 		return
+	if manor_meal_available:
+		simulation.campaign_dwellings.consume_steward_meal()
 	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 	camp_activity_director.begin_camp(simulation.camp_simulation.site)
 	var weather_summary := _camp_weather_summary(simulation.camp_simulation.environment)
@@ -1833,6 +1847,9 @@ func _interact_with_character(character_id: String) -> void:
 	var target_state := simulation.get_character(character_id)
 	if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
 		return
+	if character_id == HALVARD_CHARACTER_ID:
+		_show_halvard_household_dialogue()
+		return
 	if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
 		if not _reyna_objective_done("child_rescued"):
 			_show_dialogue("Dire wolf", "The dire wolf circles the shepherd's shelter. You cannot safely engage it while Tessa is still inside.", [{"id":"continue","label":"Understood","text":""}])
@@ -2441,10 +2458,121 @@ func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
 	_show_dialogue(String(inspection.get("speaker", "Property")), String(inspection.get("text", "")), inspection.get("choices", []))
 
 
+func _ensure_halvard_actor() -> void:
+	if simulation == null or actor_by_id.has(HALVARD_CHARACTER_ID):
+		return
+	var resident := simulation.campaign_dwellings.residents.get(HALVARD_CHARACTER_ID, {})
+	if String(resident.get("dwelling_id", "")) != "silverhart_manor":
+		return
+	simulation.ensure_exploration_region(HALVARD_MANOR_HEX)
+	var spawn_hex := _find_valid_spawn_hex(HALVARD_MANOR_HEX + Vector2i(0, 1))
+	var profile := {
+		"params": {
+			"seed": "halvard-greer", "gender": 1, "age": 0.58,
+			"muscle": 0.53, "weight": 0.59, "height": 0.72, "proportions": 0.67,
+			"eyes": "blue", "hair": "braid01", "hairTint": "#C6A16B", "skinTint": "#E8C5A5",
+			"underTop": "none", "underBottom": "none", "top": "none", "bottom": "none", "shoes": "none",
+			"detail": "medium", "rig": "game", "restPose": "A", "animations": true
+		}
+	}
+	var existing_state := simulation.get_character(HALVARD_CHARACTER_ID)
+	if existing_state == null:
+		CampaignCharacterSpawner.spawn_character(
+			simulation, self, actor_by_id, player_profile, starting_loadouts,
+			HALVARD_CHARACTER_ID, "Steward Halvard Greer", spawn_hex,
+			_hex_world_position(spawn_hex), false, "", profile, ""
+		)
+	else:
+		var actor := CampaignCharacterActorFactory.create_actor(
+			existing_state, _hex_world_position(existing_state.axial), false,
+			player_profile, profile, "", ""
+		)
+		if actor != null:
+			add_child(actor)
+			actor.set_meta("campaign2_npc_id", HALVARD_CHARACTER_ID)
+			actor.set_meta("dialogue_id", "halvard_household_steward")
+			actor.add_to_group("campaign2_npc")
+			actor_by_id[HALVARD_CHARACTER_ID] = actor
+
+
+func _update_halvard_household_routine() -> void:
+	if simulation == null or not simulation.campaign_dwellings.residents.has(HALVARD_CHARACTER_ID):
+		return
+	_ensure_halvard_actor()
+	var actor := actor_by_id.get(HALVARD_CHARACTER_ID) as Node3D
+	if actor == null or halvard_routine_busy:
+		return
+	var hour := fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0
+	var schedule := simulation.campaign_dwellings.resident_schedule_for(HALVARD_CHARACTER_ID, hour, simulation.get_party_member_ids())
+	var activity := String(schedule.get("activity", "socialise"))
+	if activity.is_empty() or String(actor.get_meta("household_activity", "")) == activity:
+		return
+	actor.set_meta("household_activity", activity)
+	var presentation_activity := activity
+	match activity:
+		"housekeeping":
+			presentation_activity = "repair_gear"
+		"manage_stores":
+			presentation_activity = "study_map"
+		"welcome_guests":
+			presentation_activity = "socialise"
+	var ara := actor.get_node_or_null("CharacterModel") as AraCharacterActor
+	if ara != null:
+		ara.play_camp_activity(presentation_activity)
+	var offsets := {
+		"hearth": Vector2i(1, 0), "common": Vector2i(0, 2),
+		"threshold": Vector2i(0, -1), "bedroom": Vector2i(-1, -1)
+	}
+	var station_role := String(schedule.get("station_role", "common"))
+	var target_hex: Vector2i = HALVARD_MANOR_HEX + (offsets.get(station_role, Vector2i.ZERO) as Vector2i)
+	simulation.ensure_exploration_region(target_hex)
+	if not simulation.map_data.is_walkable(target_hex) or (simulation.occupied_hexes.has(target_hex) and String(simulation.occupied_hexes[target_hex]) != HALVARD_CHARACTER_ID):
+		target_hex = _find_valid_spawn_hex(target_hex)
+	if target_hex != simulation.get_character(HALVARD_CHARACTER_ID).axial:
+		halvard_routine_busy = true
+		_move_halvard_to_station(target_hex)
+
+
+func _move_halvard_to_station(target_hex: Vector2i) -> void:
+	var path := simulation.find_path(HALVARD_CHARACTER_ID, target_hex)
+	if path.size() > 1:
+		for index in range(1, path.size()):
+			if not simulation.try_move_character_step(HALVARD_CHARACTER_ID, path[index]):
+				break
+			await get_tree().create_timer(0.18).timeout
+			if not is_instance_valid(self):
+				return
+	halvard_routine_busy = false
+
+
+func _show_halvard_household_dialogue() -> void:
+	var hour := fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0
+	var schedule := simulation.campaign_dwellings.resident_schedule_for(HALVARD_CHARACTER_ID, hour, simulation.get_party_member_ids())
+	var activity := String(schedule.get("activity", "socialise"))
+	var line := "The manor is in good order. I shall see to the household while you are away."
+	match activity:
+		"cook":
+			line = "I have the hearth and provisions in hand. A proper meal is one of the comforts a house should never lack."
+		"housekeeping":
+			line = "I am seeing to the rooms and common spaces. A well-kept home is ready for its people when they return."
+		"manage_stores":
+			line = "I am taking stock of the household stores. I will make certain we know what is running low."
+		"welcome_guests":
+			line = "I am keeping an eye on the entrance. Anyone who comes to the manor will be received properly."
+		"sleep":
+			line = "Forgive me if I seem weary. Even a steward must keep a sensible hour."
+	_show_dialogue("Steward Halvard Greer", line, [{"id": "continue", "label": "Thank you, Halvard.", "text": ""}])
+
+
 func _refresh_dwelling_world_presentation() -> void:
 	if simulation == null:
 		return
 	DWELLING_WORLD_PRESENTATION.present_all(self, simulation.campaign_dwellings, HEX_RADIUS)
+	var manor_profile := simulation.campaign_dwellings.camp_profile_for("silverhart_manor")
+	if bool(manor_profile.get("is_sheltered", false)):
+		var appointment := simulation.campaign_dwellings.appoint_halvard_as_steward()
+		if bool(appointment.get("ok", false)):
+			_ensure_halvard_actor()
 
 
 func _restore_farm_wolf_actor_presentations() -> void:
@@ -2895,6 +3023,10 @@ func _process(delta: float) -> void:
 		movement_controller.process_movement(delta)
 	if camp_activity_director != null:
 		camp_activity_director.process_activity_movement(delta)
+	halvard_routine_accumulator += delta
+	if halvard_routine_accumulator >= 1.0:
+		halvard_routine_accumulator = 0.0
+		_update_halvard_household_routine()
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")
