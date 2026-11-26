@@ -19,7 +19,8 @@ const PROFILES := {
 	"adelram": {"name":"High Cleric Adelram","title":"High Cleric of the Grand Cathedral","race":"human","gender":"male","home":"Silverhart","faction_id":"silverhart_kingdom","role":"high_cleric","affinity_mode":"friendship","familiarity_start":3,"trust_start":7,"friendship_start":0},
 	"thrain_emberhand": {"name":"Thrain Emberhand","title":"Master Runesmith","race":"dwarf","gender":"male","home":"Kragmoor","faction_id":"dwarven_kingdom","role":"master_runesmith","affinity_mode":"friendship","familiarity_start":3,"trust_start":6,"friendship_start":1},
 	"ilsa_rennick": {"name":"Captain Ilsa Rennick","title":"Captain of the Watch","race":"human","gender":"female","home":"Reddale","faction_id":"silverhart_kingdom","role":"watch_captain","affinity_mode":"friendship","familiarity_start":4,"trust_start":8,"friendship_start":1},
-	"chief_skarnub": {"name":"Chief Skarnub","title":"Chief of the Skarn-tooth Tribe","race":"goblin","gender":"male","home":"Skarn-tooth Camp","faction_id":"goblin_tribe","role":"goblin_chief","affinity_mode":"friendship","familiarity_start":0,"trust_start":0,"friendship_start":0}
+	"chief_skarnub": {"name":"Chief Skarnub","title":"Chief of the Skarn-tooth Tribe","race":"goblin","gender":"male","home":"Skarn-tooth Camp","faction_id":"goblin_tribe","role":"goblin_chief","affinity_mode":"friendship","familiarity_start":0,"trust_start":0,"friendship_start":0},
+	"rowan_fletcher": {"name":"Rowan Fletcher","title":"Wandering hunter","race":"human","gender":"male","home":"Hollowmere hinterland","faction_id":"","role":"wandering_hunter","affinity_mode":"full","familiarity_start":0,"trust_start":5,"friendship_start":0}
 }
 
 var states: Dictionary = {}
