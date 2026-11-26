@@ -29,7 +29,9 @@ func _initialize() -> void:
 	# Source-authored Skarn-tooth camp and Skarnak's Hold ground.
 	_check(terrain.terrain_for_hex(Vector2i(203, 23)) == "path", "Goblin campfire prop must not suppress the east-border road path")
 	_check(terrain.is_walkable_for_hex(Vector2i(203, 23)), "The east-border road must remain walkable beneath the non-blocking campfire prop")
-	_check(terrain.terrain_for_hex(Vector2i(204, 23)) == "dirt", "Goblin camp must retain dirt clearing around its central campfire")
+	_check(terrain.terrain_for_hex(Vector2i(204, 23)) == "path", "The source east-border road must continue through the goblin camp clearing beside its central campfire")
+	_check(terrain.terrain_for_hex(Vector2i(204, 22)) == "dirt", "Goblin camp must retain dirt clearing beside the road corridor")
+	_check(terrain.is_walkable_for_hex(Vector2i(204, 23)), "The road cell beside the central campfire must remain walkable")
 	_check(terrain.terrain_for_hex(Vector2i(209, 23)) == "dirt", "Goblin camp clearing must include its radius-six edge")
 	_check(terrain.terrain_for_hex(Vector2i(428, 17)) == "authored", "Orc stronghold central fire must retain its authored building footprint")
 	_check(terrain.terrain_for_hex(Vector2i(427, 17)) == "dirt", "Orc stronghold must retain dirt clearing around its central fire")
