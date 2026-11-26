@@ -1365,6 +1365,9 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with("tunnel_search:"):
+		_handle_tunnel_search(choice_id)
+		return
 	if choice_id.begins_with("tunnel_enter:") or choice_id.begins_with("tunnel_travel:") or choice_id.begins_with("tunnel_return:"):
 		_handle_tunnel_choice(choice_id)
 		return
@@ -2997,6 +3000,13 @@ func _interact_with_multistory_tunnels() -> bool:
 			{"id": "continue", "label": "Leave it for now.", "text": ""}
 		])
 		return true
+	var nearby_secret_id := active_multistory_runtime.get_nearby_undiscovered_secret_passage_id(active_character_id)
+	if not nearby_secret_id.is_empty():
+		_show_dialogue("Hidden Passage", "A section of wall looks slightly out of place. You could examine it more closely.", [
+			{"id": "tunnel_search:" + nearby_secret_id, "label": "Search the wall.", "text": ""},
+			{"id": "continue", "label": "Leave it for now.", "text": ""}
+		])
+		return true
 	var junction_node := active_multistory_runtime.get_tunnel_junction_node(active_character_id)
 	if junction_node.is_empty():
 		return false
@@ -3020,6 +3030,23 @@ func _interact_with_multistory_tunnels() -> bool:
 	choices.append({"id": "continue", "label": "Stay at the junction.", "text": ""})
 	_show_dialogue("Tunnel Junction", "Old brick, worn smooth by years of foot traffic. Passages lead off in more than one direction.", choices)
 	return true
+
+
+func _handle_tunnel_search(choice_id: String) -> void:
+	if not is_instance_valid(active_multistory_runtime):
+		return
+	var secret_id := choice_id.trim_prefix("tunnel_search:")
+	var result: Dictionary = active_multistory_runtime.search_secret_passage(active_character_id, secret_id, ambient_rng.randf())
+	if not bool(result.get("ok", false)):
+		_show_dialogue("Hidden Passage", "You cannot search that section of wall right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if not bool(result.get("found", false)):
+		_show_dialogue("Hidden Passage", "Just old stone and plaster here, as far as you can tell. It might be worth another look.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if String(result.get("node_id", "")) == "palace":
+		simulation.set_meta("chancellor_tunnel_discovered", true)
+	_show_dialogue("Hidden Passage", "A section of wall gives way at your touch — a hidden passage, dug some time ago and never sealed.", [{"id": "continue", "label": "Continue", "text": ""}])
+
 
 func _handle_tunnel_choice(choice_id: String) -> void:
 	if not is_instance_valid(active_multistory_runtime):
