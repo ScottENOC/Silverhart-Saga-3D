@@ -70,7 +70,7 @@ func configure(manifest: Dictionary) -> Dictionary:
 						continue
 					if record.has("position") and not _is_axial(record.get("position", {})):
 						validation_errors.append("%s floor %d: %s has invalid position." % [location_id, floor_number, collection_name])
-					if collection_name == "tile_objects" and String(record.get("type", "")) == "secret_door":
+					if collection_name == "tile_objects" and String(record.get("type", "")) in ["secret_door", "secret_passage"]:
 						var secret_id := String(record.get("id", "")).strip_edges()
 						if secret_id.is_empty() or secret_ids.has(secret_id) or not _is_axial(record.get("position", {})):
 							validation_errors.append("%s floor %d: secret door requires a unique ID and valid position." % [location_id, floor_number])

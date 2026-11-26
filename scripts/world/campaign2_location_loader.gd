@@ -95,5 +95,9 @@ static func load_multistory_location(
 	if runtime.location_state == null:
 		runtime.free()
 		return {"ok": false, "reason": "could_not_configure_multistory_runtime"}
+	if parent.has_method("prepare_multistory_location_runtime"):
+		parent.call("prepare_multistory_location_runtime", location_id)
 	parent.add_child(runtime)
+	if parent.has_method("register_multistory_location_runtime"):
+		parent.call("register_multistory_location_runtime", runtime)
 	return {"ok": true, "location_id": location_id, "runtime": runtime}
