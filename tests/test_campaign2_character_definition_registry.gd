@@ -48,6 +48,20 @@ func _initialize() -> void:
 		push_error("The Silverhart ambassador profiles must preserve their source dialogue IDs.")
 		quit(1)
 		return
+	var cassia := registry.get_character("ambassador_cassia_wren")
+	var cassia_appearance: Dictionary = cassia.get("appearance", {})
+	if cassia.is_empty() or String(cassia.get("dialogue_id", "")) != "aldenreach_ambassador":
+		push_error("Cassia must remain an authored Silverhart ambassador with her dialogue route.")
+		quit(1)
+		return
+	if String(cassia_appearance.get("hair_style", "")) != "cornrows" or String(cassia_appearance.get("hair_colour", "")) != "#241A16" or String(cassia_appearance.get("eye_colour", "")) != "hazel":
+		push_error("Cassia's source-authored Ara hair, eye and colour profile must be applied to her streamed actor.")
+		quit(1)
+		return
+	if not is_equal_approx(float(cassia_appearance.get("height", -1.0)), 0.46) or not is_equal_approx(float(cassia_appearance.get("muscle", -1.0)), 0.83):
+		push_error("Cassia's source-authored Ara body proportions must be retained.")
+		quit(1)
+		return
 	var settlement_registry := Campaign2SettlementDefinitionRegistry.new()
 	if not settlement_registry.validation_errors.is_empty():
 		push_error("Settlement definitions failed while checking ambassador placements: %s" % settlement_registry.validation_errors)
