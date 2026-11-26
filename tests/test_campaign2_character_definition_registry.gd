@@ -54,8 +54,16 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var silverhart := settlement_registry.get_definition("silverhart")
+	if silverhart.is_empty():
+		push_error("The canonical Silverhart settlement definition must resolve.")
+		quit(1)
+		return
+	var placement_data: Dictionary = silverhart.get("placements", {})
 	var placed_ids: Array[String] = []
-	for placement in silverhart.get("placements", {}).get("characters", []):
+	for placement_value in placement_data.get("characters", []):
+		if not placement_value is Dictionary:
+			continue
+		var placement: Dictionary = placement_value
 		placed_ids.append(String(placement.get("character_id", placement.get("id", ""))))
 	if not placed_ids.has("ambassador_brokk_stonehammer") or not placed_ids.has("ambassador_toren_aldwyn"):
 		push_error("Brokk and Toren must remain authored NPC placements in Silverhart.")
