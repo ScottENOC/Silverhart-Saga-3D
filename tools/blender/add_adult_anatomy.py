@@ -669,7 +669,7 @@ class _TubePath:
         return out
 
 
-def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
+def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None, allow_surface_only=False):
     """Extrude the skin disc at C inward into a collapsed, curved passage. Returns (new vertex indices, depth in metres)."""
     import bmesh
     from mathutils.bvhtree import BVHTree
@@ -756,6 +756,12 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
         if kp == len(depths):
             break
     if best_axis is None or best_keep < cfg["min_steps"]:
+        if allow_surface_only:
+            # The external landmark/relief remains useful even where this mesh
+            # has no safe volume for an inward passage. The dry run has not
+            # modified the BMesh, so returning here leaves the surface intact.
+            print(f"{name}: no safe internal path; keeping the external surface detail and omitting the canal")
+            return [], 0.0
         raise RuntimeError(f"{name}: no room inside the body along any candidate path; skip it with the matching "
                            "--no-... flag or edit axis_candidates / length")
     if best_keep < len(depths):
@@ -1037,7 +1043,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         vC, vn = _surface_point(bm, mw, line[iA][0], line[iA][1])
         canal_idx, canal_depth = _carve_tube(bm, mw, inv, vC, vn, k, CANAL, "Vaginal canal", hips_gi)
     if anus_C is not None:
-        anus_idx, anus_depth = _carve_tube(bm, mw, inv, anus_C, anus_n, k, ANUS, "Anal canal", hips_gi)
+        anus_idx, anus_depth = _carve_tube(bm, mw, inv, anus_C, anus_n, k, ANUS, "Anal canal", hips_gi, allow_surface_only=True)
     bm.to_mesh(skin.data)
     bm.free()
     skin.data.update()
