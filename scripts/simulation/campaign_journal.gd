@@ -362,7 +362,9 @@ func cascade_region_campaign_state(region_id: String, stat: String, delta: float
 	var multiplier := 1.0
 	var updates: Array[Dictionary] = []
 	while not current_region_id.is_empty():
-		var update := apply_region_campaign_state(current_region_id, {stat: delta * multiplier})
+		var region_delta: Dictionary = {}
+		region_delta[stat] = delta * multiplier
+		var update := apply_region_campaign_state(current_region_id, region_delta)
 		if not bool(update.get("ok", false)):
 			return update
 		updates.append(update)
