@@ -57,6 +57,15 @@ func _initialize() -> void:
 		assert(PRESENTATION.PATROL_WAYPOINTS[waypoint_index] == expected_waypoints[waypoint_index], "Wild Unicorn patrol waypoint must match the source hex rounding")
 		assert(PRESENTATION.TRACKS[waypoint_index * 3]["hex"] == expected_waypoints[waypoint_index], "Each three-marker trail segment must begin at its source patrol waypoint")
 	assert(total == EXPECTED_TRACKS.size(), "All source track markers must be presented exactly once across the four streamed chunks")
+	# Presentation coverage alone does not prove the unicorn can traverse its
+	# source patrol loop. Check every waypoint and a walkable hex route between
+	# each consecutive pair, including the closing leg.
+	for waypoint in expected_waypoints:
+		assert(terrain.is_walkable_for_hex(waypoint), "Unicorn patrol waypoint must be on walkable terrain: %s (%s)" % [waypoint, terrain.gameplay_terrain_for_hex(waypoint)])
+	for waypoint_index in range(expected_waypoints.size()):
+		var start: Vector2i = expected_waypoints[waypoint_index]
+		var finish: Vector2i = expected_waypoints[(waypoint_index + 1) % expected_waypoints.size()]
+		assert(_has_walkable_route(terrain, start, finish), "Unicorn patrol leg must have a continuous walkable route: %s -> %s" % [start, finish])
 	for index in range(EXPECTED_TRACKS.size()):
 		var actual: Dictionary = PRESENTATION.TRACKS[index]
 		assert(actual.get("hex") == EXPECTED_TRACKS[index][0], "Unicorn hoofprint %d must retain its exact source axial coordinate" % index)
@@ -74,3 +83,29 @@ func _initialize() -> void:
 	shifted_parent.free()
 	print("Wild Unicorn source hoofprint trail presentation tests passed.")
 	quit(0)
+
+
+func _has_walkable_route(terrain: Campaign2WorldTerrainData, start: Vector2i, finish: Vector2i) -> bool:
+	if not terrain.is_walkable_for_hex(start) or not terrain.is_walkable_for_hex(finish):
+		return false
+	var margin := 8
+	var min_q := mini(start.x, finish.x) - margin
+	var max_q := maxi(start.x, finish.x) + margin
+	var min_r := mini(start.y, finish.y) - margin
+	var max_r := maxi(start.y, finish.y) + margin
+	var frontier: Array[Vector2i] = [start]
+	var visited: Dictionary = {"%d,%d" % [start.x, start.y]: true}
+	while not frontier.is_empty():
+		var current: Vector2i = frontier.pop_front()
+		if current == finish:
+			return true
+		for direction in HexGrid.DIRECTIONS:
+			var neighbour: Vector2i = current + direction
+			if neighbour.x < min_q or neighbour.x > max_q or neighbour.y < min_r or neighbour.y > max_r:
+				continue
+			var key := "%d,%d" % [neighbour.x, neighbour.y]
+			if visited.has(key) or not terrain.is_walkable_for_hex(neighbour):
+				continue
+			visited[key] = true
+			frontier.append(neighbour)
+	return false
