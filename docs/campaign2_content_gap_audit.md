@@ -1,7 +1,7 @@
 # Campaign 2 content gap audit — NPCs, dialogue and quests
 
 **Source:** [Hex-crpg](https://github.com/ScottENOC/Hex-crpg), `main` at `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
-**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `017bfa0327bd89e6292dda13b11d0f09efcbcd1f` (before this audit update)  
+**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `d6e08edc529a7d61862cd3ea3b307ef9e492ef9d` (before this audit update)  
 **Audit date:** 2026-11-26  
 **Scope:** Named NPC roster, authored dialogue volume/coverage, explicit quest IDs and campaign-content migration status.
 
@@ -270,7 +270,9 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 
 - [x] Added `ElderMartaContent` with the source accept/active/turn-in flow and the source's pre-found-item shortcut.
 - [x] Added headless regression coverage for both normal acceptance and finding the locket before speaking to Marta, including item consumption, +20 gold, +100 experience, +15 reputation / +20 knowledge and duplicate-reward prevention.
-- [ ] Add Elder Marta's persistent profile and active Hollowmere placement, then connect the service to her live interaction route. The content logic is ported; the actor and runtime path are not.
+- [x] Confirmed Elder Marta's existing Ara profile/model and authored Hollowmere placement at `Vector2i(0, -9)`; added explicit regression assertions for both.
+- [x] Connected her greeting and choice handling to the live Hollow Tankard NPC interaction dispatcher and registered the quest with the campaign journal at startup.
+- [ ] Add or verify the source-authored chapel pickup at world hex `(-14, 0)`. The `elder_locket` item definition exists, but I have not yet found a target world pickup corresponding to the source's chapel placement; the quest logic and dialogue route are therefore not yet fully playable end-to-end.
 
 ## 4. Work order — smallest verifiable steps first
 
