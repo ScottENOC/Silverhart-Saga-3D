@@ -81,6 +81,10 @@ func _test_wall_and_gate_traversal() -> void:
 	_check(is_equal_approx(data.movement_multiplier_for_hex(Vector2i(-4, -507)), 2.0), "The second source ladder should provide the authored reduced wall-crossing cost")
 	_check(data.terrain_for_hex(gate_hex) == "path", "The city gate opening should remain a road/path cell, not a wall cell")
 	_check(data.is_walkable_for_hex(gate_hex), "The city gate opening should remain traversable")
+	var south_approach := Vector2i(8, -436)
+	_check(HexGrid.distance(gate_hex, south_approach) == 1, "The city gate arch must touch the south approach road at the wall opening")
+	_check(data.terrain_for_hex(south_approach) == "path", "The source south approach must reach the city gate without a wall or terrain gap")
+	_check(data.is_walkable_for_hex(south_approach), "The source south approach must remain traversable into the city gate")
 
 func _silverhart_entry(data: Campaign2WorldTerrainData) -> Dictionary:
 	for entry in data.settlement_layouts:
