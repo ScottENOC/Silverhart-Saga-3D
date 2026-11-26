@@ -107,6 +107,8 @@ func _test_household_residents_and_halvard_steward() -> void:
 	_check(String(state.resident_schedule_for("rowan_fletcher", 22.0).get("activity", "")) == "sleep", "Household residents should sleep overnight.")
 	var companion := state.assign_resident("crossroads_cottage", "ser_aldric_thorne")
 	_check(not bool(companion.get("ok", false)) and String(companion.get("reason", "")) == "companions_belong_to_camp_roster", "Companions must remain in the companion/camp system, not household resident assignments.")
+	var wren_assignment := state.assign_resident("crossroads_cottage", "wren_talbot")
+	_check(not bool(wren_assignment.get("ok", false)), "The original Wren companion must also remain outside the household resident roster.")
 	_check(state.resident_schedule_for("ser_aldric_thorne", 22.0).is_empty(), "Rejected companions must not acquire a household schedule.")
 
 	var manor_state := CampaignDwellingState.new()
