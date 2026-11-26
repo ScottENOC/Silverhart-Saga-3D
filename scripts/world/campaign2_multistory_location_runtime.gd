@@ -195,6 +195,65 @@ func get_tunnel_junction_destinations(character_id: String) -> Array[Dictionary]
 	return TUNNEL_NETWORK.destinations_from(_tunnel_node_for_character(character_id))
 
 ## A discovered surface passage enters its matching tunnel node.
+
+## Return an undiscovered surface passage adjacent to the character. Searching
+## is deliberate: merely walking past the concealed wall reveals nothing.
+func get_nearby_undiscovered_secret_passage_id(character_id: String) -> String:
+	if simulation == null or location_state == null or location_state.current_floor != 0:
+		return ""
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return ""
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != 0:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			var secret_id := String(object_data.get("id", ""))
+			if String(object_data.get("type", "")) != "secret_passage" or location_state.is_secret_discovered(secret_id):
+				continue
+			var position: Dictionary = object_data.get("position", {})
+			var secret_hex := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+			if HexGrid.distance(character.axial, secret_hex) <= 1:
+				return secret_id
+	return ""
+
+## Resolve the source-style 35% spot check. The caller supplies the roll so
+## campaign UI can use its normal RNG and tests can exercise both outcomes.
+func search_secret_passage(character_id: String, secret_id: String, discovery_roll: float) -> Dictionary:
+	if discovery_roll < 0.0 or discovery_roll >= 1.0:
+		return {"ok": false, "reason": "invalid_discovery_roll"}
+	if simulation == null or location_state == null:
+		return {"ok": false, "reason": "runtime_not_ready"}
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var secret_object: Dictionary = {}
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != location_state.current_floor:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if object_variant is Dictionary and String(object_variant.get("id", "")) == secret_id and String(object_variant.get("type", "")) == "secret_passage":
+				secret_object = object_variant
+				break
+	if secret_object.is_empty():
+		return {"ok": false, "reason": "unknown_secret_passage"}
+	var position: Dictionary = secret_object.get("position", {})
+	var secret_hex := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+	if HexGrid.distance(character.axial, secret_hex) > 1:
+		return {"ok": false, "reason": "secret_passage_not_nearby"}
+	if location_state.is_secret_discovered(secret_id):
+		return {"ok": true, "found": true, "already_discovered": true, "node_id": String(secret_object.get("node_id", ""))}
+	if discovery_roll >= 0.35:
+		return {"ok": true, "found": false, "already_discovered": false}
+	var reveal: Dictionary = reveal_secret_passage(character_id, secret_id)
+	if not bool(reveal.get("ok", false)):
+		return reveal
+	return {"ok": true, "found": true, "already_discovered": false, "node_id": String(secret_object.get("node_id", ""))}
+
+
 func get_tunnel_entry_node(character_id: String) -> String:
 	return _secret_passage_node_for_character(character_id)
 
