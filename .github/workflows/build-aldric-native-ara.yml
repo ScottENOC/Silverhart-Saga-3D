@@ -20,6 +20,7 @@ on:
       - "tools/review/add_aldric_body_hair.py"
       - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_character_details.py"
+      - "tools/review/aldric_native_preview.gd"
       - ".github/workflows/build-aldric-native-ara.yml"
   workflow_dispatch:
 
