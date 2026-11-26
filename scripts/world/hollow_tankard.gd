@@ -47,6 +47,7 @@ const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
+const ROWAN_ENCOUNTER_CONTENT = preload("res://scripts/simulation/rowan_fletcher_encounter_content.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -144,6 +145,9 @@ var camp_selection_mode: bool = false
 var camp_button: Button
 var camp_sleep_button: Button
 var camp_status_label: Label
+var rowan_roaming_hex: Vector2i = INVALID_HEX
+var rowan_return_accumulator: float = 0.0
+var rowan_return_busy: bool = false
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
@@ -853,6 +857,8 @@ func _sleep_or_pack_camp() -> void:
 			camp_status_label.text = "Could not begin the night: %s" % String(result.get("reason", "unknown"))
 			return
 		var summary: Dictionary = result.get("summary", {})
+		if not bool(summary.get("sleep_interrupted", false)):
+			await _return_rowan_after_night()
 		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 		if encounter_active:
 			camp_status_label.text = "Night ambush! The party has been roused to defend the camp."
@@ -870,6 +876,7 @@ func _sleep_or_pack_camp() -> void:
 			camp_status_label.text = "Could not resume sleep: %s" % String(resumed.get("reason", "unknown"))
 			return
 		var resumed_summary: Dictionary = resumed.get("summary", {})
+		await _return_rowan_after_night()
 		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 		camp_status_label.text = "Morning. The party completed the remaining %.1f hours of sleep." % float(resumed_summary.get("hours", 0.0))
 		camp_sleep_button.text = "Pack camp"
@@ -1222,7 +1229,8 @@ func _build_save_snapshot() -> Dictionary:
 			"elder_locket_collected": elder_locket_collected,
 			"farm_wolves_spawned": farm_wolves_spawned,
 			"farm_wolves_retry_armed": farm_wolves_retry_armed,
-			"wilderness_steps_since_spawn": wilderness_steps_since_spawn
+			"wilderness_steps_since_spawn": wilderness_steps_since_spawn,
+			"rowan_roaming_hex": rowan_roaming_hex
 		},
 		"camera": {
 			"zoom_distance": camera_rig.zoom_distance if camera_rig != null else 28.0,
@@ -1353,6 +1361,8 @@ func _apply_save_data(data: Dictionary) -> void:
 	farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
 	farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
 	wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
+	var saved_rowan_hex: Variant = flags.get("rowan_roaming_hex", INVALID_HEX)
+	rowan_roaming_hex = saved_rowan_hex if saved_rowan_hex is Vector2i else INVALID_HEX
 	active_character_id = String(data.get("active_character_id", "player"))
 	var restored_party := simulation.get_party_member_ids()
 	if not restored_party.has(active_character_id):
@@ -1445,6 +1455,9 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with("rowan_camp:"):
+		_resolve_rowan_camp_choice(choice)
+		return
 	if choice_id.begins_with("tunnel_search:"):
 		_handle_tunnel_search(choice_id)
 		return
@@ -1456,6 +1469,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			var resumed := simulation.continue_camp_sleep()
 			if bool(resumed.get("ok", false)):
 				var summary: Dictionary = resumed.get("summary", {})
+				await _return_rowan_after_night()
 				camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 				camp_status_label.text = "Morning. The party completed the remaining %.1f hours of sleep." % float(summary.get("hours", 0.0))
 				if camp_sleep_button != null:
@@ -1466,7 +1480,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "pack_camp_after_ambush":
 		if simulation != null:
 			simulation.finish_interrupted_camp_night()
-			camp_status_label.text = "The party leaves the remaining sleep hours behind. Pack camp when ready."
+			await _return_rowan_after_night()
+			camp_status_label.text = "The party stays awake through the remaining night hours. Dawn has arrived; pack camp when ready."
 			if camp_sleep_button != null:
 				camp_sleep_button.text = "Pack camp"
 		return
@@ -1793,6 +1808,104 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	return true
 
 
+func _rowan_visit_key() -> String:
+	var site_hex: Variant = simulation.camp_simulation.site.get("hex", Vector2i.ZERO)
+	var camp_hex: Vector2i = site_hex if site_hex is Vector2i else Vector2i.ZERO
+	var world_day := int(floor(simulation.clock.world_seconds / 86400.0))
+	return "%d:%d:%d" % [world_day, camp_hex.x, camp_hex.y]
+
+
+func _show_rowan_camp_encounter() -> void:
+	if simulation.camp_simulation.phase != "evening":
+		_show_dialogue("Rowan Fletcher", "Rowan gives you a friendly nod. “We seem to keep crossing paths. Perhaps we’ll share a fire one evening, when you’ve made camp.”", [{"id": "continue", "label": "Until next time.", "text": ""}])
+		return
+	var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+	var encounter := ROWAN_ENCOUNTER_CONTENT.build_encounter(relationships, {
+		"camp_active": true,
+		"rowan_nearby": true,
+		"visit_key": _rowan_visit_key()
+	})
+	if not bool(encounter.get("ok", false)) or not bool(encounter.get("available", false)):
+		_show_dialogue("Rowan Fletcher", "Rowan smiles and says he’ll leave you to your evening.", [{"id": "continue", "label": "Good night.", "text": ""}])
+		return
+	var choices: Array[Dictionary] = []
+	for value in encounter.get("choices", []):
+		if not value is Dictionary:
+			continue
+		var choice: Dictionary = value.duplicate(true)
+		choice["rowan_choice_id"] = String(choice.get("id", ""))
+		choice["rowan_visit_key"] = String(encounter.get("visit_key", ""))
+		choice["id"] = "rowan_camp:" + String(choice.get("id", ""))
+		choices.append(choice)
+	_show_dialogue(String(encounter.get("speaker", "Rowan Fletcher")), String(encounter.get("text", "")), choices)
+
+
+func _resolve_rowan_camp_choice(choice: Dictionary) -> void:
+	if simulation == null or simulation.camp_simulation.phase != "evening":
+		_show_dialogue("Rowan Fletcher", "The evening has moved on. Perhaps another time.", [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
+	var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+	var choice_id := String(choice.get("rowan_choice_id", ""))
+	var visit_key := String(choice.get("rowan_visit_key", ""))
+	var outcome := ROWAN_ENCOUNTER_CONTENT.resolve_choice(relationships, visit_key, choice_id)
+	if not bool(outcome.get("ok", false)):
+		_show_dialogue("Rowan Fletcher", "That conversation cannot be resolved just now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if bool(outcome.get("accepted_overnight_stay", false)):
+		var guest: Dictionary = outcome.get("camp_occupant", {}).duplicate(true)
+		var registered := simulation.camp_simulation.register_camp_occupant(guest)
+		if not bool(registered.get("ok", false)):
+			_show_dialogue("Rowan Fletcher", "I’m sorry — there isn’t a safe place for me to settle tonight. We’ll try another time.", [{"id": "continue", "label": "Of course.", "text": ""}])
+			return
+		var rowan_state := simulation.get_character("rowan_fletcher")
+		if rowan_state != null and rowan_roaming_hex == INVALID_HEX:
+			rowan_roaming_hex = rowan_state.axial
+		simulation.camp_simulation.assignments["rowan_fletcher"] = {"activity": "socialise", "source": "overnight_guest"}
+		camp_activity_director.begin_camp(simulation.camp_simulation.site)
+		camp_status_label.text = "Rowan Fletcher is sharing the camp tonight. He’ll be on his way at dawn."
+		var response_line := "“Thank you. I’ll keep out of the way and be gone before first light.”"
+		match choice_id:
+			"ask_about_travels":
+				response_line = "Rowan tells you about the villages and hunting trails he has crossed since you last met. The stories stretch on until the fire burns low; he asks if he may stay the night."
+			"share_stories":
+				response_line = "You trade stories beside the fire. Rowan seems reluctant to let the conversation end, but eventually asks where he might bed down for the night."
+			"warm_greeting":
+				response_line = "His smile lingers. “I was hoping you might say that. It’s good to see you again.” He settles beside the fire."
+			"guarded_welcome":
+				response_line = "Rowan accepts your terms without argument and chooses a place where he won’t get in the way."
+		_show_dialogue("Rowan Fletcher", response_line, [{"id": "continue", "label": "Make yourself at home.", "text": ""}])
+	else:
+		_show_dialogue("Rowan Fletcher", "“No hard feelings. Safe roads to you.”", [{"id": "continue", "label": "Safe travels.", "text": ""}])
+
+
+func _return_rowan_after_night() -> void:
+	if rowan_roaming_hex == INVALID_HEX or simulation == null or rowan_return_busy:
+		return
+	if simulation.camp_simulation.occupants.has("rowan_fletcher"):
+		return
+	var rowan_state := simulation.get_character("rowan_fletcher")
+	if rowan_state == null:
+		rowan_roaming_hex = INVALID_HEX
+		return
+	rowan_return_busy = true
+	camp_activity_director.stop()
+	var destination := rowan_roaming_hex
+	var path := simulation.find_path("rowan_fletcher", destination)
+	if path.size() > 1:
+		for step_index in range(1, path.size()):
+			if not simulation.try_move_character_step("rowan_fletcher", path[step_index]):
+				rowan_return_busy = false
+				return
+			await get_tree().create_timer(0.16).timeout
+			if not is_instance_valid(self):
+				return
+	if rowan_state.axial == destination:
+		rowan_roaming_hex = INVALID_HEX
+		if simulation.camp_simulation.phase in ["morning", "resolved"]:
+			camp_activity_director.begin_camp(simulation.camp_simulation.site)
+	rowan_return_busy = false
+
+
 func _close_dialogue() -> void:
 	dialogue_open = false
 	if dialogue_panel != null:
@@ -1832,6 +1945,9 @@ func _interact_with_character(character_id: String) -> void:
 	var player_state := simulation.get_character(active_character_id)
 	var target_state := simulation.get_character(character_id)
 	if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
+		return
+	if character_id == "rowan_fletcher":
+		_show_rowan_camp_encounter()
 		return
 	if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
 		if not _reyna_objective_done("child_rescued"):
@@ -2895,6 +3011,11 @@ func _process(delta: float) -> void:
 		movement_controller.process_movement(delta)
 	if camp_activity_director != null:
 		camp_activity_director.process_activity_movement(delta)
+	if rowan_roaming_hex != INVALID_HEX and not rowan_return_busy and simulation != null and not simulation.camp_simulation.occupants.has("rowan_fletcher") and simulation.camp_simulation.phase in ["morning", "resolved", "inactive"]:
+		rowan_return_accumulator += delta
+		if rowan_return_accumulator >= 1.0:
+			rowan_return_accumulator = 0.0
+			_return_rowan_after_night()
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")

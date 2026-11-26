@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_test_undetected_ambush_applies_explicit_initiative_penalty()
 	_test_victory_cleans_up_wolves_and_ends_combat()
 	_test_party_defeat_resolves_and_cleans_up_wolves()
+	_test_ending_interrupted_sleep_advances_to_dawn_and_releases_guest()
 	if _failures > 0:
 		push_error("%d camp night ambush assertion(s) failed." % _failures)
 		quit(1)
@@ -80,6 +81,27 @@ func _test_victory_cleans_up_wolves_and_ends_combat() -> void:
 	_check(not simulation.is_in_combat, "Night ambush victory should end shared combat.")
 	_check(simulation.get_character(String(started.enemy_ids[0])) == null, "Resolved night wolves should be removed from authoritative simulation state.")
 	_check(result.get("remove_actor_ids", []).size() == 2, "The presenter should receive cleanup requests for both wolf actors.")
+	simulation.free()
+
+
+func _test_ending_interrupted_sleep_advances_to_dawn_and_releases_guest() -> void:
+	var simulation := _new_simulation()
+	simulation.clock.set_world_seconds(25.0 * WorldClock.SECONDS_PER_HOUR)
+	simulation.camp_simulation.begin_camp({"walkable": true}, ["player", "companion"], {}, {})
+	var guest := {
+		"occupant_id": "rowan_fletcher", "kind": "guest", "species": "humanoid",
+		"participates_in_party": false, "can_sleep": true, "can_work": false,
+		"staying_overnight": true, "leaves_at_dawn": true
+	}
+	_check(bool(simulation.camp_simulation.register_camp_occupant(guest).get("ok", false)), "The overnight guest should register before an interrupted night.")
+	simulation.camp_simulation.phase = "interrupted"
+	simulation.camp_simulation.night_planned_hours = 8.0
+	simulation.camp_simulation.night_elapsed_hours = 3.0
+	var finished := simulation.finish_interrupted_camp_night()
+	_check(bool(finished.get("ok", false)), "Ending an interrupted night should succeed outside combat.")
+	_check(is_equal_approx(simulation.clock.world_seconds, 30.0 * WorldClock.SECONDS_PER_HOUR), "Ending interrupted sleep should advance the remaining night hours to dawn without granting sleep recovery.")
+	_check(not simulation.camp_simulation.occupants.has("rowan_fletcher"), "A guest marked to leave at dawn should depart when the interrupted night is ended.")
+	_check(String(simulation.camp_simulation.phase) == "resolved", "The camp should be ready to pack after the night ends.")
 	simulation.free()
 
 
