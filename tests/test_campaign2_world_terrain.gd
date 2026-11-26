@@ -210,6 +210,12 @@ func _test_chunk_boundary_consistency(terrain) -> void:
 		Vector2i(24, -11),
 		"Ordinary terrain across the q=24 chunk boundary"
 	)
+	_assert_shared_chunk_edge(
+		terrain,
+		Vector2i(911, -626),
+		Vector2i(912, -626),
+		"Kragmoor mountain relief across the q=912 chunk boundary"
+	)
 	var crossing_a := Vector2i(382, 23)
 	var crossing_b := Vector2i(382, 24)
 	_check(
