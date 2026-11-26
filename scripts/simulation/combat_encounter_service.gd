@@ -46,12 +46,10 @@ static func begin(
 		var member := simulation.get_character(character_id)
 		member.side = "player"
 		member.combat_dormant = false
-		member.time_points = ActionEconomy.COMBAT_TURN_READY_TP
 	for character_id in enemy_ids:
 		var enemy := simulation.get_character(character_id)
 		enemy.side = "enemy"
 		enemy.combat_dormant = false
-		enemy.time_points = ActionEconomy.COMBAT_TURN_READY_TP
 
 	simulation.start_combat()
 	return {
