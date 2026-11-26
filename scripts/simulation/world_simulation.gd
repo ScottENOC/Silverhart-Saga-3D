@@ -1681,6 +1681,9 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
     var resolved_environment := environment_data.duplicate(true)
     var camp_terrain := String(resolved_site.get("terrain_id", ""))
     resolved_environment.merge(weather_state.conditions_at(clock.world_seconds, camp_terrain), true)
+    var steward_meal_available := String(resolved_site.get("dwelling_id", "")) == "silverhart_manor" and campaign_dwellings.steward_meals_ready > 0
+    if steward_meal_available:
+        resolved_environment["meal_prepared"] = true
     var companion_profiles: Dictionary = {}
     for character_id in party_member_ids:
         var character := get_character(String(character_id))
@@ -1704,6 +1707,8 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
     resolved_environment["player_character_id"] = player_character_id
     var result := camp_simulation.begin_camp(resolved_site, party_member_ids, resolved_environment, resource_data)
     if bool(result.get("ok", false)):
+        if steward_meal_available:
+            campaign_dwellings.consume_steward_meal()
         camp_simulation.plan_sleeping_arrangements(int(camp_simulation.resources.get("tents", 0)), companion_bonds)
     return result
 
