@@ -330,6 +330,7 @@ func _test_border_fort_gate_approaches(terrain) -> void:
 	var northwatch_gate := Vector2i(268, -2)
 	var northwatch_approach_end := Vector2i(268, -3)
 	_check(terrain.terrain_for_hex(northwatch_gate) == "climbable_wall", "Northwatch's gate must retain its closed-wall terrain")
+	_check(not terrain.is_walkable_for_hex(northwatch_gate), "Northwatch's closed gate must block movement until opened")
 	_check(terrain.terrain_for_hex(northwatch_approach_end) == "path", "Northwatch's south approach must reach the outside of its gate")
 	_check(terrain.is_walkable_for_hex(northwatch_approach_end), "Northwatch's approach must remain traversable up to the closed gate")
 	var northwatch_path_count := 0
