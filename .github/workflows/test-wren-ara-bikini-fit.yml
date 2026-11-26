@@ -50,6 +50,10 @@ jobs:
           import json
           from pathlib import Path
           profile = json.loads(Path("character-preview/wren-ara.json").read_text())
+          # Ara's CLI accepts the native character profile, not our custom
+          # post-export detail metadata. The native Wren workflow strips this
+          # same field before export and applies it later with Blender.
+          profile.pop("character_details", None)
           params = profile["params"]
           # Keep every accepted body, face, hair, skin, and rig parameter intact.
           # Only select the two Ara garments for this fitting export.
