@@ -472,6 +472,7 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
         }
         occupied: set[tuple[int, int]] = set()
         expected_markers: dict[str, tuple[int, int]] = {}
+        intentional_marker_overrides: set[str] = set()
         for marker in geography.get("strategic_markers", []):
             if not isinstance(marker, dict):
                 continue
@@ -480,15 +481,24 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
             if not location or scale <= 0:
                 marker_mismatches.append({"id": marker_id, "reason": "missing_location_or_scale"})
                 continue
+            source_name = str(marker.get("source_name", location.get("name", marker_id)))
+            cell_override = marker.get("cell_override")
+            if isinstance(cell_override, list) and len(cell_override) == 2:
+                # The source marker intentionally remains where legacy Hex-crpg
+                # placed it; this target-side override is validated by the
+                # geography manifest and must not be counted as source drift.
+                override_cell = (int(cell_override[0]), int(cell_override[1]))
+                if not (0 <= override_cell[0] < expected_columns and 0 <= override_cell[1] < expected_rows):
+                    marker_mismatches.append({"name": source_name, "reason": "strategic_cell_override_out_of_bounds"})
+                elif override_cell in occupied:
+                    marker_mismatches.append({"name": source_name, "reason": "strategic_cell_override_collision"})
+                occupied.add(override_cell)
+                intentional_marker_overrides.add(source_name)
+                continue
             local_q = int(location.get("q", 0))
             local_r = int(location.get("r", 0))
             desired_column = int(origin.get("column", 0)) + math.floor((local_q - int(origin.get("local_q", 0))) / scale + 0.5)
             desired_row = int(origin.get("row", 0)) + math.floor((local_r - int(origin.get("local_r", 0))) / scale + 0.5)
-            # Explicit strategic-cell overrides document intentional departures
-            # from legacy source marker placement (e.g. separating enemy forts).
-            cell_override = marker.get("cell_override")
-            if isinstance(cell_override, list) and len(cell_override) == 2:
-                desired_column, desired_row = int(cell_override[0]), int(cell_override[1])
             candidates = [
                 (desired_column, desired_row),
                 (desired_column + 1, desired_row),
@@ -509,6 +519,7 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
         actual_markers = {
             str(marker.get("name", "")): (int(marker.get("column", -1)), int(marker.get("row", -1)))
             for marker in markers
+            if str(marker.get("name", "")) not in intentional_marker_overrides
         }
         for name, expected_cell in expected_markers.items():
             if actual_markers.get(name) != expected_cell:
