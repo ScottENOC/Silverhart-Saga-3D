@@ -13,6 +13,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
 	_test_effects_apply_and_persist_once()
+	_test_region_defaults_cascade_and_decay()
 	_test_invalid_effects_have_no_side_effects()
 	_test_recruited_aldric_can_depart_on_betrayal()
 	if _failures > 0:
@@ -94,6 +95,27 @@ func _test_effects_apply_and_persist_once() -> void:
 	_check(simulation.get_character("player").gold == 80, "Save/load must not allow rewards to be farmed")
 
 
+func _test_region_defaults_cascade_and_decay() -> void:
+	var journal := JOURNAL_SCRIPT.new()
+	_check(is_equal_approx(float(journal.region_campaign_state("hollowmere").get("security", 0.0)), 50.0))
+	_check(is_equal_approx(float(journal.region_campaign_state("hollowmere").get("prosperity", 0.0)), 40.0))
+	_check(is_equal_approx(float(journal.region_campaign_state("emberlode").get("security", 0.0)), 30.0))
+	_check(is_equal_approx(float(journal.region_campaign_state("emberlode").get("prosperity", 0.0)), 20.0))
+
+	var cascade := journal.cascade_region_campaign_state("hollowmere", "security", -3.0)
+	_check(bool(cascade.get("ok", false)), "Scout-note security change should cascade to parent regions")
+	_check(is_equal_approx(float(journal.region_campaign_state("hollowmere").get("security", 0.0)), 47.0))
+	_check(is_equal_approx(float(journal.region_campaign_state("aldervale").get("security", 0.0)), 49.1))
+	_check(is_equal_approx(float(journal.region_campaign_state("silverhart_kingdom").get("security", 0.0)), 54.73))
+
+	journal.tick_region_campaign_states(3600.0)
+	var recovered_security := float(journal.region_campaign_state("hollowmere").get("security", 0.0))
+	_check(recovered_security > 47.0 and recovered_security < 55.0, "Regional security should decay gradually toward its parent-derived baseline")
+	var restored := JOURNAL_SCRIPT.new()
+	restored.load_dict(journal.to_dict())
+	_check(is_equal_approx(float(restored.region_campaign_state("hollowmere").get("security", 0.0)), recovered_security), "Current region values must survive save/load")
+
+
 func _test_invalid_effects_have_no_side_effects() -> void:
 	var journal := _journal_with_decision()
 	var simulation := _simulation_with_player_and_aldric()
@@ -102,7 +124,7 @@ func _test_invalid_effects_have_no_side_effects() -> void:
 		"experience": 100
 	})
 	_check(not bool(invalid.get("ok", true)), "Non-finite region effects must be rejected")
-	_check(journal.region_campaign_state("hollowmere").is_empty())
+	_check(is_equal_approx(float(journal.region_campaign_state("hollowmere").get("security", -1.0)), 50.0), "Invalid effects must leave the default regional baseline unchanged")
 	_check(not journal.world_consequences.has("%s::resolution::world_effects" % QUEST_ID))
 	_check(simulation.get_character("player").experience == 0)
 
