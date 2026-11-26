@@ -50,6 +50,18 @@ func _run() -> void:
 	_check(player.axial == Vector2i(-274, 40) and wilderness.get_current_floor() == -9, "Return travel must restore the player to the wilderness junction")
 	_check(wilderness.is_floor_visible(-9) and not city.is_floor_visible(-9), "Returning to the wilderness must restore its floor presentation")
 
+	# Exercise the wilderness cave's ordinary two-stage stair approach through
+	# the same runtime interaction method called by HollowTankard's F key.
+	_check(bool(simulation.relocate_character("tunnel_test_player", Vector2i(-273, 40))), "Move the tunnel traveller clear of the cave entrance")
+	var cave_player := CharacterState.new("cave_stair_test_player", "Cave Stair Test Player", Vector2i(-274, 41))
+	simulation.register_character(cave_player)
+	_check(bool(wilderness.location_state.set_current_floor_for_network_travel(0).get("ok", false)), "The wilderness runtime must return to its surface floor for the cave-stair test")
+	var cave_descent: Dictionary = wilderness.interact_with_stair("cave_stair_test_player")
+	_check(bool(cave_descent.get("ok", false)) and wilderness.get_current_floor() == -1, "The surface cave stair must descend to the first cave level")
+	_check(bool(simulation.relocate_character("cave_stair_test_player", Vector2i(-274, 40))), "The cave traveller must be able to reach the lower tunnel stair")
+	var tunnel_descent: Dictionary = wilderness.interact_with_stair("cave_stair_test_player")
+	_check(bool(tunnel_descent.get("ok", false)) and wilderness.get_current_floor() == -9, "The lower cave stair must reach the wilderness tunnel junction")
+
 	var entrance_player := CharacterState.new("palace_passage_test_player", "Passage Test Player", Vector2i(-10, -492))
 	simulation.register_character(entrance_player)
 	_check(council.get_nearby_undiscovered_secret_passage_id("palace_passage_test_player") == "palace_secret_passage", "The concealed palace passage must be searchable from an adjacent hex")
