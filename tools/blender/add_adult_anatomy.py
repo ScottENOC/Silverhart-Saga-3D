@@ -828,8 +828,7 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None, allow_surface_onl
 
 
 def _perineal_anchor(skin, hipline_z, k, line, arc, sA, P):
-    """(y, z) of the anal verge centre: walk the x~0 body contour posteriorly from the introitus past the
-    fourchette by the perineal body. Uses the pre-sculpt skin."""
+    """Return the anal-verge anchor and a contour measurement from the actual fourchette position."""
     mw = skin.matrix_world
     cy, cz = -0.02 * k, hipline_z + 0.035 * k
     pts = []
@@ -838,7 +837,7 @@ def _perineal_anchor(skin, hipline_z, k, line, arc, sA, P):
         if abs(p.x) > 0.002 * k or not (hipline_z - 0.16 * k < p.z < hipline_z + 0.10 * k):
             continue
         ang = math.atan2(-(p.z - cz), -(p.y - cy))
-        if ang < -0.5 * math.pi:          # back above the centre: not part of the lower contour
+        if ang < -0.5 * math.pi:
             continue
         pts.append((ang, p.y, p.z))
     if len(pts) < 12:
@@ -858,28 +857,41 @@ def _perineal_anchor(skin, hipline_z, k, line, arc, sA, P):
         while j < len(seg) - 2 and seg[j + 1] < s:
             j += 1
         f = (s - seg[j]) / max(seg[j + 1] - seg[j], 1e-9)
-        out.append((pts[j][0] + f * (pts[j + 1][0] - pts[j][0]), pts[j][1] + f * (pts[j + 1][1] - pts[j][1])))
+        out.append((pts[j][0] + f * (pts[j + 1][0] - pts[j][0]),
+                    pts[j][1] + f * (pts[j + 1][1] - pts[j][1])))
         s += step
-    iA = min(range(len(arc)), key=lambda q: abs(arc[q] - sA))
-    y0, z0 = line[iA]
-    j0 = min(range(len(out)), key=lambda q: (out[q][0] - y0) ** 2 + (out[q][1] - z0) ** 2)
-    # Keep the target perineal-body distance absolute. The fourchette location
-    # still scales with character proportions. If the posterior contour is too
-    # short, clamp to its available endpoint rather than failing the build.
-    target_distance = abs(P["t_fourchette"]) * k + ANUS["perineal_body"]
+
+    # Locate the fourchette from its actual surface-curve coordinate, rather than
+    # assuming its nominal 22 mm offset is the distance achieved on this body.
+    fourchette_s = sA + abs(P["t_fourchette"]) * k
+    iF = min(range(len(arc)), key=lambda q: abs(arc[q] - fourchette_s))
+    fourchette_yz = line[iF]
+    jF = min(range(len(out)), key=lambda q:
+             (out[q][0] - fourchette_yz[0]) ** 2 + (out[q][1] - fourchette_yz[1]) ** 2)
+
+    target_distance = ANUS["perineal_body"]
     want = int(round(target_distance / step))
-    available = max(0, len(out) - 1 - j0)
-    j1 = j0 + min(want, available)
-    achieved_distance = (j1 - j0) * step
-    achieved_perineal = max(0.0, achieved_distance - abs(P["t_fourchette"]) * k)
+    available = max(0, len(out) - 1 - jF)
+    j1 = jF + min(want, available)
+    achieved_distance = (j1 - jF) * step
+    introitus_yz = line[min(range(len(arc)), key=lambda q: abs(arc[q] - sA))]
+    introitus_index = min(range(len(out)), key=lambda q:
+                          (out[q][0] - introitus_yz[0]) ** 2 + (out[q][1] - introitus_yz[1]) ** 2)
+    introitus_to_verge = abs(j1 - introitus_index) * step
     if available < want:
-        print(f"Anus spacing fallback: target {ANUS['perineal_body'] * 1000:.1f} mm after "
-              f"fourchette; contour supports {achieved_perineal * 1000:.1f} mm; "
-              "using the longest available contour")
-    print(f"Anus anchor: {achieved_distance * 1000:.1f} mm behind the introitus along the midline "
-          f"(fourchette-to-verge approx. {achieved_perineal * 1000:.1f} mm), "
-          f"y={out[j1][0]:.4f} z={out[j1][1]:.4f}")
-    return out[j1]
+        print(f"Anus spacing fallback: target {target_distance * 1000:.1f} mm from actual fourchette; "
+              f"contour supports {achieved_distance * 1000:.1f} mm; using the longest available contour")
+    print(f"Anus surface spacing: target={target_distance * 1000:.1f} mm, "
+          f"achieved={achieved_distance * 1000:.1f} mm from actual fourchette; "
+          f"introitus-to-verge contour={introitus_to_verge * 1000:.1f} mm")
+    measurement = {
+        "target_mm": target_distance * 1000.0,
+        "achieved_mm": achieved_distance * 1000.0,
+        "introitus_to_verge_mm": introitus_to_verge * 1000.0,
+        "fourchette_world": (fourchette_yz[0], fourchette_yz[1]),
+        "verge_world": (out[j1][0], out[j1][1]),
+    }
+    return out[j1], measurement
 
 
 def _anus_relief(bm, mw, inv, C, n, k):
@@ -953,7 +965,13 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     line, arc = _surface_midline(skin, hipline_z, k)
     iA = _locate_introitus(line, arc, k)
     sA = arc[iA]
-    anus_yz = _perineal_anchor(skin, hipline_z, k, line, arc, sA, P) if anus else None
+    anus_anchor = _perineal_anchor(skin, hipline_z, k, line, arc, sA, P) if anus else None
+    anus_yz = anus_anchor[0] if anus_anchor else None
+    if anus_anchor:
+        _anchor_measurement = anus_anchor[1]
+        skin["anatomy_perineal_target_mm"] = round(_anchor_measurement["target_mm"], 1)
+        skin["anatomy_perineal_achieved_mm"] = round(_anchor_measurement["achieved_mm"], 1)
+        skin["anatomy_introitus_to_anal_verge_mm"] = round(_anchor_measurement["introitus_to_verge_mm"], 1)
     print(f"Female anatomy: midline {len(line)} samples, introitus at y={line[iA][0]:.4f} z={line[iA][1]:.4f}")
 
     prep = _prep_line(line, arc)
