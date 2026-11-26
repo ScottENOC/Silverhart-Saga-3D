@@ -1,0 +1,296 @@
+name: Test Ara bikini fit on accepted Wren body
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/test-wren-ara-bikini-fit.yml"
+      - "character-preview/wren-ara.json"
+      - "art/characters/companions/wren.glb"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/review/wren_native_preview.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-wren-ara-bikini-fit
+  cancel-in-progress: true
+
+jobs:
+  fit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || 'dev' }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Preserve the accepted in-game Wren as the immutable fitting target
+        run: |
+          set -euo pipefail
+          test -s art/characters/companions/wren.glb
+          mkdir -p build/wren-native
+          cp art/characters/companions/wren.glb build/wren-native/Wren_Accepted_Baseline.glb
+          sha256sum build/wren-native/Wren_Accepted_Baseline.glb | tee build/wren-native/accepted-baseline.sha256
+
+      - name: Validate the accepted Ara profile and fitting tools
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/wren-ara.json >/dev/null
+          python -m py_compile tools/ara/assemble_modular_glb.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+
+      - name: Install Blender and numerical dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
+
+      - name: Let Ara fit bikini top and briefs to Wren's accepted parameters
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          profile = json.loads(Path("character-preview/wren-ara.json").read_text())
+          params = profile["params"]
+          # Keep every accepted body, face, hair, skin, and rig parameter intact.
+          # Only select the two Ara garments for this fitting export.
+          params["top"] = "bikini_top"
+          params["bottom"] = "briefs"
+          params["jacket"] = "none"
+          params["outfit"] = "none"
+          params["underwear"] = False
+          Path("build/wren-native/ara-bikini-fit-profile.json").write_text(
+              json.dumps(profile, indent=2) + "\\n"
+          )
+          PY
+          mkdir -p build/wren-native/ara-fitting-export
+          npx --yes ara3d@latest export \\
+            --params build/wren-native/ara-bikini-fit-profile.json \\
+            --detail high --no-animations --formats glb \\
+            --out build/wren-native/ara-fitting-export
+          raw_glb="$(find build/wren-native/ara-fitting-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb
+
+      - name: Apply the same adult anatomy code to Ara's fitting reference
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \\
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \\
+            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \\
+            --output build/wren-native/female-anatomy-subdivision-plan.json
+          test -s build/wren-native/female-anatomy-subdivision-plan.json
+          blender --background --python-exit-code 1 \\
+            --python tools/blender/add_female_anatomy_surface.py -- \\
+            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \\
+            --output build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb \\
+            --report build/wren-native/female-anatomy-report.json \\
+            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json \\
+            --adult --deformation-scale 1.65
+          test -s build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb
+          grep -q '"anatomy_profile": "adult_female_integrated_skin"' build/wren-native/female-anatomy-report.json
+          grep -q '"clothing_operations": "not run"' build/wren-native/female-anatomy-report.json
+
+      - name: Attach only Ara-fitted bikini garments to the exact accepted Wren GLB
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          source = Path("build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb")
+          raw = source.read_bytes()
+          magic, version, total = __import__("struct").unpack_from("<4sII", raw)
+          if magic != b"glTF" or version != 2 or total != len(raw):
+              raise SystemExit("Ara fitting reference is not a valid GLB")
+          offset = 12
+          document = None
+          while offset < total:
+              size, kind = __import__("struct").unpack_from("<I4s", raw, offset)
+              offset += 8
+              payload = raw[offset:offset + size]
+              offset += size
+              if kind == b"JSON":
+                  document = json.loads(payload.decode("utf-8").rstrip(" \\x00"))
+          if document is None:
+              raise SystemExit("Ara fitting reference has no JSON chunk")
+
+          body_nodes = [
+              node for node in document.get("nodes", [])
+              if "mesh" in node and "skin" in node
+          ]
+          if len(body_nodes) != 1:
+              raise SystemExit(f"Expected one Ara skinned character mesh, found {len(body_nodes)}")
+          mesh = document["meshes"][body_nodes[0]["mesh"]]
+          names = sorted({
+              document["materials"][primitive["material"]].get("name", "")
+              for primitive in mesh.get("primitives", [])
+              if primitive.get("material") is not None
+          })
+          garment_names = [name for name in names if re.search(r"bikini|brief", name, re.I)]
+          print("Ara garment materials:", json.dumps(garment_names, indent=2))
+          if len(garment_names) < 2:
+              raise SystemExit(f"Expected Ara bikini top and briefs materials; found {garment_names}")
+          command = [
+              "python", "tools/ara/assemble_modular_glb.py",
+              "build/wren-native/Wren_Accepted_Baseline.glb",
+              "build/wren-native/Wren_Ara_Bikini_Fit.glb",
+              str(source),
+          ]
+          for name in garment_names:
+              command.append(name + "*")
+          subprocess.run(command, check=True)
+          PY
+          test -s build/wren-native/Wren_Ara_Bikini_Fit.glb
+
+      - name: Verify accepted body, face, rig and hair remain unchanged
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, struct
+          from pathlib import Path
+
+          def read(path):
+              raw = Path(path).read_bytes()
+              magic, version, total = struct.unpack_from("<4sII", raw)
+              if magic != b"glTF" or version != 2 or total != len(raw):
+                  raise SystemExit(f"Invalid GLB: {path}")
+              offset = 12
+              doc = None
+              while offset < total:
+                  size, kind = struct.unpack_from("<I4s", raw, offset)
+                  offset += 8
+                  payload = raw[offset:offset + size]
+                  offset += size
+                  if kind == b"JSON":
+                      doc = json.loads(payload.decode("utf-8").rstrip(" \\x00"))
+              return doc
+
+          base = read("build/wren-native/Wren_Accepted_Baseline.glb")
+          fitted = read("build/wren-native/Wren_Ara_Bikini_Fit.glb")
+          base_nodes = [n for n in base["nodes"] if "mesh" in n and "skin" in n]
+          out_nodes = [n for n in fitted["nodes"] if "mesh" in n and "skin" in n]
+          if len(base_nodes) != 1 or len(out_nodes) != 1:
+              raise SystemExit("Accepted Wren body node was not preserved")
+          for key in ("name", "skin", "translation", "rotation", "scale", "matrix"):
+              if base_nodes[0].get(key) != out_nodes[0].get(key):
+                  raise SystemExit(f"Accepted Wren body node changed: {key}")
+          base_mesh = base["meshes"][base_nodes[0]["mesh"]]
+          out_mesh = fitted["meshes"][out_nodes[0]["mesh"]]
+          base_primitives = base_mesh["primitives"]
+          if out_mesh["primitives"][:len(base_primitives)] != base_primitives:
+              raise SystemExit("One or more accepted body/hair primitives changed")
+          if len(out_mesh["primitives"]) <= len(base_primitives):
+              raise SystemExit("No Ara-fitted garment primitives were added")
+          if base["skins"] != fitted["skins"]:
+              raise SystemExit("Accepted Wren skeleton changed")
+          base_materials = base["materials"]
+          for index, material in enumerate(base_materials):
+              if fitted["materials"][index] != material:
+                  raise SystemExit(f"Accepted Wren material changed: {material.get('name')}")
+          print(json.dumps({
+              "accepted_body_primitives_preserved": len(base_primitives),
+              "added_ara_garment_primitives": len(out_mesh["primitives"]) - len(base_primitives),
+              "skeleton_unchanged": True,
+              "existing_materials_unchanged": True,
+              "accepted_baseline_sha256": Path("build/wren-native/accepted-baseline.sha256").read_text().strip()
+          }, indent=2))
+          PY
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Import the assembled Wren bikini preview into Godot
+        run: |
+          set -euo pipefail
+          preview=build/wren-native-preview-project
+          mkdir -p "$preview/build/wren-native" "$preview/tools/review"
+          cp build/wren-native/Wren_Ara_Bikini_Fit.glb "$preview/build/wren-native/Wren.glb"
+          cp tools/review/wren_native_preview.gd "$preview/tools/review/wren_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Wren Ara Bikini Fit Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+          godot --headless --editor --path "$preview" --quit
+
+      - name: Render front, side, three-quarter, face and pelvis review views
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x1024x24" \\
+            godot --path build/wren-native-preview-project \\
+            --rendering-method gl_compatibility \\
+            --rendering-driver opengl3 \\
+            --script res://tools/review/wren_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
+          done
+          test -s build/wren-native-preview-project/build/wren-native/preview/render-report.json
+          cp -R build/wren-native-preview-project/build/wren-native/preview build/wren-native/preview
+
+      - name: Package isolated fitting result and provenance
+        run: |
+          python - <<'PY'
+          import json, zipfile
+          from pathlib import Path
+          root = Path("build/wren-native")
+          provenance = {
+              "accepted_body": "art/characters/companions/wren.glb",
+              "profile": "character-preview/wren-ara.json",
+              "ara_fitting_params": {"top": "bikini_top", "bottom": "briefs"},
+              "adult_anatomy": "tools/blender/add_female_anatomy_surface.py --adult --deformation-scale 1.65",
+              "body_rebuilt_for_final": False,
+              "body_hair_rebuilt_for_final": False,
+              "final_body_source": "unchanged accepted Wren GLB",
+              "garment_source": "Ara native fitted bikini top and briefs",
+          }
+          (root / "fit-provenance.json").write_text(json.dumps(provenance, indent=2) + "\\n")
+          with zipfile.ZipFile(root / "Wren_Ara_Bikini_Fit_Review.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Wren_Ara_Bikini_Fit.glb", "Wren_Ara_Bikini_Fit.glb")
+              archive.write(root / "fit-provenance.json", "fit-provenance.json")
+              archive.write(root / "female-anatomy-report.json", "female-anatomy-report.json")
+              archive.write(root / "accepted-baseline.sha256", "accepted-baseline.sha256")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+          PY
+
+      - name: Upload separate fitting candidate and review images
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-ara-bikini-fit-review-${{ github.run_number }}
+          path: |
+            build/wren-native/Wren_Ara_Bikini_Fit.glb
+            build/wren-native/Wren_Ara_Bikini_Fit_Review.zip
+            build/wren-native/fit-provenance.json
+            build/wren-native/female-anatomy-report.json
+            build/wren-native/preview/
+          if-no-files-found: error
+          retention-days: 30
