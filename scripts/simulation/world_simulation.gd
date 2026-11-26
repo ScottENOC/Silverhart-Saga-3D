@@ -28,6 +28,7 @@ var clock: WorldClock = WorldClock.new()
 var weather_state: WorldWeatherState = WorldWeatherState.new()
 var turn_scheduler: CombatTurnScheduler = CombatTurnScheduler.new()
 var is_in_combat: bool = false
+var _suppress_time_point_regeneration: bool = false
 var pending_reaction: Dictionary = {}
 var next_reaction_request_id: int = 1
 var pending_attack_context: Dictionary = {}
@@ -1736,11 +1737,14 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
     if not bool(result.get("ok", false)):
         return result
     var skipped_seconds := float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR
-    var encounter_interrupted_sleep := is_in_combat
+    var encounter_interrupted_sleep := bool(result.summary.get("sleep_interrupted", false))
+    # The encounter signal is emitted before the clock fast-forwards. Freeze TP
+    # regeneration across those ticks even if combat starts synchronously.
+    _suppress_time_point_regeneration = encounter_interrupted_sleep
     var skipped_ticks := clock.skip_world_seconds(skipped_seconds)
-    # A night encounter can start synchronously from the camp-resolution signal.
-    # Advance the clock to the attack, but do not grant the rest of the night as
-    # post-combat TP regeneration or erase the encounter's surprise modifier.
+    _suppress_time_point_regeneration = false
+    # The remaining night is resumed explicitly after combat; it must not be
+    # granted as free TP regeneration during the interrupted segment.
     if encounter_interrupted_sleep:
         return result
     for state_variant in characters.values():
@@ -1763,6 +1767,8 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     for value in characters.values():
         var state := value as CharacterState
         if state != null and state.alive:
+            if _suppress_time_point_regeneration:
+                continue
             var previous_tp := state.time_points
             state.regenerate_time_points(camp_simulation.time_point_regeneration_multiplier(state.id))
             var gained_tp := maxf(0.0, state.time_points - previous_tp)
