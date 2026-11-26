@@ -62,7 +62,7 @@ func _run() -> void:
         "side": {"target": Vector3(0.0, 0.84, 0.0), "offset": Vector3(4.2, 0.0, 0.0), "size": 1.95},
         "threequarter": {"target": Vector3(0.0, 0.84, 0.0), "offset": Vector3(3.2, 0.0, 3.2), "size": 1.95},
         "face": {"target": Vector3(0.0, 1.54, 0.0), "offset": Vector3(0.0, 0.0, 2.1), "size": 0.62},
-        "pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, 1.45), "size": 0.54},
+        "pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, 1.45), "size": 0.54},\n        "rear_pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, -1.45), "size": 0.54},
         "abdomen": {"target": Vector3(0.0, 1.05, 0.0), "offset": Vector3(0.0, 0.0, 1.55), "size": 0.82}
     }
 
@@ -92,7 +92,7 @@ func _run() -> void:
         push_error("Could not write Aldric render report")
         quit(1)
         return
-    report["views"] = ["front", "side", "threequarter", "face", "pelvis", "abdomen"]
+    report["views"] = ["front", "side", "threequarter", "face", "pelvis", "rear_pelvis", "abdomen"]
     report_file.store_string(JSON.stringify(report, "\t") + "\n")
     report_file.close()
 
