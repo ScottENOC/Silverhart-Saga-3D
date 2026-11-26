@@ -248,7 +248,7 @@ func assign_resident(dwelling_id: String, character_id: String, character_profil
 	var clean_id := character_id.strip_edges()
 	if clean_id.is_empty():
 		return {"ok": false, "reason": "missing_character_id"}
-	if CompanionCampaignContent.is_companion_id(clean_id):
+	if _is_companion_character_id(clean_id):
 		return {"ok": false, "reason": "companions_belong_to_camp_roster"}
 	var profile := camp_profile_for(dwelling_id)
 	if profile.is_empty():
@@ -346,6 +346,10 @@ func resident_schedule_for(character_id: String, local_hour: float, party_ids: A
 		"household_role": String(resident.get("household_role", "resident")),
 		"duties": (resident.get("duties", []) as Array).duplicate(true)
 	}
+
+
+func _is_companion_character_id(character_id: String) -> bool:
+	return CompanionCampaignContent.is_companion_id(character_id) or CompanionRelationshipState.PROFILES.has(character_id) or character_id == "companion_wren_talbot"
 
 
 func _preferred_resident_activity(character_profile: Dictionary) -> String:
@@ -632,7 +636,7 @@ func from_dict(data: Dictionary) -> bool:
 	for character_id_value in saved_residents:
 		var character_id := String(character_id_value)
 		var resident_value: Variant = saved_residents[character_id_value]
-		if character_id.is_empty() or CompanionCampaignContent.is_companion_id(character_id) or not resident_value is Dictionary:
+		if character_id.is_empty() or _is_companion_character_id(character_id) or not resident_value is Dictionary:
 			return false
 		var resident: Dictionary = resident_value
 		var dwelling_id := String(resident.get("dwelling_id", ""))
