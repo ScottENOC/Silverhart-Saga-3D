@@ -31,6 +31,15 @@ func _test_source_path() -> void:
 	_check(int(result.get("features", 0)) == expected.size(), "All source path cells should be presented exactly once")
 	_check(result.get("anchor") == centre and result.get("waypoint") == centre + PRESENTATION.WAYPOINT_OFFSET and result.get("doorway") == centre + PRESENTATION.DOORWAY_OFFSET, "Approach presentation must use the canonical house anchor and source offsets")
 	_check(result.get("path_hexes") == expected, "Returned path cells must be derived from the canonical house anchor")
+	# The source path is only useful if it is physically traversable from the
+	# north-road waypoint through both painted cells and into the west doorway.
+	var approach: Array[Vector2i] = [centre + PRESENTATION.WAYPOINT_OFFSET]
+	approach.append_array(expected)
+	approach.append(centre + PRESENTATION.DOORWAY_OFFSET)
+	for index in range(approach.size()):
+		_check(data.is_walkable_for_hex(approach[index]), "Abandoned-house approach cell must be walkable: %s" % approach[index])
+		if index > 0:
+			_check(HexGrid.distance(approach[index - 1], approach[index]) == 1, "Abandoned-house approach cells must be contiguous neighbours")
 	var path_root := parent.get_node_or_null("AbandonedHouseApproach")
 	_check(path_root != null, "Path should have a stable presentation root")
 	if path_root != null:
