@@ -1142,13 +1142,15 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
         nearest = tree.find_nearest(query)
         if nearest and nearest[0] is not None:
             point, normal, face_index, distance = nearest
-            if distance < 0.45 and normal.length > 0.5:
-                # Prefer the candidate nearest the intended landmark height;
-                # distance is a guard against selecting a remote body surface.
+            if normal.length > 0.5:
+                # The query is deliberately placed outside the body (rear_y=3)
+                # so its nearest point is the posterior surface. Its absolute
+                # distance is therefore mostly the intentional camera offset,
+                # not a proximity-to-landmark test.
                 candidates.append((abs(offset), distance, point.copy(),
                                    normal.normalized(), face_index))
     if not candidates:
-        raise RuntimeError("Could not find posterior skin near the lower gluteal placement band")
+        raise RuntimeError("Could not find any skin surface from the rear landmark query")
     _height_error, _distance, centre_hit, centre_normal, centre_face = min(
         candidates, key=lambda item: (item[0], item[1])
     )
