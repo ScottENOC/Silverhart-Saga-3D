@@ -2055,7 +2055,7 @@ func _refresh_nearby_interactions() -> void:
 	# Hostile campaign actors are handled by their encounter-specific systems;
 	# the existing dire wolf is the one local exception with a direct engage UI.
 	for index in range(nearby.size() - 1, -1, -1):
-		if bool(nearby[index].get("hostile", false)) and String(nearby[index].get("id", "")) != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
+		if bool(nearby[index].get("hostile", false)) and String(nearby[index].get("id", "")) not in [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID, TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID]:
 			nearby.remove_at(index)
 	for child in nearby_interaction_box.get_children():
 		child.free()
