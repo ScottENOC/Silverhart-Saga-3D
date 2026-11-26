@@ -446,15 +446,15 @@ func _test_skarnaks_hold(terrain: Campaign2WorldTerrainData, entries: Array) -> 
 	var buildings: Array = definition.get("layout", {}).get("buildings", [])
 	_check(buildings.size() == 9, "Skarnak's Hold must retain its warlord hut, seven huts and central fire")
 	var expected := {
-		"skarnaks_warlord_hut": Vector2i(428, 14),
-		"skarnaks_hut_west_north": Vector2i(424, 16),
-		"skarnaks_hut_east_north": Vector2i(432, 16),
-		"skarnaks_hut_west_south": Vector2i(424, 19),
-		"skarnaks_hut_east_south": Vector2i(432, 19),
-		"skarnaks_hut_south": Vector2i(428, 20),
-		"skarnaks_hut_southwest": Vector2i(426, 20),
-		"skarnaks_hut_northeast": Vector2i(430, 14),
-		"skarnaks_central_fire": Vector2i(428, 17)
+		"skarnaks_warlord_hut": Vector2i(688, 14),
+		"skarnaks_hut_west_north": Vector2i(684, 16),
+		"skarnaks_hut_east_north": Vector2i(692, 16),
+		"skarnaks_hut_west_south": Vector2i(684, 19),
+		"skarnaks_hut_east_south": Vector2i(692, 19),
+		"skarnaks_hut_south": Vector2i(688, 20),
+		"skarnaks_hut_southwest": Vector2i(686, 20),
+		"skarnaks_hut_northeast": Vector2i(690, 14),
+		"skarnaks_central_fire": Vector2i(688, 17)
 	}
 	for building_id in expected:
 		var building := _find_record(buildings, building_id)
@@ -462,9 +462,9 @@ func _test_skarnaks_hold(terrain: Campaign2WorldTerrainData, entries: Array) -> 
 		if not building.is_empty():
 			_assert_axial(building.get("center", {}), expected[building_id], building_id + " source position")
 			_check(BUILDING_FACTORY.supports_definition(building), "Orc stronghold structure must use a supported shared archetype: " + building_id)
-	_check(terrain.terrain_for_hex(Vector2i(428, 14)) == "authored", "Warlord hut must occupy its clearing footprint")
-	_check(terrain.terrain_for_hex(Vector2i(420, 17)) == "path", "Stronghold west gate must connect to the authored road approach")
-	_check(terrain.terrain_for_hex(Vector2i(436, 17)) == "climbable_wall", "Orc stronghold perimeter must remain a climbable wall")
+	_check(terrain.terrain_for_hex(Vector2i(688, 14)) == "authored", "Warlord hut must occupy its clearing footprint")
+	_check(terrain.terrain_for_hex(Vector2i(680, 17)) == "path", "Stronghold west gate must connect to the authored road approach")
+	_check(terrain.terrain_for_hex(Vector2i(696, 17)) == "climbable_wall", "Orc stronghold perimeter must remain a climbable wall")
 	_check(String(definition.get("source", "")).contains("buildOrcStronghold"), "Orc stronghold must retain source traceability")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
