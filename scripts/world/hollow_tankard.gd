@@ -1526,6 +1526,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		if not bool(brokk_result.get("ok", false)):
 			_show_dialogue("Ambassador Brokk Stonehammer", "That could not be completed: %s." % String(brokk_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
 			return
+		if choice_id == "brokk_accept_toll" and resource_status_label != null:
+			resource_status_label.text = "Quest added: Coin for the Deepholds."
 		if bool(brokk_result.get("quest_completed", false)) and resource_status_label != null:
 			resource_status_label.text = "Quest complete: Coin for the Deepholds  ·  -15 gold  ·  +60 XP"
 		var brokk_dialogue: Variant = brokk_result.get("dialogue", {})
@@ -1546,7 +1548,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		if not bool(toren_result.get("ok", false)):
 			_show_dialogue("Ambassador Toren Aldwyn", "That could not be completed: %s." % String(toren_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
 			return
-		if bool(toren_result.get("quest_started", false)) and resource_status_label != null:
+		if choice_id == "toren_accept_report" and resource_status_label != null:
+			resource_status_label.text = "Quest added: Eyes on the Border."
 			resource_status_label.text = "Quest added: Eyes on the Border."
 		if bool(toren_result.get("quest_completed", false)) and resource_status_label != null:
 			resource_status_label.text = "Quest complete: Eyes on the Border  ·  +15 gold  ·  +60 XP"
