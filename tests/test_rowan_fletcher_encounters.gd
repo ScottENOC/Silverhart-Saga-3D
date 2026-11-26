@@ -60,7 +60,7 @@ func _test_overnight_guest_and_progression() -> void:
 	_check(bool(conversation.get("accepted_overnight_stay", false)), "Continuing the conversation should still permit Rowan to stay for the night.")
 	_check(RowanFletcherEncounterContent.relationship_phase(conversation.relationship) == "new_acquaintance", "The relationship phase should remain distinct from a committed romance.")
 
-	var progressed := relationships.adjust_relationship("rowan_fletcher", {"familiarity": 12, "friendship": 20, "trust": 30, "attraction": 20, "romantic_bond": 35}, "test accumulated long-distance relationship")
+	var progressed := relationships.adjust_relationship("rowan_fletcher", {"familiarity": 12, "friendship": 20, "trust": 25, "attraction": 20, "romantic_bond": 20}, "test accumulated long-distance relationship")
 	_check(RowanFletcherEncounterContent.relationship_phase(progressed) == "long_distance_romance", "The relationship phase should recognise a gradual long-distance romance only after its separate axes mature.")
 
 
