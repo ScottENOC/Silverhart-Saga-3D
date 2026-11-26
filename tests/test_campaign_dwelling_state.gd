@@ -127,6 +127,18 @@ func _test_household_residents_and_halvard_steward() -> void:
 	_check(String(manor_state.resident_schedule_for("steward_halvard_greer", 15.0).get("activity", "")) == "welcome_guests", "Halvard should receive visitors in the afternoon.")
 	_check(String(manor_state.resident_schedule_for("steward_halvard_greer", 18.0).get("activity", "")) == "cook", "Halvard should prepare the evening meal.")
 	_check(manor_state.resident_ids_for_dwelling("silverhart_manor").has("steward_halvard_greer"), "Halvard should remain permanently assigned to the manor.")
+	_add_item(manor_player, "fruit", 2)
+	var breakfast_cooked := manor_state.prepare_steward_meal(7.5 * 3600.0, manor_player)
+	_check(bool(breakfast_cooked.get("ok", false)) and String(breakfast_cooked.get("meal_slot", "")) == "breakfast", "Halvard should cook breakfast from household food during his morning hearth shift.")
+	_check(manor_state.steward_meals_ready == 1, "A successfully cooked meal should be stored for the household.")
+	_check(not bool(manor_state.prepare_steward_meal(8.0 * 3600.0, manor_player).get("ok", false)), "Halvard must not cook a second breakfast during the same day.")
+	var supper_cooked := manor_state.prepare_steward_meal(17.5 * 3600.0, manor_player)
+	_check(bool(supper_cooked.get("ok", false)) and String(supper_cooked.get("meal_slot", "")) == "supper", "Halvard should prepare supper during his evening hearth shift.")
+	_check(manor_state.steward_meals_ready == 2, "Breakfast and supper should be stored independently.")
+	_check(manor_state.consume_steward_meal() and manor_state.steward_meals_ready == 1, "A household meal should be consumable once when the party uses the manor.")
+	var restored_manor := CampaignDwellingState.new()
+	_check(restored_manor.from_dict(manor_state.to_dict()), "Halvard's household cooking state should restore from a save.")
+	_check(restored_manor.steward_meals_ready == 1 and restored_manor.steward_breakfast_day == 0 and restored_manor.steward_supper_day == 0, "Saved meals and daily cooking limits should survive loading.")
 
 func _test_save_restore() -> void:
 	var state := CampaignDwellingState.new()
