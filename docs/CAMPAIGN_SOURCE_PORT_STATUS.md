@@ -7,6 +7,8 @@
 
 This document distinguishes existing target functionality from the source systems that still need migration. A file existing in the 3D repository is not, by itself, evidence that the complete original feature has been ported.
 
+**Detailed content gap ledger:** [Campaign 2 content gap audit](campaign2_content_gap_audit.md) — pinned source-to-target NPC roster, dialogue-volume and quest-ID reconciliation, with outstanding items and migration checklists (2026-11-26).
+
 ## Existing 3D campaign foundations
 
 | Area | Existing target implementation | Current assessment |
