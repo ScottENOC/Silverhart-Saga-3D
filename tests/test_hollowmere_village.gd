@@ -188,6 +188,9 @@ func _test_hollowmere_character_manifest() -> void:
 		else:
 			assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.has(character_id), "%s must have a local start or an explicit deferred recruitment-region marker" % character_id)
 	assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 13, "Only characters actually present in the opening settlement should have local starts; Reyna is placed at Old Mac’s Farmstead")
+	assert(ids.has("elder_marta"), "Elder Marta must retain her authored Hollowmere character profile")
+	assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has("elder_marta"), "Elder Marta must be placed in the opening village")
+	assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS["elder_marta"] == Vector2i(0, -9), "Elder Marta must remain at the authored elder-house position")
 	assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.size() == 8, "Companions outside the opening settlement should remain explicitly deferred or retain their authored external placement")
 	assert(HOLLOWMERE_PLACEMENTS.FARM_ANIMALS.size() == 6, "All six farm animal placements must remain authored")
 	assert(HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS.size() == 4, "All four ambient wildlife placements must remain authored")
