@@ -284,7 +284,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Added `AldenreachMessageContent` for the source's accept, waiting, delivered-to-elder and report-back states.
 - [x] Connected Cassia's existing streamed actor dialogue route and Elder Marta's existing local interaction route; delivery is recorded when the player speaks to Marta.
 - [x] Added regression coverage for the two-stage delivery, rewards (+15 gold, +60 experience, +10 Cassia reputation / +15 knowledge) and duplicate-claim prevention.
-- [x] Applied Cassia's source-authored Ara appearance profile directly to her Silverhart settlement character definition (hazel eyes, dark cornrows, source skin tone and body proportions). The existing settlement actor factory consumes these fields when creating her streamed Ara actor; regression coverage now checks the dialogue identity and key appearance parameters. This uses the shared Ara base body, not a bespoke generated GLB.
+- [x] Applied source-authored Ara appearance profiles directly to the Silverhart diplomatic-quarter envoys: Cassia Wren, Elarion, Brokk Stonehammer and Toren Aldwyn. The existing settlement actor factory consumes their eye/hair colours, hairstyles, skin tones and body proportions when creating streamed Ara actors; regression coverage checks the four profiles and Cassia's dialogue identity. This uses the shared Ara base bodies, not bespoke generated GLBs.
 
 ## 4. Work order — smallest verifiable steps first
 
