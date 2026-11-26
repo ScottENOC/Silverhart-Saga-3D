@@ -1051,15 +1051,15 @@ func _resolve_night_threat(ambush_chance: float, night_hours: float) -> Dictiona
 			detecting_watcher = shift_watcher
 		var detection_roll := rng.randf()
 		if detection_roll < shift_detection:
-			var attack_hour := (float(shift.get("start_hour", 0.0)) + float(shift.get("end_hour", night_hours))) * 0.5
-			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "shift_index": shift_index, "attack_hour": attack_hour, "seed": seed_value}
-	var attack_hour := night_hours / 6.0
+			var detected_attack_hour := (float(shift.get("start_hour", 0.0)) + float(shift.get("end_hour", night_hours))) * 0.5
+			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "shift_index": shift_index, "attack_hour": detected_attack_hour, "seed": seed_value}
+	var undetected_attack_hour := night_hours / 6.0
 	var attack_shift_index := -1
 	if not night_watch_schedule.is_empty():
 		attack_shift_index = night_watch_schedule.size() - 1
 		var last_shift: Dictionary = night_watch_schedule[attack_shift_index]
-		attack_hour = (float(last_shift.get("start_hour", 0.0)) + float(last_shift.get("end_hour", night_hours))) * 0.5
-	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "shift_index": attack_shift_index, "attack_hour": attack_hour, "seed": seed_value}
+		undetected_attack_hour = (float(last_shift.get("start_hour", 0.0)) + float(last_shift.get("end_hour", night_hours))) * 0.5
+	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "shift_index": attack_shift_index, "attack_hour": undetected_attack_hour, "seed": seed_value}
 
 
 func _has_activity(activity: String) -> bool:
