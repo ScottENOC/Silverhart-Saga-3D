@@ -1,6 +1,8 @@
 name: Test Ara bikini fit on accepted Wren body
 
 on:
+  push:
+    branches: [feature/wren-ara-bikini-fit-on-accepted-body]
   pull_request:
     branches: [dev]
     paths:
