@@ -55,7 +55,7 @@ func _initialize() -> void:
 	assert(HexGrid.distance(ridgehold_hex, skarnaks_hex) >= 200, "Opposing Ridgehold and Skarnak's Hold fortresses must remain beyond direct sight and immediate tactical range")
 
 	var connections: Array = parsed.get("connections", [])
-	assert(connections.size() == 22, "The current first-pass travel graph should contain 22 connections")
+	assert(connections.size() == 21, "The travel graph should not link opposing Ridgehold and Skarnak's Hold fortresses directly")
 	for connection in connections:
 		assert(ids.has(String(connection.get("from", ""))), "Connection has unknown origin")
 		assert(ids.has(String(connection.get("to", ""))), "Connection has unknown destination")
