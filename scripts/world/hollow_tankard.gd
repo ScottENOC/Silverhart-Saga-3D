@@ -2343,8 +2343,8 @@ func _on_camp_night_encounter_resolved(result: Dictionary) -> void:
 		return
 	var camp_hex: Vector2i = camp_hex_value
 	var spawn_offsets: Array[Vector2i] = [
-		Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2),
-		Vector2i(0, -2), Vector2i(2, -2), Vector2i(-2, 2)
+		Vector2i(3, 0), Vector2i(-3, 0), Vector2i(0, 3),
+		Vector2i(0, -3), Vector2i(3, -3), Vector2i(-3, 3)
 	]
 	var spawn_hexes: Array[Vector2i] = []
 	for offset in spawn_offsets:
