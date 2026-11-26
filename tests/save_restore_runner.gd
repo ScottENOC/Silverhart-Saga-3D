@@ -22,6 +22,14 @@ func _run() -> void:
     }
     var baseline := WorldSimulation.new()
     var player_state := CharacterCreationRules.create_player_state(profile, "player", Vector2i.ZERO)
+    var saved_character_diffs := {"player": {"__full_record": player_state.to_dict()}}
+    for index in range(3):
+        var wolf_id := "farm_wolf_%02d" % (index + 1)
+        var wolf_state := CharacterState.new(wolf_id, "Wolf", Vector2i(18 + index, -7))
+        wolf_state.side = "enemy"
+        wolf_state.max_health = 75
+        wolf_state.health = 75
+        saved_character_diffs[wolf_id] = {"__full_record": wolf_state.to_dict()}
     player_state.gold = 1234
     player_state.health = 42
 
@@ -54,7 +62,7 @@ func _run() -> void:
         "schema_version": 1,
         "location": "Save/Restore Integration Test",
         "player_profile": profile,
-        "character_diffs": {"player": {"__full_record": player_state.to_dict()}},
+        "character_diffs": saved_character_diffs,
         "appearance_diffs": {
             "companion_wren_talbot": {"hairColor": "#123456"}
         },
@@ -142,6 +150,11 @@ func _run() -> void:
         var camera = tavern.get("camera_rig")
         _check(camera != null and is_equal_approx(float(camera.zoom_distance), 22.0), "Camera zoom should be restored")
         var actors: Dictionary = tavern.get("actor_by_id")
+        for wolf_id in ["farm_wolf_01", "farm_wolf_02", "farm_wolf_03"]:
+            var wolf_actor := actors.get(wolf_id) as Node3D
+            _check(wolf_actor != null, "Saved active farm wolf %s should have a visible actor after load" % wolf_id)
+            if wolf_actor != null:
+                _check(bool(wolf_actor.get_meta("farm_quest_wolf", false)), "Restored farm wolves should retain their encounter actor identity")
         var wren := actors.get("companion_wren_talbot") as Node3D
         _check(wren != null, "The base Wren actor should be rebuilt before applying appearance diffs")
         if wren != null:
