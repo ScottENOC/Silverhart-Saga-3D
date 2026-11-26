@@ -1860,7 +1860,17 @@ func _resolve_rowan_camp_choice(choice: Dictionary) -> void:
 		simulation.camp_simulation.assignments["rowan_fletcher"] = {"activity": "socialise", "source": "overnight_guest"}
 		camp_activity_director.begin_camp(simulation.camp_simulation.site)
 		camp_status_label.text = "Rowan Fletcher is sharing the camp tonight. He’ll be on his way at dawn."
-		_show_dialogue("Rowan Fletcher", "“Thank you. I’ll keep out of the way and be gone before first light.”", [{"id": "continue", "label": "Make yourself at home.", "text": ""}])
+		var response_line := "“Thank you. I’ll keep out of the way and be gone before first light.”"
+		match choice_id:
+			"ask_about_travels":
+				response_line = "Rowan tells you about the villages and hunting trails he has crossed since you last met. The stories stretch on until the fire burns low; he asks if he may stay the night."
+			"share_stories":
+				response_line = "You trade stories beside the fire. Rowan seems reluctant to let the conversation end, but eventually asks where he might bed down for the night."
+			"warm_greeting":
+				response_line = "His smile lingers. “I was hoping you might say that. It’s good to see you again.” He settles beside the fire."
+			"guarded_welcome":
+				response_line = "Rowan accepts your terms without argument and chooses a place where he won’t get in the way."
+		_show_dialogue("Rowan Fletcher", response_line, [{"id": "continue", "label": "Make yourself at home.", "text": ""}])
 	else:
 		_show_dialogue("Rowan Fletcher", "“No hard feelings. Safe roads to you.”", [{"id": "continue", "label": "Safe travels.", "text": ""}])
 
