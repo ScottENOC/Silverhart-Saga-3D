@@ -579,10 +579,12 @@ func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) 
 		var next_index := (index + 1) % HexGrid.SIDE_COUNT
 		var next_vertex := Vector3(corners[next_index].x, terrain_data.shared_vertex_elevation(hex, next_index), corners[next_index].y)
 		var current_vertex := Vector3(corners[index].x, terrain_data.shared_vertex_elevation(hex, index), corners[index].y)
+		# Godot treats clockwise triangles viewed from the front as visible.
+		# With Y-up terrain viewed from above, current -> next is the front-face order.
 		surface.set_normal(Vector3.UP)
 		surface.add_vertex(centre)
-		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + next_vertex)
 		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + current_vertex)
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + next_vertex)
 
 func _add_chunk_locations(parent: Node3D, chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE

@@ -7,6 +7,8 @@ var failures: int = 0
 
 func _initialize() -> void:
 	var registry = REGISTRY.new()
+	_test_silverhart_palace_floors(registry)
+	_test_silverhart_restored_source_floor_cells(registry)
 	var definition: Dictionary = registry.get_definition("kragmoor")
 	_check(not definition.is_empty(), "Kragmoor source floor definition must be available")
 	var state = LOCATION_STATE.new()
@@ -528,6 +530,70 @@ func _has_object(objects: Array, object_id: String) -> bool:
 		if object is Dictionary and String(object.get("id", "")) == object_id:
 			return true
 	return false
+
+
+
+func _test_silverhart_restored_source_floor_cells(registry) -> void:
+	var source_floor_cells := {
+		"silverhart_palace_wizard_tower": [Vector2i(-7, -485)],
+		"silverhart_stables": [Vector2i(-19, -501), Vector2i(-19, -503), Vector2i(-19, -504), Vector2i(-19, -505)],
+		"silverhart_general_goods": [Vector2i(-19, -491), Vector2i(-19, -492), Vector2i(-19, -493)],
+		"silverhart_clothier": [Vector2i(-29, -504), Vector2i(-30, -503), Vector2i(-32, -499), Vector2i(-32, -500), Vector2i(-32, -501)],
+		"silverhart_magic_shop": [Vector2i(-32, -487), Vector2i(-32, -488), Vector2i(-32, -489)],
+		"silverhart_ironbond_office": [Vector2i(-2, -451), Vector2i(-1, -451), Vector2i(0, -451)]
+	}
+	for location_id in source_floor_cells:
+		var definition: Dictionary = registry.get_definition(location_id)
+		var state = LOCATION_STATE.new()
+		_check(bool(state.configure(definition).get("ok", false)), "Source floor repair state must configure: " + location_id)
+		var result: Dictionary = FLOOR_BUILDER.build_floor_map(definition, 0, state)
+		_check(bool(result.get("ok", false)), "Source floor repair map must build: " + location_id)
+		if not bool(result.get("ok", false)):
+			continue
+		var map_data: HexMapData = result.get("map_data") as HexMapData
+		for source_hex in source_floor_cells[location_id]:
+			_check(map_data.is_walkable(source_hex), "Source-authored interior floor must remain walkable at %s in %s" % [source_hex, location_id])
+
+func _test_silverhart_palace_floors(registry) -> void:
+	var palace_definition: Dictionary = registry.get_definition("silverhart_palace")
+	var palace_state = LOCATION_STATE.new()
+	_check(bool(palace_state.configure(palace_definition).get("ok", false)), "Silverhart Palace traversal state must configure")
+	var hall: Dictionary = FLOOR_BUILDER.build_floor_map(palace_definition, 0, palace_state)
+	_check(bool(hall.get("ok", false)), "Silverhart Grand Hall ground floor must build")
+	if bool(hall.get("ok", false)):
+		var hall_map: HexMapData = hall.get("map_data") as HexMapData
+		_check(hall_map.is_walkable(Vector2i(8, -496)), "Grand Hall gallery stair must be walkable")
+		for object_id in ["grand_hall_front_door", "throne", "gallery_stair_up", "queen_chambers_bed", "queen_chambers_rear_door"]:
+			_check(_has_object(hall.get("tile_objects", []), object_id), "Grand Hall must present source object: " + object_id)
+	var gallery: Dictionary = FLOOR_BUILDER.build_floor_map(palace_definition, 1, palace_state)
+	_check(bool(gallery.get("ok", false)), "Silverhart Grand Hall Gallery floor must build")
+	if bool(gallery.get("ok", false)):
+		var gallery_map: HexMapData = gallery.get("map_data") as HexMapData
+		_check(gallery_map.is_walkable(Vector2i(8, -496)), "Gallery stair-down must be walkable")
+		_check(_has_object(gallery.get("tile_objects", []), "gallery_stair_down"), "Gallery must present its source stair-down")
+
+	var barracks_definition: Dictionary = registry.get_definition("silverhart_palace_barracks")
+	var barracks_state = LOCATION_STATE.new()
+	_check(bool(barracks_state.configure(barracks_definition).get("ok", false)), "Palace barracks traversal state must configure")
+	var barracks: Dictionary = FLOOR_BUILDER.build_floor_map(barracks_definition, 0, barracks_state)
+	var loft: Dictionary = FLOOR_BUILDER.build_floor_map(barracks_definition, 1, barracks_state)
+	_check(bool(barracks.get("ok", false)) and bool(loft.get("ok", false)), "Palace barracks and loft floors must both build")
+	_check(_has_object(barracks.get("tile_objects", []), "barracks_loft_stair_up"), "Barracks must present its source stair-up")
+	_check(_has_object(loft.get("tile_objects", []), "barracks_loft_stair_down"), "Barracks loft must present its source stair-down")
+
+	var tower_definition: Dictionary = registry.get_definition("silverhart_palace_wizard_tower")
+	var tower_state = LOCATION_STATE.new()
+	_check(bool(tower_state.configure(tower_definition).get("ok", false)), "Wizard tower traversal state must configure")
+	for floor_number in [0, 1, 2]:
+		var floor_result: Dictionary = FLOOR_BUILDER.build_floor_map(tower_definition, floor_number, tower_state)
+		_check(bool(floor_result.get("ok", false)), "Wizard tower floor %d must build" % floor_number)
+	var tower_ground: Dictionary = FLOOR_BUILDER.build_floor_map(tower_definition, 0, tower_state)
+	var tower_study: Dictionary = FLOOR_BUILDER.build_floor_map(tower_definition, 1, tower_state)
+	var tower_observatory: Dictionary = FLOOR_BUILDER.build_floor_map(tower_definition, 2, tower_state)
+	_check(_has_object(tower_ground.get("tile_objects", []), "wizard_study_stair_up"), "Wizard tower ground floor must present the study stair")
+	_check(_has_object(tower_study.get("tile_objects", []), "wizard_study_stair_down"), "Wizard study must present the ground-floor stair")
+	_check(_has_object(tower_study.get("tile_objects", []), "wizard_observatory_stair_up"), "Wizard study must present the observatory stair")
+	_check(_has_object(tower_observatory.get("tile_objects", []), "wizard_observatory_stair_down"), "Observatory must present its return stair")
 
 func _check(condition: bool, message: String) -> void:
 	if condition:

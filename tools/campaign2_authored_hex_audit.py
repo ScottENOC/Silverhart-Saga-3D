@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""Inventory source-traceable Campaign 2 geometry already represented in 3D data.
+"""Inventory source-traceable Campaign 2 layout geometry represented in 3D data.
 
-This intentionally counts authored geometry, not the procedural terrain field.
+The audit is for deliberately authored, layout-producing geometry: roads,
+settlement footprints, walls, bridges, fields, landmark/quest props and
+authored interior floors. It is not a coordinate-parity test for random
+wilderness decoration. Randomly scattered trees, rocks, shrubs, grass and
+undergrowth are expected to differ; review those for biome character, density,
+clearings and readability instead.
+
 Run from the repository root:
     python3 tools/campaign2_authored_hex_audit.py
 Optionally pass --source-root ../Hex-crpg to validate source builder references.
@@ -155,6 +161,158 @@ def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
                 unique_by_floor[floor_key].update(room_set)
     unique = sum(len(cells) for cells in unique_by_floor.values())
     return total, unique
+
+
+
+def target_floor_cells_by_level(multistory: dict[str, Any]) -> dict[int, set[str]]:
+    """Collect target walkable interior cells by authored floor number."""
+    result: dict[int, set[str]] = defaultdict(set)
+    for location in multistory.get("locations", []):
+        if not isinstance(location, dict):
+            continue
+        for floor in location.get("floors", []):
+            if not isinstance(floor, dict):
+                continue
+            floor_number = int(floor.get("floor", 0))
+            for value in floor.get("floor_hexes", []):
+                if isinstance(value, dict) and "q" in value and "r" in value:
+                    result[floor_number].add(axial_key(int(value["q"]), int(value["r"])))
+            for room in floor.get("rooms", []):
+                if not isinstance(room, dict):
+                    continue
+                centre = room.get("center", {})
+                if not isinstance(centre, dict):
+                    continue
+                q, r = int(centre.get("q", 0)), int(centre.get("r", 0))
+                half_q, half_r = int(room.get("half_width", 0)), int(room.get("half_height", 0))
+                row_shift_mode = str(room.get("row_shift_mode", "flat"))
+                for delta_q in range(-half_q + 1, half_q):
+                    row_shift = (
+                        math.floor(delta_q / 2)
+                        if row_shift_mode == "source_building"
+                        else -math.floor(delta_q / 2)
+                    )
+                    for delta_r in range(-half_r + 1, half_r):
+                        result[floor_number].add(axial_key(q + delta_q, r + delta_r + row_shift))
+            for corridor in floor.get("corridors", []):
+                if isinstance(corridor, dict) and isinstance(corridor.get("from"), dict) and isinstance(corridor.get("to"), dict):
+                    result[floor_number].update(rasterize_segment(corridor["from"], corridor["to"]))
+            for tile_object in floor.get("tile_objects", []):
+                if isinstance(tile_object, dict) and isinstance(tile_object.get("position"), dict):
+                    position = tile_object["position"]
+                    if "q" in position and "r" in position:
+                        result[floor_number].add(axial_key(int(position["q"]), int(position["r"])))
+    return dict(result)
+
+
+def source_floor_cells_by_level(runtime: dict[str, Any]) -> dict[int, set[str]]:
+    """Collect source interior floors, excluding two large open fort courtyards."""
+    result: dict[int, set[str]] = defaultdict(set)
+    walkable_floor_names = {"Wood Floor", "Stone Floor", "Cave Floor"}
+    terrain = runtime.get("terrain", {})
+    for region in runtime.get("interiors", []):
+        if not isinstance(region, dict):
+            continue
+        bounds = [region.get(key) for key in ("minQ", "maxQ", "minR", "maxR")]
+        if all(value is not None for value in bounds):
+            min_q, max_q, min_r, max_r = (int(value) for value in bounds)
+            # These two source regions are open Northwatch/Ridgehold fort
+            # grounds. They are exterior terrain, not building interiors.
+            if max_q - min_q > 20 or max_r - min_r > 20:
+                continue
+        explicit_floor = region.get("floorHexes", [])
+        if explicit_floor:
+            for cell in explicit_floor:
+                if isinstance(cell, dict) and "q" in cell and "r" in cell:
+                    result[0].add(axial_key(int(cell["q"]), int(cell["r"])))
+            continue
+        if not all(value is not None for value in bounds):
+            continue
+        for key, value in terrain.items():
+            if not isinstance(value, dict) or str(value.get("name", "")) not in walkable_floor_names:
+                continue
+            try:
+                q, r = (int(part) for part in str(key).split(",", 1))
+            except (TypeError, ValueError):
+                continue
+            if min_q <= q <= max_q and min_r <= r <= max_r:
+                result[0].add(axial_key(q, r))
+    for building in runtime.get("multiStoryBuildings", []):
+        if not isinstance(building, dict):
+            continue
+        for floor_number, floor in enumerate(building.get("floors", [])):
+            if floor_number <= 0 or not isinstance(floor, dict):
+                continue
+            for key, terrain_name in floor.get("terrain", {}).items():
+                if str(terrain_name) in walkable_floor_names:
+                    result[floor_number].add(str(key))
+    return dict(result)
+
+
+
+def source_road_parity_report(runtime: dict[str, Any], target_road_cells: set[str]) -> dict[str, Any]:
+    """Compare the target strategic road manifest with the original paintRoad cell set."""
+    builder_cells = runtime.get("terrainCellsByBuilder", {})
+    source_values = builder_cells.get("paintRoad", []) if isinstance(builder_cells, dict) else []
+    source_cells = {str(value) for value in source_values}
+    missing = sorted(source_cells - target_road_cells)
+    extra = sorted(target_road_cells - source_cells)
+    return {
+        "source_cells": len(source_cells),
+        "target_cells": len(target_road_cells),
+        "matching_cells": len(source_cells & target_road_cells),
+        "source_only_cells": len(missing),
+        "target_only_cells": len(extra),
+        "source_only_samples": missing[:20],
+        "target_only_samples": extra[:20],
+        "matches_source": not missing and not extra,
+    }
+
+
+def interior_floor_parity_report(runtime: dict[str, Any], multistory: dict[str, Any]) -> dict[str, Any]:
+    """Compare authored target walkable floor coordinates with the captured source floor coordinates."""
+    target = target_floor_cells_by_level(multistory)
+    source = source_floor_cells_by_level(runtime)
+    uncompared_negative_levels = sorted(level for level in target if level < 0)
+    levels = sorted((set(target) | set(source)) - set(uncompared_negative_levels))
+    report: dict[str, Any] = {}
+    for level in levels:
+        target_cells = target.get(level, set())
+        source_cells = source.get(level, set())
+        missing = sorted(source_cells - target_cells)
+        extra = sorted(target_cells - source_cells)
+        report[str(level)] = {
+            "source_cells": len(source_cells),
+            "target_cells": len(target_cells),
+            "matching_cells": len(source_cells & target_cells),
+            "source_only_cells": len(missing),
+            "target_only_cells": len(extra),
+            "source_only_samples": missing[:20],
+            "target_only_samples": extra[:20],
+        }
+    return {
+        "levels": report,
+        "source_interior_regions": len(runtime.get("interiors", [])),
+        "source_open_fort_regions_excluded": sum(
+            1 for region in runtime.get("interiors", [])
+            if isinstance(region, dict)
+            and region.get("minQ") is not None and region.get("maxQ") is not None
+            and region.get("minR") is not None and region.get("maxR") is not None
+            and (int(region["maxQ"]) - int(region["minQ"]) > 20 or int(region["maxR"]) - int(region["minR"]) > 20)
+        ),
+        "source_interior_regions_with_explicit_floor_hexes": sum(
+            1 for region in runtime.get("interiors", [])
+            if isinstance(region, dict) and region.get("floorHexes")
+        ),
+        "source_explicit_interior_floor_hexes": sum(
+            len(region.get("floorHexes", []))
+            for region in runtime.get("interiors", [])
+            if isinstance(region, dict)
+        ),
+        "target_locations": len(multistory.get("locations", [])),
+        "uncompared_negative_levels": uncompared_negative_levels,
+        "note": "Coordinate-level comparison; source ground floors are read from source interior masks (with two large open fort courtyards excluded as exterior terrain), upper floors from source multiStoryBuildings, and target rooms/corridors/fixtures from the canonical floor registry. Negative tunnel floors are excluded because the source runtime terrain capture is flattened and does not encode floor indices.",
+    }
 
 
 def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
@@ -563,6 +721,16 @@ def build_report(
         if source_runtime_data is not None and source_runtime_data.get("worldMapData")
         else None
     )
+    interior_floor_validation = (
+        interior_floor_parity_report(source_runtime_data, multistory)
+        if source_runtime_data is not None
+        else None
+    )
+    source_road_validation = (
+        source_road_parity_report(source_runtime_data, road_cells)
+        if source_runtime_data is not None
+        else None
+    )
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -598,12 +766,15 @@ def build_report(
             "counts": "Unique axial q,r cells represented by explicit target map records",
             "includes": ["strategic road cells", "settlement building footprints", "settlement path segments", "map prop anchor cells"],
             "separate": ["16x16 strategic grid", "interior floor room footprints"],
-            "excludes": ["procedural grass/forest/noise terrain", "generated wilderness", "source-authored regional feature GDScript not yet ingested", "terrain elevation samples", "NPC positions", "visual mesh subdivisions"],
-            "caveat": "This is a target-side authored-geometry inventory, not yet a source-to-target parity percentage. Source builders contain loops and helper-generated footprints; a source runtime extractor is required before claiming a complete source denominator.",
+            "excludes": ["random/procedural tree, rock, shrub, grass and undergrowth placements (coordinate parity intentionally not required)", "generated wilderness decoration (review biome character, density, clearings and readability instead)", "source-authored regional feature GDScript not yet ingested", "terrain elevation samples", "NPC positions", "visual mesh subdivisions"],
+            "parity_scope": ["layout-producing source logic: settlement/building footprints, roads and ring roads, walls, gates, bridges, defensive works, authored fields/fences, authored clearings, landmarks, deliberate physical-site props and interior floors", "gameplay/story-critical placements: entrances, clues, graves and distinctive environmental storytelling"],
+            "caveat": "This is a target-side authored-layout inventory, not yet a source-to-target parity percentage. Do not penalise differences in random wilderness decoration. Source builders contain loops and helper-generated footprints; a source runtime extractor is required before claiming a complete source denominator.",
         },
         "source": source_validation,
         "source_runtime": source_runtime_report,
         "strategic_map_validation": strategic_map_validation,
+        "interior_floor_validation": interior_floor_validation,
+        "source_road_validation": source_road_validation,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
@@ -688,6 +859,28 @@ def render_markdown(report: dict[str, Any]) -> str:
         ),
         "",
         "",
+    ])
+    if report.get("interior_floor_validation") is not None:
+        interior = report["interior_floor_validation"]
+        lines.extend([
+            "## Interior floor source-coordinate comparison",
+            "",
+            f'Source interior regions: {interior["source_interior_regions"]}; '
+            f'regions with explicit floor masks: {interior["source_interior_regions_with_explicit_floor_hexes"]}; '
+            f'explicit source floor hexes: {interior["source_explicit_interior_floor_hexes"]}; '
+            f'large open fort regions excluded: {interior["source_open_fort_regions_excluded"]}. '
+            f'Target location definitions: {interior["target_locations"]}.',
+            "",
+            "| Floor | Source floor cells | Target floor cells | Matching | Source-only | Target-only |",
+            "|---:|---:|---:|---:|---:|---:|",
+        ])
+        for level, item in interior["levels"].items():
+            lines.append(
+                f'| {level} | {item["source_cells"]:,} | {item["target_cells"]:,} '
+                f'| {item["matching_cells"]:,} | {item["source_only_cells"]:,} | {item["target_only_cells"]:,} |'
+            )
+        lines.extend(["", interior["note"], ""])
+    lines.extend([
         "## Strategic map source parity",
         "",
         "No strategic map was captured." if report.get("strategic_map_validation") is None else (
@@ -698,7 +891,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'{report["strategic_map_validation"]["unmarked_terrain_faction_mismatch_count"]}; '
             f'river path match: {report["strategic_map_validation"]["river_path_matches_geography"]}; '
             f'all source marker positions match: {report["strategic_map_validation"]["markers_match"]}; '
-            f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
+            f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}. '
+            f'Source road cells: {report["source_road_validation"]["source_cells"]:,}; target road cells: {report["source_road_validation"]["target_cells"]:,}; '
+            f'matching: {report["source_road_validation"]["matching_cells"]:,}; source-only: {report["source_road_validation"]["source_only_cells"]:,}; '
+            f'target-only: {report["source_road_validation"]["target_only_cells"]:,}; exact match: {report["source_road_validation"]["matches_source"]}.'
         ),
         "",
         "| Source terrain builder | Unique cells touched |",

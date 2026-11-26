@@ -1,18 +1,34 @@
+import json
 import math
 import unittest
+from pathlib import Path
 
 from tools.campaign2_authored_hex_audit import (
     building_cells,
+    build_report,
     floor_room_cells,
     polygon_cells,
     rasterize_segment,
     round_away_from_zero,
     source_runtime_summary,
     strategic_map_parity_report,
+    target_floor_cells_by_level,
+    source_floor_cells_by_level,
+    interior_floor_parity_report,
+    source_road_parity_report,
 )
 
 
 class Campaign2AuthoredHexAuditTests(unittest.TestCase):
+    def test_parity_scope_excludes_random_wilderness_decoration(self):
+        root = Path(__file__).resolve().parents[1]
+        report = build_report(root)
+        excluded = " ".join(report["method"]["excludes"]).lower()
+        parity_scope = " ".join(report["method"]["parity_scope"]).lower()
+        self.assertIn("random/procedural tree", excluded)
+        self.assertIn("layout-producing source logic", parity_scope)
+        self.assertIn("gameplay/story-critical placements", parity_scope)
+
     def test_building_footprint_includes_both_edges(self):
         cells = building_cells({
             "center": {"q": 2, "r": -3},
@@ -90,6 +106,72 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(unique, 9)
 
 
+    def test_source_road_parity_reports_exact_cell_differences(self):
+        source = {"terrainCellsByBuilder": {"paintRoad": ["0,0", "1,0"]}}
+        report = source_road_parity_report(source, {"0,0", "2,0"})
+        self.assertEqual(report["matching_cells"], 1)
+        self.assertEqual(report["source_only_samples"], ["1,0"])
+        self.assertEqual(report["target_only_samples"], ["2,0"])
+        self.assertFalse(report["matches_source"])
+
+    def test_target_floor_cells_include_rooms_corridors_and_explicit_masks(self):
+        target = {
+            "locations": [{
+                "id": "test",
+                "floors": [{
+                    "floor": 0,
+                    "rooms": [{"center": {"q": 0, "r": 0}, "half_width": 2, "half_height": 2}],
+                    "corridors": [{"from": {"q": 2, "r": 0}, "to": {"q": 4, "r": 0}}],
+                    "floor_hexes": [{"q": 8, "r": 8}],
+                    "tile_objects": [{"position": {"q": 9, "r": 8}}],
+                }],
+            }],
+        }
+        cells = target_floor_cells_by_level(target)[0]
+        self.assertIn("0,0", cells)
+        self.assertIn("2,0", cells)
+        self.assertIn("4,0", cells)
+        self.assertIn("8,8", cells)
+        self.assertIn("9,8", cells)
+
+    def test_source_floor_cells_use_surface_and_multistory_maps(self):
+        source = {
+            "terrain": {
+                "0,0": {"name": "Wood Floor"},
+                "1,0": {"name": "Cave Floor"},
+                "2,0": {"name": "Grass"},
+            },
+            "interiors": [{"floorHexes": [{"q": 0, "r": 0}, {"q": 1, "r": 0}]}],
+            "multiStoryBuildings": [{
+                "floors": [None, {"terrain": {"0,0": "Wall", "1,0": "Wood Floor"}}],
+            }],
+        }
+        cells = source_floor_cells_by_level(source)
+        self.assertEqual(cells[0], {"0,0", "1,0"})
+        self.assertNotIn(-9, cells)
+        self.assertEqual(cells[1], {"1,0"})
+
+    def test_interior_floor_parity_reports_coordinate_gaps(self):
+        source = {
+            "terrain": {"0,0": {"name": "Wood Floor"}, "1,0": {"name": "Wood Floor"}},
+            "interiors": [{"floorHexes": [{"q": 0, "r": 0}, {"q": 1, "r": 0}]}],
+            "multiStoryBuildings": [],
+        }
+        target = {
+            "locations": [{
+                "id": "test",
+                "floors": [{
+                    "floor": 0,
+                    "rooms": [{"center": {"q": 0, "r": 0}, "half_width": 1, "half_height": 1}],
+                    "corridors": [],
+                }],
+            }],
+        }
+        report = interior_floor_parity_report(source, target)
+        self.assertEqual(report["levels"]["0"]["matching_cells"], 1)
+        self.assertEqual(report["levels"]["0"]["source_only_cells"], 1)
+        self.assertEqual(report["levels"]["0"]["source_only_samples"], ["1,0"])
+
     def test_source_runtime_summary_deduplicates_builder_overlaps(self):
         summary = source_runtime_summary({
             "counts": {
@@ -131,6 +213,22 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(summary["npc_placements"][0]["q"], 12)
         self.assertEqual(summary["npc_placements_by_faction"], {"hollowmere": 1})
 
+
+    def test_silverhart_ring_roads_are_closed_source_polylines(self):
+        root = Path(__file__).resolve().parents[1]
+        layout = json.loads((root / "data/world/campaign2_settlement_layouts.json").read_text(encoding="utf-8"))
+        silverhart = next(item for item in layout["settlements"] if item["id"] == "silverhart")
+        routes = {item["id"]: item for item in silverhart["paths"]}
+        for route_id in ("silverhart_outer_ring_road", "silverhart_middle_ring_road"):
+            route = routes[route_id]
+            points = route["points"]
+            self.assertEqual(len(points), 7, route_id)
+            self.assertEqual(points[0], points[-1], route_id)
+            self.assertEqual(len(route["widths"]), len(points), route_id)
+            cells = set()
+            for start, finish in zip(points, points[1:]):
+                cells.update(rasterize_segment(start, finish))
+            self.assertGreater(len(cells), 100, route_id)
 
     def test_strategic_map_matches_source_rules_and_river(self):
         geography = {
