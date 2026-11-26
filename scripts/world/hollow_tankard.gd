@@ -12,6 +12,7 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
+const QUEST_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_quest_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
@@ -1569,7 +1570,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
 	if choice_id.begins_with("farm_wolves_"):
-		var farm_result := FARM_WOLVES_QUEST_SCRIPT.resolve_dialogue_choice(
+		var farm_result := QUEST_DIALOGUE_SERVICE.resolve_choice(
+			"old_mac",
 			simulation.campaign_journal,
 			simulation.get_character("player"),
 			choice_id,
@@ -1863,7 +1865,11 @@ func _interact_with_character(character_id: String) -> void:
 		_show_streamed_npc_dialogue(streamed_actor, target_state)
 		return
 	if character_id == "old_mac":
-		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
+		var farm_conversation := QUEST_DIALOGUE_SERVICE.greeting_for_npc(
+			"old_mac",
+			simulation.campaign_journal,
+			{"wolves_remaining": _farm_wolves_remaining()}
+		)
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
 		return
 	if character_id in ["elder_marta", "marta_wynfield"]:

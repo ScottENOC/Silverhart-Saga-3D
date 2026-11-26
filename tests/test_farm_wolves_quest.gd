@@ -1,9 +1,11 @@
 extends SceneTree
 
 const FARM_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const QUEST_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_quest_dialogue_service.gd")
 
 func _initialize() -> void:
 	_test_source_backed_quest_flow()
+	_test_location_uses_quest_dialogue_adapter()
 	_test_creature_assets_exist()
 	print("Farm and wildlife tests passed.")
 	quit()
@@ -37,6 +39,25 @@ func _test_source_backed_quest_flow() -> void:
 	assert(player.experience == 150)
 	assert(String(journal.quest_state(FARM_QUEST.QUEST_ID).status) == "completed")
 	assert(is_equal_approx(journal.npc_standing("old_mac"), 15.0))
+
+
+func _test_location_uses_quest_dialogue_adapter() -> void:
+	var journal := CampaignJournal.new()
+	assert(journal.register_quest_definition(FARM_QUEST.definition()).ok)
+	var greeting := QUEST_DIALOGUE_SERVICE.greeting_for_npc(
+		"old_mac", journal, {"wolves_remaining": 3}
+	)
+	assert(String(greeting.get("speaker", "")) == "Old Mac")
+	assert(greeting.get("choices", []).size() == 2)
+	var accepted := QUEST_DIALOGUE_SERVICE.resolve_choice(
+		"old_mac", journal, null, "farm_wolves_accept"
+	)
+	assert(bool(accepted.get("handled", false)))
+	assert(String(journal.quest_state(FARM_QUEST.QUEST_ID).get("status", "")) == "active")
+	var unsupported := QUEST_DIALOGUE_SERVICE.resolve_choice(
+		"unknown_npc", journal, null, "farm_wolves_accept"
+	)
+	assert(not bool(unsupported.get("handled", false)))
 
 func _test_creature_assets_exist() -> void:
 	assert(AnimalCatalog.has_profile("sheep"), "Sheep must have a first-class animal gameplay profile")
