@@ -456,7 +456,7 @@ def _female_displacement(t, x, P):
 CANAL = {   # vagina: anterior and posterior walls in contact (slit wide laterally)
     # 200 mm is the depth the passage can accept, not the resting length of a vagina (which is shorter and
     # distends with arousal). With wall_asymmetry the anterior wall is ~190 mm and the posterior ~210 mm.
-    "length": 0.200,
+    "length": 0.060,
     # tilt back from vertical (degrees) at the mouth and at the far end, blended between the two depths
     "axis": (20.0, 10.0, 0.040, 0.150),
     # tried in order; the first that reaches full length with clearance wins, else the one that gets deepest
@@ -472,8 +472,8 @@ CANAL = {   # vagina: anterior and posterior walls in contact (slit wide lateral
 }
 
 ANUS = {    # anus + anal canal (~40 mm) continuing as the rectum; closed as a front-to-back slit
-    "perineal_body": 0.033,   # target posterior fourchette to anal verge centre (33 mm absolute; contour-shortfall fallback)
-    "length": 0.200,
+    "perineal_body": 0.045,   # target posterior fourchette to anal verge centre (33 mm absolute; contour-shortfall fallback)
+    "length": 0.060,
     "axis": (5.0, 15.0, 0.035, 0.090),   # near vertical through the canal, then curving back along the sacrum
     "axis_candidates": [(5.0, 15.0), (10.0, 15.0), (0.0, 15.0), (5.0, 10.0), (10.0, 10.0), (5.0, 20.0),
                         (0.0, 10.0), (-5.0, 15.0), (10.0, 20.0), (-10.0, 20.0)],
@@ -881,12 +881,15 @@ def _perineal_anchor(skin, hipline_z, k, line, arc, sA, P):
     if available < want:
         print(f"Anus spacing fallback: target {target_distance * 1000:.1f} mm from actual fourchette; "
               f"contour supports {achieved_distance * 1000:.1f} mm; using the longest available contour")
+    visible_clearance = max(0.0, achieved_distance - ANUS["relief_radius"] * k)
     print(f"Anus surface spacing: target={target_distance * 1000:.1f} mm, "
-          f"achieved={achieved_distance * 1000:.1f} mm from actual fourchette; "
+          f"centreline achieved={achieved_distance * 1000:.1f} mm from fourchette; "
+          f"estimated clearance beyond anal relief radius={visible_clearance * 1000:.1f} mm; "
           f"introitus-to-verge contour={introitus_to_verge * 1000:.1f} mm")
     measurement = {
         "target_mm": target_distance * 1000.0,
         "achieved_mm": achieved_distance * 1000.0,
+        "estimated_edge_clearance_mm": visible_clearance * 1000.0,
         "introitus_to_verge_mm": introitus_to_verge * 1000.0,
         "fourchette_world": (fourchette_yz[0], fourchette_yz[1]),
         "verge_world": (out[j1][0], out[j1][1]),
