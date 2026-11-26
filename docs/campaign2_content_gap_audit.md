@@ -257,7 +257,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Added `ReddaleInnkeeperContent` with the source quest ID, source dialogue gate, accept/active/turn-in/completed states, blue-gem consumption, +20 gold and +20 Nella reputation/knowledge.
 - [x] Added headless regression coverage for the quest flow, missing-gem retry, journal-read gate, rumour response, item consumption and duplicate-reward prevention.
 - [x] Connected the `reddale_innkeeper` streamed actor dialogue route and `nella_*` choice handling in `HollowTankard`.
-- [ ] Wire the source `abandonedHouseJournalRead` world flag into the optional alternate greeting; the current runtime route uses the default greeting because that source flag is not yet represented in target save state.
+- [x] Wire the source `abandonedHouseJournalRead` world flag into the optional alternate greeting. Reading the abandoned-house journal now records the flag in the Hollow Tankard save snapshot and restores it on load; Nella's streamed greeting consumes the saved flag.
 
 **Coin for the Deepholds**
 
