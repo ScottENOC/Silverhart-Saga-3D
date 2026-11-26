@@ -172,6 +172,13 @@ func register_camp_occupant(data: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": "invalid_occupant_needs"}
 	clean["needs"] = needs.duplicate()
 	occupants[occupant_id] = clean
+	if kind == "guest" and bool(clean.get("can_sleep", false)) and not conditions.has(occupant_id):
+		conditions[occupant_id] = {
+			"fatigue": 25.0, "hunger": 0.0, "thirst": 0.0,
+			"warmth": 50.0, "comfort": 50.0, "social_satisfaction": 0.0
+		}
+	if kind == "guest" and bool(clean.get("can_sleep", false)) and phase in ["evening", "night", "interrupted"]:
+		_append_guest_sleeping_arrangement(clean)
 	if kind == "animal" and String(clean.get("species", "")).to_lower() in ["horse", "equine"]:
 		_ensure_horse_care_state(occupant_id)
 	else:
@@ -476,6 +483,11 @@ func remove_camp_occupant(occupant_id: String) -> Dictionary:
 		return {"ok": false, "reason": "cannot_remove_party_member"}
 	var removed: Dictionary = occupants[occupant_id]
 	var removed_kind := String(removed.get("kind", ""))
+	var remaining_arrangements: Array[Dictionary] = []
+	for arrangement in sleeping_arrangements:
+		if not (arrangement.get("character_ids", []) as Array).has(occupant_id):
+			remaining_arrangements.append(arrangement)
+	sleeping_arrangements = remaining_arrangements
 	var affected_animals: Dictionary = {}
 	if removed_kind == "animal":
 		_restore_horse_care_handler(occupant_id)
@@ -925,7 +937,27 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 			"sleeping_bag_character_ids": [character_id] if has_bag else [],
 			"comfort_penalty": 0
 		})
+	for occupant in occupants_of_kind("guest"):
+		if bool(occupant.get("can_sleep", false)) and bool(occupant.get("staying_overnight", false)):
+			_append_guest_sleeping_arrangement(occupant)
 	return sleeping_arrangements.duplicate(true)
+
+
+func _append_guest_sleeping_arrangement(occupant: Dictionary) -> void:
+	var guest_id := String(occupant.get("occupant_id", ""))
+	if guest_id.is_empty() or not bool(occupant.get("can_sleep", false)):
+		return
+	for arrangement in sleeping_arrangements:
+		if (arrangement.get("character_ids", []) as Array).has(guest_id):
+			return
+	var sheltered := bool(lodging_profile.get("is_sheltered", false))
+	sleeping_arrangements.append({
+		"tent_index": -2, "shelter_type": "dwelling" if sheltered else "open_air",
+		"sleeping_surface": "floor" if sheltered else "ground",
+		"dwelling_id": String(lodging_profile.get("dwelling_id", "")) if sheltered else "",
+		"character_ids": [guest_id], "sleeping_bag_character_ids": [],
+		"comfort_penalty": 0, "occupant_kind": "guest", "counts_for_exposure": false
+	})
 
 func _best_sleeping_candidate(candidates: Array, group: Array[String], bonds: CompanionBondState) -> int:
 	if candidates.size() <= 1 or bonds == null:
@@ -1148,6 +1180,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 	var base_ambush_chance := clampf(danger * 0.45 - float(watchers) * 0.07, 0.0, 0.45)
 	var exposure_total := 0.0
 	for arrangement in sleeping_arrangements:
+		if not bool(arrangement.get("counts_for_exposure", true)):
+			continue
 		var exposure := 1.0
 		match String(arrangement.get("shelter_type", "open_air")):
 			"dwelling":
@@ -1222,6 +1256,33 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 			"sleeping_surface": sleeping_surface,
 			"shelter_type": "dwelling" if in_dwelling else ("tent" if in_tent else "open_air")
 		}
+	var guest_results: Dictionary = {}
+	for guest in occupants_of_kind("guest"):
+		var guest_id := String(guest.get("occupant_id", ""))
+		if not bool(guest.get("can_sleep", false)) or not bool(guest.get("staying_overnight", false)):
+			continue
+		var guest_condition: Dictionary = conditions.get(guest_id, {}).duplicate(true)
+		var guest_arrangement: Dictionary = {}
+		for arrangement in sleeping_arrangements:
+			if (arrangement.get("character_ids", []) as Array).has(guest_id):
+				guest_arrangement = arrangement
+				break
+		var guest_in_dwelling := String(guest_arrangement.get("shelter_type", "")) == "dwelling"
+		var guest_warmth := clampf(45.0 + (10.0 if has_fire else 0.0) + (float(lodging_profile.get("warmth_bonus", 0.0)) if guest_in_dwelling else 0.0) - cold_penalty, 0.0, 100.0)
+		var guest_security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0 + (float(lodging_profile.get("security_bonus", 0.0)) if guest_in_dwelling else 0.0), 0.0, 100.0)
+		var guest_comfort := clampf(guest_warmth * 0.35 + guest_security * 0.35 + 30.0, 0.0, 100.0)
+		var guest_recovery := minf(float(guest_condition.get("fatigue", 25.0)), maxf(0.0, (20.0 + guest_comfort * 0.35) * sleep_fraction))
+		guest_condition["fatigue"] = maxf(0.0, float(guest_condition.get("fatigue", 25.0)) - guest_recovery)
+		guest_condition["warmth"] = guest_warmth
+		guest_condition["comfort"] = guest_comfort
+		conditions[guest_id] = guest_condition
+		guest_results[guest_id] = {
+			"comfort": guest_comfort, "warmth": guest_warmth,
+			"fatigue_recovered": guest_recovery,
+			"sleeping_surface": String(guest_arrangement.get("sleeping_surface", "ground")),
+			"shelter_type": String(guest_arrangement.get("shelter_type", "open_air")),
+			"consumed_party_supplies": false
+		}
 	night_elapsed_hours = segment_end
 	phase = "interrupted" if sleep_interrupted else "morning"
 	var summary := {
@@ -1242,6 +1303,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 		"shelter_multiplier": shelter_multiplier,
 		"average_comfort": total_comfort / float(maxi(1, party_size)),
 		"characters": results,
+		"overnight_guests": guest_results,
 		"resources_remaining": resources.duplicate(true)
 	}
 	if not continuing:
@@ -1251,9 +1313,11 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 	if sleep_interrupted:
 		night_resolved.emit(summary.duplicate(true))
 	else:
+		var departed_guests := _remove_guests_leaving_at_dawn()
 		morning_elapsed_world_seconds = 0.0
 		routine_stage = 0
 		morning_summary = summary.duplicate(true)
+		morning_summary["guests_departed_at_dawn"] = departed_guests
 		_begin_morning_stage(0)
 	return {"ok": true, "summary": morning_summary.duplicate(true) if not sleep_interrupted else summary, "phase": phase}
 
@@ -1329,11 +1393,28 @@ func continue_sleep() -> Dictionary:
 	return resolve_night(maxf(1.0, night_planned_hours - night_elapsed_hours), false)
 
 
+func _remove_guests_leaving_at_dawn() -> Array[String]:
+	var departed_guests: Array[String] = []
+	for guest in occupants_of_kind("guest"):
+		if not bool(guest.get("leaves_at_dawn", false)):
+			continue
+		var guest_id := String(guest.get("occupant_id", ""))
+		if bool(remove_camp_occupant(guest_id).get("ok", false)):
+			departed_guests.append(guest_id)
+	return departed_guests
+
+
 func finish_interrupted_night() -> Dictionary:
 	if phase != "interrupted":
 		return {"ok": false, "reason": "no_interrupted_sleep"}
+	var departed_guests := _remove_guests_leaving_at_dawn()
+	morning_summary["guests_departed_at_dawn"] = departed_guests
 	phase = "resolved"
-	return {"ok": true, "remaining_hours": maxf(0.0, night_planned_hours - night_elapsed_hours)}
+	return {
+		"ok": true,
+		"remaining_hours": maxf(0.0, night_planned_hours - night_elapsed_hours),
+		"guests_departed_at_dawn": departed_guests
+	}
 
 
 
