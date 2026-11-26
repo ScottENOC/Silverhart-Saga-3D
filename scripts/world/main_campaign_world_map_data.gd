@@ -73,6 +73,9 @@ static func strategic_locations() -> Array[Dictionary]:
 		location["short"] = String(marker.get("short", ""))
 		location["source_marker_name"] = String(marker.get("source_name", location.get("name", id)))
 		var desired := world_cell_from_local_hex(Vector2i(int(location.get("q", 0)), int(location.get("r", 0))))
+		var marker_cell_override: Variant = marker.get("cell_override", [])
+		if marker_cell_override is Array and marker_cell_override.size() == 2:
+			desired = Vector2i(int(marker_cell_override[0]), int(marker_cell_override[1]))
 		# Mirror Hex-crpg's setWorldMapMarker collision policy: retain the
 		# source cell where possible, otherwise try east, south, west, then north.
 		var candidates: Array[Vector2i] = [
