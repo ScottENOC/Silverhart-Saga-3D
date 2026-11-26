@@ -1,5 +1,4 @@
 name: Posing validation
-
 on:
   pull_request:
     branches: [dev, physics, "feature/**", "feat/**", "review/**"]
@@ -21,14 +20,11 @@ on:
       - "tests/test_posing_*.gd"
       - ".github/workflows/posing-validation.yml"
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
-  group: posing-validation-${{ github.ref }}
+  group: posing-validation-\${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   posing-tests:
     name: Posing tests (Godot 4.7.2 headless)
@@ -43,13 +39,22 @@ jobs:
         with:
           version: 4.7.2
           use-dotnet: false
+      - name: Import project and build global script class cache
+        run: godot --headless --editor --path . --import
       - name: Run posing tests
         run: |
           set -euo pipefail
           for test in test_posing_math test_posing_contact test_posing_nose_poke test_posing_arm_rig_builder test_posing_pose_applier; do
             echo "::group::$test"
-            bash tools/ci/run_godot_checked.sh godot --headless --path . --script "res://tests/${test}.gd"
+            bash tools/ci/run_godot_checked.sh godot --headless --path . --script "res://tests/\${test}.gd"
             echo "::endgroup::"
           done
-      - name: Validate real Ara pose preview
+      - name: Validate real Ara pose preview and export GLBs
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tools/review/ara_pose_preview_probe.gd
+      - name: Upload posed character GLBs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-nose-touch-pose-preview-glbs
+          path: artifacts/ara-pose-preview/*.glb
+          if-no-files-found: error
+          retention-days: 14
