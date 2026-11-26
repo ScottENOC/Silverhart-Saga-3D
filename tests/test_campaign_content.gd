@@ -100,6 +100,7 @@ func _test_ironbond_missing_courier_content() -> void:
 
 	var accepted := IronbondMissingCourierContent.resolve_choice(journal, "ironbond_courier_accept")
 	_check(bool(accepted.get("ok", false)) and bool(accepted.get("quest_started", false)))
+	_check(bool(accepted.get("handled", false)), "The source closes the offer after acceptance rather than adding invented follow-up dialogue")
 	_check(String(journal.quest_state(IronbondMissingCourierContent.QUEST_ID).get("status", "")) == "active")
 	_check(String(journal.quest_state(IronbondMissingCourierContent.QUEST_ID).get("decisions", {}).get("accepted", "")) == "yes")
 	_check(journal.faction_standing(IronbondMissingCourierContent.FACTION_ID) == 10.0)
