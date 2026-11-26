@@ -26,8 +26,8 @@ def body_node(d):
     hits=[]
     for n in d['nodes']:
         if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
+        names=[d['materials'][p.get('material',0)].get('name','').lower() for p in d['meshes'][n['mesh']]['primitives']]
+        if any(name.startswith('skin') for name in names): hits.append(n)
     if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
     return hits[0]
 
