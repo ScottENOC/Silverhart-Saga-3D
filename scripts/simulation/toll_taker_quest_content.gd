@@ -44,8 +44,10 @@ static func greeting(journal: CampaignJournal, ogre_alive: bool) -> Dictionary:
 			"choices": [{"id": "toll_ogre_leave", "label": "Glad to help.", "text": ""}]
 		}
 	if status == "active":
+		if not ogre_alive:
+			record_ogre_defeat(journal, false)
 		var objective: Dictionary = journal.quest_state(QUEST_ID).get("objectives", {}).get(OBJECTIVE_ID, {})
-		if bool(objective.get("completed", false)) or not ogre_alive:
+		if bool(objective.get("completed", false)):
 			return {
 				"ok": true,
 				"speaker": "Petra Hollis",
