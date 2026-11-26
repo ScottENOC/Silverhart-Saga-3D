@@ -16255,7 +16255,7 @@
         "r": 17
       },
       "road_endpoint": {
-        "q": 658,
+        "q": 398,
         "r": 23
       },
       "source_builder": "campaign2World.js:buildOrcStronghold",
