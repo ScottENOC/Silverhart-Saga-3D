@@ -146,7 +146,7 @@ The current `campaign2World.js` source exposes 86 named functions. The spatial b
 |---|---|---|
 | `setupVillageScene` | Hollowmere settlement data, location presenter, road paths, regional hydrology and starting-village floor maps | Confirm source-relative building/door approaches, stream/bridge crossing and continuous roads in the playable streamed world |
 | `buildHollowmereGuildDen` | Guild Den multi-story location record and interior presenter | Confirm exterior entrance, return point and floor traversal |
-| `buildFarmstead`, `placeFieldFence` | Old Mac's Farmstead settlement layout, agricultural feature factory, farmstead terrain/props | Confirm pasture and broken-fence footprint, farmhouse approach, den approach and crop-row spatial data; do not audit sheep/cow choice or quest logic here |
+| `buildFarmstead`, `placeFieldFence` | Old Mac's Farmstead settlement layout, agricultural feature factory, farmstead terrain/props | Confirm pasture and broken-fence footprint, farmhouse approach and den approach; crop rows are not source-authored |
 | `buildPlayerCottagePlot`, `buildPlayerCottage` | Player plot anchor/approach, field/fence geometry and dwelling presentation | Confirm plot access, cottage footprint/entrance and room for future spatial upgrades |
 | `buildGoblinCamp` | Skarn-tooth Camp settlement layout and regional terrain | Visual/scale/terrain acceptance of the complete camp footprint |
 | `buildOrcStronghold` | Skarnak's Hold settlement layout and regional terrain | Verify the currently authored position on `dev`; the relocation described in the Skarnak row is still on its separate PR branch and must not be represented as merged |
@@ -187,11 +187,11 @@ No source-builder or anchor inventory should be marked complete solely because a
 
 Work is ordered by the smallest independently verifiable spatial gap first. A task is only ticked off when its stated evidence exists; an in-engine visual check is explicitly marked as requiring user acceptance.
 
-| Order | Task | Size | Verification owner | Completion gate |
-|---|---|---|---|---|
-| 1 | Remove false-positive crop-row gap; confirm source has no authored crop rows | XS | ChatGPT | Source builder and target data agree; audit corrected |
-| 2 | Verify Old Mac pasture/fence/road-spur geometry against source | XS | ChatGPT | Automated coordinate/feature test passes |
-| 3 | Verify Unicorn Vale's eight patrol waypoints are all on usable terrain and connected by a route | S | ChatGPT | Coordinate/topology test passes; user only needed if visual route looks wrong |
+| Order | Task | Size | Verification owner | Status | Completion gate |
+|---|---|---|---|---|---|
+| 1 | Remove false-positive crop-row gap; confirm source has no authored crop rows | XS | ChatGPT | **Complete** | Source builder and target data agree; audit corrected |
+| 2 | Verify Old Mac pasture/fence/road-spur geometry against source | XS | ChatGPT | **Complete** | Automated coordinate/feature test passes on `dev`; Godot suite passed |
+| 3 | Verify Unicorn Vale's eight patrol waypoints are all on usable terrain and connected by a route | S | ChatGPT | **In progress** | Coordinate/topology test passes; user only needed if visual route looks wrong |
 | 4 | Verify named wilderness-site anchors and approaches (grave, grove, lair, den, barrow) | S | ChatGPT | Source-to-target anchor/approach checks pass |
 | 5 | Create exterior/interior entrance and return-point register for existing floor maps | M | ChatGPT | Every registered interior has exterior entrance, interior door, return anchor and reciprocal stair data or an explicit documented exception |
 | 6 | Add missing map tests for road, stream, bridge, gate and chunk-boundary joins | M | ChatGPT | Targeted Godot tests pass |
