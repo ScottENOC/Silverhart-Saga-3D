@@ -107,8 +107,8 @@ func _test_favour_effects_reach_campaign_state() -> void:
 	_check(bool(first.get("world_effects", {}).get("ok", false)))
 	_check(simulation.get_character("player").gold == 160, "The Emberlode raid should award its 60-gold strongbox")
 	_check(simulation.get_character("player").experience == 50)
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("security", 0.0)), -20.0))
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("prosperity", 0.0)), -25.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("security", 0.0)), 10.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("prosperity", 0.0)), 0.0))
 	_check(bool(simulation.campaign_journal.world_campaign_flag("emberlode_raided", false)))
 	var repeated := RUNTIME_SERVICE.resolve_favour(simulation, "raid_mine")
 	_check(bool(repeated.get("ok", false)) and not bool(repeated.get("applied", true)))
@@ -129,7 +129,7 @@ func _test_alliance_rescues_aldric_and_completes_his_quest() -> void:
 	_check(simulation.get_character(ALDRIC_ID).side == "neutral")
 	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 40.0, "The alliance's -20 attitude consequence should reduce Aldric's initial 60 standing to 40")
 	_check(simulation.get_character("player").experience == 100)
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), -10.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), 40.0))
 
 
 func _test_scout_note_is_a_one_time_world_effect() -> void:
@@ -137,10 +137,10 @@ func _test_scout_note_is_a_one_time_world_effect() -> void:
 	var first := RUNTIME_SERVICE.read_scout_note(simulation)
 	_check(bool(first.get("ok", false)))
 	_check(bool(simulation.campaign_journal.world_campaign_flag("goblin_scout_note_read", false)))
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), -3.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), 47.0))
 	var repeated := RUNTIME_SERVICE.read_scout_note(simulation)
 	_check(bool(repeated.get("ok", false)) and bool(repeated.get("already_read", false)))
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), -3.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), 47.0))
 
 
 func _test_direct_aldric_rescue() -> void:
@@ -199,8 +199,8 @@ func _test_alliance_follow_up_mine_raid_and_spy_quest() -> void:
 	_check(bool(simulation.campaign_journal.world_campaign_flag("goblin_mine_raid_completed", false)))
 	_check(simulation.get_character("player").gold == 100)
 	_check(simulation.get_character("player").experience == 150)
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("security", 0.0)), -20.0))
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("prosperity", 0.0)), -25.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("security", 0.0)), 10.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("emberlode").get("prosperity", 0.0)), 0.0))
 
 	var spy_started := RUNTIME_SERVICE.start_greenskin_spy(simulation)
 	_check(bool(spy_started.get("ok", false)))
@@ -232,7 +232,7 @@ func _test_chief_death_resolves_assault() -> void:
 	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("status", "")) == "completed")
 	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "assault")
 	_check(simulation.get_character("player").experience == 300)
-	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), 15.0))
+	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), 65.0))
 
 
 func _test_assassination_opens_nix_succession() -> void:
