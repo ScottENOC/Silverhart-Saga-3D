@@ -418,6 +418,9 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(bool(detected_event.get("attacked", false)), "The deterministic danger roll should produce an attack")
 	_check(bool(detected_event.get("detected", false)), "A perceptive watcher should detect the deterministic attack")
 	_check(String(detected_event.get("watcher_id", "")) == "a", "The strongest scheduled watcher should be credited with detection")
+	_check(float(detected_result.summary.get("hours", 8.0)) < 8.0, "A detected attack should interrupt sleep at its actual watch-shift time")
+	_check(bool(detected_result.summary.get("sleep_interrupted", false)), "An attacked night should be marked as interrupted")
+	_check(float(detected_event.get("attack_hour", 8.0)) == float(detected_result.summary.get("hours", 0.0)), "The encounter should resolve at its recorded attack hour")
 	var saved_resolved := restored.to_dict()
 	var restored_resolved := CampSimulation.new()
 	_check(restored_resolved.from_dict(saved_resolved), "Resolved encounter information should survive save/load")
@@ -474,6 +477,7 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(not bool(missed_event.get("detected", true)), "An exhausted novice watch should be capable of missing an attack")
 	_check(not String(missed_event.get("watcher_id", "")).is_empty(), "An undetected attack should still identify the strongest watcher who tried to spot it")
 	_check(float(missed_event.get("detection_chance", 1.0)) < 0.2, "Exhaustion should materially reduce detection chance")
+	_check(float(missed_result.summary.get("hours", 0.0)) > 4.0 and float(missed_result.summary.get("hours", 8.0)) < 8.0, "An undetected attack should interrupt sleep during the final watch shift")
 
 	var world := WorldSimulation.new()
 	world.player_character_id = "a"
@@ -493,8 +497,11 @@ func _test_night_watch_rotation_and_detection() -> void:
 	)
 	_check(bool(world_camp.get("ok", false)), "WorldSimulation should begin a camp with registered party members")
 	_check(float(world.camp_simulation.companion_profiles["a"].get("perception", 0.0)) == 3.0, "WorldSimulation should pass the authored keen perception skill into camp profiles")
-	world.skip_camp_to_morning()
+	var world_start_seconds := world.clock.world_seconds
+	var world_night_result := world.skip_camp_to_morning()
 	_check(_camp_night_events == 1, "WorldSimulation should publish a detected night attack for encounter presentation")
+	var elapsed_world_seconds := world.clock.world_seconds - world_start_seconds
+	_check(is_equal_approx(elapsed_world_seconds, float(world_night_result.summary.hours) * WorldClock.SECONDS_PER_HOUR), "WorldSimulation should advance only to the actual attack time when sleep is interrupted")
 	world.free()
 
 
