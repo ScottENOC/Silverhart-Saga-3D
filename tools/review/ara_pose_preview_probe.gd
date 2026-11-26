@@ -79,6 +79,8 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 	for bone_index in range(pose_snapshot.size()):
 		export_skeleton.set_bone_global_pose(bone_index, pose_snapshot[bone_index])
 	export_skeleton.force_update_all_bone_transforms()
+	await process_frame
+	await RenderingServer.frame_post_draw
 	var mesh_instances: Array[MeshInstance3D] = []
 	_collect_mesh_instances(export_root, mesh_instances)
 	var baked_count := 0
@@ -113,10 +115,11 @@ func _export_and_verify(actor_name: String, model_root: Node3D, source_skeleton:
 		_expect(false, "%s model duplicated for GLB export" % actor_name)
 		return
 	export_root.name = actor_name
+	export_root.process_mode = Node.PROCESS_MODE_DISABLED
 	root.add_child(export_root)
 	await process_frame
 	await RenderingServer.frame_post_draw
-	var bake_result := _bake_character_pose(export_root, source_skeleton)
+	var bake_result := await _bake_character_pose(export_root, source_skeleton)
 	_expect(bool(bake_result["ok"]), "%s skinned meshes baked (%s)" % [actor_name, str(bake_result.get("reason", ""))])
 	if not bool(bake_result["ok"]):
 		export_root.free()
