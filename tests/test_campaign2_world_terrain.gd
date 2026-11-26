@@ -17,6 +17,7 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(5, -366)) == "path", "Millbrook's door spur must be rendered as a path")
 	_check(terrain.terrain_for_hex(Vector2i(7, -366)) == "path", "The Millbrook road endpoint must be retained")
 	_check(terrain.terrain_for_hex(Vector2i(908, -626)) == "mountain", "Kragmoor must sit in the north-east mountain region")
+	_test_border_fort_gate_approaches(terrain)
 	_check(terrain.terrain_for_hex(Vector2i(8, 934)) == "forest", "The southern elven forest belt must remain continuous")
 	_check(terrain.terrain_for_hex(Vector2i(-700, 24)) == "water", "The far-west edge must resolve to the western sea")
 	_check(terrain.terrain_for_hex(Vector2i(3000, 24)) == "void", "Coordinates outside the 16x16 world must not generate terrain")
@@ -321,3 +322,52 @@ func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failures += 1
 		push_error(message)
+
+
+func _test_border_fort_gate_approaches(terrain) -> void:
+	# Northwatch deliberately keeps a closed gate wall. Its approach must reach
+	# the immediately adjacent outside hex without overwriting the gate itself.
+	var northwatch_gate := Vector2i(268, -2)
+	var northwatch_approach_end := Vector2i(268, -3)
+	_check(terrain.terrain_for_hex(northwatch_gate) == "climbable_wall", "Northwatch's gate must retain its closed-wall terrain")
+	_check(terrain.terrain_for_hex(northwatch_approach_end) == "path", "Northwatch's south approach must reach the outside of its gate")
+	_check(terrain.is_walkable_for_hex(northwatch_approach_end), "Northwatch's approach must remain traversable up to the closed gate")
+	var northwatch_path_count := 0
+	for r in range(21, -4, -1):
+		var cell := Vector2i(268, r)
+		if cell == northwatch_gate:
+			continue
+		_check(terrain.terrain_for_hex(cell) == "path", "Northwatch's gate spur must be continuous at %s" % cell)
+		_check(terrain.is_walkable_for_hex(cell), "Northwatch's gate spur must be walkable at %s" % cell)
+		northwatch_path_count += 1
+	_check(northwatch_path_count >= 20, "Northwatch's south approach must retain its full-length spur")
+
+	# Ridgehold's source road terminates at the open west gate; every road cell
+	# in the corridor must remain a traversable path after fort walls are built.
+	var ridgehold_start := Vector2i(398, 23)
+	var ridgehold_gate := Vector2i(407, 43)
+	_check(terrain.terrain_for_hex(ridgehold_gate) == "path", "Ridgehold's west gate must remain an open path")
+	_check(terrain.terrain_for_hex(ridgehold_start) == "path", "Ridgehold's road must retain its source approach endpoint")
+	_check(terrain.is_walkable_for_hex(ridgehold_gate) and terrain.is_walkable_for_hex(ridgehold_start), "Ridgehold's road and open gate must be traversable")
+	var ridgehold_corridor_cells: Dictionary = {}
+	for q in range(397, 409):
+		for r in range(22, 45):
+			var cell := Vector2i(q, r)
+			if terrain.terrain_for_hex(cell) == "path" and HexGrid.distance(cell, ridgehold_start) <= HexGrid.distance(ridgehold_start, ridgehold_gate):
+				ridgehold_corridor_cells[cell] = true
+	_check(ridgehold_corridor_cells.size() >= 8, "Ridgehold's corrected road must contain a connected run of approach cells")
+	var visited: Dictionary = {_hex_key_for_test(ridgehold_start): true}
+	var queue: Array[Vector2i] = [ridgehold_start]
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		for direction in HexGrid.DIRECTIONS:
+			var neighbour: Vector2i = current + direction
+			var key := _hex_key_for_test(neighbour)
+			if ridgehold_corridor_cells.has(neighbour) and not visited.has(key):
+				visited[key] = true
+				queue.append(neighbour)
+	_check(visited.has(_hex_key_for_test(ridgehold_gate)), "Ridgehold's road must connect continuously from its source endpoint to the open gate")
+
+
+func _hex_key_for_test(hex: Vector2i) -> Vector2i:
+	return hex
