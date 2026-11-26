@@ -41,11 +41,14 @@ func _test_begin_and_restore_all_participants() -> void:
 	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
 	player.side = "player"
 	player.combat_dormant = false
+	player.time_points = 151.0
 	var companion := CharacterState.new("companion", "Companion", Vector2i(1, 0))
+	companion.time_points = 73.0
 	companion.side = "neutral"
 	companion.combat_dormant = true
 	var wolf := CharacterState.new("wolf", "Wolf", Vector2i(2, 0))
 	wolf.side = "enemy"
+	wolf.time_points = 64.0
 	wolf.combat_dormant = true
 	var bystander := CharacterState.new("bystander", "Bystander", Vector2i(3, 0))
 	bystander.side = "neutral"
@@ -61,6 +64,7 @@ func _test_begin_and_restore_all_participants() -> void:
 	_check(player.side == "player" and not player.combat_dormant, "Party members should be active on the player side.")
 	_check(companion.side == "player" and not companion.combat_dormant, "Neutral companions should join the player side.")
 	_check(wolf.side == "enemy" and not wolf.combat_dormant, "Enemies should be active on the enemy side.")
+	_check(player.time_points == 151.0 and companion.time_points == 73.0 and wolf.time_points == 64.0, "Encounter activation must preserve each participant’s existing initiative TP.")
 	_check(bystander.combat_dormant, "Non-participants should be dormant during the encounter.")
 
 	var finish_result: Dictionary = ENCOUNTER_SERVICE.finish(simulation, result.get("session", {}))
