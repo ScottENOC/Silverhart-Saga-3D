@@ -33,6 +33,10 @@ func _test_source_backed_nella_quest() -> void:
 	_check(String(initial.get("text", "")).contains("Rooms are warm"))
 	_check(String(initial.choices[0].get("id", "")) == "nella_offer_stone")
 
+	var rumours := INNKEEPER_CONTENT.resolve_choice(journal, player, "nella_rumours")
+	_check(bool(rumours.get("ok", false)))
+	_check(String(rumours.dialogue.text).contains("Nothing much travels this far"))
+
 	var gated := INNKEEPER_CONTENT.greeting(journal, player, true)
 	_check(not gated.choices.any(func(choice: Dictionary) -> bool:
 		return String(choice.get("id", "")) == "nella_offer_stone"
