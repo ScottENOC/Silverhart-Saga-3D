@@ -1480,7 +1480,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		if simulation != null:
 			simulation.finish_interrupted_camp_night()
 			await _return_rowan_after_night()
-			camp_status_label.text = "The party leaves the remaining sleep hours behind. Pack camp when ready."
+			camp_status_label.text = "The party stays awake through the remaining night hours. Dawn has arrived; pack camp when ready."
 			if camp_sleep_button != null:
 				camp_sleep_button.text = "Pack camp"
 		return
