@@ -1,7 +1,7 @@
 # Campaign 2 content gap audit — NPCs, dialogue and quests
 
 **Source:** [Hex-crpg](https://github.com/ScottENOC/Hex-crpg), `main` at `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
-**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `fab18c33f765e6325392333cdf24966d609c0522` (before this audit update)  
+**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `56376c934c53ca46c582de179c858f16d7682a5e` (before this audit update)  
 **Audit date:** 2026-11-26  
 **Scope:** Named NPC roster, authored dialogue volume/coverage, explicit quest IDs and campaign-content migration status.
 
@@ -13,7 +13,7 @@ This is the campaign-content companion to [the map-only gap audit](campaign2_gap
 |---|---:|---:|---|
 | Named NPC roster | 120 named NPCs across three explicit rosters | 72 of those names appear in target character profiles or settlement placements | **48 lack an active profile/placement record** |
 | Dialogue | At least 509 explicit dialogue call-sites; at least 416 literal lines passed directly to them | About 209 direct static utterances found in the current dialogue/content files | **Partial; no complete line/branch mapping exists** |
-| Quests | 72 explicit source quest IDs | 22 explicit target quest IDs; 14 exact ID matches | **58 source IDs have no exact target ID** |
+| Quests | 72 explicit source quest IDs | 23 explicit target quest IDs; 15 exact ID matches | **57 source IDs have no exact target ID** |
 
 These are inventory counts, not a completion percentage. A profile, placement, dialogue string or quest ID is not proof that the associated actor can spawn, the full dialogue tree is reachable, or the quest's consequences work in a playable campaign.
 
@@ -145,9 +145,9 @@ The existing [NPC and dialogue extraction index](campaign2_npc_dialogue_index.md
 ### Counts
 
 - Source: **72 explicit quest IDs** — 49 from the Campaign 2 dialogue/index scan, nine companion quest chapters, eleven named character-arc quests and three Seraphine arc quests.
-- Target: **22 explicit quest IDs** on `dev`.
-- Exact ID overlap: **14**.
-- Source IDs without an exact target ID: **58**.
+- Target: **23 explicit quest IDs** on `dev`.
+- Exact ID overlap: **15**.
+- Source IDs without an exact target ID: **57**.
 - Target-only IDs: **8**.
 
 An exact-ID difference is not proof that an entire storyline is absent. Some target quests may be adapted or renamed; those need an explicit source-to-target mapping and branch/consequence verification before being treated as migrated.
@@ -169,9 +169,9 @@ I compared each target definition and its stated objective against the source qu
 
 **Net result:** zero source quest IDs can be safely removed from the 59-ID exact mismatch list on this evidence alone. Two target quests have plausible partial mappings (`reyna_dire_wolf_hunt` and `northwatch_siege`); three formalise source events that were not separate quest IDs (`hollowmere_ironbond_shakedown`, `aldric_rescue`, `mirabel_spider_ruin`); the remaining three are new or related-but-distinct content. The exact-ID gap therefore remains **59**, while the semantic review has narrowed where manual parity work is needed.
 
-### Source IDs without an exact target ID — 58
+### Source IDs without an exact target ID — 57
 
-**Campaign 2 dialogue/index IDs — 45**
+**Campaign 2 dialogue/index IDs — 44**
 - [ ] `aldenreach_message`
 - [ ] `baron_tribute`
 - [ ] `border_war`
@@ -182,7 +182,6 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `deepholds_letter`
 - [ ] `disciple_exposed`
 - [ ] `druid_grove`
-- [ ] `dwarven_toll`
 - [ ] `elder_locket`
 - [ ] `elven_gift`
 - [ ] `eyes_on_border`
@@ -237,9 +236,9 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `seraphine_border_decree`
 - [ ] `seraphine_what_crown_may_hide`
 
-### Exact ID matches already present — 14
+### Exact ID matches already present — 15
 
-`a_stone_for_nella`, `farm_wolves`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
+`a_stone_for_nella`, `dwarven_toll`, `farm_wolves`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
 
 These are exact-ID matches only. Their runtime triggers, all choices, completion conditions, rewards and consequences still need to pass their own parity checks.
 
@@ -249,11 +248,19 @@ These are exact-ID matches only. Their runtime triggers, all choices, completion
 
 Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` versus source `missing_child` / `farm_wolves`, and `northwatch_siege` versus `border_war`. These are **unverified mapping candidates**, not accepted equivalences.
 
-### Small quest port completed: A Stone for Nella
+### Small quest ports completed
+
+**A Stone for Nella**
 
 - [x] Added `ReddaleInnkeeperContent` with the source quest ID, source dialogue gate, accept/active/turn-in/completed states, blue-gem consumption, +20 gold and +20 Nella reputation/knowledge.
 - [x] Added headless regression coverage for the quest flow, missing-gem retry, journal-read gate, item consumption and duplicate-reward prevention.
 - [ ] Connect the service's greeting and choice IDs to the live Reddale NPC interaction route. The content logic is ported and tested, but the presentation/runtime hook is not yet claimed as complete.
+
+**Coin for the Deepholds**
+
+- [x] Added `DwarvenAmbassadorContent` with the source toll dialogue, 15-gold payment, quest completion, +60 experience and +10 standing / +15 knowledge for Brokk and the dwarven kingdom.
+- [x] Added headless regression coverage for acceptance, insufficient funds, exact payment, rewards, reputation/knowledge and duplicate-payment prevention.
+- [ ] Connect Brokk's content to a live actor interaction route. His appearance profile exists in the legacy roster, but that is not evidence of an active placed actor.
 
 ## 4. Work order — smallest verifiable steps first
 
