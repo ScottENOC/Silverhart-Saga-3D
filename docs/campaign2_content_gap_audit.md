@@ -277,7 +277,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Added headless regression coverage for both normal acceptance and finding the locket before speaking to Marta, including item consumption, +20 gold, +100 experience, +15 reputation / +20 knowledge and duplicate-reward prevention.
 - [x] Confirmed Elder Marta's existing Ara profile/model and authored Hollowmere placement at `Vector2i(0, -9)`; added explicit regression assertions for both.
 - [x] Connected her greeting and choice handling to the live Hollow Tankard NPC interaction dispatcher and registered the quest with the campaign journal at startup.
-- [ ] Add or verify the source-authored chapel pickup at world hex `(-14, 0)`. The `elder_locket` item definition exists, but I have not yet found a target world pickup corresponding to the source's chapel placement; the quest logic and dialogue route are therefore not yet fully playable end-to-end.
+- [x] Added a visible Tarnished Locket pickup at the source-authored chapel hex `(-14, 0)`, reachable with the normal F-key interaction. The pickup grants one stable `elder_locket` inventory instance, is idempotent, and persists its collected flag through Hollow Tankard save/restore (also recognising an already-carried locket in older saves). Added regression coverage for item grant, duplicate prevention, authored position and save-state wiring.
 
 **A Quiet Word**
 
