@@ -1550,7 +1550,6 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			return
 		if choice_id == "toren_accept_report" and resource_status_label != null:
 			resource_status_label.text = "Quest added: Eyes on the Border."
-			resource_status_label.text = "Quest added: Eyes on the Border."
 		if bool(toren_result.get("quest_completed", false)) and resource_status_label != null:
 			resource_status_label.text = "Quest complete: Eyes on the Border  ·  +15 gold  ·  +60 XP"
 		var toren_dialogue: Variant = toren_result.get("dialogue", {})
