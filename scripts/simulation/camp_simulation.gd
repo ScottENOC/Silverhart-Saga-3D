@@ -1003,14 +1003,16 @@ func _scale_night_watch_schedule(hours: float) -> void:
 func _watch_hours_by_character(hours: float) -> Dictionary:
 	var totals: Dictionary = {}
 	for shift in night_watch_schedule:
-		var duration := maxf(0.0, float(shift.get("end_hour", 0.0)) - float(shift.get("start_hour", 0.0)))
+		var shift_start := float(shift.get("start_hour", 0.0))
+		var shift_end := minf(float(shift.get("end_hour", 0.0)), hours)
+		var duration := maxf(0.0, shift_end - shift_start)
 		for watcher_id in shift.get("watcher_ids", []):
 			var key := String(watcher_id)
 			totals[key] = float(totals.get(key, 0.0)) + duration
 	return totals
 
 
-func _resolve_night_threat(ambush_chance: float) -> Dictionary:
+func _resolve_night_threat(ambush_chance: float, night_hours: float) -> Dictionary:
 	var seed_value := int(environment.get("night_seed", 0))
 	if seed_value == 0:
 		var seed_text := String(site.get("site_id", site.get("location_id", "camp")))
@@ -1024,13 +1026,14 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 	var attack_roll := rng.randf()
 	var attacked := attack_roll < ambush_chance
 	if not attacked:
-		return {"attacked": false, "detected": false, "attack_roll": attack_roll, "detection_chance": 0.0, "seed": seed_value}
+		return {"attacked": false, "detected": false, "attack_roll": attack_roll, "detection_chance": 0.0, "attack_hour": 0.0, "seed": seed_value}
 	var best_detection := 0.0
 	var detecting_watcher := ""
 	var visibility := clampf(float(environment.get("visibility_multiplier", 1.0)), 0.1, 1.5)
 	if bool(environment.get("fog", false)) or bool(environment.get("heavy_rain", false)):
 		visibility *= 0.7
-	for shift in night_watch_schedule:
+	for shift_index in range(night_watch_schedule.size()):
+		var shift: Dictionary = night_watch_schedule[shift_index]
 		var shift_detection := 0.0
 		var shift_watcher := ""
 		for watcher_value in shift.get("watcher_ids", []):
@@ -1048,8 +1051,15 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 			detecting_watcher = shift_watcher
 		var detection_roll := rng.randf()
 		if detection_roll < shift_detection:
-			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "seed": seed_value}
-	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "seed": seed_value}
+			var attack_hour := (float(shift.get("start_hour", 0.0)) + float(shift.get("end_hour", night_hours))) * 0.5
+			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "shift_index": shift_index, "attack_hour": attack_hour, "seed": seed_value}
+	var attack_hour := night_hours / 6.0
+	var attack_shift_index := -1
+	if not night_watch_schedule.is_empty():
+		attack_shift_index = night_watch_schedule.size() - 1
+		var last_shift: Dictionary = night_watch_schedule[attack_shift_index]
+		attack_hour = (float(last_shift.get("start_hour", 0.0)) + float(last_shift.get("end_hour", night_hours))) * 0.5
+	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "shift_index": attack_shift_index, "attack_hour": attack_hour, "seed": seed_value}
 
 
 func _has_activity(activity: String) -> bool:
@@ -1114,12 +1124,17 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	# A solid dwelling substantially reduces exposure; tents provide partial cover.
 	var shelter_multiplier := 0.35 + 0.65 * exposure_ratio
 	var ambush_chance := base_ambush_chance * shelter_multiplier
-	var threat_result := _resolve_night_threat(ambush_chance)
+	var threat_result := _resolve_night_threat(ambush_chance, night_hours)
 	night_encounter_result = threat_result.duplicate(true)
-	var watch_hours_by_character := _watch_hours_by_character(night_hours)
+	var sleep_interrupted := bool(threat_result.get("attacked", false))
+	var elapsed_night_hours := night_hours
+	if sleep_interrupted:
+		elapsed_night_hours = clampf(float(threat_result.get("attack_hour", night_hours)), 0.25, night_hours)
+	var sleep_fraction := elapsed_night_hours / night_hours
+	var watch_hours_by_character := _watch_hours_by_character(elapsed_night_hours)
 	var starting_temperature := float(environment.get("night_temperature_c", 10.0))
 	var temperature_change := float(environment.get("temperature_change_per_hour", -0.4))
-	var temperature := starting_temperature + temperature_change * night_hours
+	var temperature := starting_temperature + temperature_change * elapsed_night_hours
 	var cold_penalty := maxf(0.0, 10.0 - temperature) * 2.0
 	var bagged_characters: Dictionary = {}
 	for arrangement in sleeping_arrangements:
@@ -1158,11 +1173,11 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var surface_comfort := 10.0 if sleeping_surface == "bed" else (3.0 if has_sleeping_bag else 0.0)
 		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10) + dwelling_comfort + surface_comfort, 0.0, 100.0)
 		var watched_hours := float(watch_hours_by_character.get(character_id, 0.0))
-		var watch_penalty := clampf(watched_hours / maxf(1.0, night_hours) * 10.0, 0.0, 10.0)
-		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, 20.0 + comfort * 0.35 - watch_penalty))
+		var watch_penalty := clampf(watched_hours / maxf(1.0, elapsed_night_hours) * 10.0, 0.0, 10.0)
+		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, (20.0 + comfort * 0.35 - watch_penalty) * sleep_fraction))
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
-		condition["hunger"] = clampf(float(condition.hunger) + night_hours * 2.0 - (25.0 if has_meal else 0.0), 0.0, 100.0)
-		condition["thirst"] = clampf(float(condition.thirst) + night_hours * 2.5 - (30.0 if has_water else 0.0), 0.0, 100.0)
+		condition["hunger"] = clampf(float(condition.hunger) + elapsed_night_hours * 2.0 - (25.0 if has_meal else 0.0) * sleep_fraction, 0.0, 100.0)
+		condition["thirst"] = clampf(float(condition.thirst) + elapsed_night_hours * 2.5 - (30.0 if has_water else 0.0) * sleep_fraction, 0.0, 100.0)
 		condition["warmth"] = warmth
 		condition["comfort"] = comfort
 		conditions[character_id] = condition
@@ -1176,7 +1191,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		}
 	phase = "resolved"
 	var summary := {
-		"hours": night_hours, "party_size": party_size, "watchers": watchers,
+		"hours": elapsed_night_hours, "planned_hours": night_hours, "sleep_interrupted": sleep_interrupted, "party_size": party_size, "watchers": watchers,
 		"ambush_chance": ambush_chance, "base_ambush_chance": base_ambush_chance,
 		"night_index": night_index, "watch_schedule": night_watch_schedule.duplicate(true),
 		"night_encounter": threat_result.duplicate(true),
