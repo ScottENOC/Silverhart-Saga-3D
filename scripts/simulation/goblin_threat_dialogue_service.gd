@@ -15,12 +15,14 @@ static func handles_npc(npc_id: String) -> bool:
 		"ser_aldric_thorne",
 		"ser_aldric_captive",
 		"goblin_trader",
-		"grondle"
+		"grondle",
+		"marta_wynfield",
+		"elder_marta_wynfield"
 	]
 
 
 static func handles_choice(choice_id: String) -> bool:
-	return choice_id.begins_with("skarnub_") or choice_id.begins_with("nix_") or choice_id.begins_with("aldric_") or choice_id.begins_with("grondle_")
+	return choice_id.begins_with("skarnub_") or choice_id.begins_with("nix_") or choice_id.begins_with("aldric_") or choice_id.begins_with("grondle_") or choice_id.begins_with("marta_spy_")
 
 
 static func dialogue_for_npc(
@@ -32,6 +34,8 @@ static func dialogue_for_npc(
 		return {"ok": false, "reason": "missing_simulation"}
 	var journal := simulation.campaign_journal
 	match npc_id:
+		"marta_wynfield", "elder_marta_wynfield":
+			return RUNTIME_SERVICE.marta_greeting(simulation)
 		"chief_skarnub":
 			var quest := journal.quest_state(CONTENT_SCRIPT.QUEST_ID)
 			var context := {
@@ -83,9 +87,11 @@ static func select_choice(
 			npc_id = "ser_aldric_thorne"
 		elif choice_id.begins_with("grondle_"):
 			npc_id = "grondle"
+		elif choice_id.begins_with("marta_spy_"):
+			npc_id = "marta_wynfield"
 	if not handles_npc(npc_id):
 		return {"ok": false, "handled": false}
-	if choice_id in ["skarnub_leave", "nix_leave", "aldric_leave", "grondle_leave"]:
+	if choice_id in ["skarnub_leave", "nix_leave", "aldric_leave", "grondle_leave", "marta_spy_leave"]:
 		return {"ok": true, "handled": true, "closed": true}
 
 	var result: Dictionary = {}
@@ -168,6 +174,24 @@ static func select_choice(
 				}
 		else:
 			return {"ok": false, "handled": true, "reason": "unknown_aldric_choice"}
+		elif npc_id in ["marta_wynfield", "elder_marta_wynfield"]:
+			if choice_id == "marta_spy_accept":
+				result = RUNTIME_SERVICE.accept_marta_spy_quest(simulation)
+				if bool(result.get("ok", false)):
+					result = RUNTIME_SERVICE.marta_greeting(simulation)
+			elif choice_id == "marta_spy_report":
+				result = RUNTIME_SERVICE.resolve_marta_spy_quest(simulation)
+				if bool(result.get("ok", false)):
+					result = {
+						"ok": true,
+						"speaker": "Elder Marta Wynfield",
+						"text": "%s Quest complete: Prove Your Worth. 150 experience gained." % String(result.get("message", "Marta nods slowly.")),
+						"choices": [{"id":"continue","label":"I won't."}]
+					}
+			elif choice_id == "marta_spy_wait":
+				result = RUNTIME_SERVICE.marta_greeting(simulation)
+			else:
+				return {"ok": false, "handled": true, "reason": "unknown_marta_choice"}
 	elif npc_id in ["goblin_trader", "grondle"]:
 		if choice_id == "grondle_trade":
 			return {
@@ -249,5 +273,7 @@ static func _speaker_for(npc_id: String) -> String:
 			return "Nix Sharpear"
 		"ser_aldric_thorne":
 			return "Ser Aldric Thorne"
+		"marta_wynfield", "elder_marta_wynfield":
+			return "Elder Marta Wynfield"
 		_:
 			return "Grondle"
