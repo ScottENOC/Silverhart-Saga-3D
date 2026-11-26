@@ -17,6 +17,27 @@ var region_campaign_states: Dictionary = {}
 var world_campaign_flags: Dictionary = {}
 
 
+const DEFAULT_REGION_CAMPAIGN_STATES := {
+	"hollowmere": {"id":"hollowmere","name":"Hollowmere","tier":"village","parent_id":"aldervale","security":50.0,"prosperity":40.0,"local_security_floor":35.0,"local_prosperity_floor":25.0},
+	"emberlode": {"id":"emberlode","name":"Emberlode","tier":"village","parent_id":"aldervale","security":30.0,"prosperity":20.0,"local_security_floor":20.0,"local_prosperity_floor":15.0},
+	"aldervale": {"id":"aldervale","name":"Aldervale","tier":"barony","parent_id":"silverhart_kingdom","security":50.0,"prosperity":45.0,"local_security_floor":40.0,"local_prosperity_floor":35.0},
+	"silverhart_kingdom": {"id":"silverhart_kingdom","name":"The Silverhart Kingdom","tier":"kingdom","parent_id":"","security":55.0,"prosperity":50.0,"local_security_floor":55.0,"local_prosperity_floor":50.0}
+}
+
+const REGION_PARENT_BASELINE_WEIGHT := 0.4
+const REGION_PROSPERITY_SECURITY_THRESHOLD := 60.0
+const REGION_PROSPERITY_SECURITY_WEIGHT := 0.3
+const REGION_DECAY_RATE_PER_HOUR := 0.01
+
+
+func _init() -> void:
+	_seed_default_region_campaign_states()
+
+
+func _seed_default_region_campaign_states() -> void:
+	region_campaign_states = DEFAULT_REGION_CAMPAIGN_STATES.duplicate(true)
+
+
 func register_quest_definition(definition: Dictionary) -> Dictionary:
 	var quest_id := String(definition.get("id", "")).strip_edges()
 	if quest_id.is_empty():
@@ -316,20 +337,69 @@ func record_world_consequence(consequence_id: String, quest_id: String, decision
 
 func apply_region_campaign_state(region_id: String, deltas: Dictionary) -> Dictionary:
 	var stable_id := region_id.strip_edges()
-	if stable_id.is_empty() or deltas.is_empty():
+	if stable_id.is_empty() or deltas.is_empty() or not region_campaign_states.has(stable_id):
 		return {"ok": false, "reason": "invalid_region_update"}
-	var state: Dictionary = region_campaign_states.get(stable_id, {})
 	for key_value in deltas.keys():
 		var key := String(key_value).strip_edges()
 		var value: Variant = deltas[key_value]
-		if key.is_empty() or not (value is int or value is float) or not is_finite(float(value)):
+		if key not in ["security", "prosperity"] or not _is_finite_number(value):
 			return {"ok": false, "reason": "invalid_region_delta"}
+	var state: Dictionary = region_campaign_states[stable_id]
 	for key_value in deltas.keys():
 		var key := String(key_value)
-		state[key] = clampf(float(state.get(key, 0.0)) + float(deltas[key_value]), -100.0, 100.0)
+		state[key] = clampf(float(state.get(key, 0.0)) + float(deltas[key_value]), 0.0, 100.0)
 	region_campaign_states[stable_id] = state
 	_emit_event("region_campaign_state_changed", {"region_id": stable_id, "state": state.duplicate(true)})
 	return {"ok": true, "region_id": stable_id, "state": state.duplicate(true)}
+
+
+func cascade_region_campaign_state(region_id: String, stat: String, delta: float, falloff: float = 0.3) -> Dictionary:
+	if stat not in ["security", "prosperity"] or not is_finite(delta) or not is_finite(falloff) or falloff < 0.0 or falloff > 1.0:
+		return {"ok": false, "reason": "invalid_region_cascade"}
+	var current_region_id := region_id.strip_edges()
+	if not region_campaign_states.has(current_region_id):
+		return {"ok": false, "reason": "unknown_region"}
+	var multiplier := 1.0
+	var updates: Array[Dictionary] = []
+	while not current_region_id.is_empty():
+		var update := apply_region_campaign_state(current_region_id, {stat: delta * multiplier})
+		if not bool(update.get("ok", false)):
+			return update
+		updates.append(update)
+		var current_state: Dictionary = region_campaign_states[current_region_id]
+		current_region_id = String(current_state.get("parent_id", ""))
+		multiplier *= falloff
+	return {"ok": true, "updates": updates}
+
+
+func region_campaign_baseline(region_id: String, stat: String) -> float:
+	if stat not in ["security", "prosperity"] or not region_campaign_states.has(region_id):
+		return 0.0
+	var region: Dictionary = region_campaign_states[region_id]
+	var floor_key := "local_security_floor" if stat == "security" else "local_prosperity_floor"
+	var baseline := float(region.get(floor_key, 0.0))
+	var parent_id := String(region.get("parent_id", ""))
+	if not parent_id.is_empty() and region_campaign_states.has(parent_id):
+		var parent: Dictionary = region_campaign_states[parent_id]
+		baseline += REGION_PARENT_BASELINE_WEIGHT * float(parent.get(stat, 0.0))
+	if stat == "security" and float(region.get("prosperity", 0.0)) > REGION_PROSPERITY_SECURITY_THRESHOLD:
+		baseline += (float(region["prosperity"]) - REGION_PROSPERITY_SECURITY_THRESHOLD) * REGION_PROSPERITY_SECURITY_WEIGHT
+	return clampf(baseline, 0.0, 100.0)
+
+
+func tick_region_campaign_states(delta_seconds: float) -> void:
+	if not is_finite(delta_seconds) or delta_seconds <= 0.0:
+		return
+	var hours := delta_seconds / 3600.0
+	for region_id_value in region_campaign_states.keys():
+		var region_id := String(region_id_value)
+		var state: Dictionary = region_campaign_states[region_id]
+		for stat in ["security", "prosperity"]:
+			var baseline := region_campaign_baseline(region_id, stat)
+			var current := float(state.get(stat, baseline))
+			state[stat] = clampf(baseline + (current - baseline) * exp(-REGION_DECAY_RATE_PER_HOUR * hours), 0.0, 100.0)
+		region_campaign_states[region_id] = state
+		_emit_event("region_campaign_state_changed", {"region_id": region_id, "state": state.duplicate(true)})
 
 
 func region_campaign_state(region_id: String) -> Dictionary:
@@ -383,6 +453,7 @@ func load_dict(data: Dictionary) -> void:
 	merchant_influence.clear()
 	world_consequences.clear()
 	region_campaign_states.clear()
+	_seed_default_region_campaign_states()
 	world_campaign_flags.clear()
 	var saved_quests: Variant = data.get("quests", {})
 	if saved_quests is Dictionary:
@@ -416,9 +487,14 @@ func load_dict(data: Dictionary) -> void:
 				world_consequences[String(consequence_id)] = saved_record.duplicate(true)
 	var saved_regions: Variant = data.get("region_campaign_states", {})
 	if saved_regions is Dictionary:
-		for region_id in saved_regions:
-			if saved_regions[region_id] is Dictionary:
-				region_campaign_states[String(region_id)] = saved_regions[region_id].duplicate(true)
+		for region_id_value in saved_regions:
+			var region_id := String(region_id_value)
+			var saved_region: Variant = saved_regions[region_id_value]
+			if saved_region is Dictionary and region_campaign_states.has(region_id):
+				var restored_region: Dictionary = region_campaign_states[region_id].duplicate(true)
+				for key in saved_region:
+					restored_region[String(key)] = saved_region[key]
+				region_campaign_states[region_id] = restored_region
 	var saved_flags: Variant = data.get("world_campaign_flags", {})
 	if saved_flags is Dictionary:
 		for flag_id in saved_flags:
