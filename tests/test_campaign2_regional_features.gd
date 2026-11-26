@@ -42,6 +42,18 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(104, -366)) == "rocky_outcrop", "Dragon lair outer ring must be rocky outcrop")
 	_check(terrain.terrain_for_hex(Vector2i(108, -366)) != "rocky_outcrop", "Dragon lair rocky ring must stop at radius six")
 
+	# Wilderness sites are deliberately reached through natural terrain where
+	# the source did not paint a road. Reject void (which the movement query
+	# otherwise treats as walkable) as well as genuinely blocked terrain.
+	_check_site_anchor(terrain, Vector2i(-256, 28), "Vampire Grave")
+	_check_site_anchor(terrain, Vector2i(-59, 204), "Old Mac's Wolf Den")
+	_check_site_anchor(terrain, FEATURES.DRUID_GROVE_DEN, "Druid Grove trial den")
+
+	# The grove clearing and dragon-lair outcrop each have a continuous
+	# source-shaped natural approach; neither requires an invented road.
+	_check_walkable_axial_line(terrain, Vector2i(-271, 10), Vector2i(-266, 10), "Emberwood Grove clearing")
+	_check_walkable_axial_line(terrain, Vector2i(107, -366), Vector2i(101, -366), "Ashveil's Dragon Lair")
+
 	# Kragmoor is a solid source-sized mountain with a carved surface Gate Hall.
 	_check(FEATURES.KRAGMOOR_CENTRE == Vector2i(908, -626), "Kragmoor anchor must derive from the crossroads plus the source offset")
 	_check(FEATURES.KRAGMOOR_MASSIF_RADIUS == 25, "Kragmoor massif must retain its source radius")
@@ -139,6 +151,21 @@ func _initialize() -> void:
 	print("Campaign 2 regional authored terrain feature tests passed.")
 	quit(0)
 
+
+
+func _check_site_anchor(terrain, hex: Vector2i, site_name: String) -> void:
+	_check(terrain.terrain_for_hex(hex) != "void", "%s anchor must be inside authored world terrain" % site_name)
+	_check(terrain.is_walkable_for_hex(hex), "%s anchor must be reachable on foot" % site_name)
+
+
+func _check_walkable_axial_line(terrain, start: Vector2i, finish: Vector2i, route_name: String) -> void:
+	_check(HexGrid.distance(start, finish) == absi(finish.x - start.x) + absi(finish.y - start.y), "%s test route must be an axial straight line" % route_name)
+	var steps := HexGrid.distance(start, finish)
+	for step in range(steps + 1):
+		var t := float(step) / float(maxi(steps, 1))
+		var hex := Vector2i(roundi(lerpf(float(start.x), float(finish.x), t)), roundi(lerpf(float(start.y), float(finish.y), t)))
+		_check(terrain.terrain_for_hex(hex) != "void", "%s route cell %s must not be void" % [route_name, hex])
+		_check(terrain.is_walkable_for_hex(hex), "%s route cell %s must be walkable" % [route_name, hex])
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
