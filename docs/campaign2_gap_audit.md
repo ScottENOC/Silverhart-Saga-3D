@@ -68,7 +68,7 @@ The current geometry counts are not a completion percentage. The existing invent
 1. **Kragmoor exterior and settlement presentation.** Resolve the near-blank capture. Compare source landmarks, entrance, approach, mountain silhouette, scale and surrounding terrain. A correct floor-map data structure is not a visually complete mountain kingdom.
 2. **Exterior/interior spatial transitions.** Build one register for every authored building/site: exterior entrance hex, destination floor ID, interior door cell, return hex, floor elevation, stairs/ladders, and any spatial gate/door aperture. This audit owns the geometry and coordinate contract; campaign code owns whether a door is locked or an interaction is permitted.
 3. **Source physical-object placement.** The source runtime baseline records 246 physical tile-object placements. The target JSON inventory reports 520 prop records across 508 anchors, but this does not prove semantic coverage. Cross-reference map-owned objects such as journals, ledgers, evidence, altars, ore, stairs, doors, ladders, siege equipment and signs. Ignore replaceable decoration. Their interaction effects belong in campaign content.
-4. **Fields and crop-space geometry.** The current JSON inventory reports 63 field cells, 22 fence cells and zero crop rows. Verify whether any crop-row spatial data exists elsewhere. If not, the map gap is the missing crop-row layout/planting locations, not seasonal growth or harvest mechanics.
+4. **Agricultural footprint coverage.** The source `buildFarmstead` defines a pasture polygon and six fence runs, but no crop rows; the target `old_mac_farmstead` carries the pasture, all six fence runs, and the broken-fence/blood-trail spatial props. The player-owned field is a separate construction feature where the source supports fencing and planted apple trees, not pre-authored crop rows. Therefore, zero crop rows in the target is **not** a source-port gap and should not be treated as missing content. Remaining work is visual/traversal acceptance of the pasture, fence opening, farmhouse spur and player-field boundary.
 5. **Road and water connectivity.** Verify connected travel between meaningful destinations, road continuity, bridges/fords, stream barriers and waterway joins. Road-following NPCs/caravans and their schedules are covered by the campaign audit.
 6. **Strategic-to-local coordinate agreement.** Every strategic destination must resolve to the correct local site. For Skarnak's Hold specifically, strategic marker, local anchor, approach road and travel destination must agree after relocation.
 7. **Chunk boundaries and ownership.** Authored features that span streamed chunks must join without visible seams or duplicated/missing wall, fence, road, stream or prop segments. Decorative infill can remain procedural where the source does not prescribe exact placement.
@@ -181,3 +181,22 @@ The 25 geography IDs have a corresponding location/site row in section 1: Hollow
 
 No source-builder or anchor inventory should be marked complete solely because a target JSON record exists. The definition-of-done gates in section 5 still apply.
 
+
+
+## 8. Small-to-large execution approach
+
+Work is ordered by the smallest independently verifiable spatial gap first. A task is only ticked off when its stated evidence exists; an in-engine visual check is explicitly marked as requiring user acceptance.
+
+| Order | Task | Size | Verification owner | Completion gate |
+|---|---|---|---|---|
+| 1 | Remove false-positive crop-row gap; confirm source has no authored crop rows | XS | ChatGPT | Source builder and target data agree; audit corrected |
+| 2 | Verify Old Mac pasture/fence/road-spur geometry against source | XS | ChatGPT | Automated coordinate/feature test passes |
+| 3 | Verify Unicorn Vale's eight patrol waypoints are all on usable terrain and connected by a route | S | ChatGPT | Coordinate/topology test passes; user only needed if visual route looks wrong |
+| 4 | Verify named wilderness-site anchors and approaches (grave, grove, lair, den, barrow) | S | ChatGPT | Source-to-target anchor/approach checks pass |
+| 5 | Create exterior/interior entrance and return-point register for existing floor maps | M | ChatGPT | Every registered interior has exterior entrance, interior door, return anchor and reciprocal stair data or an explicit documented exception |
+| 6 | Add missing map tests for road, stream, bridge, gate and chunk-boundary joins | M | ChatGPT | Targeted Godot tests pass |
+| 7 | Complete site-by-site visual/traversal acceptance | M–L | User + ChatGPT | User reviews only the resulting captures/build; ChatGPT records outcomes and fixes defects |
+| 8 | Complete Silverhart city spatial reconciliation | L | ChatGPT, then user visual acceptance | Source districts/buildings/walls/routes reconciled, automated tests pass, visual review accepted |
+| 9 | Rebuild and validate Kragmoor exterior presentation | L | ChatGPT, then user visual acceptance | Source landmark/entrance footprint implemented, tests pass, user accepts the resulting map view |
+
+The XS/S items are deliberately bounded so several can be completed without requiring the user to open Godot. Larger visual tasks are deferred until their data and automated checks are ready. This is a work order, not a claim that the listed tasks are already complete.
