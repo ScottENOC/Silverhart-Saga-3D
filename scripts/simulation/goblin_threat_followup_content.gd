@@ -138,7 +138,7 @@ func read_scout_note(context: Dictionary) -> Dictionary:
 		"ok":true,
 		"already_read":false,
 		"text":SCOUT_NOTE_TEXT,
-		"effects":{"set_world_flag":{"goblin_scout_note_read":true},"region_security":{"hollowmere":-3}}
+		"effects":{"set_world_flag":{"goblin_scout_note_read":true},"cascade_region_security":{"hollowmere":-3}}
 	}
 
 
