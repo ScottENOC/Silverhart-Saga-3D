@@ -167,7 +167,7 @@ I compared each target definition and its stated objective against the source qu
 | `fenn_herb_gathering` | `silverleaf_tonic`; `fenn_living_boundary` | **Thematic similarity only.** `silverleaf_tonic` asks for herbs for Healer Sylwen in Sil'thandriel; target `fenn_herb_gathering` asks for three bundles for Fenn. `fenn_living_boundary` is a later, separate companion quest. | Keep separate. Do not map the herb errands merely because both request herbs. |
 | `northwatch_siege` | `border_war`; source `northwatchSiegeSpawn.js` and Northwatch siege/war scripts | **Strong partial overlap, not full quest equivalence.** The source `border_war` sends the player to Northwatch's garrison and opens a broader war/mission progression. The source also has a distinct siege activation/spawn system. Target `northwatch_siege` records the defenders' successful resolution of a siege and unlocks Alden's recruitment. | Map as a candidate for the Northwatch siege encounter/sub-stage of `border_war`; retain the wider border-war objectives, missions, outcomes and follow-up until separately ported. |
 
-**Net result:** zero source quest IDs can be safely removed from the 53-ID exact mismatch list on this evidence alone. Two target quests have plausible partial mappings (`reyna_dire_wolf_hunt` and `northwatch_siege`); three formalise source events that were not separate quest IDs (`hollowmere_ironbond_shakedown`, `aldric_rescue`, `mirabel_spider_ruin`); the remaining three are new or related-but-distinct content. The exact-ID gap at that semantic-review stage therefore remained **53**, while the semantic review has narrowed where manual parity work is needed.
+**Net result:** zero source quest IDs can be safely removed from the 53-ID exact mismatch list on this evidence alone. Two target quests have plausible partial mappings (`reyna_dire_wolf_hunt` and `northwatch_siege`); three formalise source events that were not separate quest IDs (`hollowmere_ironbond_shakedown`, `aldric_rescue`, `mirabel_spider_ruin`); the remaining three are new or related-but-distinct content. The exact-ID gap at that semantic-review stage therefore remained **52**, while the semantic review has narrowed where manual parity work is needed.
 
 ### Source IDs without an exact target ID — 53
 
@@ -190,7 +190,7 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `guild_initiation`
 - [ ] `guild_sunken_cache`
 - [ ] `hidden_bodies`
-- [ ] `ironbond_missing_courier`
+- [~] `ironbond_missing_courier` — acceptance and initial faction reputation are implemented; recovery encounter and completion are not yet ported.
 - [ ] `ironbond_pitch`
 - [ ] `kragmoor_runesmith_teach`
 - [ ] `kragmoor_runesmith_trust`
@@ -231,7 +231,7 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `seraphine_border_decree`
 - [ ] `seraphine_what_crown_may_hide`
 
-### Exact ID matches already present — 19
+### Exact ID matches already present — 20
 
 `a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `toll_ogre`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
 
@@ -244,6 +244,12 @@ These are exact-ID matches only. Their runtime triggers, all choices, completion
 Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` versus source `missing_child` / `farm_wolves`, and `northwatch_siege` versus `border_war`. These are **unverified mapping candidates**, not accepted equivalences.
 
 ### Quest IDs with partial content implementation
+
+**The Missing Courier — `ironbond_missing_courier`**
+
+- [~] Added `IronbondMissingCourierContent` with Dray Coltayne's source offer, accept/decline choices, journal registration, and the source's +10 Ironbond reputation / +10 knowledge on acceptance.
+- [~] Added headless regression coverage for decline, acceptance, one-time faction reward and journal save/restore.
+- [ ] Not yet runtime-wired: Dray does not currently have a persistent streamed dialogue route in the target scene, and the source itself contains no courier recovery encounter or completion branch. Do not count this as a playable quest.
 
 **The Toll-Taker — `toll_ogre`**
 
