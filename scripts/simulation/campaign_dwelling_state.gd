@@ -53,8 +53,8 @@ var upgrades: Dictionary = {}
 var furniture_inventory: Dictionary = {}
 ## Each placed entry stores a stable instance ID, catalogue ID, local floor position and rotation.
 var placed_furniture: Dictionary = {}
-## Existing companion IDs assigned to a permanent home, independent of party membership.
-## Keys are character IDs; values contain dwelling ID and authored routine preference.
+## Non-companion NPCs assigned to a permanent household. Companions remain part of the camp roster.
+## Keys are character IDs; values contain dwelling ID, household role and authored routine data.
 var residents: Dictionary = {}
 var next_furniture_instance_id: int = 1
 
@@ -224,12 +224,15 @@ func camp_profile_for(dwelling_id: String) -> Dictionary:
 
 
 
-const RESIDENT_DAY_ACTIVITIES: Array[String] = ["study_map", "repair_gear", "train", "watch", "socialise"]
+const RESIDENT_DAY_ACTIVITIES: Array[String] = ["study_map", "repair_gear", "train", "watch", "socialise", "cook", "housekeeping", "manage_stores", "welcome_guests"]
 const RESIDENT_STATION_ROLES := {
 	"wake": "bedroom", "breakfast": "table", "study_map": "study",
 	"repair_gear": "workshop", "train": "yard", "watch": "threshold",
-	"socialise": "common", "sleep": "bedroom"
+	"socialise": "common", "sleep": "bedroom", "cook": "hearth",
+	"housekeeping": "common", "manage_stores": "common", "welcome_guests": "threshold"
 }
+const HALVARD_ID := "steward_halvard_greer"
+const HALVARD_DUTIES: Array[String] = ["cook", "housekeeping", "manage_stores", "welcome_guests"]
 
 
 ## Capacity follows the same bed-plus-floor sleeping model used by camp lodging.
@@ -245,6 +248,8 @@ func assign_resident(dwelling_id: String, character_id: String, character_profil
 	var clean_id := character_id.strip_edges()
 	if clean_id.is_empty():
 		return {"ok": false, "reason": "missing_character_id"}
+	if CompanionCampaignContent.is_companion_id(clean_id):
+		return {"ok": false, "reason": "companions_belong_to_camp_roster"}
 	var profile := camp_profile_for(dwelling_id)
 	if profile.is_empty():
 		return {"ok": false, "reason": "dwelling_not_owned"}
@@ -261,10 +266,22 @@ func assign_resident(dwelling_id: String, character_id: String, character_profil
 	var resident := {
 		"character_id": clean_id,
 		"dwelling_id": dwelling_id,
-		"preferred_activity": preferred_activity
+		"preferred_activity": preferred_activity,
+		"household_role": String(character_profile.get("household_role", "resident")),
+		"duties": (character_profile.get("duties", []) as Array).duplicate(true)
 	}
 	residents[clean_id] = resident
 	return {"ok": true, "resident": resident.duplicate(true), "capacity": capacity, "resident_count": current_count + 1}
+
+
+## Halvard is a household steward, not a recruitable companion. His appointment
+## is tied to a livable Silverhart manor and persists independently of the party.
+func appoint_halvard_as_steward() -> Dictionary:
+	return assign_resident("silverhart_manor", HALVARD_ID, {
+		"household_role": "steward",
+		"preferred_activity": "cook",
+		"duties": HALVARD_DUTIES
+	})
 
 
 func remove_resident(character_id: String) -> Dictionary:
@@ -297,19 +314,37 @@ func resident_schedule_for(character_id: String, local_hour: float, party_ids: A
 		return {"activity": "travelling_with_party", "station_role": "none", "dwelling_id": String(resident.get("dwelling_id", ""))}
 	var hour := fposmod(local_hour, 24.0)
 	var activity := "socialise"
-	if hour < 6.0 or hour >= 21.0:
-		activity = "sleep"
-	elif hour < 7.0:
-		activity = "wake"
-	elif hour < 9.0:
-		activity = "breakfast"
-	elif hour < 17.0:
-		activity = String(resident.get("preferred_activity", "socialise"))
+	if String(resident.get("household_role", "")) == "steward":
+		if hour < 6.0 or hour >= 21.0:
+			activity = "sleep"
+		elif hour < 7.0:
+			activity = "wake"
+		elif hour < 9.0:
+			activity = "cook"
+		elif hour < 12.0:
+			activity = "housekeeping"
+		elif hour < 14.0:
+			activity = "manage_stores"
+		elif hour < 17.0:
+			activity = "welcome_guests"
+		elif hour < 19.0:
+			activity = "cook"
+	else:
+		if hour < 6.0 or hour >= 21.0:
+			activity = "sleep"
+		elif hour < 7.0:
+			activity = "wake"
+		elif hour < 9.0:
+			activity = "breakfast"
+		elif hour < 17.0:
+			activity = String(resident.get("preferred_activity", "socialise"))
 	var station_role := String(RESIDENT_STATION_ROLES.get(activity, "common"))
 	return {
 		"activity": activity,
 		"station_role": station_role,
-		"dwelling_id": String(resident.get("dwelling_id", ""))
+		"dwelling_id": String(resident.get("dwelling_id", "")),
+		"household_role": String(resident.get("household_role", "resident")),
+		"duties": (resident.get("duties", []) as Array).duplicate(true)
 	}
 
 
@@ -609,7 +644,9 @@ func from_dict(data: Dictionary) -> bool:
 		validated_residents[character_id] = {
 			"character_id": character_id,
 			"dwelling_id": dwelling_id,
-			"preferred_activity": preferred_activity
+			"preferred_activity": preferred_activity,
+			"household_role": String(resident.get("household_role", "resident")),
+			"duties": (resident.get("duties", []) as Array).duplicate(true)
 		}
 		resident_counts[dwelling_id] = int(resident_counts.get(dwelling_id, 0)) + 1
 	for dwelling_id_value in resident_counts:
