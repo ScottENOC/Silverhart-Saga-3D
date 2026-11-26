@@ -84,3 +84,10 @@ Until the map stream confirms its stable location IDs, spawn contract and world-
 - Use stable character IDs (for example `garrick_holt`, `wren_talbot`) and stable quest/event keys.
 - Keep new campaign logic in campaign-owned files. Do not modify map-owned world builders or shared movement/door files without agreement.
 - Treat actor scenes as presentation of a persistent campaign character, not the owner of their identity or relationship state.
+
+
+## Map and spatial audit boundary
+
+The companion document [Campaign 2 map gap audit](campaign2_gap_audit.md) owns geography, terrain, routes, settlement/site footprints, building and interior layouts, entrances, physical-object placement and spatial traversal. This campaign status document owns the behaviour/content attached to those places: character identity and persistence, dialogue branches/effects, quest state, relationships, NPC schedules, encounter behaviour and companion/world agency.
+
+A character or quest may appear in both documents only where the distinction is explicit: the map audit records its physical anchor or spatial dependency; this document records the actor/content/runtime behaviour. The two audits should not duplicate each other's outstanding-work lists.
