@@ -101,7 +101,7 @@ This is a checklist of source spatial builders, not a requirement to reproduce t
 
 - Source runtime scene: 16,566 unique terrain cells; 11,324 cells touched by named feature builders after deduplication; 246 physical tile-object placements; 72 interior regions; 9 multi-storey building definitions; 8 unicorn patrol waypoints.
 - Target JSON-backed exterior inventory: 4,732 unique cells, plus regional GDScript features not included in that number; 1,543 walkable cells across registered floor maps in the existing geometry audit.
-- Target multi-story location registry contains 70 location records (many are single-floor), while the source runtime inventory reports 72 interior regions. These are not directly equivalent: some source interiors are represented by settlement-layout metadata and some target records are 3D adaptations. Registration does not prove runtime entry/exit.
+- Target multi-story location registry contains 71 location records (after the tunnel-network additions merged in PR #408) (many are single-floor), while the source runtime inventory reports 72 interior regions. These are not directly equivalent: some source interiors are represented by settlement-layout metadata and some target records are 3D adaptations. Registration does not prove runtime entry/exit.
 - Target settlement-layout registry contains seven definitions on `dev`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold. Hollowmere uses its separate location presenter; Kragmoor and Emberlode Mine use the multi-story registry.
 - No overall completion percentage should be published until every meaningful source spatial feature has a row in a source-to-target register with a clear matching rule.
 
@@ -133,7 +133,7 @@ The current target data contains:
 
 - 25 named global geography anchors and 22 strategic connections in `campaign2_geography.json`.
 - Seven definitions in `campaign2_settlement_layouts.json`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold.
-- 70 registered location records in `campaign2_multistory_locations.json`.
+- 71 registered location records in `campaign2_multistory_locations.json` (including the two tunnel stubs added in PR #408).
 - A source-road reference trace in `campaign2_road_paths.json`, pinned to the same source commit above.
 
 These are registration counts, not completion counts. Hollowmere is handled through its own settlement/location implementation rather than being an eighth entry in the seven-record settlement-layout JSON. The broader canonical settlement registry may include it separately. The 70 multi-story location records are not directly comparable with the source extractor's 72 interior regions: registration, room geometry, runtime transitions and successful traversal are different levels of evidence.
