@@ -55,16 +55,22 @@ static func dialogue_for_npc(
 		"nix_sharpear":
 			var nix_conversation: Dictionary = RUNTIME_SERVICE.nix_greeting(simulation)
 			if bool(nix_conversation.get("already_recruited", false)):
-				return _conversation("Nix Sharpear", "Nix is already travelling with your company. He gives you a quick nod and returns to watching the road.", [
-					{"id":"nix_leave","label":"Carry on.","text":"Nix turns back to the road."}
-				])
+				return {
+					"ok": true,
+					"speaker": "Nix Sharpear",
+					"text": "Nix is already travelling with your company. He gives you a quick nod and returns to watching the road.",
+					"choices": [{"id": "nix_leave", "label": "Carry on.", "text": "Nix turns back to the road."}]
+				}
 			return nix_conversation
 		"ser_aldric_thorne", "ser_aldric_captive":
 			var aldric_conversation: Dictionary = RUNTIME_SERVICE.aldric_captive_greeting(simulation)
 			if bool(aldric_conversation.get("already_recruited", false)):
-				return _conversation("Ser Aldric Thorne", "Aldric is already at your side.", [
-					{"id":"aldric_leave","label":"Carry on.","text":"Aldric returns to the company."}
-				])
+				return {
+					"ok": true,
+					"speaker": "Ser Aldric Thorne",
+					"text": "Aldric is already at your side.",
+					"choices": [{"id": "aldric_leave", "label": "Carry on.", "text": "Aldric returns to the company."}]
+				}
 			return aldric_conversation
 		"goblin_trader", "grondle":
 			return RUNTIME_SERVICE.grondle_greeting(simulation)
