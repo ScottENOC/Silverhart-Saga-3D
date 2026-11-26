@@ -779,6 +779,16 @@ func _sleep_or_pack_camp() -> void:
 			roundi(float(summary.get("ambush_chance", 0.0)) * 100.0)
 		]
 		camp_sleep_button.text = "Pack camp"
+	elif simulation.camp_simulation.phase == "interrupted":
+		camp_activity_director.stop()
+		var resumed := simulation.continue_camp_sleep()
+		if not bool(resumed.get("ok", false)):
+			camp_status_label.text = "Could not resume sleep: %s" % String(resumed.get("reason", "unknown"))
+			return
+		var resumed_summary: Dictionary = resumed.get("summary", {})
+		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		camp_status_label.text = "Morning. The party completed the remaining %.1f hours of sleep." % float(resumed_summary.get("hours", 0.0))
+		camp_sleep_button.text = "Pack camp"
 	elif simulation.camp_simulation.phase == "resolved":
 		camp_activity_director.stop()
 		camp_presentation.clear_camp()
@@ -1343,6 +1353,25 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id == "continue_camp_sleep":
+		if simulation != null and not simulation.is_in_combat:
+			var resumed := simulation.continue_camp_sleep()
+			if bool(resumed.get("ok", false)):
+				var summary: Dictionary = resumed.get("summary", {})
+				camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+				camp_status_label.text = "Morning. The party completed the remaining %.1f hours of sleep." % float(summary.get("hours", 0.0))
+				if camp_sleep_button != null:
+					camp_sleep_button.text = "Pack camp"
+			else:
+				camp_status_label.text = "Could not resume sleep: %s" % String(resumed.get("reason", "unknown"))
+		return
+	if choice_id == "pack_camp_after_ambush":
+		if simulation != null:
+			simulation.finish_interrupted_camp_night()
+			camp_status_label.text = "The party leaves the remaining sleep hours behind. Pack camp when ready."
+			if camp_sleep_button != null:
+				camp_sleep_button.text = "Pack camp"
+		return
 	if choice_id.begins_with("furniture_buy:"):
 		var item_id := choice_id.trim_prefix("furniture_buy:")
 		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
@@ -2437,6 +2466,19 @@ func _check_encounter_resolution() -> void:
 	var companion_dialogue_id := String(result.get("companion_dialogue_id", ""))
 	if not companion_dialogue_id.is_empty():
 		_show_companion_dialogue(companion_dialogue_id)
+		return
+	if String(result.get("outcome", "")) == "victory" and simulation.camp_simulation.phase == "interrupted":
+		if camp_sleep_button != null:
+			camp_sleep_button.visible = true
+			camp_sleep_button.text = "Continue sleeping"
+		_show_dialogue(
+			"Night Watch",
+			"The wolves have been driven off. The camp is secure again, and there are %.1f hours left before morning." % maxf(0.0, simulation.camp_simulation.night_planned_hours - simulation.camp_simulation.night_elapsed_hours),
+			[
+				{"id": "continue_camp_sleep", "label": "Return to sleep", "text": ""},
+				{"id": "pack_camp_after_ambush", "label": "Pack camp now", "text": ""}
+			]
+		)
 		return
 	var speaker := String(result.get("speaker", ""))
 	var message := String(result.get("message", ""))
