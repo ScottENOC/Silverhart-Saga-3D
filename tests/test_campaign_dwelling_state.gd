@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_abandoned_house_quest_gate()
 	_test_manor_reputation_and_fortification()
 	_test_dwelling_camp_lodging()
+	_test_household_residents_and_halvard_steward()
 	_test_save_restore()
 	if _failures > 0:
 		push_error("%d dwelling assertion(s) failed." % _failures)
@@ -93,14 +94,51 @@ func _test_manor_reputation_and_fortification() -> void:
 	_check(int(state.camp_profile_for("silverhart_manor").get("sleeping_capacity", 0)) == 8, "Four placed double beds should provide eight indoor sleeping places.")
 
 
+
+func _test_household_residents_and_halvard_steward() -> void:
+	var state := CampaignDwellingState.new()
+	var journal := CampaignJournal.new()
+	var player := _player()
+	_check(bool(state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot").get("ok", false)), "The cottage should be claimable before assigning a household resident.")
+	_check(state.resident_capacity_for("crossroads_cottage") == 3, "The cottage should use its existing indoor capacity for household residents.")
+	var assigned := state.assign_resident("crossroads_cottage", "rowan_fletcher", {"preferred_activity": "watch"})
+	_check(bool(assigned.get("ok", false)), "An independent NPC should be assignable to an owned home.")
+	_check(String(state.resident_schedule_for("rowan_fletcher", 10.0).get("activity", "")) == "watch", "A resident should use their authored daytime routine.")
+	_check(String(state.resident_schedule_for("rowan_fletcher", 22.0).get("activity", "")) == "sleep", "Household residents should sleep overnight.")
+	var companion := state.assign_resident("crossroads_cottage", "ser_aldric_thorne")
+	_check(not bool(companion.get("ok", false)) and String(companion.get("reason", "")) == "companions_belong_to_camp_roster", "Companions must remain in the companion/camp system, not household resident assignments.")
+	var wren_assignment := state.assign_resident("crossroads_cottage", "wren_talbot")
+	_check(not bool(wren_assignment.get("ok", false)), "The original Wren companion must also remain outside the household resident roster.")
+	_check(state.resident_schedule_for("ser_aldric_thorne", 22.0).is_empty(), "Rejected companions must not acquire a household schedule.")
+
+	var manor_state := CampaignDwellingState.new()
+	var manor_journal := CampaignJournal.new()
+	var manor_player := _player()
+	manor_journal.seed_faction_reputation("silverhart_kingdom", 60.0, 0.0)
+	_check(bool(manor_state.complete_action("claim_silverhart_manor", manor_journal, manor_player, "materials", "silverhart_palace").get("ok", false)), "The manor should be claimable at the required kingdom standing.")
+	_add_item(manor_player, "wood", 10)
+	_add_item(manor_player, "stone", 10)
+	_check(bool(manor_state.complete_action("fortify_silverhart_manor", manor_journal, manor_player, "materials", "silverhart_manor").get("ok", false)), "The manor should be made livable before appointing a steward.")
+	_check(bool(manor_state.appoint_halvard_as_steward().get("ok", false)), "Halvard should be appointable as the permanent manor steward.")
+	var breakfast := manor_state.resident_schedule_for("steward_halvard_greer", 8.0)
+	_check(String(breakfast.get("activity", "")) == "cook" and String(breakfast.get("station_role", "")) == "hearth", "Halvard should prepare breakfast at the manor hearth.")
+	_check(String(manor_state.resident_schedule_for("steward_halvard_greer", 10.0).get("activity", "")) == "housekeeping", "Halvard should maintain the manor during the morning.")
+	_check(String(manor_state.resident_schedule_for("steward_halvard_greer", 13.0).get("activity", "")) == "manage_stores", "Halvard should manage household stores after midday.")
+	_check(String(manor_state.resident_schedule_for("steward_halvard_greer", 15.0).get("activity", "")) == "welcome_guests", "Halvard should receive visitors in the afternoon.")
+	_check(String(manor_state.resident_schedule_for("steward_halvard_greer", 18.0).get("activity", "")) == "cook", "Halvard should prepare the evening meal.")
+	_check(manor_state.resident_ids_for_dwelling("silverhart_manor").has("steward_halvard_greer"), "Halvard should remain permanently assigned to the manor.")
+
 func _test_save_restore() -> void:
 	var state := CampaignDwellingState.new()
 	var journal := CampaignJournal.new()
 	var player := _player()
 	state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot")
+	state.assign_resident("crossroads_cottage", "rowan_fletcher", {"preferred_activity": "watch"})
+	state.assign_resident("crossroads_cottage", "oskar_vinn", {"preferred_activity": "socialise"})
 	var restored := CampaignDwellingState.new()
-	_check(restored.from_dict(state.to_dict()), "Dwelling ownership should restore from a save.")
-	_check(restored.to_dict() == state.to_dict(), "Dwelling ownership and improvements should round-trip.")
+	_check(restored.from_dict(state.to_dict()), "Dwelling ownership and resident assignments should restore from a save.")
+	_check(restored.to_dict() == state.to_dict(), "Dwelling ownership, improvements and resident schedules should round-trip.")
+	_check(restored.resident_ids_for_dwelling("crossroads_cottage").size() == 2, "Both residents should remain assigned after loading.")
 
 
 func _test_dwelling_camp_lodging() -> void:
