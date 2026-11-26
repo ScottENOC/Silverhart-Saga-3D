@@ -13,7 +13,7 @@ This is the campaign-content companion to [the map-only gap audit](campaign2_gap
 |---|---:|---:|---|
 | Named NPC roster | 120 named NPCs across three explicit rosters | 72 of those names appear in target character profiles or settlement placements | **48 lack an active profile/placement record** |
 | Dialogue | At least 509 explicit dialogue call-sites; at least 416 literal lines passed directly to them | About 209 direct static utterances found in the current dialogue/content files | **Partial; no complete line/branch mapping exists** |
-| Quests | 72 explicit source quest IDs | 27 explicit target quest IDs; 19 exact ID matches | **53 source IDs have no exact target ID** |
+| Quests | 72 explicit source quest IDs | 28 explicit target quest IDs; 20 exact ID matches | **52 source IDs have no exact target ID** |
 
 These are inventory counts, not a completion percentage. A profile, placement, dialogue string or quest ID is not proof that the associated actor can spawn, the full dialogue tree is reachable, or the quest's consequences work in a playable campaign.
 
@@ -209,7 +209,6 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `stolen_delivery`
 - [ ] `sylvan_bowmaster_teach`
 - [ ] `tavern_brawl`
-- [ ] `toll_ogre`
 - [ ] `unicorn_tracking`
 - [ ] `wizard_vendetta`
 
@@ -234,7 +233,7 @@ I compared each target definition and its stated objective against the source qu
 
 ### Exact ID matches already present — 19
 
-`a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
+`a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `toll_ogre`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
 
 These are exact-ID matches only. Their runtime triggers, all choices, completion conditions, rewards and consequences still need to pass their own parity checks.
 
@@ -244,6 +243,13 @@ These are exact-ID matches only. Their runtime triggers, all choices, completion
 
 Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` versus source `missing_child` / `farm_wolves`, and `northwatch_siege` versus `border_war`. These are **unverified mapping candidates**, not accepted equivalences.
 
+### Quest IDs with partial content implementation
+
+**The Toll-Taker — `toll_ogre`**
+
+- [~] Added a standalone quest content resource for Petra Hollis's offer, active/defeated/completed dialogue states, the ogre-defeated objective, and the source reward (+30 gold, +120 experience, +10 Silverhart reputation / knowledge).
+- [~] Added headless regression coverage for acceptance, objective gating, one-time rewards and journal save/restore.
+- [ ] Still requires a live ogre actor, Petra's active world placement/interaction route, and save/load integration before it is a playable port. Do not count this as fully migrated.
 ### Small quest ports completed
 
 **The Baron's Tribute**
