@@ -115,6 +115,7 @@ var ambient_exchange_running: bool = false
 var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
+var abandoned_house_journal_read: bool = false
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
@@ -1149,6 +1150,7 @@ func _build_save_snapshot() -> Dictionary:
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
 			"shakedown_resolved": shakedown_resolved,
+			"abandoned_house_journal_read": abandoned_house_journal_read,
 			"farm_wolves_spawned": farm_wolves_spawned,
 			"farm_wolves_retry_armed": farm_wolves_retry_armed,
 			"wilderness_steps_since_spawn": wilderness_steps_since_spawn
@@ -1275,6 +1277,7 @@ func _apply_save_data(data: Dictionary) -> void:
 	ambient_security = int(flags.get("ambient_security", ambient_security))
 	shakedown_started = bool(flags.get("shakedown_started", false))
 	shakedown_resolved = bool(flags.get("shakedown_resolved", false))
+	abandoned_house_journal_read = bool(flags.get("abandoned_house_journal_read", false))
 	farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
 	farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
 	wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
@@ -1423,9 +1426,13 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		var spawned := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
 		if bool(started.get("ok", false)) and bool(spawned.get("ok", false)):
 			_restore_abandoned_house_guardian_actors()
-			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
+			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_read_journal", "label": "Read the journal.", "text": ""}, {"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
 		else:
 			_show_dialogue("Abandoned House", "The house cannot be investigated right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if choice_id == "abandoned_house_read_journal":
+		abandoned_house_journal_read = true
+		_show_dialogue("Abandoned House", "You take a moment to read the journal before confronting the guardians.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
 		return
 	if choice_id == "abandoned_house_finalize":
 		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
@@ -1849,7 +1856,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
 	if dialogue_id == "reddale_innkeeper":
-		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id), abandoned_house_journal_read)
 		if bool(nella_conversation.get("ok", false)):
 			_show_dialogue(String(nella_conversation.get("speaker", target_state.display_name)), String(nella_conversation.get("text", "")), nella_conversation.get("choices", []))
 		return
