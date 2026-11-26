@@ -1,152 +1,118 @@
-# Campaign 2 gap audit — what is still missing
+# Campaign 2 map gap audit — what is still missing
 
-**Reference:** `ScottENOC/Hex-crpg` main, pinned source geometry baseline `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
+**Reference:** `ScottENOC/Hex-crpg` Campaign 2 source  
 **Target:** `ScottENOC/Silverhart-Saga-3D`, `dev`  
-**Purpose:** Record omissions and incomplete behaviour, not celebrate existing port coverage.
+**Scope:** Geography, terrain, routes, settlement/site footprints, buildings, entrances, interiors as spatial layouts, map-owned physical objects, and their rendering/traversability.
+
+This document is deliberately a **map audit only**. It does not track whether an NPC has been authored, whether dialogue or a quest has been ported, whether an encounter behaves correctly, or whether a faction/simulation system is complete. Those belong in the campaign-content and mechanics records linked below.
+
+## Related audits — do not duplicate their work
+
+The following documents are the source of truth for the excluded work:
+
+- [Campaign source-port status](CAMPAIGN_SOURCE_PORT_STATUS.md) — NPC identity/persistence, dialogue and quest port status, companion relationships and reactivity, schedules, banter and world agency.
+- [Campaign 2 NPC and dialogue index](campaign2_npc_dialogue_index.md) — source display names, dialogue IDs and first-pass quest-ID inventory. This is an extraction index, not proof that each branch is migrated.
+- [Chief Skarnub dialogue and trust port](skarnub_campaign_dialogue_port.md) — Skarn-tooth content, chief dialogue, favour choices and remaining campaign-runtime wiring.
+- [Mechanics port register](MECHANICS_PORT_REGISTER.md) — shared mechanics and behavioural parity, including combat, movement, campaign simulation and other non-map systems.
+- [Campaign 2 source inventory](campaign2_source_inventory.md) and [original 2D source audit](original_2d_campaign2_source_audit.md) — source-side inventories and extraction context.
+
+**Boundary rule:** a map item may record the authored location/anchor for an NPC, creature, journal, quest object or encounter trigger. Its dialogue, quest effects, AI, spawning lifecycle and persistence are not map-audit items. If a map task depends on one of those systems, record only the spatial dependency here and link to the owning campaign audit.
 
 ## Audit rules
 
-- Treat Campaign 2 in `campaign2World.js`, `worldMap.js`, `campaign2Content.js`, `campaign2Dialogue.js` and their supporting systems as the reference.
-- Preserve meaningful authored geography, settlements, routes, landmarks, buildings, entrances, interiors, props that communicate gameplay, NPCs, encounters and interactions.
-- Do **not** count random tree/rock placement, exact procedural road wiggles, or equivalent decorative substitutions as gaps when the same broad terrain or navigable route is represented.
-- A macro-map marker, data record, or passing geometry test is not proof that the location is playable. Distinguish data present, rendered, traversable, interacted with, and behaviourally complete.
-- Status labels: **Missing** = no target implementation evidenced; **Partial** = some layers exist but named work remains; **Verify** = target code exists but source-to-target runtime parity has not been established; **Adapted** = intentionally different 3D implementation whose gameplay result still needs acceptance.
+- Preserve meaningful authored geography, broad biome/terrain regions, navigable routes, settlement footprints, landmarks, building placement, entrances, floor layouts and gameplay-significant physical objects.
+- Do not count random tree/rock placement, exact procedural road wiggles, or equivalent decorative substitutions as gaps when the same broad terrain or navigable route is represented.
+- A macro-map marker, data record, or passing geometry test is not proof that a site is correctly rendered or traversable. Distinguish data present, rendered, connected, and playable spatially.
+- Status labels: **Missing** = no target map implementation evidenced; **Partial** = some spatial layers exist but named map work remains; **Verify** = target code exists but source-to-target visual/traversal acceptance has not been established; **Adapted** = intentionally different 3D spatial implementation whose navigability and spatial intent still need acceptance.
 
 ## Executive finding
 
-The world has a substantial authored-map foundation, but it is not yet a complete Campaign 2 port. The remaining work is concentrated in (1) Kragmoor and several other location-specific actors/interactions, (2) entry/exit and gameplay wiring for authored interiors, (3) Silverhart's remaining city/palace/Thieves' Guild gameplay, (4) NPC schedules and living-world simulation parity, and (5) a source-ID-level quest/dialogue/companion crosswalk.
+Silverhart Saga 3D has a substantial authored-map foundation: strategic geography, named location anchors, settlement/site footprints, many authored building layouts, and a growing set of source-derived interior floor maps. The remaining map work is not simply "add more terrain". It is concentrated in:
 
-The current geometry audit is not a coverage percentage. It reports 4,732 unique JSON-backed exterior cells and 1,543 walkable interior cells, while explicitly excluding regional GDScript features and some site systems. The source runtime extractor reports 16,566 unique terrain cells, including 11,324 cells touched by named feature builders after deduplication. These figures have different scopes and must **not** be divided to claim a percentage. They do, however, show why a complete owner-by-owner source/target register is still needed.
+1. Kragmoor's exterior presentation and spatial identity.
+2. Completing and visually accepting several major settlement/fort/site footprints.
+3. A systematic exterior-to-interior entrance and return-point register.
+4. Verifying that important roads, streams, bridges, gates, stairs and strategic-to-local links are connected and traversable.
+5. Auditing source-authored physical objects for spatial coverage, while excluding replaceable decoration.
 
-## 1. Location and world-content gaps
+The current geometry counts are not a completion percentage. The existing inventory reports 4,732 unique JSON-backed exterior cells and 1,543 walkable interior cells, while excluding regional GDScript features and some site systems. The source runtime extractor reports 16,566 unique terrain cells, including 11,324 cells touched by named feature builders after deduplication. These figures have different scopes and must not be divided to claim a percentage.
 
-| Area | Status | What is still missing or needs acceptance |
+## 1. Location-by-location map gaps
+
+| Area | Status | Map work still required |
 |---|---|---|
-| Kragmoor / Deepholds | **Partial — highest priority** | The exterior presentation is visibly inadequate in the reviewed capture (near-featureless pale surface). The six floor maps and stair/save-state framework exist, but named dwarf NPCs and creatures, actor behaviour, dialogue, trader/runesmith/foreman/mining/journal interactions, and campaign travel routing remain. CI has also reported missing actor IDs: `dwarf_king`, `hall_guard_01`, `hall_guard_02`, `deepholds_trader`, `deepholds_runesmith`, `deepholds_foreman`. Verify whether the source's 1,959-cell builder footprint has been represented meaningfully in 3D, rather than assuming generic floors equal the full kingdom. |
-| Silverhart | **Partial** | Exterior records are extensive (40 buildings, 33 routes, 512 props, 38 named NPC placements), and several major floor stacks exist. Remaining work: verify the full outer city wall, three-cell gate and watchtowers are rendered/traversable; finish remaining palace rooms/floors; wire building entry/exit; implement doors and reputation gates; NPC interactions and schedules; Thieves' Guild quest state and hidden-vault interactions; kingdom/faction interactions. |
-| Sil'thandriel / Sylvan Court | **Partial** | Three-level tree/canopy floor maps and traversal structures exist. Population/NPCs, services, faction interactions and final traversal/visual acceptance remain. |
-| Skarnak's Hold | **Partial** | The moved site needs its perimeter, gate and approach revalidated at the new location. Guards, Kesh the trader, troll, faction relations and trust quest are still campaign-owned work. |
-| Skarn-tooth Camp | **Partial** | Exterior structures are present; chief/guards, dialogue, faction and quest behaviour remain. |
-| Northwatch Fort | **Partial** | Fort/keep/gate/waterway and siege props are represented. Siege actors, assault wave behaviour, defender routines and complete encounter flow need runtime acceptance. |
-| Ridgehold Fort | **Partial** | Fort and keep are represented. Defender population, routines, faction/quest interaction and complete traversal/visual acceptance remain. |
-| Emberlode and Emberlode Mine | **Partial** | Buildings, interiors, floors, stairs, ore and spider spawn coordinates exist. Exterior entry/exit, live creature spawning, mining/ore interactions, ledger use, trade and quest consequences remain. |
-| Reddale | **Partial** | Buildings, six interiors, roads, NPC placements and the spider-ruin site exist. Spider actor/asset support, entry/exit, merchant services, evidence reading, bribes, dialogue and espionage quest consequences remain. |
-| Hollowmere | **Partial** | Authored village and floor maps exist. Interior entry/exit, Elder Locket placement, guild contact, recruitment/services, remaining opening events and persistence parity remain; cottage construction interaction remains campaign-owned. |
-| Millbrook | **Partial** | House, road, NPCs and floor map exist. Entry/exit and resident services/interactions remain. |
-| Old Mac's Farmstead | **Partial** | Exterior, farmhouse interior and key evidence exist. Entry/exit, Reyna's dialogue/recruitment/persistent character integration, and the wolf-den encounter trigger/spawn/persistence remain. Sheep-to-cow substitution is an accepted visual/gameplay adaptation, not a gap. |
-| Abandoned House and northern crypt/barrow chain | **Partial** | Floor maps and physical evidence are represented. Dormant skeleton activation, journal/altar interactions, disciple/phylactery quest chain, encounter behaviour and runtime entry/exit remain. |
-| Lich Chapterhouse | **Partial** | Floor, entrance and fireplace are present. Lich faction content, inquisitor/witch-hunter encounter behaviour and runtime entry/exit remain. |
-| Thieves' Cove | **Partial** | Three-level cave network, stairs and evidence markers exist. Guild residents, services, quest content and runtime traversal/interaction wiring remain. |
-| Vampire Grave | **Partial** | Disturbed grave, carcass, fang and journal are physicalized. Vampire actor/encounter, journal reading, investigation, quest state and interaction wiring remain. |
-| Old Mac's Wolf Den | **Partial** | Cave-mouth dressing and anchor exist. Trigger, live wolf spawning, combat and quest persistence remain. |
-| Unicorn Vale | **Partial** | Vale, patrol waypoints and hoofprints exist. Live unicorn actor, patrol AI and discovery behaviour remain. |
-| Ashveil's Dragon Lair | **Partial** | Lair ground/dressing exists. Dragon actor, encounter and reward/quest behaviour remain. |
-| Emberwood Grove | **Partial** | Terrain, spring and herb-patch visuals exist. Inhabitants, gathering and Fenn/grove quest consequences remain. |
-| Player cottage / field | **Partial** | Plot and approach are represented. Construction, upgrades, field purchase/fencing, livestock, planting/harvest and persistence need a complete playable flow. |
+| **Kragmoor / Deepholds** | **Partial — highest priority** | Exterior presentation is visibly inadequate in the reviewed capture (near-featureless pale surface). Compare and improve the mountain/settlement silhouette, approach, entrance, major built footprint and relationship to surrounding terrain. Six floor maps and stair layouts exist, but verify the spatial footprint of the source's 1,959-cell builder rather than assuming generic floors represent the whole mountain kingdom. |
+| **Silverhart** | **Partial** | Verify the full palace core and curtain wall/watchtowers, ring roads, merchant/noble street grids, embassies, Ironbond office, cathedral/plaza, commons/market, outlying and middle-ring houses, outer city wall, three-cell gate/watchtowers, Warrens shacks, Thieves' Guild and hidden-vault spatial layouts. Records exist for 40 buildings, 33 routes, 512 props and 38 authored NPC placements; those counts still need visual/traversal acceptance, not more inventory repetition. Several palace floor stacks are registered; remaining palace rooms/floors and other building interiors need a spatial completeness check. |
+| **Sil'thandriel / Sylvan Court** | **Partial** | Three-level tree/canopy floor maps and traversal structures exist. Verify the complete tree-base/canopy/court spatial layout, platforms, trunk/branches, rope bridge, archive/healer platforms and transitions between levels. |
+| **Skarnak's Hold** | **Partial** | Revalidate the relocated site: perimeter, gate, wall, warlord-hut clearing, seven surrounding huts, campfire, local anchor, approach road and strategic marker must agree at the new position. The move is on PR #397, not yet on `dev`; do not treat it as merged. |
+| **Skarn-tooth Camp** | **Verify** | Source-authored chief's hut, five surrounding huts, campfire and road endpoint are represented. Complete in-engine visual/scale/material acceptance and verify the camp footprint against the terrain. |
+| **Northwatch Fort** | **Verify** | Star fort, keep, gate, moat/waterway, siege engine, distant catapult, oil barrels, ladders and hearth are represented. Verify wall/gate geometry, water continuity, traversal and the fort's relationship to the road network. |
+| **Ridgehold Fort** | **Verify** | Fort walls, keep, downstream waterway and hearth are represented. Verify wall perimeter, gate/approach geometry, terrain joins and separation from opposing Skarnak's Hold positions. |
+| **Emberlode and Emberlode Mine** | **Partial** | Buildings, mine entrance/approaches, floor maps, stairs, ledger and ore-node anchors exist. Verify the settlement footprint and mine surface/underground spatial connections, including entrances and reciprocal stairs. |
+| **Reddale** | **Partial** | Six building footprints/interior floor maps, roads and the eastern spider-ruin site exist. Verify town layout, building entrances, the ruin's rocky-outcrop placement and all floor-to-exterior connections. |
+| **Hollowmere** | **Partial** | Authored village, stream, bridge, roads, building footprints and floor maps exist. Verify the source building extents/door approaches, guild-den location, stream continuity and usable bridge crossing. The Elder Locket and other object behaviours belong in campaign content; only their physical placement belongs here. |
+| **Millbrook** | **Partial** | House, road spur and floor map exist. Verify source-aligned placement, door orientation, route connection and interior floor/entrance geometry. |
+| **Old Mac's Farmstead** | **Partial** | Farmhouse, pasture, fence/broken-fence clue, evidence anchors and interior floor exist. Verify its source-relative position at the southern road endpoint, pasture/fence footprint, den approach and farmhouse entry/return geometry. Livestock appearance substitutions are not a map gap. |
+| **Abandoned House and northern crypt/barrow chain** | **Partial** | Floor maps and spatial evidence anchors exist. Verify each entrance, corridor, room footprint, wall aperture, return point and connection between the abandoned house, Vessel-Seeker's Crypt and Corvin Ashgrave's Barrow. |
+| **Lich Chapterhouse** | **Partial** | Single-floor stone footprint, entrance and fireplace placement exist. Verify approach, entrance orientation, interior footprint and transition back to the exterior. |
+| **Thieves' Cove** | **Partial** | Three-level cave network, entrances, reciprocal stairs and evidence-object anchors exist. Verify cave entrance positions, tunnel junction connectivity, floor topology and return routes. |
+| **Vampire Grave** | **Verify** | Disturbed grave, carcass, fang and journal positions are represented. Verify the physical site layout and approach; investigation and encounter logic are tracked elsewhere. |
+| **Old Mac's Wolf Den** | **Verify** | Source-derived anchor and cave-mouth/overhang/bone dressing exist. Verify the den entrance/approach spatially; wolf spawning and quest behaviour are out of scope here. |
+| **Unicorn Vale** | **Verify** | Vale centre, eight patrol waypoints and hoofprint markers are represented. Verify the valley footprint, waypoint geometry and route accessibility; live unicorn AI is out of scope. |
+| **Ashveil's Dragon Lair** | **Verify** | Rocky outcrop and cave-den dressing exist. Verify the outcrop/cave spatial shape and approach; dragon actor and encounter behaviour are out of scope. |
+| **Emberwood Grove** | **Verify** | Clearing, foliage perimeter, spring rim and herb-patch visuals exist. Verify the clearing boundary, spring placement and connections to surrounding terrain; gathering and quest consequences are out of scope. |
+| **Player cottage / field** | **Partial** | Plot marker/approach, field and fence geometry exist. Verify plot access, field/fence footprint, cottage placement and spatial room for future crop rows, livestock and upgrades. Construction/farming mechanics are tracked elsewhere. |
 
-## 2. Cross-cutting map and presentation gaps
+## 2. Cross-cutting map gaps
 
-1. **Kragmoor exterior and settlement presentation:** resolve the near-blank capture; compare source landmarks, entrance, approach, mountain silhouette and settlement scale. Do not treat a correct floor-map data structure as a visually complete mountain kingdom.
-2. **Interior transitions:** many source-authored floor maps are registered, but most exterior-to-interior entry/exit wiring remains. Build a single audited transition register (entrance hex, destination floor, return hex, door/lock state, vertical stairs).
-3. **Source physical objects:** the source runtime baseline records 246 physical tile-object placements. Target JSON inventory currently reports 520 prop records across 508 anchors, but this does not prove object-by-object semantic coverage. Cross-reference gameplay objects (journals, ledgers, evidence, altars, ore, stairs, doors, ladders, siege equipment, signs) and ignore replaceable decoration.
-4. **Fields and crops:** the current JSON inventory reports 63 field cells, 22 fence cells and **zero crop rows**. Verify whether source crop/planting behaviour is represented elsewhere; if not, crop rows, seasonal growth, harvesting and farm-state persistence are missing.
-5. **Road and water usability:** source route traces are represented, but test connected travel between all meaningful destinations, road-following NPC/caravan behaviour, bridge/ford traversal and stream/water barriers. Exact source road wiggles are explicitly not required.
-6. **Strategic-to-local travel:** verify that every strategic destination resolves to its local site, and that the moved Skarnak's Hold strategic marker, local anchor, approach road and travel graph agree.
+1. **Kragmoor exterior and settlement presentation.** Resolve the near-blank capture. Compare source landmarks, entrance, approach, mountain silhouette, scale and surrounding terrain. A correct floor-map data structure is not a visually complete mountain kingdom.
+2. **Exterior/interior spatial transitions.** Build one register for every authored building/site: exterior entrance hex, destination floor ID, interior door cell, return hex, floor elevation, stairs/ladders, and any spatial gate/door aperture. This audit owns the geometry and coordinate contract; campaign code owns whether a door is locked or an interaction is permitted.
+3. **Source physical-object placement.** The source runtime baseline records 246 physical tile-object placements. The target JSON inventory reports 520 prop records across 508 anchors, but this does not prove semantic coverage. Cross-reference map-owned objects such as journals, ledgers, evidence, altars, ore, stairs, doors, ladders, siege equipment and signs. Ignore replaceable decoration. Their interaction effects belong in campaign content.
+4. **Fields and crop-space geometry.** The current JSON inventory reports 63 field cells, 22 fence cells and zero crop rows. Verify whether any crop-row spatial data exists elsewhere. If not, the map gap is the missing crop-row layout/planting locations, not seasonal growth or harvest mechanics.
+5. **Road and water connectivity.** Verify connected travel between meaningful destinations, road continuity, bridges/fords, stream barriers and waterway joins. Road-following NPCs/caravans and their schedules are covered by the campaign audit.
+6. **Strategic-to-local coordinate agreement.** Every strategic destination must resolve to the correct local site. For Skarnak's Hold specifically, strategic marker, local anchor, approach road and travel destination must agree after relocation.
+7. **Chunk boundaries and ownership.** Authored features that span streamed chunks must join without visible seams or duplicated/missing wall, fence, road, stream or prop segments. Decorative infill can remain procedural where the source does not prescribe exact placement.
 
-## 3. Simulation-system gaps
+## 3. Source-builder cross-check — map responsibilities only
 
-These are source system families, not merely map decoration. The target has partial systems in several areas; the missing work is behavioural parity and explicit acceptance tests.
+This is a checklist of source spatial builders, not a requirement to reproduce the old renderer or every incidental tile.
 
-| Source system family | Status | Gap to close |
+| Source builder / family | Target map evidence | Map gap status |
 |---|---|---|
-| Continuous world streaming (`worldChunkStreaming.js`) | **Verify / Adapted** | Source uses 24-hex chunks, hot radius 2, multiple party observers and vertical stair preloading. Target uses a 3D streamed/chunked architecture, but its chunk size and observer semantics differ. Confirm multi-party/companion observers, active-vs-abstract simulation, stair preloading, save/load and chunk-boundary continuity. |
-| NPC routines and event schedules (`npcRoutineScheduler.js`, `eventDrivenNpcSchedules.js`) | **Verify** | Source has a heap-based event scheduler, visible/abstract travel, promotion/demotion and persistent scheduler state. Target needs a source-ID-level audit of schedule data, daily routines, transitions, visible movement, abstract movement and persistence. Do not count static NPC placement as schedule parity. |
-| Regions and settlements (`regions.js`, `settlementScale.js`) | **Verify** | Compare hierarchical region security/prosperity, settlement tiers/population targets, parent-child effects, local services and how world events change these values. |
-| World pulse / autonomous events (`worldPulse.js`) | **Partial / Verify** | Source includes bandit-camp seeding, caravan spawn/despawn/ambush/raids, guard alert and rumours. Confirm equivalent target events, persistence, deterministic scheduling and consequences; implement missing event types. |
-| Wilderness living world (`wildernessLivingWorld.js`) | **Verify** | Compare wildlife/encounter populations, respawn/cleanup, wilderness activity, travel-distance rules and persistence. A terrain biome alone is not a living wilderness. |
-| Resources (`resources.js`) | **Partial** | A target wilderness resource system exists. Audit every source node/action: ore, fruit, timber, stone, herbs, fishing, corpses/food, well-fed state and donation to regions; verify depletion/regrowth, inventory effects, skill checks and save/load. |
-| Quests and scripted encounters | **Partial** | Target has companion quest data/runtime and some campaign quest state. Build a source quest-ID/action/consequence matrix for main arc, side quests, espionage, missing child, farm wolves, Reddale watch, border assault, goblin succession, Emberlode escort, druid trial, crypt/lich/vampire and location-specific investigations. |
-| Companion world agency and reactivity | **Partial / Verify** | Target has companion relationship/quest-chain foundations. Cross-check recruitment alternatives, companion departures, major-quest reactivity, companion self-decisions, world placement and persistent relationship/arc state against source. |
-| NPC progression and authored builds | **Partial** | Validate all named NPC class levels, skill picks, equipment, progression modes, death/recruitment and restoration. CI has reported missing class-level profiles for `lady_miriel_corstane`, `master_builder_hallis` and `petra_ashfield`; resolve by tracing their source definitions rather than inventing levels. |
-| Factions, reputation and diplomacy | **Verify** | Compare faction standing/trust, bribes, guard hostility, settlement security, faction ownership and consequence propagation across quests and regions. |
-| Time, seasons and persistence | **Verify** | Compare world clock hooks, scheduled transitions, seasonal resource rarity, long-running event state and save/load. Ensure time progression continues correctly across unloaded chunks. |
+| `setupVillageScene`, `paintRoad`, `paintPath`, `paintStreamSegment` | Hollowmere data, strategic/local road data, regional hydrology and terrain streams | **Verify** route connectivity, bridge/water traversal and named approaches |
+| `buildFarmstead` | Farmhouse, pasture/fences, evidence anchors and farmhouse floor | **Partial** source-relative location, pasture footprint and den approach |
+| `buildGoblinCamp` | Skarn-tooth structures and camp terrain | **Verify** visual/scale/terrain acceptance |
+| `buildOrcStronghold` | Skarnak's Hold huts, clearing, wall/gate and approach | **Partial** relocated-site geometry and strategic/local coordinate agreement |
+| `buildDwarvenKingdom` / `revealSunkenDeepPassage` | Kragmoor floor registry, gated floor topology and mountain-site anchor | **Partial** exterior footprint, mountain/entrance presentation and full spatial relationship |
+| `buildElvenCapital` | Sil'thandriel multi-level location registry and terrain | **Partial** tree/canopy/court geometry and inter-level traversal |
+| `buildLichChapterhouse` | Chapterhouse floor map | **Verify** footprint, entrance and exterior connection |
+| `buildSideQuestContent` | Named physical quest-site anchors and spatial dressing | **Verify** each site footprint/approach; content logic excluded |
+| `buildPlayerCottagePlot`, `buildPlayerCottage`, `upgradePlayerCottage` | Plot marker/approach and dwelling spatial foundations | **Partial** plot/cottage placement and room for spatial upgrades |
+| `buyPlayerField`, `placeFieldFence`, `buyFieldLamb`, `plantAppleTree` | Field/fence geometry and farmstead spatial anchors | **Partial / Verify** field and crop-row spatial layout only |
+| `buildAbandonedHouse`, `buildNecromancerCrypt`, `buildLichBarrow` | House, crypt and barrow floor maps | **Verify** entrances, rooms, corridors and connected floor topology |
+| `buildMillbrook`, `buildEmberlode`, `buildReddale` | Settlement buildings, roads and interior floor layouts | **Partial** full spatial/entrance acceptance |
+| `buildDragonLair`, `buildVampireGrave`, `buildDruidGrove`, `spawnWildUnicorn` | Lair, grave, grove and vale spatial sites | **Verify** footprint, approach and map-owned physical markers |
+| `buildSilverhartPalace`, `fortifySilverhartManor` | City/settlement records and selected palace floor stacks | **Partial** remaining city districts, walls/gates and interior spatial layouts |
+| `buildThievesCoveCaves`, `searchSecretPassage`, `revealSingleTunnelEntrance`, `revealTunnelEntrances`, `openTunnelJunction` | Cave network, entrances, floors and tunnel-junction markers | **Partial** complete tunnel topology, entrances and floor connectivity |
+| `buildNorthwatchFort`, `buildRidgeholdFort` | Fort geometry, keeps, waterway and physical siege props | **Verify** perimeter, gate, wall, water and approach connectivity |
+| `buildHollowmereGuildDen` | Guild Den floor map | **Verify** room footprint and entrance/return geometry |
 
-## 4. Named NPC, dialogue and quest audit still required
-
-The existing dialogue index is a mechanical first pass: 114 `name` literals, 69 explicit `dialogueId` values, 56 named helper functions and 49 literal quest-ID-like values. These are not complete canonical totals and do not establish that a character or branch is implemented.
-
-The outstanding audit is a row-by-row mapping with at least:
-
-- source character/quest/dialogue ID and source file;
-- source spawn/starting location and schedule;
-- target character profile, class levels, appearance/equipment and placement;
-- dialogue entry point and all choices;
-- state/relationship/faction/quest effects;
-- combat/encounter or service effects;
-- target implementation file and automated test;
-- status: missing, partial, implemented, adapted, or intentionally excluded.
-
-Priority named groups: Hollowmere opening cast and Ironbond shakedown; Silverhart court/embassies/Thieves' Guild; Kragmoor dwarf leadership and staff; Sil'thandriel population; border-fort defenders and siege actors; Reddale and Emberlode residents; Old Mac/Reyna/Fenn/Nessa; named companions and their recruitment/quest arcs.
-
-## 5. Priority order to finish the port
-
-### P0 — unblock coherent campaign play
-1. Fix Skarnak's Hold relocation and all tests; verify the site visually and confirm strategic/local/road coordinates.
-2. Make Kragmoor's exterior recognisable and complete its named NPC/creature roster, interactions and campaign travel.
-3. Wire the common exterior/interior transition service and complete the most-used locations first: Hollowmere, Millbrook, Silverhart, Emberlode, Reddale, Old Mac's Farmstead.
-4. Close the main campaign path and opening/major encounter consequences end-to-end.
-
-### P1 — complete the authored world
-5. Finish Silverhart's remaining palace/city/Thieves' Guild traversal and interactions.
-6. Finish Sil'thandriel, forts, camps, dungeon chains and site-specific encounters.
-7. Complete the NPC schedule, region, world-pulse, wilderness and resource parity matrices.
-8. Finish named NPC profile/class/equipment and dialogue/quest crosswalks.
-
-### P2 — depth and polish
-9. Complete player cottage/farming and long-term settlement progression.
-10. Improve lighting, materials, elevation, prop density and visual identity after functional acceptance.
-11. Add optional ambient NPC barks/banter and decorative dressing only after gameplay gaps are closed.
-
-## 6. Definition of done for this audit
-
-A gap is closed only when its source behaviour/content is identified, the target implementation is linked, the intended adaptation is recorded, and a relevant test or explicit visual/runtime acceptance exists. The next audit revision should include a machine-readable CSV/JSON row for every source POI, named NPC, quest/dialogue ID, object interaction and source system feature. No overall completion percentage should be published until the denominator and target matching rules are agreed.
-
-
-## 7. Source builder coverage cross-check
-
-The original `campaign2World.js` contains the following named world-builder families. This list is a checklist of source owners, not a requirement to reproduce their exact rendering implementation.
-
-| Source builder / family | Target evidence | Gap status |
-|---|---|---|
-| `setupVillageScene`, `paintRoad`, `paintPath`, `paintStreamSegment` | Hollowmere data, strategic/local road data, regional hydrology and terrain stream | **Verify** route connectivity, bridge/water traversal, and that source-authored named approaches all resolve |
-| `buildFarmstead` | Old Mac's farmhouse, pasture/fences/evidence and interior | **Partial** wolf encounter and full farm gameplay |
-| `buildGoblinCamp` / `buildGoblinNPC` | Skarn-tooth structures and camp terrain | **Partial** named actors, faction and encounter behaviour |
-| `buildOrcStronghold` / `buildOrcNPC` | Skarnak's Hold structures, clearing, wall/gate and approach | **Partial** moved-site verification, named actors, trader/troll, trust quest |
-| `buildDwarvenKingdom`, `revealSunkenDeepPassage` | Kragmoor six-floor location registry and gated floor state | **Partial** exterior presentation, named population, mining/services, travel and quest interaction |
-| `buildElvenCapital` | Sil'thandriel three-level location registry and terrain | **Partial** population, services and faction/quest behaviour |
-| `buildLichChapterhouse` | Chapterhouse floor map | **Partial** actors, faction content, encounter and entry/exit |
-| `buildSideQuestContent` | Mirabel's spider ruin and several named quest sites | **Partial** spider actor support and complete side-quest interactions |
-| `buildPlayerCottagePlot`, `buildPlayerCottage`, `upgradePlayerCottage` | Plot marker/approach and dwelling-state foundations | **Partial** full construction, upgrade, entry and persistence loop |
-| `buyPlayerField`, `placeFieldFence`, `buyFieldLamb`, `plantAppleTree` | Field/fence geometry and farmstead state foundations | **Partial / Verify** crop rows, seasonal growth, livestock purchase, harvest and save/load |
-| `buildAbandonedHouse`, `renovateAbandonedHouse`, `isAbandonedHouseCleared` | House exterior/interior, journal and altar positions | **Partial** clearing/renovation state, dormant skeletons, journal/altar and quest chain |
-| `buildNecromancerCrypt`, `buildLichBarrow` | Crypt and barrow floors/corridors | **Partial** encounters, journals, faction/quest progression and entry/exit |
-| `buildMillbrook` | House, road and two NPCs | **Partial** entry/exit and services |
-| `buildDragonLair`, `revealDragonLairArea` | Lair terrain and dressing | **Partial** dragon actor, reveal/encounter logic and rewards |
-| `buildSilverhartPalace`, `fortifySilverhartManor` | Extensive city/settlement records and selected palace floor stacks | **Partial** remaining rooms, wall traversal, gated access, services and kingdom interactions |
-| `buildThievesCoveCaves`, `searchSecretPassage`, `revealSingleTunnelEntrance`, `revealTunnelEntrances`, `openTunnelJunction` | Four-level cave registry and entrance/site records | **Partial** secret passage discovery, tunnel reveal/junction state, guild actors and quest interactions |
-| `buildVampireGrave` | Grave evidence and journal object | **Partial** vampire encounter, investigation and journal interaction |
-| `buildDruidGrove` | Grove terrain, spring and herb visuals | **Partial** gathering and grove inhabitants/trial consequences |
-| `spawnWildUnicorn` | Vale, hoofprints and patrol waypoints | **Partial** live unicorn, patrol AI and discovery |
-| `buildEmberlode` | Settlement and mine floors | **Partial** actor spawning, mining, services and quest consequences |
-| `buildReddale` | Six buildings/interiors, twelve NPC placements and ruin site | **Partial** services, bribes, evidence, spider actor and espionage consequences |
-| `buildNorthwatchFort`, `buildRidgeholdFort` | Fort geometry, keeps, waterway and selected props | **Partial** complete defender/siege actors, schedules and battle flows |
-| `buildHollowmereGuildDen` | Guild Den floor map | **Partial** guild contact, recruitment/services and entry/exit |
-
-### Source runtime inventory counts to retain as denominators
+## 4. Inventory counts and cautions
 
 - Source runtime scene: 16,566 unique terrain cells; 11,324 cells touched by named feature builders after deduplication; 246 physical tile-object placements; 72 interior regions; 9 multi-storey building definitions; 8 unicorn patrol waypoints.
-- Target JSON-backed exterior inventory: 4,732 unique cells, plus regional GDScript features that are not included in that number; 1,543 walkable cells across the registered floor maps in the existing geometry audit.
-- The target multi-story location registry contains 70 location records (many are single-floor), while the source runtime inventory reports 72 interior regions. The counts are not directly equivalent: some source interiors are represented by settlement-layout metadata, some target records are 3D adaptations, and registration does not imply runtime entry/exit. Resolve this with a location-by-location interior mapping rather than comparing totals.
-- The target settlement-layout registry contains seven definitions on `dev`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold. Hollowmere uses its separate location presenter; Kragmoor and Emberlode Mine use the multi-story registry.
+- Target JSON-backed exterior inventory: 4,732 unique cells, plus regional GDScript features not included in that number; 1,543 walkable cells across registered floor maps in the existing geometry audit.
+- Target multi-story location registry contains 70 location records (many are single-floor), while the source runtime inventory reports 72 interior regions. These are not directly equivalent: some source interiors are represented by settlement-layout metadata and some target records are 3D adaptations. Registration does not prove runtime entry/exit.
+- Target settlement-layout registry contains seven definitions on `dev`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold. Hollowmere uses its separate location presenter; Kragmoor and Emberlode Mine use the multi-story registry.
+- No overall completion percentage should be published until every meaningful source spatial feature has a row in a source-to-target register with a clear matching rule.
 
-The named-builder table and the location table above are the current actionable gap register. The next refinement is to attach exact source IDs and target file/test references to each NPC, quest, dialogue branch and physical interaction, not to inflate decorative geometry counts.
+## 5. Definition of done
+
+A map gap is closed only when:
+
+1. The source spatial feature and its gameplay purpose are identified.
+2. The target data/presenter and stable location/feature ID are recorded.
+3. The 3D spatial adaptation is documented where it differs from the source.
+4. Its footprint, entrances, route connectivity and chunk joins pass relevant tests.
+5. Important locations have an in-engine visual/traversal acceptance.
+
+NPC dialogue, quest branches, encounter AI, faction effects, schedules, resource depletion/growth and campaign persistence must be closed in their owning campaign/mechanics audits, not by marking a map row complete.
