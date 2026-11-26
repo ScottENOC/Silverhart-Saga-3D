@@ -18,6 +18,8 @@ on:
       - "data/posing/**"
       - "tests/posing_*.gd"
       - "tests/test_posing_*.gd"
+      - "tools/review/ara_pose_preview*.gd"
+      - "scenes/review/ara_pose_preview.tscn"
       - ".github/workflows/posing-validation.yml"
   workflow_dispatch:
 permissions:
