@@ -294,6 +294,55 @@ static func grondle_greeting(simulation: WorldSimulation) -> Dictionary:
 	return FOLLOWUP_SCRIPT.new().grondle_greeting(context)
 
 
+static func purchase_grondle_item(simulation: WorldSimulation, item_id: String) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	var quest: Dictionary = simulation.campaign_journal.quest_state(CONTENT_SCRIPT.QUEST_ID)
+	if String(quest.get("decisions", {}).get("resolution", "")) != "goblin_alliance":
+		return {"ok": false, "reason": "goblin_alliance_required"}
+	if not FOLLOWUP_SCRIPT.GRONDLE_STOCK.has(item_id):
+		return {"ok": false, "reason": "item_not_sold_by_grondle"}
+	var player := simulation.get_character(simulation.player_character_id)
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	var definition := ItemCatalog.get_definition(item_id)
+	if definition.is_empty():
+		return {"ok": false, "reason": "unknown_item"}
+	var price := int(definition.get("buyPrice", -1))
+	if price <= 0:
+		return {"ok": false, "reason": "invalid_item_price"}
+	if player.gold < price:
+		return {"ok": false, "reason": "insufficient_gold", "gold_required": price, "gold_remaining": player.gold}
+
+	var suffix := 1
+	var instance_id := "grondle_%s_%d" % [item_id, suffix]
+	while _player_has_item_instance(player, instance_id):
+		suffix += 1
+		instance_id = "grondle_%s_%d" % [item_id, suffix]
+	var instance := ItemCatalog.create_instance(item_id, instance_id)
+	if instance.is_empty() or not player.add_inventory_item(instance):
+		return {"ok": false, "reason": "inventory_add_failed"}
+	player.gold -= price
+	return {
+		"ok": true,
+		"item_id": item_id,
+		"item_name": String(definition.get("name", item_id)),
+		"instance_id": instance_id,
+		"gold_spent": price,
+		"gold_remaining": player.gold
+	}
+
+
+static func _player_has_item_instance(player: CharacterState, instance_id: String) -> bool:
+	for item in player.inventory:
+		if String(item.get("instance_id", "")) == instance_id:
+			return true
+	for item in player.equipped_item_data.values():
+		if String(item.get("instance_id", "")) == instance_id:
+			return true
+	return false
+
+
 static func aldric_captive_greeting(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null:
 		return {}
