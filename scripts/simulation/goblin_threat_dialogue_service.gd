@@ -173,11 +173,26 @@ static func select_choice(
 			return {
 				"ok": true,
 				"handled": true,
-				"open_shop": true,
 				"speaker": "Grondle",
-				"item_ids": FOLLOWUP_SCRIPT.GRONDLE_STOCK.duplicate()
+				"text": "Pick what you need. The prices are scratched onto a bit of board.",
+				"choices": _grondle_shop_choices()
 			}
-		return {"ok": false, "handled": true, "reason": "unknown_trader_choice"}
+		if choice_id.begins_with("grondle_buy:"):
+			var item_id := choice_id.trim_prefix("grondle_buy:")
+			result = RUNTIME_SERVICE.purchase_grondle_item(simulation, item_id)
+			if bool(result.get("ok", false)):
+				result = {
+					"ok": true,
+					"speaker": "Grondle",
+					"text": "%s is yours. You paid %d gold; you have %d left." % [
+						String(result.get("item_name", item_id)),
+						int(result.get("gold_spent", 0)),
+						int(result.get("gold_remaining", 0))
+					],
+					"choices": _grondle_shop_choices()
+				}
+		else:
+			return {"ok": false, "handled": true, "reason": "unknown_trader_choice"}
 
 	if not bool(result.get("ok", false)):
 		var reason := String(result.get("reason", "campaign_action_failed")).replace("_", " ")
@@ -209,6 +224,21 @@ static func select_choice(
 		"text": body,
 		"choices": [{"id": "continue", "label": "Continue."}]
 	}
+
+
+static func _grondle_shop_choices() -> Array[Dictionary]:
+	var choices: Array[Dictionary] = []
+	for item_id_value in FOLLOWUP_SCRIPT.GRONDLE_STOCK:
+		var item_id := String(item_id_value)
+		var definition := ItemCatalog.get_definition(item_id)
+		if definition.is_empty():
+			continue
+		choices.append({
+			"id": "grondle_buy:" + item_id,
+			"label": "%s — %d gold" % [String(definition.get("name", item_id)), int(definition.get("buyPrice", 0))]
+		})
+	choices.append({"id": "grondle_leave", "label": "That's enough for now."})
+	return choices
 
 
 static func _speaker_for(npc_id: String) -> String:
