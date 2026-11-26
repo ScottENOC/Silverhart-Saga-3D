@@ -509,6 +509,21 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(is_equal_approx(elapsed_world_seconds, float(world_night_result.summary.hours) * WorldClock.SECONDS_PER_HOUR), "WorldSimulation should advance only to the actual attack time when sleep is interrupted")
 	_check(world.is_in_combat, "A camp attack hand-off should be able to start combat synchronously during night resolution")
 	_check(is_equal_approx(watch_leader.time_points, 100.0) and is_equal_approx(watch_partner.time_points, 100.0), "Interrupted sleep must not grant the remaining night as combat TP regeneration")
+	_check(world.camp_simulation.phase == "interrupted", "An ambush should leave the camp in a resumable interrupted-night state")
+	var interrupted_save := world.to_dict()
+	var restored_world := WorldSimulation.new()
+	restored_world.load_dict(interrupted_save)
+	_check(restored_world.camp_simulation.phase == "interrupted", "Interrupted sleep should survive a save/load cycle")
+	_check(is_equal_approx(restored_world.camp_simulation.night_elapsed_hours, float(world_night_result.summary.hours)), "The resumed save should retain the exact elapsed sleep time")
+	world.end_combat()
+	var resumed_result := world.continue_camp_sleep()
+	_check(bool(resumed_result.get("ok", false)), "The party should be able to resume sleep after winning the ambush")
+	_check(world.camp_simulation.phase == "resolved", "Resuming sleep should complete the remaining night")
+	_check(is_equal_approx(world.camp_simulation.night_elapsed_hours, CampSimulation.DEFAULT_NIGHT_HOURS), "Resumed sleep should finish the original planned eight-hour rest")
+	var total_elapsed_seconds := world.clock.world_seconds - world_start_seconds
+	_check(is_equal_approx(total_elapsed_seconds, CampSimulation.DEFAULT_NIGHT_HOURS * WorldClock.SECONDS_PER_HOUR), "World time should include the interrupted segment and the resumed remainder exactly once")
+	_check(_camp_night_events == 1, "Resuming sleep must not reroll or repeat the already-resolved ambush")
+	restored_world.free()
 	world.free()
 
 
