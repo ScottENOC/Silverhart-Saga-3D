@@ -27,7 +27,8 @@ func _initialize() -> void:
 	_check(FEATURES.ORC_STRONGHOLD_GATE == Vector2i(420, 17), "Orc stronghold gate must be on the actual west wall ring")
 	_check(FEATURES.feature_id_at(Vector2i(420, 17)) == "skarnaks_hold_gate", "Orc gate must retain its own feature identity")
 	# Source-authored Skarn-tooth camp and Skarnak's Hold ground.
-	_check(terrain.terrain_for_hex(Vector2i(203, 23)) == "authored", "Goblin campfire must retain its authored building footprint")
+	_check(terrain.terrain_for_hex(Vector2i(203, 23)) == "path", "Goblin campfire prop must not suppress the east-border road path")
+	_check(terrain.is_walkable_for_hex(Vector2i(203, 23)), "The east-border road must remain walkable beneath the non-blocking campfire prop")
 	_check(terrain.terrain_for_hex(Vector2i(204, 23)) == "dirt", "Goblin camp must retain dirt clearing around its central campfire")
 	_check(terrain.terrain_for_hex(Vector2i(209, 23)) == "dirt", "Goblin camp clearing must include its radius-six edge")
 	_check(terrain.terrain_for_hex(Vector2i(428, 17)) == "authored", "Orc stronghold central fire must retain its authored building footprint")
