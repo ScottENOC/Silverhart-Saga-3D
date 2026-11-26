@@ -509,6 +509,10 @@ func load_dict(data: Dictionary) -> void:
 				merchant_influence[String(faction_id_value)] = saved_values.duplicate(true)
 
 
+func _is_finite_number(value: Variant) -> bool:
+	return (value is int or value is float) and is_finite(float(value))
+
+
 func _emit_event(event_type: String, payload: Dictionary) -> void:
 	var event := {"event_type": event_type}
 	for key in payload:
