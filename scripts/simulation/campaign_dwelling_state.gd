@@ -56,6 +56,9 @@ var placed_furniture: Dictionary = {}
 ## Non-companion NPCs assigned to a permanent household. Companions remain part of the camp roster.
 ## Keys are character IDs; values contain dwelling ID, household role and authored routine data.
 var residents: Dictionary = {}
+var steward_breakfast_day: int = -1
+var steward_supper_day: int = -1
+var steward_meals_ready: int = 0
 var next_furniture_instance_id: int = 1
 
 const FLOOR_SIZES := {
@@ -282,6 +285,55 @@ func appoint_halvard_as_steward() -> Dictionary:
 		"preferred_activity": "cook",
 		"duties": HALVARD_DUTIES
 	})
+
+
+## Halvard cooks from the household food the player has brought home. One
+## breakfast and one supper can be prepared per world day, using existing food
+## items rather than creating ingredients or free meals.
+func prepare_steward_meal(world_seconds: float, player: CharacterState) -> Dictionary:
+	if not residents.has(HALVARD_ID) or String(residents[HALVARD_ID].get("dwelling_id", "")) != "silverhart_manor":
+		return {"ok": false, "reason": "steward_not_assigned"}
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	var day_index := int(floor(world_seconds / 86400.0))
+	var hour := fposmod(world_seconds, 86400.0) / 3600.0
+	var meal_slot := ""
+	if hour >= 7.0 and hour < 9.0 and steward_breakfast_day != day_index:
+		meal_slot = "breakfast"
+	elif hour >= 17.0 and hour < 19.0 and steward_supper_day != day_index:
+		meal_slot = "supper"
+	if meal_slot.is_empty():
+		return {"ok": false, "reason": "outside_cooking_window"}
+	var food_index := -1
+	var food_id := ""
+	for index in range(player.inventory.size()):
+		var item: Dictionary = player.inventory[index]
+		var candidate_id := String(item.get("id", ""))
+		if int(item.get("quantity", 1)) <= 0 or String(ItemCatalog.get_definition(candidate_id).get("type", "")) != "food":
+			continue
+		food_index = index
+		food_id = candidate_id
+		break
+	if meal_slot == "breakfast":
+		steward_breakfast_day = day_index
+	else:
+		steward_supper_day = day_index
+	if food_index < 0:
+		return {"ok": false, "reason": "no_food_for_steward"}
+	var quantity := int(player.inventory[food_index].get("quantity", 1))
+	if quantity > 1:
+		player.inventory[food_index]["quantity"] = quantity - 1
+	else:
+		player.inventory.remove_at(food_index)
+	steward_meals_ready += 1
+	return {"ok": true, "meal_slot": meal_slot, "ingredient_id": food_id, "meals_ready": steward_meals_ready}
+
+
+func consume_steward_meal() -> bool:
+	if steward_meals_ready <= 0:
+		return false
+	steward_meals_ready -= 1
+	return true
 
 
 func remove_resident(character_id: String) -> Dictionary:
@@ -574,6 +626,9 @@ func to_dict() -> Dictionary:
 		"furniture_inventory": furniture_inventory.duplicate(true),
 		"placed_furniture": placed_furniture.duplicate(true),
 		"residents": residents.duplicate(true),
+		"steward_breakfast_day": steward_breakfast_day,
+		"steward_supper_day": steward_supper_day,
+		"steward_meals_ready": steward_meals_ready,
 		"next_furniture_instance_id": next_furniture_instance_id
 	}
 
@@ -584,6 +639,11 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_inventory: Variant = data.get("furniture_inventory", {})
 	var saved_placed: Variant = data.get("placed_furniture", {})
 	var saved_residents: Variant = data.get("residents", {})
+	var saved_breakfast_day := int(data.get("steward_breakfast_day", -1))
+	var saved_supper_day := int(data.get("steward_supper_day", -1))
+	var saved_meals_ready := int(data.get("steward_meals_ready", 0))
+	if saved_breakfast_day < -1 or saved_supper_day < -1 or saved_meals_ready < 0:
+		return false
 	if not saved_owned is Dictionary or not saved_upgrades is Dictionary or not saved_inventory is Dictionary or not saved_placed is Dictionary or not saved_residents is Dictionary:
 		return false
 	for dwelling_id_value in saved_owned.keys():
@@ -662,5 +722,8 @@ func from_dict(data: Dictionary) -> bool:
 	furniture_inventory = validated_inventory
 	placed_furniture = validated_placed
 	residents = validated_residents
+	steward_breakfast_day = saved_breakfast_day
+	steward_supper_day = saved_supper_day
+	steward_meals_ready = saved_meals_ready
 	next_furniture_instance_id = maxi(1, int(data.get("next_furniture_instance_id", 1)))
 	return true
