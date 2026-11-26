@@ -50,7 +50,9 @@ const NORTHWATCH_CENTRE := Vector2i(268, -21)
 const NORTHWATCH_GATE := Vector2i(268, -2)
 const NORTHWATCH_SPUR_START := Vector2i(268, 22)
 const RIDGEHOLD_CENTRE := Vector2i(426, 43)
-const RIDGEHOLD_GATE := Vector2i(406, 35) # source buildRidgeholdFort gateHex
+## The source gateHex (406, 35) falls outside the generated star-fort wall.
+## Put the entrance on the actual west perimeter cell instead.
+const RIDGEHOLD_GATE := Vector2i(407, 43)
 const RIDGEHOLD_ROAD_END := Vector2i(398, 23)
 const STAR_FORT_CORE_RADIUS := 6
 const STAR_FORT_POINT_LENGTH := 12
