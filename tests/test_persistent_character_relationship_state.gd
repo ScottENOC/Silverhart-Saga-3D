@@ -29,7 +29,7 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 
 func _test_authored_roster_and_initial_state() -> void:
 	var relationships := PersistentCharacterRelationshipState.new()
-	_check(relationships.roster().size() == 10, "All ten source-authored persistent NPCs are registered")
+	_check(relationships.roster().size() == 11, "All ten source-authored persistent NPCs are registered")
 	var seraphine := relationships.snapshot("seraphine_corrin")
 	_check(String(seraphine.get("name", "")) == "Queen Seraphine Corrin")
 	_check(String(seraphine.get("affinity_mode", "")) == "full")
@@ -38,6 +38,10 @@ func _test_authored_roster_and_initial_state() -> void:
 	var skarnub := relationships.snapshot("chief_skarnub")
 	_check(str(skarnub.get("name", "")) == "Chief Skarnub")
 	_check(int(skarnub.get("trust", -1)) == 0)
+	var rowan := relationships.snapshot("rowan_fletcher")
+	_check(String(rowan.get("name", "")) == "Rowan Fletcher")
+	_check(String(rowan.get("affinity_mode", "")) == "full", "Rowan should have attraction and romantic-bond axes.")
+	_check(int(rowan.get("attraction", -1)) == 0 and int(rowan.get("romantic_bond", -1)) == 0, "Rowan should begin without an assumed romantic relationship.")
 	var nessa := relationships.snapshot("nessa_wren")
 	_check(int(nessa.get("familiarity", -1)) == 4)
 	_check(int(nessa.get("trust", -1)) == 7)
