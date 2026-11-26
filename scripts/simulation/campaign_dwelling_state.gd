@@ -53,6 +53,9 @@ var upgrades: Dictionary = {}
 var furniture_inventory: Dictionary = {}
 ## Each placed entry stores a stable instance ID, catalogue ID, local floor position and rotation.
 var placed_furniture: Dictionary = {}
+## Existing companion IDs assigned to a permanent home, independent of party membership.
+## Keys are character IDs; values contain dwelling ID and authored routine preference.
+var residents: Dictionary = {}
 var next_furniture_instance_id: int = 1
 
 const FLOOR_SIZES := {
@@ -217,6 +220,112 @@ func camp_profile_for(dwelling_id: String) -> Dictionary:
 	profile["placed_furniture"] = (placed_furniture.get(dwelling_id, []) as Array).duplicate(true)
 	return profile
 
+
+
+
+
+const RESIDENT_DAY_ACTIVITIES: Array[String] = ["study_map", "repair_gear", "train", "watch", "socialise"]
+const RESIDENT_STATION_ROLES := {
+	"wake": "bedroom", "breakfast": "table", "study_map": "study",
+	"repair_gear": "workshop", "train": "yard", "watch": "threshold",
+	"socialise": "common", "sleep": "bedroom"
+}
+
+
+## Capacity follows the same bed-plus-floor sleeping model used by camp lodging.
+## Residents are not party members and do not consume a party slot.
+func resident_capacity_for(dwelling_id: String) -> int:
+	var profile := camp_profile_for(dwelling_id)
+	if profile.is_empty() or not bool(profile.get("is_sheltered", false)):
+		return 0
+	return maxi(0, int(profile.get("sleeping_capacity", 0))) + maxi(0, int(profile.get("indoor_floor_capacity", 0)))
+
+
+func assign_resident(dwelling_id: String, character_id: String, character_profile: Dictionary = {}) -> Dictionary:
+	var clean_id := character_id.strip_edges()
+	if clean_id.is_empty():
+		return {"ok": false, "reason": "missing_character_id"}
+	var profile := camp_profile_for(dwelling_id)
+	if profile.is_empty():
+		return {"ok": false, "reason": "dwelling_not_owned"}
+	if not bool(profile.get("is_sheltered", false)):
+		return {"ok": false, "reason": "dwelling_not_livable"}
+	var existing: Dictionary = residents.get(clean_id, {})
+	if String(existing.get("dwelling_id", "")) == dwelling_id:
+		return {"ok": true, "already_assigned": true, "resident": existing.duplicate(true)}
+	var capacity := resident_capacity_for(dwelling_id)
+	var current_count := resident_ids_for_dwelling(dwelling_id).size()
+	if capacity <= current_count:
+		return {"ok": false, "reason": "residence_at_capacity", "capacity": capacity, "resident_count": current_count}
+	var preferred_activity := _preferred_resident_activity(character_profile)
+	var resident := {
+		"character_id": clean_id,
+		"dwelling_id": dwelling_id,
+		"preferred_activity": preferred_activity
+	}
+	residents[clean_id] = resident
+	return {"ok": true, "resident": resident.duplicate(true), "capacity": capacity, "resident_count": current_count + 1}
+
+
+func remove_resident(character_id: String) -> Dictionary:
+	var clean_id := character_id.strip_edges()
+	if not residents.has(clean_id):
+		return {"ok": false, "reason": "resident_not_found"}
+	var previous: Dictionary = residents[clean_id].duplicate(true)
+	residents.erase(clean_id)
+	return {"ok": true, "resident": previous}
+
+
+func resident_ids_for_dwelling(dwelling_id: String) -> Array[String]:
+	var ids: Array[String] = []
+	for character_id_value in residents:
+		var record: Dictionary = residents[character_id_value]
+		if String(record.get("dwelling_id", "")) == dwelling_id:
+			ids.append(String(character_id_value))
+	ids.sort()
+	return ids
+
+
+## Return the current home routine for a resident. The caller supplies local
+## world-clock hour and current party IDs; joining the party temporarily
+## suspends the home schedule without deleting the permanent residence.
+func resident_schedule_for(character_id: String, local_hour: float, party_ids: Array = []) -> Dictionary:
+	if not residents.has(character_id):
+		return {}
+	var resident: Dictionary = residents[character_id]
+	if party_ids.has(character_id):
+		return {"activity": "travelling_with_party", "station_role": "none", "dwelling_id": String(resident.get("dwelling_id", ""))}
+	var hour := fposmod(local_hour, 24.0)
+	var activity := "socialise"
+	if hour < 6.0 or hour >= 21.0:
+		activity = "sleep"
+	elif hour < 7.0:
+		activity = "wake"
+	elif hour < 9.0:
+		activity = "breakfast"
+	elif hour < 17.0:
+		activity = String(resident.get("preferred_activity", "socialise"))
+	var station_role := String(RESIDENT_STATION_ROLES.get(activity, "common"))
+	return {
+		"activity": activity,
+		"station_role": station_role,
+		"dwelling_id": String(resident.get("dwelling_id", ""))
+	}
+
+
+func _preferred_resident_activity(character_profile: Dictionary) -> String:
+	var requested := String(character_profile.get("preferred_activity", ""))
+	if RESIDENT_DAY_ACTIVITIES.has(requested):
+		return requested
+	var tags: Variant = character_profile.get("personality_tags", character_profile.get("tags", []))
+	if tags is Array:
+		if tags.has("scholarly"):
+			return "study_map"
+		if tags.has("practical"):
+			return "repair_gear"
+		if tags.has("guardian"):
+			return "watch"
+	return "socialise"
 
 
 func _layout_key_for(dwelling_id: String) -> String:
@@ -425,6 +534,7 @@ func to_dict() -> Dictionary:
 		"upgrades": upgrades.duplicate(true),
 		"furniture_inventory": furniture_inventory.duplicate(true),
 		"placed_furniture": placed_furniture.duplicate(true),
+		"residents": residents.duplicate(true),
 		"next_furniture_instance_id": next_furniture_instance_id
 	}
 
@@ -434,7 +544,8 @@ func from_dict(data: Dictionary) -> bool:
 	var saved_upgrades: Variant = data.get("upgrades", {})
 	var saved_inventory: Variant = data.get("furniture_inventory", {})
 	var saved_placed: Variant = data.get("placed_furniture", {})
-	if not saved_owned is Dictionary or not saved_upgrades is Dictionary or not saved_inventory is Dictionary or not saved_placed is Dictionary:
+	var saved_residents: Variant = data.get("residents", {})
+	if not saved_owned is Dictionary or not saved_upgrades is Dictionary or not saved_inventory is Dictionary or not saved_placed is Dictionary or not saved_residents is Dictionary:
 		return false
 	for dwelling_id_value in saved_owned.keys():
 		var known_dwelling := false
@@ -477,9 +588,38 @@ func from_dict(data: Dictionary) -> bool:
 			seen_instances[instance_id] = true
 			entries.append(entry.duplicate(true))
 		validated_placed[dwelling_id] = entries
+	var candidate := CampaignDwellingState.new()
+	candidate.owned = saved_owned.duplicate(true)
+	candidate.upgrades = saved_upgrades.duplicate(true)
+	candidate.placed_furniture = validated_placed.duplicate(true)
+	var validated_residents: Dictionary = {}
+	var resident_counts: Dictionary = {}
+	for character_id_value in saved_residents:
+		var character_id := String(character_id_value)
+		var resident_value: Variant = saved_residents[character_id_value]
+		if character_id.is_empty() or not resident_value is Dictionary:
+			return false
+		var resident: Dictionary = resident_value
+		var dwelling_id := String(resident.get("dwelling_id", ""))
+		var preferred_activity := String(resident.get("preferred_activity", "socialise"))
+		if String(resident.get("character_id", "")) != character_id or not bool(candidate.owned.get(dwelling_id, false)):
+			return false
+		if candidate.resident_capacity_for(dwelling_id) <= 0 or not RESIDENT_DAY_ACTIVITIES.has(preferred_activity):
+			return false
+		validated_residents[character_id] = {
+			"character_id": character_id,
+			"dwelling_id": dwelling_id,
+			"preferred_activity": preferred_activity
+		}
+		resident_counts[dwelling_id] = int(resident_counts.get(dwelling_id, 0)) + 1
+	for dwelling_id_value in resident_counts:
+		var dwelling_id := String(dwelling_id_value)
+		if int(resident_counts[dwelling_id]) > candidate.resident_capacity_for(dwelling_id):
+			return false
 	owned = saved_owned.duplicate(true)
 	upgrades = saved_upgrades.duplicate(true)
 	furniture_inventory = validated_inventory
 	placed_furniture = validated_placed
+	residents = validated_residents
 	next_furniture_instance_id = maxi(1, int(data.get("next_furniture_instance_id", 1)))
 	return true
