@@ -1,18 +1,7 @@
 name: Test Ara bikini fit on accepted Wren body
 
 on:
-  push:
-    branches: [feature/wren-ara-bikini-fit-on-accepted-body]
-  pull_request:
-    branches: [dev]
-    paths:
-      - ".github/workflows/test-wren-ara-bikini-fit.yml"
-      - "character-preview/wren-ara.json"
-      - "art/characters/companions/wren.glb"
-      - "tools/ara/assemble_modular_glb.py"
-      - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/plan_female_anatomy_subdivision.py"
-      - "tools/review/wren_native_preview.gd"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
