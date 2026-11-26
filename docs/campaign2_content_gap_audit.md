@@ -257,19 +257,19 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Added `ReddaleInnkeeperContent` with the source quest ID, source dialogue gate, accept/active/turn-in/completed states, blue-gem consumption, +20 gold and +20 Nella reputation/knowledge.
 - [x] Added headless regression coverage for the quest flow, missing-gem retry, journal-read gate, rumour response, item consumption and duplicate-reward prevention.
 - [x] Connected the `reddale_innkeeper` streamed actor dialogue route and `nella_*` choice handling in `HollowTankard`.
-- [ ] Wire the source `abandonedHouseJournalRead` world flag into the optional alternate greeting; the current runtime route uses the default greeting because that source flag is not yet represented in target save state.
+- [x] Wire the source `abandonedHouseJournalRead` world flag into the optional alternate greeting. Reading the abandoned-house journal now records the flag in the Hollow Tankard save snapshot and restores it on load; Nella's streamed greeting consumes the saved flag.
 
 **Coin for the Deepholds**
 
 - [x] Added `DwarvenAmbassadorContent` with the source toll dialogue, 15-gold payment, quest completion, +60 experience and +10 standing / +15 knowledge for Brokk and the dwarven kingdom.
 - [x] Added headless regression coverage for acceptance, insufficient funds, exact payment, rewards, reputation/knowledge and duplicate-payment prevention.
-- [ ] Connect Brokk's content to a live actor interaction route. His appearance profile exists in the legacy roster, but that is not evidence of an active placed actor.
+- [x] Confirmed Brokk is an authored Silverhart settlement NPC (`ambassador_brokk_stonehammer`, dialogue ID `dwarven_ambassador`) and connected his streamed greeting, toll choices, quest registration and completion feedback to the live interaction dispatcher. Added runtime-wiring regression coverage.
 
 **Eyes on the Border**
 
 - [x] Added `CorvaneAmbassadorContent` with source start/wait/report/completed dialogue, gated on the `goblin_threat` quest leaving its active state.
 - [x] Added headless regression coverage for the active-threat gate, integration with the existing goblin resolution service, +15 gold, +60 experience, +10 standing / +15 knowledge and duplicate-claim prevention.
-- [ ] Connect Toren's content to a live actor interaction route. His appearance profile is not proof of an active placed actor.
+- [x] Confirmed Toren is an authored Silverhart settlement NPC (`ambassador_toren_aldwyn`, dialogue ID `corvane_ambassador`) and connected his streamed greeting, report choices, quest registration and completion feedback to the live interaction dispatcher. Added runtime-wiring regression coverage.
 
 **A Missing Locket**
 
@@ -277,7 +277,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Added headless regression coverage for both normal acceptance and finding the locket before speaking to Marta, including item consumption, +20 gold, +100 experience, +15 reputation / +20 knowledge and duplicate-reward prevention.
 - [x] Confirmed Elder Marta's existing Ara profile/model and authored Hollowmere placement at `Vector2i(0, -9)`; added explicit regression assertions for both.
 - [x] Connected her greeting and choice handling to the live Hollow Tankard NPC interaction dispatcher and registered the quest with the campaign journal at startup.
-- [ ] Add or verify the source-authored chapel pickup at world hex `(-14, 0)`. The `elder_locket` item definition exists, but I have not yet found a target world pickup corresponding to the source's chapel placement; the quest logic and dialogue route are therefore not yet fully playable end-to-end.
+- [x] Added a visible Tarnished Locket pickup at the source-authored chapel hex `(-14, 0)`, reachable with the normal F-key interaction. The pickup grants one stable `elder_locket` inventory instance, is idempotent, and persists its collected flag through Hollow Tankard save/restore (also recognising an already-carried locket in older saves). Added regression coverage for item grant, duplicate prevention, authored position and save-state wiring.
 
 **A Quiet Word**
 

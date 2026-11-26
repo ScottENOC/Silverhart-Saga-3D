@@ -38,5 +38,47 @@ func _initialize() -> void:
 		push_error("Reyna identity, dialogue and braid hairstyle must be preserved at Old Mac’s Farmstead.")
 		quit(1)
 		return
+	var brokk := registry.get_character("ambassador_brokk_stonehammer")
+	var toren := registry.get_character("ambassador_toren_aldwyn")
+	if brokk.is_empty() or toren.is_empty():
+		push_error("Brokk and Toren must resolve from the authored Silverhart NPC catalogue.")
+		quit(1)
+		return
+	if String(brokk.get("dialogue_id", "")) != "dwarven_ambassador" or String(toren.get("dialogue_id", "")) != "corvane_ambassador":
+		push_error("The Silverhart ambassador profiles must preserve their source dialogue IDs.")
+		quit(1)
+		return
+	var settlement_registry := Campaign2SettlementDefinitionRegistry.new()
+	if not settlement_registry.validation_errors.is_empty():
+		push_error("Settlement definitions failed while checking ambassador placements: %s" % settlement_registry.validation_errors)
+		quit(1)
+		return
+	var silverhart := settlement_registry.get_definition("silverhart")
+	if silverhart.is_empty():
+		push_error("The canonical Silverhart settlement definition must resolve.")
+		quit(1)
+		return
+	var placement_data: Dictionary = silverhart.get("placements", {})
+	var placed_ids: Array[String] = []
+	for placement_value in placement_data.get("characters", []):
+		if not placement_value is Dictionary:
+			continue
+		var placement: Dictionary = placement_value
+		placed_ids.append(String(placement.get("character_id", placement.get("id", ""))))
+	if not placed_ids.has("ambassador_brokk_stonehammer") or not placed_ids.has("ambassador_toren_aldwyn"):
+		push_error("Brokk and Toren must remain authored NPC placements in Silverhart.")
+		quit(1)
+		return
+	var tavern_source := FileAccess.get_file_as_string("res://scripts/world/hollow_tankard.gd")
+	for route in [
+		'if dialogue_id == "dwarven_ambassador":',
+		'if dialogue_id == "corvane_ambassador":',
+		'if choice_id.begins_with("brokk_"):',
+		'if choice_id.begins_with("toren_"):'
+	]:
+		if not tavern_source.contains(route):
+			push_error("Missing live streamed ambassador interaction route: %s" % route)
+			quit(1)
+			return
 	print("Campaign 2 character definition registry tests passed.")
 	quit(0)

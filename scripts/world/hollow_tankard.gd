@@ -14,8 +14,11 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
+const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
 const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
 const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
+const DWARVEN_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
+const CORVANE_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/corvane_ambassador_content.gd")
 const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
@@ -115,6 +118,9 @@ var ambient_exchange_running: bool = false
 var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
+var abandoned_house_journal_read: bool = false
+var elder_locket_collected: bool = false
+var elder_locket_visual: Node3D
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
@@ -171,6 +177,8 @@ func _ready() -> void:
 	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
 	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+	CORVANE_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		var saved_multistory_location := String(pending_save_data.get("active_multistory_location_id", ""))
@@ -375,6 +383,67 @@ func _create_wilderness_gatherable_grove() -> void:
 		add_child(visual)
 		visual.refresh(state, int(simulation.clock.calendar_date()["month_index"]))
 		resource_visuals_by_hex[hex] = visual
+	_create_elder_locket_pickup()
+
+func _create_elder_locket_pickup() -> void:
+	var pickup_hex := Vector2i(-14, 0)
+	elder_locket_visual = Node3D.new()
+	elder_locket_visual.name = "ElderMartaLocketPickup"
+	elder_locket_visual.position = _hex_world_position(pickup_hex) + Vector3(0.0, 0.16, 0.0)
+	elder_locket_visual.add_to_group("world_pickups")
+	var ring_instance := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.11
+	ring_mesh.outer_radius = 0.17
+	ring_instance.mesh = ring_mesh
+	ring_instance.rotation_degrees = Vector3(90.0, 0.0, 0.0)
+	var gold_material := StandardMaterial3D.new()
+	gold_material.albedo_color = Color("#c49a43")
+	gold_material.metallic = 0.82
+	gold_material.roughness = 0.24
+	gold_material.emission_enabled = true
+	gold_material.emission = Color("#6d4815")
+	gold_material.emission_energy_multiplier = 0.32
+	ring_instance.material_override = gold_material
+	elder_locket_visual.add_child(ring_instance)
+	var gem_instance := MeshInstance3D.new()
+	var gem_mesh := SphereMesh.new()
+	gem_mesh.radius = 0.055
+	gem_mesh.height = 0.11
+	gem_instance.mesh = gem_mesh
+	gem_instance.position = Vector3(0.0, 0.0, 0.15)
+	var gem_material := StandardMaterial3D.new()
+	gem_material.albedo_color = Color("#6d8c85")
+	gem_material.metallic = 0.25
+	gem_material.roughness = 0.2
+	gem_instance.material_override = gem_material
+	elder_locket_visual.add_child(gem_instance)
+	var label := Label3D.new()
+	label.text = "Tarnished Locket"
+	label.position = Vector3(0.0, 0.48, 0.0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.font_size = 18
+	label.outline_size = 4
+	elder_locket_visual.add_child(label)
+	add_child(elder_locket_visual)
+	elder_locket_visual.visible = not elder_locket_collected
+
+func _interact_with_chapel_locket() -> bool:
+	if elder_locket_collected:
+		return false
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null or HexGrid.distance(active_state.axial, Vector2i(-14, 0)) > 1:
+		return false
+	var player := simulation.get_character(simulation.player_character_id)
+	var result: Dictionary = ELDER_LOCKET_PICKUP_SCRIPT.collect(player)
+	if not bool(result.get("ok", false)):
+		resource_status_label.text = "You cannot take the locket just now."
+		return true
+	elder_locket_collected = true
+	if is_instance_valid(elder_locket_visual):
+		elder_locket_visual.visible = false
+	resource_status_label.text = "Found: Tarnished Locket. Elder Marta may know who lost it."
+	return true
 
 func _on_world_clock_ticked(_tick_index: int, _world_seconds: float) -> void:
 	var month_index := int(simulation.clock.calendar_date()["month_index"])
@@ -1149,6 +1218,8 @@ func _build_save_snapshot() -> Dictionary:
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
 			"shakedown_resolved": shakedown_resolved,
+			"abandoned_house_journal_read": abandoned_house_journal_read,
+			"elder_locket_collected": elder_locket_collected,
 			"farm_wolves_spawned": farm_wolves_spawned,
 			"farm_wolves_retry_armed": farm_wolves_retry_armed,
 			"wilderness_steps_since_spawn": wilderness_steps_since_spawn
@@ -1275,6 +1346,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	ambient_security = int(flags.get("ambient_security", ambient_security))
 	shakedown_started = bool(flags.get("shakedown_started", false))
 	shakedown_resolved = bool(flags.get("shakedown_resolved", false))
+	abandoned_house_journal_read = bool(flags.get("abandoned_house_journal_read", false))
+	elder_locket_collected = bool(flags.get("elder_locket_collected", false)) or _player_has_item(ELDER_LOCKET_PICKUP_SCRIPT.ITEM_ID)
+	if is_instance_valid(elder_locket_visual):
+		elder_locket_visual.visible = not elder_locket_collected
 	farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
 	farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
 	wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
@@ -1423,9 +1498,13 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		var spawned := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
 		if bool(started.get("ok", false)) and bool(spawned.get("ok", false)):
 			_restore_abandoned_house_guardian_actors()
-			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
+			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_read_journal", "label": "Read the journal.", "text": ""}, {"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
 		else:
 			_show_dialogue("Abandoned House", "The house cannot be investigated right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	if choice_id == "abandoned_house_read_journal":
+		abandoned_house_journal_read = true
+		_show_dialogue("Abandoned House", "You take a moment to read the journal before confronting the guardians.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
 		return
 	if choice_id == "abandoned_house_finalize":
 		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
@@ -1506,6 +1585,51 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
 				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
 			return
+	if choice_id.begins_with("brokk_"):
+		var brokk_result := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(brokk_result.get("ok", false)):
+			_show_dialogue("Ambassador Brokk Stonehammer", "That could not be completed: %s." % String(brokk_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if choice_id == "brokk_accept_toll" and resource_status_label != null:
+			resource_status_label.text = "Quest added: Coin for the Deepholds."
+		if bool(brokk_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: Coin for the Deepholds  ·  -15 gold  ·  +60 XP"
+		var brokk_dialogue: Variant = brokk_result.get("dialogue", {})
+		if brokk_dialogue is Dictionary and not brokk_dialogue.is_empty():
+			_show_dialogue(String(brokk_dialogue.get("speaker", "Ambassador Brokk Stonehammer")), String(brokk_dialogue.get("text", "")), brokk_dialogue.get("choices", []))
+		elif bool(brokk_result.get("quest_completed", false)):
+			var brokk_completed := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+			_show_dialogue(String(brokk_completed.get("speaker", "Ambassador Brokk Stonehammer")), String(brokk_completed.get("text", "")), brokk_completed.get("choices", []))
+		elif bool(brokk_result.get("handled", false)):
+			_close_dialogue()
+		return
+	if choice_id.begins_with("toren_"):
+		var toren_result := CORVANE_AMBASSADOR_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(toren_result.get("ok", false)):
+			_show_dialogue("Ambassador Toren Aldwyn", "That could not be completed: %s." % String(toren_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if choice_id == "toren_accept_report" and resource_status_label != null:
+			resource_status_label.text = "Quest added: Eyes on the Border."
+		if bool(toren_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: Eyes on the Border  ·  +15 gold  ·  +60 XP"
+		var toren_dialogue: Variant = toren_result.get("dialogue", {})
+		if toren_dialogue is Dictionary and not toren_dialogue.is_empty():
+			var toren_response: Dictionary = toren_dialogue
+			_show_dialogue(String(toren_response.get("speaker", "Ambassador Toren Aldwyn")), String(toren_response.get("text", "")), toren_response.get("choices", []))
+		elif bool(toren_result.get("quest_completed", false)):
+			var toren_completed := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+			_show_dialogue(String(toren_completed.get("speaker", "Ambassador Toren Aldwyn")), String(toren_completed.get("text", "")), toren_completed.get("choices", []))
+		elif bool(toren_result.get("handled", false)):
+			_close_dialogue()
+		return
 	if choice_id.begins_with("cassia_"):
 		var cassia_result := ALDENREACH_MESSAGE_CONTENT_SCRIPT.resolve_choice(
 			simulation.campaign_journal,
@@ -1849,7 +1973,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
 	if dialogue_id == "reddale_innkeeper":
-		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id), abandoned_house_journal_read)
 		if bool(nella_conversation.get("ok", false)):
 			_show_dialogue(String(nella_conversation.get("speaker", target_state.display_name)), String(nella_conversation.get("text", "")), nella_conversation.get("choices", []))
 		return
@@ -1857,6 +1981,16 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		var baron_conversation := BARON_TRIBUTE_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
 		if bool(baron_conversation.get("ok", false)):
 			_show_dialogue(String(baron_conversation.get("speaker", target_state.display_name)), String(baron_conversation.get("text", "")), baron_conversation.get("choices", []))
+		return
+	if dialogue_id == "dwarven_ambassador":
+		var brokk_conversation := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		if bool(brokk_conversation.get("ok", false)):
+			_show_dialogue(String(brokk_conversation.get("speaker", target_state.display_name)), String(brokk_conversation.get("text", "")), brokk_conversation.get("choices", []))
+		return
+	if dialogue_id == "corvane_ambassador":
+		var toren_conversation := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		if bool(toren_conversation.get("ok", false)):
+			_show_dialogue(String(toren_conversation.get("speaker", target_state.display_name)), String(toren_conversation.get("text", "")), toren_conversation.get("choices", []))
 		return
 	if dialogue_id == "aldenreach_ambassador":
 		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
@@ -2817,7 +2951,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_F:
-			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door():
+			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door() and not _interact_with_chapel_locket():
 				_interact_with_nearest_npc()
 			get_viewport().set_input_as_handled()
 			return

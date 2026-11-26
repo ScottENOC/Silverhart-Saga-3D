@@ -1,6 +1,7 @@
 extends SceneTree
 
 const ELDER_CONTENT = preload("res://scripts/simulation/elder_marta_content.gd")
+const LOCKET_PICKUP_CONTENT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
 
 var _failures: int = 0
 
@@ -8,6 +9,7 @@ var _failures: int = 0
 func _initialize() -> void:
 	_test_accepted_locket_quest()
 	_test_found_before_accepting()
+	_test_chapel_pickup_is_idempotent_and_persistent()
 	if _failures > 0:
 		push_error("%d Elder Marta assertion(s) failed." % _failures)
 		quit(1)
@@ -70,6 +72,27 @@ func _test_accepted_locket_quest() -> void:
 	_check(String(repeated.get("reason", "")) == "quest_already_completed")
 	_check(player.gold == 23)
 	_check(player.experience == 110)
+
+
+func _test_chapel_pickup_is_idempotent_and_persistent() -> void:
+	var player := CharacterState.new("player", "Adventurer", Vector2i.ZERO)
+	var collected := LOCKET_PICKUP_CONTENT.collect(player)
+	_check(bool(collected.get("ok", false)))
+	_check(not bool(collected.get("already_owned", true)))
+	_check(player.inventory.size() == 1)
+	_check(String(player.inventory[0].get("id", "")) == "elder_locket")
+	_check(String(player.inventory[0].get("instance_id", "")) == LOCKET_PICKUP_CONTENT.INSTANCE_ID)
+
+	var repeated := LOCKET_PICKUP_CONTENT.collect(player)
+	_check(bool(repeated.get("ok", false)))
+	_check(bool(repeated.get("already_owned", false)))
+	_check(player.inventory.size() == 1, "Revisiting the pickup must not duplicate the locket.")
+
+	var runtime_source := FileAccess.get_file_as_string("res://scripts/world/hollow_tankard.gd")
+	_check(runtime_source.contains("Vector2i(-14, 0)"), "The chapel pickup must use the source-authored hex.")
+	_check(runtime_source.contains('"elder_locket_collected": elder_locket_collected'), "The pickup state must be saved.")
+	_check(runtime_source.contains('elder_locket_collected = bool(flags.get("elder_locket_collected", false))'), "The pickup state must be restored.")
+	_check(runtime_source.contains("not _interact_with_chapel_locket()"), "The F-key interaction must collect the pickup.")
 
 
 func _test_found_before_accepting() -> void:
