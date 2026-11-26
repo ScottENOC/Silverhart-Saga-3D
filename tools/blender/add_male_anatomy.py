@@ -1145,9 +1145,14 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
             if candidate is not None and distance < 6.0:
                 sampled[round(x_offset, 6)] = (candidate, candidate_normal)
         if 0.0 in sampled:
-            hit, normal = sampled[0.0]
-            anal_z += height * z_offset
-            break
+            centre_candidate, centre_normal = sampled[0.0]
+            # find_nearest can return a cheek surface even for an x=0 query
+            # when the cleft is open. Only accept it as a true midline hit
+            # when the nearest point is itself close to the midline.
+            if abs(centre_candidate.x - centre_x) <= height * 0.006:
+                hit, normal = centre_candidate, centre_normal
+                anal_z += height * z_offset
+                break
         # If the centre falls in the gluteal cleft, average the nearest posterior
         # surface points on both sides so the detail remains centred between cheeks.
         for magnitude in x_offsets:
@@ -1829,7 +1834,8 @@ def main():
     for vertex, point in zip(phallus.data.vertices, ph_flaccid):
         vertex.co = inverse @ point            # base mesh = flaccid
     phallus.data.update()
-    erect_world = ph_erect + sc_erect          # morph target = erect (scrotum: tightened)
+    anal_world = [anal_detail.matrix_world @ vertex.co for vertex in anal_detail.data.vertices]
+    erect_world = ph_erect + sc_erect + anal_world  # anal detail stays fixed across the erection morph
 
     anatomy = join_male_anatomy_parts(
         [phallus, scrotum, anal_detail], armature, pelvis_bone
