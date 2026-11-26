@@ -18,6 +18,7 @@ const TOLL_TAKER_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/toll_taker
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
 const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
+const IRONBOND_MISSING_COURIER_CONTENT_SCRIPT = preload("res://scripts/simulation/ironbond_missing_courier_content.gd")
 const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
 const DWARVEN_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
 const CORVANE_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/corvane_ambassador_content.gd")
@@ -183,6 +184,7 @@ func _ready() -> void:
 	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
 	TOLL_TAKER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+	IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	CORVANE_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
@@ -1588,6 +1590,19 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("recruit:"):
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
+	if choice_id.begins_with("ironbond_courier_"):
+		var courier_result := IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.resolve_choice(simulation.campaign_journal, choice_id)
+		if not bool(courier_result.get("ok", false)):
+			_show_dialogue("Dray Coltayne", "That job cannot be recorded just now: %s." % String(courier_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(courier_result.get("quest_started", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest added: The Missing Courier  ·  +10 Ironbond reputation"
+		var courier_dialogue: Variant = courier_result.get("dialogue", {})
+		if courier_dialogue is Dictionary and not courier_dialogue.is_empty():
+			_show_dialogue(String(courier_dialogue.get("speaker", "Dray Coltayne")), String(courier_dialogue.get("text", "")), courier_dialogue.get("choices", []))
+		elif bool(courier_result.get("handled", false)):
+			_close_dialogue()
+		return
 	if choice_id.begins_with("toll_ogre_"):
 		var toll_player := simulation.get_character(simulation.player_character_id)
 		var toll_result := TOLL_TAKER_CONTENT_SCRIPT.resolve_choice(
@@ -2121,6 +2136,11 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if actor == null or target_state == null:
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
+	if dialogue_id == "dray_coltayne":
+		var courier_conversation := IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
+		if bool(courier_conversation.get("ok", false)):
+			_show_dialogue(String(courier_conversation.get("speaker", target_state.display_name)), String(courier_conversation.get("text", "")), courier_conversation.get("choices", []))
+		return
 	if dialogue_id == "petra_hollis":
 		var petra_conversation := TOLL_TAKER_CONTENT_SCRIPT.greeting(simulation.campaign_journal, TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation))
 		if bool(petra_conversation.get("ok", false)):
