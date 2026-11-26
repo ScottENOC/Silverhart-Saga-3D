@@ -1,0 +1,44 @@
+name: Ara animation audit
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "tools/review/**"
+      - "docs/posing/ARA_ANIMATION_AUDIT.md"
+      - ".github/workflows/ara-animation-audit.yml"
+  push:
+    branches: ["audit/**"]
+    paths:
+      - "tools/review/**"
+      - "docs/posing/ARA_ANIMATION_AUDIT.md"
+      - ".github/workflows/ara-animation-audit.yml"
+permissions:
+  contents: read
+concurrency:
+  group: ara-animation-audit-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ara-audit:
+    name: Ara GLB inventory and SkeletonModifier3D probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: Run read-only GLB inventory
+        run: |
+          test -f art/characters/ara_runtime/ara_person_benchmark.glb || { echo "Ara carrier GLB is absent from this checkout."; exit 2; }
+          python -m py_compile tools/review/audit_ara_animations.py
+          python tools/review/audit_ara_animations.py .
+      - name: Install Godot 4.7.2 standard
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import project assets
+        run: godot --headless --editor --path . --quit
+      - name: Run dedicated modifier-order probe
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tools/review/ara_layering_probe/probe.gd

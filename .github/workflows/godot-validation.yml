@@ -84,14 +84,6 @@ jobs:
         run: |
           godot --version
           godot --headless --editor --path . --quit
-      - name: Audit Ara GLB animation inventory
-        run: |
-          test -f art/characters/ara_runtime/ara_person_benchmark.glb
-          python tools/review/audit_ara_animations.py .
-      - name: Probe Ara SkeletonModifier3D ordering
-        run: |
-          test -f art/characters/ara_runtime/ara_person_benchmark.glb
-          bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tools/review/ara_layering_probe/probe.gd
       - name: Run simulation encounter service tests
         run: godot --headless --path . --script res://tests/test_combat_encounter_service.gd
       - name: Run player body asset import regression test when generated assets are present
