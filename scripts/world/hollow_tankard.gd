@@ -2992,7 +2992,16 @@ func _get_or_load_multistory_runtime(location_id: String) -> Campaign2MultiStory
 
 func _interact_with_multistory_tunnels() -> bool:
 	if not is_instance_valid(active_multistory_runtime):
-		return false
+		var player_state := simulation.get_character(active_character_id)
+		if player_state == null:
+			return false
+		var surface_entry := TUNNEL_NETWORK.nearby_surface_location(player_state.axial)
+		if surface_entry.is_empty():
+			return false
+		var entered: Dictionary = enter_multistory_location(String(surface_entry.get("location_id", "")))
+		if not bool(entered.get("ok", false)):
+			_show_dialogue("Hidden Passage", "You cannot reach that entrance just now.", [{"id": "continue", "label": "Continue", "text": ""}])
+			return true
 	var entry_node := active_multistory_runtime.get_tunnel_entry_node(active_character_id)
 	if not entry_node.is_empty():
 		_show_dialogue("Hidden Passage", "A concealed stair descends into the Guild's old tunnel network.", [
@@ -3030,6 +3039,18 @@ func _interact_with_multistory_tunnels() -> bool:
 	choices.append({"id": "continue", "label": "Stay at the junction.", "text": ""})
 	_show_dialogue("Tunnel Junction", "Old brick, worn smooth by years of foot traffic. Passages lead off in more than one direction.", choices)
 	return true
+
+	# The wilderness node uses ordinary authored stairs: surface → cave level
+	# → tunnel junction. Keep this on the same F-key interaction path.
+	var stair_result: Dictionary = active_multistory_runtime.interact_with_stair(active_character_id)
+	if bool(stair_result.get("ok", false)):
+		if movement_controller != null:
+			movement_controller.clear_path()
+		return true
+	if String(stair_result.get("reason", "")) != "no_stair_nearby":
+		_show_dialogue("Passage", "You cannot use those stairs: %s." % String(stair_result.get("reason", "travel_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		return true
+	return false
 
 
 func _handle_tunnel_search(choice_id: String) -> void:
