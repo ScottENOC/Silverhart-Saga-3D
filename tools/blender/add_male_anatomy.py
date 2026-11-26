@@ -1126,75 +1126,69 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
 
 
 def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipline_z, centre_x=0.0):
-    """Create a restrained, surface-conforming anal opening on the posterior midline.
+    """Create a small, skin-conforming posterior anal detail.
 
-    The search band is derived from the upper-leg-root/hipline landmark, then
-    snapped to the nearest posterior skin surface around the gluteal cleft.
-    The reported offset is measured from that hipline landmark; it is not a
-    claimed clinical population measurement or a skin-surface geodesic.
+    Placement is a geometric modelling proxy below the paired upper-leg-root
+    hipline. The centre must be a real posterior midline ray hit: cheek samples
+    are never averaged, because their midpoint can lie in empty space.
     """
-    # Ara faces -Y; sample posterior skin from +Y.
-    anal_z = hipline_z - height * 0.065
-    hit = normal = None
-    z_offsets = (0.0, -0.008, 0.008, -0.016, 0.016, -0.024, 0.024)
-    x_offsets = (0.006, 0.012, 0.020, 0.030)
-    for z_offset in z_offsets:
-        sampled = {}
-        for x_offset in (0.0, *[v for pair in x_offsets for v in (pair, -pair)]):
-            candidate, candidate_normal, _index, distance = tree.find_nearest(
-                Vector((centre_x + height * x_offset, 3.0, anal_z + height * z_offset))
-            )
-            if candidate is not None and distance < 6.0:
-                sampled[round(x_offset, 6)] = (candidate, candidate_normal)
-        if 0.0 in sampled:
-            centre_candidate, centre_normal = sampled[0.0]
-            # find_nearest can return a cheek surface even for an x=0 query
-            # when the cleft is open. Only accept it as a true midline hit
-            # when the nearest point is itself close to the midline.
-            if abs(centre_candidate.x - centre_x) <= height * 0.006:
-                hit, normal = centre_candidate, centre_normal
-                anal_z += height * z_offset
-                break
-        # If the centre falls in the gluteal cleft, average the nearest posterior
-        # surface points on both sides so the detail remains centred between cheeks.
-        for magnitude in x_offsets:
-            left_key, right_key = round(-magnitude, 6), round(magnitude, 6)
-            if left_key in sampled and right_key in sampled:
-                left, left_normal = sampled[left_key]
-                right, right_normal = sampled[right_key]
-                hit = (left + right) * 0.5
-                normal = (left_normal + right_normal).normalized()
-                hit.x = centre_x
-                anal_z += height * z_offset
-                break
-        if hit is not None:
+    rear_origin_y = 3.0
+    rear_direction = Vector((0.0, -1.0, 0.0))
+    target_z = hipline_z - height * 0.12
+    z_offsets = (0.0, -0.006, 0.006, -0.012, 0.012, -0.018, 0.018)
+    centre_hit = centre_normal = None
+    selected_z = target_z
+    for offset in z_offsets:
+        query_z = target_z + height * offset
+        hit, normal, _face_index, distance = tree.ray_cast(
+            Vector((centre_x, rear_origin_y, query_z)), rear_direction, 6.0
+        )
+        if hit is not None and normal is not None and distance < 6.0:
+            if normal.dot(Vector((0.0, 1.0, 0.0))) < 0.15:
+                continue
+            centre_hit, centre_normal = hit, normal.normalized()
+            selected_z = query_z
             break
-    if hit is None or normal is None:
-        raise RuntimeError("Could not locate posterior skin surfaces around the gluteal cleft") 
-    anal_z = hit.z  # report the final surface position, not the initial search height
-    rear = Vector((0.0, 1.0, 0.0))
-    if normal.dot(rear) < 0.0:
-        normal.negate()
-    tangent_x = Vector((1.0, 0.0, 0.0)) - normal * normal.x
-    if tangent_x.length < 1e-5:
-        raise RuntimeError("Posterior skin normal is unsuitable for anal detail orientation")
-    tangent_x.normalize()
-    tangent_z = tangent_x.cross(normal).normalized()
-    centre = hit + normal * 0.00025
+    if centre_hit is None:
+        raise RuntimeError(
+            "No genuine posterior skin surface exists on the midline in the "
+            "lower gluteal placement band; refusing to bridge the cleft"
+        )
 
+    def sample_posterior_surface(x, z):
+        hit, normal, _face_index, distance = tree.ray_cast(
+            Vector((x, rear_origin_y, z)), rear_direction, 6.0
+        )
+        if hit is None or normal is None or distance >= 6.0:
+            raise RuntimeError(
+                f"Anal detail boundary leaves posterior skin at x={x:.4f}, z={z:.4f}"
+            )
+        normal = normal.normalized()
+        if normal.dot(Vector((0.0, 1.0, 0.0))) < 0.15:
+            raise RuntimeError("Anal detail boundary sampled a non-posterior surface")
+        return hit, normal
+
+    # Project every boundary vertex onto the actual rear skin. This creates a
+    # shallow surface patch, not a free-standing torus or a cheek-to-cheek bridge.
     segments = 48
     loops = (
-        (0.0100, 0.0068, 0.00025),
-        (0.0080, 0.0054, 0.00110),
-        (0.0061, 0.0039, 0.00075),
+        (0.0090, 0.0060, 0.00010),
+        (0.0062, 0.0042, 0.00016),
+        (0.0042, 0.0028, 0.00004),
     )
     vertices = []
     for rx, rz, lift in loops:
         for j in range(segments):
             angle = 2.0 * math.pi * j / segments
-            point = (centre + tangent_x * (rx * math.cos(angle))
-                     + tangent_z * (rz * math.sin(angle)) + normal * lift)
-            vertices.append(tuple(point))
+            x = centre_x + rx * math.cos(angle)
+            z = selected_z + rz * math.sin(angle)
+            surface, normal = sample_posterior_surface(x, z)
+            vertices.append(tuple(surface + normal * lift))
+
+    centre_surface, centre_surface_normal = sample_posterior_surface(centre_x, selected_z)
+    centre_index = len(vertices)
+    vertices.append(tuple(centre_surface - centre_surface_normal * 0.00008))
+
     faces = []
     material_indices = []
     for ring in range(len(loops) - 1):
@@ -1204,9 +1198,6 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
             nxt = (j + 1) % segments
             faces.append((outer + j, inner + j, inner + nxt, outer + nxt))
             material_indices.append(0)
-
-    centre_index = len(vertices)
-    vertices.append(tuple(centre - normal * 0.00035))
     inner = (len(loops) - 1) * segments
     for j in range(segments):
         nxt = (j + 1) % segments
@@ -1214,10 +1205,10 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
         material_indices.append(1)
 
     obj = create_mesh_object(
-        "Male anatomy · anal opening and perianal rim",
+        "Male anatomy · skin-conforming anal detail",
         vertices, faces, skin_material, armature, pelvis_bone
     )
-    dark = bpy.data.materials.new("Anatomy detail · recessed anal opening")
+    dark = bpy.data.materials.new("Anatomy detail · subtle recessed opening")
     dark.diffuse_color = (0.16, 0.055, 0.045, 1.0)
     dark.use_nodes = True
     shader = next((node for node in dark.node_tree.nodes if node.type == "BSDF_PRINCIPLED"), None)
@@ -1231,16 +1222,17 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
     for item in colour.data:
         item.color = (1.0, 1.0, 1.0, 1.0)
     obj.data.color_attributes.active_color = colour
-    obj["anatomy_parts"] = "external_anal_opening,perianal_rim"
+    obj["anatomy_parts"] = "external_anal_opening,skin_conforming_perianal_rim"
     obj["anal_reference_landmark"] = "upper_leg_root_midpoint_hipline"
-    obj["anal_position_method"] = "posterior_midline_nearest_surface_with_cleft_bridge"
-    obj["anal_vertical_offset_from_hipline_mm"] = round((hipline_z - anal_z) * 1000.0, 2)
-    obj["anal_opening_dimensions_mm"] = "12.2 x 7.8 inner oval; 20 x 13.6 outer rim"
-    print("Male anal anatomy: posterior midline surface hit "
-          f"at ({hit.x:.4f}, {hit.y:.4f}, {hit.z:.4f}); "
-          f"hipline vertical offset {(hipline_z - anal_z) * 1000.0:.1f} mm")
+    obj["anal_position_method"] = "lower_gluteal_band_exact_midline_rear_ray_surface_projection"
+    obj["anal_vertical_offset_from_hipline_mm"] = round((hipline_z - centre_hit.z) * 1000.0, 2)
+    obj["anal_opening_dimensions_mm"] = "8.4 x 5.6 inner oval; 18 x 12 outer boundary"
+    print(
+        "Male anal anatomy: exact posterior midline skin hit "
+        f"at ({centre_hit.x:.4f}, {centre_hit.y:.4f}, {centre_hit.z:.4f}); "
+        f"hipline vertical offset {(hipline_z - centre_hit.z) * 1000.0:.1f} mm"
+    )
     return obj
-
 
 def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius, anchor_y):
     # A very small recessed-looking, darker oval at the distal glans surface.
