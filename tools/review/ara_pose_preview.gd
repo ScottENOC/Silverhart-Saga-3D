@@ -20,10 +20,11 @@ func _ready() -> void:
 		actor.name = String(subject["label"]).replace(" ", "")
 		add_child(actor)
 		actor.position = Vector3((i - 1.5) * 1.65, 0.0, 0.0)
-		if not actor.configure(subject["path"]):
+		if not bool(actor.call("configure", subject["path"])):
 			push_error("ARA POSE PREVIEW: failed to load %s" % subject["label"])
 			continue
-		var skeleton := _find_skeleton(actor)
+		var model_root := actor.get("model_root") as Node3D
+		var skeleton := _find_skeleton(model_root)
 		if skeleton == null:
 			push_error("ARA POSE PREVIEW: no skeleton for %s" % subject["label"])
 			continue
