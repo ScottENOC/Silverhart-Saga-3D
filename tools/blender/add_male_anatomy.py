@@ -1135,24 +1135,22 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
     anal_z = hipline_z - height * 0.065
     hit = normal = None
     z_offsets = (0.0, -0.008, 0.008, -0.016, 0.016, -0.024, 0.024)
-    x_offsets = (0.0, 0.006, -0.006, 0.012, -0.012, 0.020, -0.020, 0.030, -0.030)
+    x_offsets = (0.006, 0.012, 0.020, 0.030)
     for z_offset in z_offsets:
         sampled = {}
-        for x_offset in x_offsets:
-            candidate, candidate_normal, _index, _distance = tree.ray_cast(
-                Vector((centre_x + height * x_offset, 3.0, anal_z + height * z_offset)),
-                Vector((0.0, -1.0, 0.0)), 6.0
+        for x_offset in (0.0, *[v for pair in x_offsets for v in (pair, -pair)]):
+            candidate, candidate_normal, _index, distance = tree.find_nearest(
+                Vector((centre_x + height * x_offset, 3.0, anal_z + height * z_offset))
             )
-            if candidate is not None:
+            if candidate is not None and distance < 1.5:
                 sampled[round(x_offset, 6)] = (candidate, candidate_normal)
         if 0.0 in sampled:
             hit, normal = sampled[0.0]
             anal_z += height * z_offset
             break
-        # Ara's gluteal cleft can be an actual gap in the body mesh. When the
-        # exact midline misses, bridge the opening between matching left/right
-        # posterior surface samples instead of attaching it to one buttock.
-        for magnitude in (0.006, 0.012, 0.020, 0.030):
+        # If the centre falls in the gluteal cleft, average the nearest posterior
+        # surface points on both sides so the detail remains centred between cheeks.
+        for magnitude in x_offsets:
             left_key, right_key = round(-magnitude, 6), round(magnitude, 6)
             if left_key in sampled and right_key in sampled:
                 left, left_normal = sampled[left_key]
@@ -1165,7 +1163,7 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
         if hit is not None:
             break
     if hit is None or normal is None:
-        raise RuntimeError("Could not locate paired posterior skin surfaces around the gluteal cleft")
+        raise RuntimeError("Could not locate posterior skin surfaces around the gluteal cleft") 
     rear = Vector((0.0, 1.0, 0.0))
     if normal.dot(rear) < 0.0:
         normal.negate()
