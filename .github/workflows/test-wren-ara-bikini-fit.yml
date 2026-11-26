@@ -68,13 +68,13 @@ jobs:
           params["outfit"] = "none"
           params["underwear"] = False
           Path("build/wren-native/ara-bikini-fit-profile.json").write_text(
-              json.dumps(profile, indent=2) + "\\n"
+              json.dumps(profile, indent=2) + "\n"
           )
           PY
           mkdir -p build/wren-native/ara-fitting-export
-          npx --yes ara3d@latest export \\
-            --params build/wren-native/ara-bikini-fit-profile.json \\
-            --detail high --no-animations --formats glb \\
+          npx --yes ara3d@latest export \
+            --params build/wren-native/ara-bikini-fit-profile.json \
+            --detail high --no-animations --formats glb \
             --out build/wren-native/ara-fitting-export
           raw_glb="$(find build/wren-native/ara-fitting-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$raw_glb"
@@ -85,17 +85,17 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \\
-            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \
             --output build/wren-native/female-anatomy-subdivision-plan.json
           test -s build/wren-native/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/add_female_anatomy_surface.py -- \\
-            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \\
-            --output build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb \\
-            --report build/wren-native/female-anatomy-report.json \\
-            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \
+            --output build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb \
+            --report build/wren-native/female-anatomy-report.json \
+            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json \
             --adult --deformation-scale 1.65
           test -s build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb
           grep -q '"anatomy_profile": "adult_female_integrated_skin"' build/wren-native/female-anatomy-report.json
@@ -123,7 +123,7 @@ jobs:
               payload = raw[offset:offset + size]
               offset += size
               if kind == b"JSON":
-                  document = json.loads(payload.decode("utf-8").rstrip(" \\x00"))
+                  document = json.loads(payload.decode("utf-8").rstrip(" \x00"))
           if document is None:
               raise SystemExit("Ara fitting reference has no JSON chunk")
 
@@ -175,7 +175,7 @@ jobs:
                   payload = raw[offset:offset + size]
                   offset += size
                   if kind == b"JSON":
-                      doc = json.loads(payload.decode("utf-8").rstrip(" \\x00"))
+                      doc = json.loads(payload.decode("utf-8").rstrip(" \x00"))
               return doc
 
           base = read("build/wren-native/Wren_Accepted_Baseline.glb")
@@ -244,10 +244,10 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          xvfb-run -a -s "-screen 0 1280x1024x24" \\
-            godot --path build/wren-native-preview-project \\
-            --rendering-method gl_compatibility \\
-            --rendering-driver opengl3 \\
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/wren-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
             --script res://tools/review/wren_native_preview.gd
           for view in front side threequarter face pelvis; do
             test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
@@ -271,7 +271,7 @@ jobs:
               "final_body_source": "unchanged accepted Wren GLB",
               "garment_source": "Ara native fitted bikini top and briefs",
           }
-          (root / "fit-provenance.json").write_text(json.dumps(provenance, indent=2) + "\\n")
+          (root / "fit-provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
           with zipfile.ZipFile(root / "Wren_Ara_Bikini_Fit_Review.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               archive.write(root / "Wren_Ara_Bikini_Fit.glb", "Wren_Ara_Bikini_Fit.glb")
               archive.write(root / "fit-provenance.json", "fit-provenance.json")
