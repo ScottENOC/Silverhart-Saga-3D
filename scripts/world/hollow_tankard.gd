@@ -2654,7 +2654,7 @@ func _spawn_toll_ogre_actor() -> void:
 		existing.position = _hex_world_position(ogre.axial)
 		return
 	var profile := {
-		"params": {"gender": 1, "hair": "short02", "height": 1.0, "muscle": 1.0, "weight": 0.7},
+		"params": {"gender": 1, "hair": "short02", "height": 1.0, "muscle": 1.0, "weight": 0.9, "skinTint": "#71834a", "eyes": "green", "hairTint": "#3b3022"},
 		"progression": {"race": "human", "class_levels": ["fighter"], "skill_picks": ["health", "health"]}
 	}
 	var actor := CampaignCharacterActorFactory.create_actor(
