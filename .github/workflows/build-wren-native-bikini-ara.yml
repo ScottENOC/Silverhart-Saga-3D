@@ -50,12 +50,12 @@ jobs:
           profile["underTop"] = "bra"
           profile["underBottom"] = "briefs"
           profile["underwear"] = False
-          Path("build/wren-native-clothed/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\\n")
+          Path("build/wren-native-clothed/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\n")
           print("Ara clothing slots:", profile["underTop"], profile["underBottom"])
           PY
-          npx --yes ara3d@latest export \\
-            --params build/wren-native-clothed/ara-export-profile.json \\
-            --detail high --no-animations --formats glb,zip \\
+          npx --yes ara3d@latest export \
+            --params build/wren-native-clothed/ara-export-profile.json \
+            --detail high --no-animations --formats glb,zip \
             --out build/wren-native-clothed/ara-export
           raw_glb="$(find build/wren-native-clothed/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$raw_glb"
@@ -66,26 +66,26 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \\
-            --input build/wren-native-clothed/Wren_Ara_bra_briefs_raw.glb \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/wren-native-clothed/Wren_Ara_bra_briefs_raw.glb \
             --output build/wren-native-clothed/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/add_female_anatomy_surface.py -- \\
-            --input build/wren-native-clothed/Wren_Ara_bra_briefs_raw.glb \\
-            --output build/wren-native-clothed/Wren.glb \\
-            --report build/wren-native-clothed/female-anatomy-report.json \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/wren-native-clothed/Wren_Ara_bra_briefs_raw.glb \
+            --output build/wren-native-clothed/Wren.glb \
+            --report build/wren-native-clothed/female-anatomy-report.json \
             --subdivision-plan build/wren-native-clothed/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
           test -s build/wren-native-clothed/Wren.glb
 
       - name: Apply Wren profile colours and body hair
         run: |
           set -euo pipefail
-          python tools/review/recolor_wren_glb.py \\
-            --model build/wren-native-clothed/Wren.glb \\
+          python tools/review/recolor_wren_glb.py \
+            --model build/wren-native-clothed/Wren.glb \
             --profile character-preview/wren-ara.json --hair-gamma 0.18
-          python tools/review/add_aldric_body_hair.py \\
-            --model build/wren-native-clothed/Wren.glb --seed 4404 \\
+          python tools/review/add_aldric_body_hair.py \
+            --model build/wren-native-clothed/Wren.glb --seed 4404 \
             --coverage wren --hair-colour "#287BFF"
           test -s build/wren-native-clothed/Wren.glb
 
@@ -94,11 +94,11 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/add_character_details.py -- \\
-            --input build/wren-native-clothed/Wren.glb \\
-            --output build/wren-native-clothed/Wren-details.glb \\
-            --profile character-preview/wren-ara.json \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/wren-native-clothed/Wren.glb \
+            --output build/wren-native-clothed/Wren-details.glb \
+            --profile character-preview/wren-ara.json \
             2>&1 | tee build/wren-native-clothed/character-details-build.log
           test -s build/wren-native-clothed/Wren-details.glb
           grep -q "BAKED_PIERCING Piercing_SOCKET_Nipple_L" build/wren-native-clothed/character-details-build.log
@@ -145,9 +145,9 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          xvfb-run -a -s "-screen 0 1280x1024x24" \\
-            godot --path build/wren-native-bikini-preview \\
-            --rendering-method gl_compatibility --rendering-driver opengl3 \\
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/wren-native-bikini-preview \
+            --rendering-method gl_compatibility --rendering-driver opengl3 \
             --script res://tools/review/wren_native_preview.gd
           for view in front side threequarter face pelvis; do
             test -s "build/wren-native-bikini-preview/build/wren-native/preview/$view.png"
@@ -170,7 +170,7 @@ jobs:
               "anatomy_postprocess": "shared-subdivision Wren anatomy surface",
               "piercing": "left nipple piercing baked after clothing generation"
           }
-          (root / "BUILD_INFO.json").write_text(json.dumps(report, indent=2) + "\\n")
+          (root / "BUILD_INFO.json").write_text(json.dumps(report, indent=2) + "\n")
           with zipfile.ZipFile(root / "Wren_native_Ara_bra_briefs_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               for name in ("Wren.glb", "BUILD_INFO.json", "female-anatomy-report.json", "character-details-build.log"):
                   p = root / name
