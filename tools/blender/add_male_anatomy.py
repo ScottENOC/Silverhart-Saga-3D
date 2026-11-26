@@ -1171,7 +1171,8 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
             break
     if hit is None or normal is None:
         raise RuntimeError("Could not locate posterior skin surfaces around the gluteal cleft") 
-    anal_z = hit.z  # report the final surface position, not the initial search height\n    rear = Vector((0.0, 1.0, 0.0))
+    anal_z = hit.z  # report the final surface position, not the initial search height
+    rear = Vector((0.0, 1.0, 0.0))
     if normal.dot(rear) < 0.0:
         normal.negate()
     tangent_x = Vector((1.0, 0.0, 0.0)) - normal * normal.x
