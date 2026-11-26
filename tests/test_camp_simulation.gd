@@ -453,7 +453,7 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(not bool(safe_night_event.get("attacked", true)), "A zero-danger site should not produce a night attack")
 	_check(short_night.night_encounter_result == safe_night_event, "A peaceful night result should also be retained as the resolved encounter state")
 	_check(is_equal_approx(float(short_night.night_watch_schedule[2].get("end_hour", 0.0)), 6.0), "Watch shift boundaries should scale to the actual sleep duration")
-	var short_watch_hours := short_night._watch_hours_by_character(6.0)
+	var short_watch_hours := short_night._watch_hours_by_character(0.0, 6.0)
 	var total_short_watch_hours := 0.0
 	for watched_hours in short_watch_hours.values():
 		total_short_watch_hours += float(watched_hours)
