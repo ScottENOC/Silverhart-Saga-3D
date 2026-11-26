@@ -21,6 +21,7 @@ func _initialize() -> void:
 	_test_scout_note_is_a_one_time_world_effect()
 	_test_direct_aldric_rescue()
 	_test_nix_recruitment_uses_goblin_profile()
+	_test_greenskin_can_earn_marta_vouch()
 	_test_existing_lieutenant_is_converted_on_recruitment()
 	_test_chief_dialogue_routes_gift_transaction()
 	_test_alliance_follow_up_mine_raid_and_spy_quest()
@@ -166,6 +167,44 @@ func _test_nix_recruitment_uses_goblin_profile() -> void:
 	var nix := simulation.get_character("nix_sharpear")
 	_check(nix != null and nix.race == "goblin", "Nix must use the source goblin race, not human")
 	_check(nix != null and nix.progression_mode == "companion")
+
+
+func _test_greenskin_can_earn_marta_vouch() -> void:
+	var simulation := _simulation()
+	var player := simulation.get_character("player")
+	player.race = "goblin"
+	var relationships := RELATIONSHIP_SCRIPT.new()
+	var greeting := RUNTIME_SERVICE.marta_greeting(simulation)
+	_check(bool(greeting.get("ok", false)), "Goblin players should receive Marta's Prove Your Worth dialogue")
+	_check(String(greeting.get("choices", [])[0].get("id", "")) == "marta_spy_accept")
+	var accepted := DIALOGUE_SERVICE.select_choice(simulation, "marta_wynfield", "marta_spy_accept", relationships)
+	_check(bool(accepted.get("handled", false)) and String(simulation.campaign_journal.quest_state("goblin_spy_for_humans").get("status", "")) == "active")
+	var report := DIALOGUE_SERVICE.select_choice(simulation, "marta_wynfield", "marta_spy_report", relationships)
+	_check(bool(report.get("handled", false)) and bool(report.get("ok", false)))
+	_check(String(simulation.campaign_journal.quest_state("goblin_spy_for_humans").get("status", "")) == "completed")
+	_check(bool(simulation.campaign_journal.world_campaign_flag("goblin_vouched_by_marta", false)))
+	_check(player.experience == 150)
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("silverhart_kingdom"), 20.0))
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("goblin_tribe"), -15.0))
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("orc_raiders"), -5.25), "The goblin betrayal should report a dampened 35% reputation change to the orc raiders")
+	var repeated := RUNTIME_SERVICE.resolve_marta_spy_quest(simulation)
+	_check(bool(repeated.get("ok", false)) and bool(repeated.get("already_applied", false)))
+	_check(player.experience == 150, "Marta's vouch reward must not be farmable")
+
+	var orc_simulation := _simulation()
+	var orc_player := orc_simulation.get_character("player")
+	orc_player.race = "orc"
+	var orc_relationships := RELATIONSHIP_SCRIPT.new()
+	var orc_accept := RUNTIME_SERVICE.accept_marta_spy_quest(orc_simulation)
+	_check(bool(orc_accept.get("ok", false)), "Orc players should be able to take the same trust quest")
+	var orc_report := RUNTIME_SERVICE.resolve_marta_spy_quest(orc_simulation)
+	_check(bool(orc_report.get("ok", false)))
+	_check(is_equal_approx(orc_simulation.campaign_journal.faction_standing("orc_raiders"), -15.0))
+	_check(is_equal_approx(orc_simulation.campaign_journal.faction_standing("goblin_tribe"), 0.0), "Orc players report against their own faction, not the goblins")
+
+	var human_simulation := _simulation()
+	var human_greeting := RUNTIME_SERVICE.marta_greeting(human_simulation)
+	_check(not bool(human_greeting.get("ok", true)), "Human players should retain Marta's ordinary dialogue rather than receive the greenskin-only quest")
 
 
 func _test_chief_dialogue_routes_gift_transaction() -> void:
