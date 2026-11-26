@@ -67,6 +67,7 @@ func _bake_mesh_instance(mesh_instance: MeshInstance3D) -> float:
 	return max_vertex_delta
 
 func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> Dictionary:
+	# Snapshot the evaluated source pose before disabling/removing any modifiers.
 	var pose_snapshot: Array[Transform3D] = []
 	for bone_index in range(source_skeleton.get_bone_count()):
 		pose_snapshot.append(source_skeleton.get_bone_global_pose(bone_index))
@@ -108,8 +109,6 @@ func _export_and_verify(actor_name: String, model_root: Node3D, source_skeleton:
 	if source_bones.is_empty() or int(source_bones["finger_tip"]) < 0:
 		_expect(false, "%s has a named right fingertip bone for export verification" % actor_name)
 		return
-	var source_tip_name := source_skeleton.get_bone_name(int(source_bones["finger_tip"]))
-	var source_tip_position := source_skeleton.get_bone_global_pose(int(source_bones["finger_tip"])).origin
 	var export_root := model_root.duplicate() as Node3D
 	if export_root == null:
 		_expect(false, "%s model duplicated for GLB export" % actor_name)
@@ -125,13 +124,13 @@ func _export_and_verify(actor_name: String, model_root: Node3D, source_skeleton:
 		export_root.free()
 		return
 	_expect(float(bake_result["max_vertex_delta"]) > 0.001, "%s baked geometry differs from bind-pose mesh (max vertex delta %.4f m)" % [actor_name, float(bake_result["max_vertex_delta"])])
-	var output_dir := ProjectSettings.globalize_path(OUTPUT_DIR)
-	var dir_error := DirAccess.make_dir_recursive_absolute(output_dir)
+	var export_dir := ProjectSettings.globalize_path(OUTPUT_DIR)
+	var dir_error := DirAccess.make_dir_recursive_absolute(export_dir)
 	if dir_error != OK:
 		_expect(false, "%s output directory created (%s)" % [actor_name, error_string(dir_error)])
 		export_root.free()
 		return
-	var output_path := output_dir.path_join(actor_name.to_snake_case() + "_nose_touch.glb")
+	var output_path := export_dir.path_join(actor_name.to_snake_case() + "_nose_touch.glb")
 	var document := GLTFDocument.new()
 	var state := GLTFState.new()
 	state.create_animations = false
