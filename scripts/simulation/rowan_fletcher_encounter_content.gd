@@ -100,7 +100,7 @@ static func resolve_choice(
 			delta = {"familiarity": 2, "trust": 2, "friendship": 3}
 			accepted = true
 		"warm_greeting":
-			delta = {"familiarity": 1, "trust": 2, "friendship": 2, "attraction": 2, "romantic_bond": 1}
+			delta = {"familiarity": 1, "trust": 2, "friendship": 2, "attraction": 3, "romantic_bond": 3}
 			accepted = true
 		"decline":
 			delta = {}
@@ -127,7 +127,7 @@ static func relationship_phase(relationship: Dictionary) -> String:
 	var friendship := int(relationship.get("friendship", 0))
 	var attraction := int(relationship.get("attraction", 0))
 	var romantic_bond := int(relationship.get("romantic_bond", 0))
-	if romantic_bond >= 35 and trust >= 30 and attraction >= 20:
+	if romantic_bond >= 20 and trust >= 25 and attraction >= 20:
 		return "long_distance_romance"
 	if attraction >= 20 and friendship >= 20:
 		return "mutual_interest"
