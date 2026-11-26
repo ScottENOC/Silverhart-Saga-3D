@@ -263,10 +263,10 @@
       "name": "Skarnak's Hold",
       "kind": "orc_stronghold",
       "region": "orc",
-      "q": 428,
+      "q": 688,
       "r": 17,
       "visibility": "stronghold",
-      "source": "border road end plus (30,-6); buildOrcStronghold"
+      "source": "orc interior stronghold; relocated east of the human border forts to keep opposing fortresses beyond direct sight and immediate range"
     },
     {
       "id": "kragmoor",
@@ -461,11 +461,6 @@
       "kind": "border_road"
     },
     {
-      "from": "ridgehold_fort",
-      "to": "skarnaks_hold",
-      "kind": "border_road"
-    },
-    {
       "from": "hollowmere",
       "to": "kragmoor",
       "kind": "long_road"
@@ -571,7 +566,12 @@
     },
     {
       "id": "skarnaks_hold",
-      "short": "K"
+      "short": "K",
+      "cell_override": [
+        11,
+        6
+      ],
+      "source_note": "Deliberately relocated into orc territory; keep clear of Ridgehold's human border position."
     },
     {
       "id": "kragmoor",

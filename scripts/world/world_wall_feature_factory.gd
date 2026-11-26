@@ -20,6 +20,7 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 	if parent == null or terrain_data == null or chunk_size <= 0 or hex_radius <= 0.0:
 		return {"ok": false, "reason": "invalid_wall_chunk_arguments"}
 	var surfaces: Dictionary = {}
+	var top_surfaces: Dictionary = {}
 	for terrain_id in ["climbable_wall", "keep_wall"]:
 		var material: Material = materials.get(terrain_id) as Material
 		if material == null:
@@ -28,8 +29,13 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		surface.set_material(material)
 		surfaces[terrain_id] = surface
+		var top_surface := SurfaceTool.new()
+		top_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+		top_surface.set_material(material)
+		top_surfaces[terrain_id] = top_surface
 	var wall_hex_count := 0
 	var face_count := 0
+	var top_triangle_count := 0
 	var corners := HexGrid.corner_offsets(hex_radius * 1.005)
 	for q in range(chunk_min.x, chunk_min.x + chunk_size):
 		for r in range(chunk_min.y, chunk_min.y + chunk_size):
@@ -40,7 +46,17 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 				continue
 			wall_hex_count += 1
 			var base := HexGrid.axial_to_world(hex, hex_radius, terrain_data.elevation_for_hex(hex))
+			var top_centre := base + Vector3.UP * wall_height
+			var top_surface := top_surfaces[terrain_id] as SurfaceTool
 			for side in range(HexGrid.SIDE_COUNT):
+				var next_side := (side + 1) % HexGrid.SIDE_COUNT
+				var top_a := base + Vector3(corners[side].x, terrain_data.shared_vertex_elevation(hex, side) - terrain_data.elevation_for_hex(hex), corners[side].y) + Vector3.UP * wall_height
+				var top_b := base + Vector3(corners[next_side].x, terrain_data.shared_vertex_elevation(hex, next_side) - terrain_data.elevation_for_hex(hex), corners[next_side].y) + Vector3.UP * wall_height
+				top_surface.set_normal(Vector3.UP)
+				top_surface.add_vertex(top_centre)
+				top_surface.add_vertex(top_a)
+				top_surface.add_vertex(top_b)
+				top_triangle_count += 1
 				var neighbour := hex + HexGrid.DIRECTIONS[side]
 				if height_for_terrain(terrain_data.terrain_for_hex(neighbour)) > 0.0:
 					continue
@@ -48,16 +64,23 @@ static func present_chunk(parent: Node3D, terrain_data: Campaign2WorldTerrainDat
 				face_count += 1
 	var mesh_count := 0
 	for terrain_id in surfaces:
-		var mesh := (surfaces[terrain_id] as SurfaceTool).commit()
-		if mesh == null or mesh.get_surface_count() == 0:
-			continue
-		var instance := MeshInstance3D.new()
-		instance.name = "WallFaces_" + String(terrain_id)
-		instance.mesh = mesh
-		instance.material_override = materials[terrain_id]
-		parent.add_child(instance)
-		mesh_count += 1
-	return {"ok": true, "wall_hex_count": wall_hex_count, "face_count": face_count, "mesh_count": mesh_count}
+		var face_mesh := (surfaces[terrain_id] as SurfaceTool).commit()
+		if face_mesh != null and face_mesh.get_surface_count() > 0:
+			var face_instance := MeshInstance3D.new()
+			face_instance.name = "WallFaces_" + String(terrain_id)
+			face_instance.mesh = face_mesh
+			face_instance.material_override = materials[terrain_id]
+			parent.add_child(face_instance)
+			mesh_count += 1
+		var top_mesh := (top_surfaces[terrain_id] as SurfaceTool).commit()
+		if top_mesh != null and top_mesh.get_surface_count() > 0:
+			var top_instance := MeshInstance3D.new()
+			top_instance.name = "WallTops_" + String(terrain_id)
+			top_instance.mesh = top_mesh
+			top_instance.material_override = materials[terrain_id]
+			parent.add_child(top_instance)
+			mesh_count += 1
+	return {"ok": true, "wall_hex_count": wall_hex_count, "face_count": face_count, "top_triangle_count": top_triangle_count, "mesh_count": mesh_count}
 
 static func _append_wall_face(surface: SurfaceTool, base: Vector3, corner_a: Vector2, corner_b: Vector2, height: float) -> void:
 	var a := base + Vector3(corner_a.x, 0.0, corner_a.y)

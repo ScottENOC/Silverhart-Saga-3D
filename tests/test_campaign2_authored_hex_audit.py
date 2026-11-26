@@ -8,6 +8,7 @@ from tools.campaign2_authored_hex_audit import (
     rasterize_segment,
     round_away_from_zero,
     source_runtime_summary,
+    source_interior_door_parity_report,
     strategic_map_parity_report,
 )
 
@@ -130,6 +131,46 @@ class Campaign2AuthoredHexAuditTests(unittest.TestCase):
         self.assertEqual(summary["npc_placements"][0]["name"], "Mira Ashbrook")
         self.assertEqual(summary["npc_placements"][0]["q"], 12)
         self.assertEqual(summary["npc_placements_by_faction"], {"hollowmere": 1})
+
+
+
+    def test_source_interior_door_anchors_match_target_floor_and_building_doors(self):
+        report = source_interior_door_parity_report(
+            {
+                "interiors": [
+                    {"doorHex": {"q": 1, "r": 2}, "minQ": 0, "maxQ": 2, "minR": 1, "maxR": 3},
+                    {"doorHex": {"q": 3, "r": 4}},
+                ],
+            },
+            {
+                "locations": [{
+                    "floors": [{
+                        "tile_objects": [
+                            {"type": "door_open", "position": {"q": 1, "r": 2}},
+                        ],
+                    }],
+                }],
+            },
+            {
+                "settlements": [{
+                    "buildings": [{"door": {"q": 3, "r": 4}}],
+                }],
+            },
+        )
+        self.assertEqual(report["source_interior_region_count"], 2)
+        self.assertEqual(report["source_regions_with_door_anchor"], 2)
+        self.assertEqual(report["matched_source_door_anchor_count"], 2)
+        self.assertEqual(report["missing_source_door_anchor_count"], 0)
+
+    def test_source_interior_door_anchor_report_lists_missing_target_door(self):
+        report = source_interior_door_parity_report(
+            {"interiors": [{"doorHex": {"q": -8, "r": 12}}]},
+            {"locations": []},
+            {"settlements": []},
+        )
+        self.assertEqual(report["missing_source_door_anchor_count"], 1)
+        self.assertEqual(report["missing_source_door_anchors"][0]["q"], -8)
+        self.assertEqual(report["missing_source_door_anchors"][0]["r"], 12)
 
 
     def test_strategic_map_matches_source_rules_and_river(self):

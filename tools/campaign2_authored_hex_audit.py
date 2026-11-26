@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -155,6 +156,92 @@ def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
                 unique_by_floor[floor_key].update(room_set)
     unique = sum(len(cells) for cells in unique_by_floor.values())
     return total, unique
+
+
+
+def source_interior_door_parity_report(
+    runtime: dict[str, Any],
+    multistory: dict[str, Any],
+    layouts: dict[str, Any],
+    regional_features_text: str = "",
+) -> dict[str, Any]:
+    """Compare source interior door anchors with target doors and fort gate access points."""
+    source_regions = runtime.get("interiors", [])
+    source_doors: list[dict[str, Any]] = []
+    for index, region in enumerate(source_regions if isinstance(source_regions, list) else []):
+        if not isinstance(region, dict):
+            continue
+        door = region.get("doorHex")
+        if not isinstance(door, dict) or "q" not in door or "r" not in door:
+            continue
+        source_doors.append({
+            "source_region_index": index,
+            "q": int(door["q"]),
+            "r": int(door["r"]),
+            "bounds": {
+                "min_q": region.get("minQ"),
+                "max_q": region.get("maxQ"),
+                "min_r": region.get("minR"),
+                "max_r": region.get("maxR"),
+            },
+        })
+
+    target_doors: set[str] = set()
+    for location in multistory.get("locations", []):
+        if not isinstance(location, dict):
+            continue
+        for floor in location.get("floors", []):
+            if not isinstance(floor, dict):
+                continue
+            for obj in floor.get("tile_objects", []):
+                if not isinstance(obj, dict) or str(obj.get("type", "")) not in {"door_open", "door", "door_closed"}:
+                    continue
+                position = obj.get("position", {})
+                if isinstance(position, dict) and "q" in position and "r" in position:
+                    target_doors.add(axial_key(int(position["q"]), int(position["r"])))
+    for settlement in layouts.get("settlements", []):
+        if not isinstance(settlement, dict):
+            continue
+        for building in settlement.get("buildings", []):
+            if not isinstance(building, dict):
+                continue
+            door = building.get("door", {})
+            if isinstance(door, dict) and "q" in door and "r" in door:
+                target_doors.add(axial_key(int(door["q"]), int(door["r"])))
+
+    target_gate_anchors = {
+        axial_key(int(match.group(2)), int(match.group(3)))
+        for match in re.finditer(
+            r"const\s+(NORTHWATCH_GATE|RIDGEHOLD_GATE)\s*:=\s*Vector2i\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)",
+            regional_features_text,
+        )
+    }
+    matched_door_objects = [
+        record for record in source_doors
+        if axial_key(record["q"], record["r"]) in target_doors
+    ]
+    matched_gate_access = [
+        record for record in source_doors
+        if axial_key(record["q"], record["r"]) not in target_doors
+        and axial_key(record["q"], record["r"]) in target_gate_anchors
+    ]
+    missing = [
+        record for record in source_doors
+        if axial_key(record["q"], record["r"]) not in target_doors
+        and axial_key(record["q"], record["r"]) not in target_gate_anchors
+    ]
+    return {
+        "source_interior_region_count": len(source_regions) if isinstance(source_regions, list) else 0,
+        "source_regions_with_door_anchor": len(source_doors),
+        "target_unique_door_anchor_count": len(target_doors),
+        "target_gate_access_anchor_count": len(target_gate_anchors),
+        "matched_source_door_object_count": len(matched_door_objects),
+        "matched_source_gate_access_count": len(matched_gate_access),
+        "matched_source_door_anchor_count": len(source_doors) - len(missing),
+        "missing_source_door_anchor_count": len(missing),
+        "missing_source_door_anchors": missing,
+        "method_note": "Matches source interior doorHex coordinates to target door tile objects/building door records or explicitly declared Northwatch/Ridgehold gate access anchors; does not compare complete floor shapes or furnishings.",
+    }
 
 
 def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
@@ -385,6 +472,7 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
         }
         occupied: set[tuple[int, int]] = set()
         expected_markers: dict[str, tuple[int, int]] = {}
+        intentional_marker_overrides: set[str] = set()
         for marker in geography.get("strategic_markers", []):
             if not isinstance(marker, dict):
                 continue
@@ -392,6 +480,20 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
             location = locations_by_id.get(marker_id)
             if not location or scale <= 0:
                 marker_mismatches.append({"id": marker_id, "reason": "missing_location_or_scale"})
+                continue
+            source_name = str(marker.get("source_name", location.get("name", marker_id)))
+            cell_override = marker.get("cell_override")
+            if isinstance(cell_override, list) and len(cell_override) == 2:
+                # The source marker intentionally remains where legacy Hex-crpg
+                # placed it; this target-side override is validated by the
+                # geography manifest and must not be counted as source drift.
+                override_cell = (int(cell_override[0]), int(cell_override[1]))
+                if not (0 <= override_cell[0] < expected_columns and 0 <= override_cell[1] < expected_rows):
+                    marker_mismatches.append({"name": source_name, "reason": "strategic_cell_override_out_of_bounds"})
+                elif override_cell in occupied:
+                    marker_mismatches.append({"name": source_name, "reason": "strategic_cell_override_collision"})
+                occupied.add(override_cell)
+                intentional_marker_overrides.add(source_name)
                 continue
             local_q = int(location.get("q", 0))
             local_r = int(location.get("r", 0))
@@ -417,6 +519,7 @@ def strategic_map_parity_report(runtime: dict[str, Any], geography: dict[str, An
         actual_markers = {
             str(marker.get("name", "")): (int(marker.get("column", -1)), int(marker.get("row", -1)))
             for marker in markers
+            if str(marker.get("name", "")) not in intentional_marker_overrides
         }
         for name, expected_cell in expected_markers.items():
             if actual_markers.get(name) != expected_cell:
@@ -563,6 +666,13 @@ def build_report(
         if source_runtime_data is not None and source_runtime_data.get("worldMapData")
         else None
     )
+    regional_features_path = project_root / "data" / "world" / "regions" / "silverhart_heartland" / "features.gd"
+    regional_features_text = regional_features_path.read_text(encoding="utf-8") if regional_features_path.is_file() else ""
+    interior_door_validation = (
+        source_interior_door_parity_report(source_runtime_data, multistory, layouts, regional_features_text)
+        if source_runtime_data is not None and source_runtime_data.get("interiors") is not None
+        else None
+    )
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -604,6 +714,7 @@ def build_report(
         "source": source_validation,
         "source_runtime": source_runtime_report,
         "strategic_map_validation": strategic_map_validation,
+        "interior_door_validation": interior_door_validation,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
@@ -700,6 +811,19 @@ def render_markdown(report: dict[str, Any]) -> str:
             f'all source marker positions match: {report["strategic_map_validation"]["markers_match"]}; '
             f'Hollowmere at strategic origin: {report["strategic_map_validation"]["hollowmere_marker_at_origin"]}.'
         ),
+        "",
+        "## Source interior door-anchor coverage",
+        "",
+        "No source interior door-anchor comparison was available." if report.get("interior_door_validation") is None else (
+            f'Source door anchors matched: {report["interior_door_validation"]["matched_source_door_anchor_count"]:,} '
+            f'of {report["interior_door_validation"]["source_regions_with_door_anchor"]:,}; '
+            f'{report["interior_door_validation"]["matched_source_door_object_count"]:,} via target door objects and '
+            f'{report["interior_door_validation"]["matched_source_gate_access_count"]:,} via declared fort gate access points; '
+            f'missing: {report["interior_door_validation"]["missing_source_door_anchor_count"]:,}. '
+            f'Target unique door objects: {report["interior_door_validation"]["target_unique_door_anchor_count"]:,}.'
+        ),
+        "",
+        "This checks only source door coordinates against target door records. It does not establish room-wall, fixture, transition or full floor-shape parity.",
         "",
         "| Source terrain builder | Unique cells touched |",
         "|---|---:|",

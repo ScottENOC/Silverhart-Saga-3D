@@ -15,6 +15,8 @@ const KEEP_HEARTHS: Array[Vector2i] = [
 	FEATURES.NORTHWATCH_CENTRE,
 	FEATURES.RIDGEHOLD_CENTRE
 ]
+const NORTHWATCH_GATE := FEATURES.NORTHWATCH_GATE
+const RIDGEHOLD_GATE := FEATURES.RIDGEHOLD_GATE
 
 static var _northwatch_ladder_hexes: Array[Vector2i] = []
 static var _northwatch_ladders_ready := false
@@ -43,6 +45,12 @@ static func present_chunk(
 		if _contains(hearth_hex, chunk_min, chunk_size):
 			_add_keep_hearth(parent, terrain_data, hearth_hex, hex_radius)
 			count += 1
+	if _contains(NORTHWATCH_GATE, chunk_min, chunk_size):
+		_add_northwatch_gate(parent, terrain_data, NORTHWATCH_GATE, hex_radius)
+		count += 1
+	if _contains(RIDGEHOLD_GATE, chunk_min, chunk_size):
+		_add_ridgehold_gate_arch(parent, terrain_data, RIDGEHOLD_GATE, hex_radius)
+		count += 1
 	_ensure_northwatch_ladders(terrain_data)
 	for ladder_hex in _northwatch_ladder_hexes:
 		if _contains(ladder_hex, chunk_min, chunk_size):
@@ -75,6 +83,48 @@ static func _ensure_northwatch_ladders(terrain_data: Campaign2WorldTerrainData) 
 		if nearest_distance < 2147483647 and not _northwatch_ladder_hexes.has(nearest):
 			_northwatch_ladder_hexes.append(nearest)
 	_northwatch_ladders_ready = true
+
+
+static func _add_northwatch_gate(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, radius: float) -> void:
+	var root := _prop_root(parent, terrain_data, "NorthwatchGate", hex, radius)
+	root.rotation.y = _gate_rotation(FEATURES.NORTHWATCH_CENTRE, hex, radius)
+	var timber := _material(Color("#513521"))
+	var dark_wood := _material(Color("#34251b"))
+	var iron := _material(Color("#454b4d"), 0.62, 0.7)
+	for side in [-1.0, 1.0]:
+		_add_box(root, "GatePost_%s" % side, Vector3(side * 1.42, 1.48, 0.0), Vector3(0.28, 2.96, 0.42), iron)
+		_add_box(root, "GateHinge_%s" % side, Vector3(side * 1.19, 1.35, 0.24), Vector3(0.12, 2.55, 0.12), iron)
+	_add_box(root, "GateLintel", Vector3(0.0, 2.92, 0.0), Vector3(3.12, 0.28, 0.48), iron)
+	var leaf := Node3D.new()
+	leaf.name = "GateLeaf"
+	root.add_child(leaf)
+	for plank in range(6):
+		var x := -1.08 + float(plank) * 0.432
+		_add_box(leaf, "Plank_%d" % plank, Vector3(x, 1.3, 0.08), Vector3(0.405, 2.42, 0.18), timber)
+	for y in [0.42, 1.28, 2.18]:
+		_add_box(leaf, "CrossRail_%s" % y, Vector3(0.0, y, 0.19), Vector3(2.62, 0.14, 0.14), dark_wood)
+	_add_beam(leaf, "DiagonalBraceA", Vector3(-1.22, 0.5, 0.22), Vector3(1.22, 2.1, 0.22), 0.13, dark_wood)
+	_add_beam(leaf, "DiagonalBraceB", Vector3(1.22, 0.5, 0.22), Vector3(-1.22, 2.1, 0.22), 0.13, dark_wood)
+
+
+static func _add_ridgehold_gate_arch(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, radius: float) -> void:
+	var root := _prop_root(parent, terrain_data, "RidgeholdGateArch", hex, radius)
+	root.rotation.y = _gate_rotation(FEATURES.RIDGEHOLD_CENTRE, hex, radius)
+	var stone := _material(Color("#666761"))
+	var dark_stone := _material(Color("#484a47"))
+	for side in [-1.0, 1.0]:
+		_add_box(root, "GatePier_%s" % side, Vector3(side * 1.45, 1.55, 0.0), Vector3(0.48, 3.1, 0.62), stone)
+		_add_box(root, "GatePierCap_%s" % side, Vector3(side * 1.45, 3.16, 0.0), Vector3(0.68, 0.24, 0.82), dark_stone)
+	_add_box(root, "GateArchLintel", Vector3(0.0, 3.05, 0.0), Vector3(3.35, 0.48, 0.72), stone)
+	_add_box(root, "GateKeystone", Vector3(0.0, 3.32, 0.0), Vector3(0.54, 0.34, 0.78), dark_stone)
+
+
+static func _gate_rotation(centre: Vector2i, gate: Vector2i, radius: float) -> float:
+	var centre_world := HexGrid.axial_to_world(centre, radius)
+	var gate_world := HexGrid.axial_to_world(gate, radius)
+	var direction := gate_world - centre_world
+	return atan2(direction.x, direction.z)
+
 
 static func _add_siege_engine(parent: Node3D, terrain_data: Campaign2WorldTerrainData, hex: Vector2i, radius: float) -> void:
 	var root := _prop_root(parent, terrain_data, "NorthwatchSiegeEngine", hex, radius)

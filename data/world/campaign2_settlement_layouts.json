@@ -16251,7 +16251,7 @@
       "name": "Skarnak's Hold",
       "location_id": "skarnaks_hold",
       "center": {
-        "q": 428,
+        "q": 688,
         "r": 17
       },
       "road_endpoint": {
@@ -16265,7 +16265,7 @@
           "kind": "hut_large",
           "archetype": "hut_large",
           "center": {
-            "q": 428,
+            "q": 688,
             "r": 14
           },
           "half_q": 0,
@@ -16289,7 +16289,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 424,
+            "q": 684,
             "r": 16
           },
           "half_q": 0,
@@ -16307,7 +16307,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 432,
+            "q": 692,
             "r": 16
           },
           "half_q": 0,
@@ -16325,7 +16325,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 424,
+            "q": 684,
             "r": 19
           },
           "half_q": 0,
@@ -16343,7 +16343,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 432,
+            "q": 692,
             "r": 19
           },
           "half_q": 0,
@@ -16361,7 +16361,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 428,
+            "q": 688,
             "r": 20
           },
           "half_q": 0,
@@ -16379,7 +16379,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 426,
+            "q": 686,
             "r": 20
           },
           "half_q": 0,
@@ -16397,7 +16397,7 @@
           "kind": "hut",
           "archetype": "hut",
           "center": {
-            "q": 430,
+            "q": 690,
             "r": 14
           },
           "half_q": 0,
@@ -16415,7 +16415,7 @@
           "kind": "campfire",
           "archetype": "campfire",
           "center": {
-            "q": 428,
+            "q": 688,
             "r": 17
           },
           "half_q": 0,

@@ -15,11 +15,11 @@ const HERB_PATCH_HEXES: Array[Vector2i] = [
 
 const GOBLIN_CAMP_CENTRE := Vector2i(203, 23)
 const GOBLIN_CAMP_RADIUS := 6
-const ORC_STRONGHOLD_CENTRE := Vector2i(428, 17)
+const ORC_STRONGHOLD_CENTRE := Vector2i(688, 17)
 const ORC_STRONGHOLD_RADIUS := 7
 ## The source gateHex is one hex inside the clearing, not on its wall ring.
 ## The intended west-facing gate is therefore the west ring hex at q-8.
-const ORC_STRONGHOLD_GATE := Vector2i(420, 17)
+const ORC_STRONGHOLD_GATE := Vector2i(680, 17)
 const ORC_ROAD_END := Vector2i(398, 23)
 const DRAGON_LAIR_CENTRE := Vector2i(101, -366)
 const DRAGON_LAIR_DEN_RADIUS := 2
@@ -50,6 +50,8 @@ const NORTHWATCH_CENTRE := Vector2i(268, -21)
 const NORTHWATCH_GATE := Vector2i(268, -2)
 const NORTHWATCH_SPUR_START := Vector2i(268, 22)
 const RIDGEHOLD_CENTRE := Vector2i(426, 43)
+## The source gateHex (406, 35) falls outside the generated star-fort wall.
+## Put the entrance on the actual west perimeter cell instead.
 const RIDGEHOLD_GATE := Vector2i(407, 43)
 const RIDGEHOLD_ROAD_END := Vector2i(398, 23)
 const STAR_FORT_CORE_RADIUS := 6
