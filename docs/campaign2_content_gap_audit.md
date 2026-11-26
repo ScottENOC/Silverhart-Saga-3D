@@ -1,7 +1,7 @@
 # Campaign 2 content gap audit — NPCs, dialogue and quests
 
 **Source:** [Hex-crpg](https://github.com/ScottENOC/Hex-crpg), `main` at `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
-**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `f185fa78eb2f13e478b4d79b967750216872bf56` (before this audit update)  
+**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `b006f4b8828422ab1b0e6e44ef2e20e6dd3238d7` (before this audit update)  
 **Audit date:** 2026-11-26  
 **Scope:** Named NPC roster, authored dialogue volume/coverage, explicit quest IDs and campaign-content migration status.
 
@@ -255,7 +255,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 **A Stone for Nella**
 
 - [x] Added `ReddaleInnkeeperContent` with the source quest ID, source dialogue gate, accept/active/turn-in/completed states, blue-gem consumption, +20 gold and +20 Nella reputation/knowledge.
-- [x] Added headless regression coverage for the quest flow, missing-gem retry, journal-read gate, item consumption and duplicate-reward prevention.
+- [x] Added headless regression coverage for the quest flow, missing-gem retry, journal-read gate, rumour response, item consumption and duplicate-reward prevention.
 - [x] Connected the `reddale_innkeeper` streamed actor dialogue route and `nella_*` choice handling in `HollowTankard`.
 - [ ] Wire the source `abandonedHouseJournalRead` world flag into the optional alternate greeting; the current runtime route uses the default greeting because that source flag is not yet represented in target save state.
 
