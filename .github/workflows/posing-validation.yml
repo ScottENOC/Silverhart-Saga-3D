@@ -2,13 +2,15 @@ name: Posing validation
 
 on:
   pull_request:
-    branches: [dev, physics, "feature/**", "feat/**"]
+    branches: [dev, physics, "feature/**", "feat/**", "review/**"]
     paths:
       - "scripts/posing/**"
       - "data/posing/**"
       - "tests/posing_*.gd"
       - "tests/test_posing_*.gd"
       - "docs/posing/**"
+      - "tools/review/ara_pose_preview*.gd"
+      - "scenes/review/ara_pose_preview.tscn"
       - ".github/workflows/posing-validation.yml"
   push:
     branches: [dev, physics, "feature/**", "feat/**"]
@@ -49,3 +51,5 @@ jobs:
             bash tools/ci/run_godot_checked.sh godot --headless --path . --script "res://tests/${test}.gd"
             echo "::endgroup::"
           done
+      - name: Validate real Ara pose preview
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tools/review/ara_pose_preview_probe.gd
