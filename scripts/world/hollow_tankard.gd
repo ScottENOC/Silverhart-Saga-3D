@@ -14,6 +14,7 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
+const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
 const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
 const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
 const DWARVEN_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
@@ -118,6 +119,8 @@ var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
 var abandoned_house_journal_read: bool = false
+var elder_locket_collected: bool = false
+var elder_locket_visual: Node3D
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
@@ -380,6 +383,67 @@ func _create_wilderness_gatherable_grove() -> void:
 		add_child(visual)
 		visual.refresh(state, int(simulation.clock.calendar_date()["month_index"]))
 		resource_visuals_by_hex[hex] = visual
+	_create_elder_locket_pickup()
+
+func _create_elder_locket_pickup() -> void:
+	var pickup_hex := Vector2i(-14, 0)
+	elder_locket_visual = Node3D.new()
+	elder_locket_visual.name = "ElderMartaLocketPickup"
+	elder_locket_visual.position = _hex_world_position(pickup_hex) + Vector3(0.0, 0.16, 0.0)
+	elder_locket_visual.add_to_group("world_pickups")
+	var ring_instance := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.11
+	ring_mesh.outer_radius = 0.17
+	ring_instance.mesh = ring_mesh
+	ring_instance.rotation_degrees = Vector3(90.0, 0.0, 0.0)
+	var gold_material := StandardMaterial3D.new()
+	gold_material.albedo_color = Color("#c49a43")
+	gold_material.metallic = 0.82
+	gold_material.roughness = 0.24
+	gold_material.emission_enabled = true
+	gold_material.emission = Color("#6d4815")
+	gold_material.emission_energy_multiplier = 0.32
+	ring_instance.material_override = gold_material
+	elder_locket_visual.add_child(ring_instance)
+	var gem_instance := MeshInstance3D.new()
+	var gem_mesh := SphereMesh.new()
+	gem_mesh.radius = 0.055
+	gem_mesh.height = 0.11
+	gem_instance.mesh = gem_mesh
+	gem_instance.position = Vector3(0.0, 0.0, 0.15)
+	var gem_material := StandardMaterial3D.new()
+	gem_material.albedo_color = Color("#6d8c85")
+	gem_material.metallic = 0.25
+	gem_material.roughness = 0.2
+	gem_instance.material_override = gem_material
+	elder_locket_visual.add_child(gem_instance)
+	var label := Label3D.new()
+	label.text = "Tarnished Locket"
+	label.position = Vector3(0.0, 0.48, 0.0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.font_size = 18
+	label.outline_size = 4
+	elder_locket_visual.add_child(label)
+	add_child(elder_locket_visual)
+	elder_locket_visual.visible = not elder_locket_collected
+
+func _interact_with_chapel_locket() -> bool:
+	if elder_locket_collected:
+		return false
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null or HexGrid.distance(active_state.axial, Vector2i(-14, 0)) > 1:
+		return false
+	var player := simulation.get_character(simulation.player_character_id)
+	var result: Dictionary = ELDER_LOCKET_PICKUP_SCRIPT.collect(player)
+	if not bool(result.get("ok", false)):
+		resource_status_label.text = "You cannot take the locket just now."
+		return true
+	elder_locket_collected = true
+	if is_instance_valid(elder_locket_visual):
+		elder_locket_visual.visible = false
+	resource_status_label.text = "Found: Tarnished Locket. Elder Marta may know who lost it."
+	return true
 
 func _on_world_clock_ticked(_tick_index: int, _world_seconds: float) -> void:
 	var month_index := int(simulation.clock.calendar_date()["month_index"])
@@ -1155,6 +1219,7 @@ func _build_save_snapshot() -> Dictionary:
 			"shakedown_started": shakedown_started,
 			"shakedown_resolved": shakedown_resolved,
 			"abandoned_house_journal_read": abandoned_house_journal_read,
+			"elder_locket_collected": elder_locket_collected,
 			"farm_wolves_spawned": farm_wolves_spawned,
 			"farm_wolves_retry_armed": farm_wolves_retry_armed,
 			"wilderness_steps_since_spawn": wilderness_steps_since_spawn
@@ -1282,6 +1347,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	shakedown_started = bool(flags.get("shakedown_started", false))
 	shakedown_resolved = bool(flags.get("shakedown_resolved", false))
 	abandoned_house_journal_read = bool(flags.get("abandoned_house_journal_read", false))
+	elder_locket_collected = bool(flags.get("elder_locket_collected", false)) or _player_has_item(ELDER_LOCKET_PICKUP_SCRIPT.ITEM_ID)
+	if is_instance_valid(elder_locket_visual):
+		elder_locket_visual.visible = not elder_locket_collected
 	farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
 	farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
 	wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
@@ -2883,7 +2951,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_F:
-			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door():
+			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door() and not _interact_with_chapel_locket():
 				_interact_with_nearest_npc()
 			get_viewport().set_input_as_handled()
 			return
