@@ -17,6 +17,15 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(5, -366)) == "path", "Millbrook's door spur must be rendered as a path")
 	_check(terrain.terrain_for_hex(Vector2i(7, -366)) == "path", "The Millbrook road endpoint must be retained")
 	_check(terrain.terrain_for_hex(Vector2i(908, -626)) == "mountain", "Kragmoor must sit in the north-east mountain region")
+	var kragmoor_peak := terrain.elevation_for_hex(Vector2i(908, -626))
+	var kragmoor_mid_slope := terrain.elevation_for_hex(Vector2i(908, -613))
+	var kragmoor_foothill := terrain.elevation_for_hex(Vector2i(908, -601))
+	_check(kragmoor_peak > 20.0, "Kragmoor's massif centre must rise into a distinct mountain peak")
+	_check(kragmoor_peak > kragmoor_mid_slope and kragmoor_mid_slope > kragmoor_foothill, "Kragmoor's authored massif must descend from peak through slope to foothill")
+	_check(kragmoor_foothill > 0.0, "Kragmoor's massif must retain a raised foothill edge")
+	_check(terrain.elevation_for_hex(Vector2i(908, -626)) == kragmoor_peak, "Kragmoor mountain relief must be deterministic")
+	_check(is_zero_approx(terrain.elevation_for_hex(Vector2i(908, -608))), "The Kragmoor gate hall floor must remain at the valley datum")
+	_check(is_zero_approx(terrain.elevation_for_hex(Vector2i(908, -593))), "The southern Kragmoor approach must remain a level traversable road")
 	_check(terrain.terrain_for_hex(Vector2i(8, 934)) == "forest", "The southern elven forest belt must remain continuous")
 	_check(terrain.terrain_for_hex(Vector2i(-700, 24)) == "water", "The far-west edge must resolve to the western sea")
 	_check(terrain.terrain_for_hex(Vector2i(3000, 24)) == "void", "Coordinates outside the 16x16 world must not generate terrain")
@@ -200,6 +209,12 @@ func _test_chunk_boundary_consistency(terrain) -> void:
 		Vector2i(23, -11),
 		Vector2i(24, -11),
 		"Ordinary terrain across the q=24 chunk boundary"
+	)
+	_assert_shared_chunk_edge(
+		terrain,
+		Vector2i(911, -626),
+		Vector2i(912, -626),
+		"Kragmoor mountain relief across the q=912 chunk boundary"
 	)
 	var crossing_a := Vector2i(382, 23)
 	var crossing_b := Vector2i(382, 24)
