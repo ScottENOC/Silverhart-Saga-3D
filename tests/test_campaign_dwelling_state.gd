@@ -46,7 +46,7 @@ func _test_cottage_routes() -> void:
 	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 0, "An unfurnished cottage should not invent a bed.")
 	_place_beds(state, "crossroads_cottage", "bed_single", Vector2i(13, 27), [Vector2(-2.0, 0.0)])
 	_check(int(state.camp_profile_for("crossroads_cottage").get("sleeping_capacity", 0)) == 1, "A placed single bed should provide one indoor sleeping place.")
-	_check(not bool(state.evaluate_action("upgrade_country_house", journal, player).get("ok", false)), "The country-house upgrade should require materials or gold.")
+	_check(not bool(state.evaluate_action("upgrade_country_house", journal, player, "materials", "crossroads_plot").get("ok", false)), "The country-house upgrade should require materials or gold.")
 	_add_item(player, "wood", 6)
 	_add_item(player, "stone", 6)
 	_check(bool(state.complete_action("upgrade_country_house", journal, player, "materials", "crossroads_plot").get("ok", false)), "The country-house upgrade should accept gathered materials.")
@@ -81,7 +81,7 @@ func _test_manor_reputation_and_fortification() -> void:
 	var journal := CampaignJournal.new()
 	var player := _player()
 	journal.seed_faction_reputation("silverhart_kingdom", 59.0, 0.0)
-	_check(not bool(state.evaluate_action("claim_silverhart_manor", journal, player).get("ok", false)), "The manor should remain unavailable below 60 kingdom standing.")
+	_check(not bool(state.evaluate_action("claim_silverhart_manor", journal, player, "materials", "silverhart_palace").get("ok", false)), "The manor should remain unavailable below 60 kingdom standing.")
 	journal.adjust_faction_reputation("silverhart_kingdom", 1.0, 0.0, "test")
 	_check(bool(state.complete_action("claim_silverhart_manor", journal, player, "materials", "silverhart_palace").get("ok", false)), "The manor should unlock at 60 kingdom standing.")
 	_check(int(state.camp_profile_for("silverhart_manor").get("sleeping_capacity", 0)) == 0, "An unfortified manor must not shelter the party.")
@@ -117,7 +117,7 @@ func _test_dwelling_camp_lodging() -> void:
 	_check(String(camp.sleeping_arrangements[1].get("shelter_type", "")) == "dwelling", "A party member should use available indoor floor space after the bed is assigned.")
 	_check(String(camp.sleeping_arrangements[1].get("sleeping_surface", "")) == "floor", "The second occupant should sleep on the indoor floor when no second bed exists.")
 	var result := camp.skip_to_morning()
-	_check(bool(result.get("ok", false)), "A mixed indoor/outdoor night should resolve.")
+	_check(bool(result.get("ok", false)), "An indoor bed-and-floor night should resolve.")
 	var bed_user: Dictionary = result.summary.characters.player
 	var floor_user: Dictionary = result.summary.characters.companion
 	_check(is_equal_approx(float(bed_user.warmth), float(floor_user.warmth)), "A bed and indoor floor should receive the same dwelling warmth bonus.")
