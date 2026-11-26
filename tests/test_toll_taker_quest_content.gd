@@ -32,9 +32,11 @@ func _test_toll_taker_quest_flow() -> void:
 	_check(String(initial.get("text", "")).contains("ogre"))
 	_check(String(initial.choices[0].get("id", "")) == "toll_ogre_accept")
 
-	var accepted := TOLL_OGRE_CONTENT.resolve_choice(journal, player, "toll_ogre_accept", true)
+	var accepted := TOLL_OGRE_CONTENT.resolve_choice(journal, player, "toll_ogre_accept", false)
 	_check(bool(accepted.get("ok", false)))
 	_check(String(journal.quest_state(TOLL_OGRE_CONTENT.QUEST_ID).get("status", "")) == "active")
+	var accepted_objective: Dictionary = journal.quest_state(TOLL_OGRE_CONTENT.QUEST_ID).get("objectives", {}).get(TOLL_OGRE_CONTENT.OBJECTIVE_ID, {})
+	_check(not bool(accepted_objective.get("completed", false)), "Accepting the quest before the ogre actor spawns must not mark it defeated")
 
 	var still_active := TOLL_OGRE_CONTENT.record_ogre_defeat(journal, true)
 	_check(bool(still_active.get("ok", false)))

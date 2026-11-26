@@ -136,7 +136,9 @@ static func resolve_choice(
 			var accepted := accept(journal)
 			if not bool(accepted.get("ok", false)):
 				return accepted
-			return {"ok": true, "dialogue": greeting(journal, ogre_alive)}
+			# Accepting creates the world actor immediately afterwards. Treat it as alive here;
+			# otherwise a not-yet-spawned actor would complete the objective on acceptance.
+			return {"ok": true, "dialogue": greeting(journal, true)}
 		"toll_ogre_turn_in":
 			var reward := turn_in(journal, player)
 			if not bool(reward.get("ok", false)):

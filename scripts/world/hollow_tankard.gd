@@ -13,6 +13,8 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
+const TOLL_TAKER_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_encounter.gd")
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
 const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
@@ -179,6 +181,7 @@ func _ready() -> void:
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
 	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
+	TOLL_TAKER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
@@ -193,6 +196,7 @@ func _ready() -> void:
 		pending_save_data.clear()
 	_refresh_dwelling_world_presentation()
 	_restore_abandoned_house_guardian_actors()
+	_restore_toll_ogre_actor()
 	_initialise_companion_relationship_context()
 	var initial_player_state := simulation.get_character("player")
 	var player_race := initial_player_state.race if initial_player_state != null else "human"
@@ -1220,7 +1224,7 @@ func _build_save_snapshot() -> Dictionary:
 		"camp_simulation": simulation.camp_simulation.to_dict(),
 		"companion_bonds": simulation.companion_bonds.to_dict(),
 		"campaign_dwellings": simulation.campaign_dwellings.to_dict(),
-		"dynamic_campaign_characters": ABANDONED_HOUSE_QUEST_SCRIPT.dynamic_character_records(simulation),
+		"dynamic_campaign_characters": _dynamic_campaign_character_records(),
 		"world_flags": {
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
@@ -1584,7 +1588,32 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("recruit:"):
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
-	if choice_id.begins_with("farm_wolves_"):
+	if choice_id.begins_with("toll_ogre_"):
+		var toll_player := simulation.get_character(simulation.player_character_id)
+		var toll_result := TOLL_TAKER_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			toll_player,
+			choice_id,
+			TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation)
+		)
+		if not bool(toll_result.get("ok", false)):
+			_show_dialogue("Petra Hollis", "That cannot be resolved just now: %s." % String(toll_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if choice_id == "toll_ogre_accept":
+			var ogre_result := TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
+			if not bool(ogre_result.get("ok", false)):
+				_show_dialogue("Petra Hollis", "I cannot send you after it until the road is clear enough to reach its camp.", [{"id": "continue", "label": "Understood.", "text": ""}])
+				return
+			_spawn_toll_ogre_actor()
+			if resource_status_label != null:
+				resource_status_label.text = "Quest added: The Toll-Taker. The ogre is beyond the abandoned house."
+		var toll_dialogue: Variant = toll_result.get("dialogue", {})
+		if toll_dialogue is Dictionary and not toll_dialogue.is_empty():
+			_show_dialogue(String(toll_dialogue.get("speaker", "Petra Hollis")), String(toll_dialogue.get("text", "")), toll_dialogue.get("choices", []))
+		elif bool(toll_result.get("handled", false)):
+			_close_dialogue()
+		return
+	if choice_id.begins_with("farm_wolves_"): 
 		var farm_result := FARM_WOLVES_QUEST_SCRIPT.resolve_dialogue_choice(
 			simulation.campaign_journal,
 			simulation.get_character("player"),
@@ -1927,7 +1956,7 @@ func _interact_with_nearest_npc() -> void:
 		var state := simulation.get_character(actor_id)
 		if state == null or not state.can_act():
 			continue
-		if state.side == "enemy" and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
+		if state.side == "enemy" and actor_id not in [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID, TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID]:
 			continue
 		var distance := HexGrid.distance(player_state.axial, state.axial)
 		if distance <= 2 and distance < nearest_distance:
@@ -1949,8 +1978,11 @@ func _interact_with_character(character_id: String) -> void:
 	if character_id == "rowan_fletcher":
 		_show_rowan_camp_encounter()
 		return
+	if character_id == TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID:
+		_begin_toll_taker_encounter()
+		return
 	if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
-		if not _reyna_objective_done("child_rescued"):
+		if not _reyna_objective_done("child_rescued"): 
 			_show_dialogue("Dire wolf", "The dire wolf circles the shepherd's shelter. You cannot safely engage it while Tessa is still inside.", [{"id":"continue","label":"Understood","text":""}])
 			return
 		_begin_dire_wolf_hunt_combat()
@@ -2023,7 +2055,7 @@ func _refresh_nearby_interactions() -> void:
 	# Hostile campaign actors are handled by their encounter-specific systems;
 	# the existing dire wolf is the one local exception with a direct engage UI.
 	for index in range(nearby.size() - 1, -1, -1):
-		if bool(nearby[index].get("hostile", false)) and String(nearby[index].get("id", "")) != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
+		if bool(nearby[index].get("hostile", false)) and String(nearby[index].get("id", "")) not in [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID, TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID]:
 			nearby.remove_at(index)
 	for child in nearby_interaction_box.get_children():
 		child.free()
@@ -2089,7 +2121,12 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if actor == null or target_state == null:
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
-	if dialogue_id == "reddale_innkeeper":
+	if dialogue_id == "petra_hollis":
+		var petra_conversation := TOLL_TAKER_CONTENT_SCRIPT.greeting(simulation.campaign_journal, TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation))
+		if bool(petra_conversation.get("ok", false)):
+			_show_dialogue(String(petra_conversation.get("speaker", target_state.display_name)), String(petra_conversation.get("text", "")), petra_conversation.get("choices", []))
+		return
+	if dialogue_id == "reddale_innkeeper": 
 		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id), abandoned_house_journal_read)
 		if bool(nella_conversation.get("ok", false)):
 			_show_dialogue(String(nella_conversation.get("speaker", target_state.display_name)), String(nella_conversation.get("text", "")), nella_conversation.get("choices", []))
@@ -2590,6 +2627,80 @@ func _restore_farm_wolf_actor_presentations() -> void:
 		add_child(actor)
 		actor_by_id[wolf_id] = actor
 
+
+
+func _dynamic_campaign_character_records() -> Dictionary:
+	var records := ABANDONED_HOUSE_QUEST_SCRIPT.dynamic_character_records(simulation)
+	records.merge(TOLL_TAKER_ENCOUNTER_SCRIPT.dynamic_character_records(simulation), true)
+	return records
+
+
+func _restore_toll_ogre_actor() -> void:
+	if simulation == null:
+		return
+	var quest_state := simulation.campaign_journal.quest_state(TOLL_TAKER_CONTENT_SCRIPT.QUEST_ID)
+	if String(quest_state.get("status", "")) == "active" and simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID) == null:
+		TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
+	if TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation):
+		_spawn_toll_ogre_actor()
+
+
+func _spawn_toll_ogre_actor() -> void:
+	var ogre := simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID)
+	if ogre == null or not ogre.alive:
+		return
+	var existing := actor_by_id.get(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID) as Node3D
+	if is_instance_valid(existing):
+		existing.position = _hex_world_position(ogre.axial)
+		return
+	var profile := {
+		"params": {"gender": 1, "hair": "short02", "height": 1.0, "muscle": 1.0, "weight": 0.9, "skinTint": "#71834a", "eyes": "green", "hairTint": "#3b3022"},
+		"progression": {"race": "human", "class_levels": ["fighter"], "skill_picks": ["health", "health"]}
+	}
+	var actor := CampaignCharacterActorFactory.create_actor(
+		ogre, _hex_world_position(ogre.axial), false, player_profile, profile, "", ""
+	)
+	if actor == null:
+		push_error("Could not create the Toll-Taker ogre's Ara presentation actor.")
+		return
+	actor.name = TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID
+	actor.scale = Vector3.ONE * 1.4
+	actor.set_meta("character_id", TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID)
+	actor.set_meta("ambient_enabled", false)
+	actor.set_meta("side", "enemy")
+	actor.add_to_group("campaign2_npc")
+	add_child(actor)
+	actor_by_id[TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID] = actor
+
+
+func _begin_toll_taker_encounter() -> void:
+	_close_dialogue()
+	var active_state := simulation.get_character(active_character_id)
+	var ogre := simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID)
+	if active_state == null or ogre == null or HexGrid.distance(active_state.axial, ogre.axial) > 2:
+		_show_dialogue("North Road", "The ogre's camp is still some distance up the road.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	var party_ids: Array[String] = []
+	for party_id_value in simulation.get_party_member_ids():
+		party_ids.append(String(party_id_value))
+	var started := TOLL_TAKER_ENCOUNTER_SCRIPT.start_encounter(simulation, party_ids)
+	if not bool(started.get("ok", false)):
+		_show_dialogue("North Road", "You cannot face the ogre just now: %s." % String(started.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	active_combat_session = started.get("session", {})
+	active_encounter_resolver = Callable(TOLL_TAKER_ENCOUNTER_SCRIPT, "resolve_combat")
+	var party_ids_active: Array[String] = []
+	var controlled_ids: Array[String] = []
+	for party_id_value in started.get("party_ids", []):
+		var party_id := String(party_id_value)
+		party_ids_active.append(party_id)
+		controlled_ids.append(party_id)
+	encounter_active = true
+	if not party_ids_active.has(active_character_id):
+		active_character_id = simulation.player_character_id
+	_activate_combat_controller([TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID], party_ids_active, controlled_ids)
+	_update_combat_ui()
+	_show_dialogue("Toll-Taker Ogre", "The hulking creature rises from its roadside camp, hefting a crude iron-shod club. It has no intention of letting you pass.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
 
 func _restore_abandoned_house_guardian_actors() -> void:
