@@ -444,6 +444,15 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 		if not building.is_empty():
 			_assert_axial(building.get("center", {}), expected[building_id], building_id + " source position")
 			_check(BUILDING_FACTORY.supports_definition(building), "Goblin camp structure must use a supported shared archetype: " + building_id)
+	for building in buildings:
+		var building_id := String(building.get("id", ""))
+		if building_id.begins_with("skarn_tooth_") and String(building.get("kind", "")) == "hut":
+			_check(int(building.get("half_q", -1)) == 0 and int(building.get("half_r", -1)) == 0, "Source hut %s must occupy its single authored tile, not a blocking 3x3 footprint" % building_id)
+	var campfire := _find_record(buildings, "skarn_tooth_campfire")
+	_check(campfire.get("blocks_movement", true) == false, "The source campfire must remain a traversable map prop")
+	_check(not terrain.settlement_building_cells.has("203,23"), "Campfire must not be indexed as a blocking building")
+	_check(terrain.terrain_for_hex(Vector2i(203, 23)) == "path", "East-border road must remain visible beneath the central campfire")
+	_check(terrain.is_walkable_for_hex(Vector2i(203, 23)), "Central campfire must not block the east-border road")
 	_check(terrain.terrain_for_hex(Vector2i(203, 21)) == "authored", "Chief hut footprint must suppress procedural terrain")
 	_check(terrain.settlement_building_cells.has("203,21"), "Chief hut occupancy must be indexed by streamed world terrain")
 	var props: Array = definition.get("layout", {}).get("props", [])
