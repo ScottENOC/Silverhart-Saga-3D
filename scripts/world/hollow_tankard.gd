@@ -2456,7 +2456,7 @@ func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
 func _ensure_halvard_actor() -> void:
 	if simulation == null or actor_by_id.has(HALVARD_CHARACTER_ID):
 		return
-	var resident := simulation.campaign_dwellings.residents.get(HALVARD_CHARACTER_ID, {})
+	var resident: Dictionary = simulation.campaign_dwellings.residents.get(HALVARD_CHARACTER_ID, {})
 	if String(resident.get("dwelling_id", "")) != "silverhart_manor":
 		return
 	simulation.ensure_exploration_region(HALVARD_MANOR_HEX)
