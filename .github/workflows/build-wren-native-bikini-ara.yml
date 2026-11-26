@@ -1,4 +1,4 @@
-name: Build Wren with native Ara bra and briefs
+name: Build Wren with native Ara bikini top and briefs
 
 on:
   push:
@@ -47,11 +47,13 @@ jobs:
           from pathlib import Path
           profile = json.loads(Path("character-preview/wren-ara.json").read_text())
           profile.pop("character_details", None)
-          profile["underTop"] = "bra"
-          profile["underBottom"] = "briefs"
-          profile["underwear"] = False
+          params = profile["params"]
+          params["outfit"] = "none"
+          params["top"] = "bikini_top"
+          params["bottom"] = "briefs"
+          params["underwear"] = False
           Path("build/wren-native-clothed/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\n")
-          print("Ara clothing slots:", profile["underTop"], profile["underBottom"])
+          print("Ara clothing slots:", params["top"], params["bottom"])
           PY
           npx --yes ara3d@latest export \
             --params build/wren-native-clothed/ara-export-profile.json \
@@ -60,7 +62,7 @@ jobs:
           raw_glb="$(find build/wren-native-clothed/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$raw_glb"
           test -s "$raw_glb"
-          cp "$raw_glb" build/wren-native-clothed/Wren_Ara_bra_briefs_raw.glb
+          cp "$raw_glb" build/wren-native-clothed/Wren_Ara_bikini_briefs_raw.glb
 
       - name: Apply Wren's integrated anatomy surface
         run: |
@@ -163,15 +165,15 @@ jobs:
           root = Path("build/wren-native-clothed")
           report = {
               "source_profile": "character-preview/wren-ara.json",
-              "Ara_native_underTop": "bra",
-              "Ara_native_underBottom": "briefs",
+              "Ara_native_top": "bikini_top",
+              "Ara_native_bottom": "briefs",
               "garment_fitting": "Ara generator native clothing slots; no separate Blender garment vertex fitter",
               "body_profile_preserved": True,
               "anatomy_postprocess": "shared-subdivision Wren anatomy surface",
               "piercing": "left nipple piercing baked after clothing generation"
           }
           (root / "BUILD_INFO.json").write_text(json.dumps(report, indent=2) + "\n")
-          with zipfile.ZipFile(root / "Wren_native_Ara_bra_briefs_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+          with zipfile.ZipFile(root / "Wren_native_Ara_bikini_briefs_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               for name in ("Wren.glb", "BUILD_INFO.json", "female-anatomy-report.json", "character-details-build.log"):
                   p = root / name
                   if p.exists(): archive.write(p, name)
@@ -182,7 +184,7 @@ jobs:
       - name: Upload native Ara clothed Wren and review
         uses: actions/upload-artifact@v7
         with:
-          name: wren-native-ara-bra-briefs
+          name: wren-native-ara-bikini-briefs
           path: |
             build/wren-native-clothed/Wren.glb
             build/wren-native-clothed/Wren_native_Ara_bra_briefs_bundle.zip
