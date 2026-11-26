@@ -75,4 +75,7 @@ func _test_hollowmere_bridge_integration() -> void:
 	var adjacent_stream_hex := Vector2i(7, -25)
 	assert(world_terrain.terrain_for_hex(adjacent_stream_hex) == "water", "The stream must remain water immediately beside the bridge")
 	assert(not world_terrain.is_walkable_for_hex(adjacent_stream_hex), "The bridge opening must not make adjacent unbridged stream cells walkable")
+	var regional_stream_hex := Vector2i(100, -28)
+	assert(world_terrain.terrain_for_hex(regional_stream_hex) == "water", "Regional stream geometry must compose into the playable terrain layer")
+	assert(not world_terrain.is_walkable_for_hex(regional_stream_hex), "Unbridged regional stream cells must remain blocked in the composed world")
 	village.free()
