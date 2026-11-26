@@ -42,11 +42,12 @@ func _test_toll_taker_quest_flow() -> void:
 	_check(String(TOLL_OGRE_CONTENT.turn_in(journal, player).get("reason", "")) == "ogre_not_defeated")
 	_check(player.gold == 0 and player.experience == 0)
 
-	var defeated := TOLL_OGRE_CONTENT.record_ogre_defeat(journal, false)
-	_check(bool(defeated.get("ok", false)))
-	_check(bool(defeated.get("defeated", false)))
 	var ready_to_turn_in := TOLL_OGRE_CONTENT.greeting(journal, false)
 	_check(String(ready_to_turn_in.choices[0].get("id", "")) == "toll_ogre_turn_in")
+	var objective: Dictionary = journal.quest_state(TOLL_OGRE_CONTENT.QUEST_ID).get("objectives", {}).get(TOLL_OGRE_CONTENT.OBJECTIVE_ID, {})
+	_check(bool(objective.get("completed", false)), "Petra's return conversation records that the ogre is dead")
+	var repeated_defeat := TOLL_OGRE_CONTENT.record_ogre_defeat(journal, false)
+	_check(bool(repeated_defeat.get("ok", false)) and bool(repeated_defeat.get("defeated", false)))
 
 	var turned_in := TOLL_OGRE_CONTENT.resolve_choice(journal, player, "toll_ogre_turn_in", false)
 	_check(bool(turned_in.get("ok", false)))
