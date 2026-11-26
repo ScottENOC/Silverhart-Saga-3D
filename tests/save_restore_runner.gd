@@ -22,6 +22,8 @@ func _run() -> void:
     }
     var baseline := WorldSimulation.new()
     var player_state := CharacterCreationRules.create_player_state(profile, "player", Vector2i.ZERO)
+    player_state.gold = 1234
+    player_state.health = 42
     var saved_character_diffs := {"player": {"__full_record": player_state.to_dict()}}
     for index in range(3):
         var wolf_id := "farm_wolf_%02d" % (index + 1)
@@ -30,8 +32,6 @@ func _run() -> void:
         wolf_state.max_health = 75
         wolf_state.health = 75
         saved_character_diffs[wolf_id] = {"__full_record": wolf_state.to_dict()}
-    player_state.gold = 1234
-    player_state.health = 42
 
     var clock_data := baseline.clock.to_dict()
     clock_data["world_seconds"] = 98765.0
