@@ -24,7 +24,7 @@ static func apply_effects(
 	if effects.is_empty():
 		return {"ok": false, "reason": "empty_effects"}
 
-	var validation := _validate_effects(effects)
+	var validation := _validate_effects(journal, effects)
 	if not bool(validation.get("ok", false)):
 		return validation
 
@@ -128,7 +128,7 @@ static func apply_effects(
 	}
 
 
-static func _validate_effects(effects: Dictionary) -> Dictionary:
+static func _validate_effects(journal: CampaignJournal, effects: Dictionary) -> Dictionary:
 	for map_key in ["region_security", "region_prosperity", "cascade_region_security", "cascade_region_prosperity"]:
 		var region_values: Variant = effects.get(map_key, {})
 		if not region_values is Dictionary:
@@ -136,7 +136,7 @@ static func _validate_effects(effects: Dictionary) -> Dictionary:
 		for region_id_value in region_values.keys():
 			var region_id := String(region_id_value).strip_edges()
 			var delta: Variant = region_values[region_id_value]
-			if region_id.is_empty() or not _is_finite_number(delta):
+			if region_id.is_empty() or not journal.region_campaign_states.has(region_id) or not _is_finite_number(delta):
 				return {"ok": false, "reason": "invalid_" + map_key + "_entry"}
 
 	for number_key in ["experience", "player_gold", "aldric_attitude"]:
