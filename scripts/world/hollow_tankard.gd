@@ -2991,17 +2991,25 @@ func _get_or_load_multistory_runtime(location_id: String) -> Campaign2MultiStory
 	return runtime
 
 func _interact_with_multistory_tunnels() -> bool:
-	if not is_instance_valid(active_multistory_runtime):
-		var player_state := simulation.get_character(active_character_id)
-		if player_state == null:
-			return false
+	var player_state := simulation.get_character(active_character_id)
+	if player_state == null:
+		return false
+	# Resolve a surface entrance when outdoors/on a surface floor. Do not let
+	# the coincident palace/city surface coordinates steal input from a -9
+	# tunnel junction beneath them.
+	var can_resolve_surface := not is_instance_valid(active_multistory_runtime) or active_multistory_runtime.get_current_floor() == 0
+	if can_resolve_surface:
 		var surface_entry := TUNNEL_NETWORK.nearby_surface_location(player_state.axial)
-		if surface_entry.is_empty():
-			return false
-		var entered: Dictionary = enter_multistory_location(String(surface_entry.get("location_id", "")))
-		if not bool(entered.get("ok", false)):
-			_show_dialogue("Hidden Passage", "You cannot reach that entrance just now.", [{"id": "continue", "label": "Continue", "text": ""}])
-			return true
+		if not surface_entry.is_empty() and (
+			not is_instance_valid(active_multistory_runtime)
+			or String(active_multistory_runtime.definition.get("id", "")) != String(surface_entry.get("location_id", ""))
+		):
+			var entered: Dictionary = enter_multistory_location(String(surface_entry.get("location_id", "")))
+			if not bool(entered.get("ok", false)):
+				_show_dialogue("Hidden Passage", "You cannot reach that entrance just now.", [{"id": "continue", "label": "Continue", "text": ""}])
+				return true
+	if not is_instance_valid(active_multistory_runtime):
+		return false
 	var entry_node := active_multistory_runtime.get_tunnel_entry_node(active_character_id)
 	if not entry_node.is_empty():
 		_show_dialogue("Hidden Passage", "A concealed stair descends into the Guild's old tunnel network.", [
