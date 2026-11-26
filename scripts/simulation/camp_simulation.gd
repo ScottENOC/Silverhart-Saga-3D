@@ -1314,12 +1314,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 	if sleep_interrupted:
 		night_resolved.emit(summary.duplicate(true))
 	else:
-		var departed_guests: Array[String] = []
-		for guest in occupants_of_kind("guest"):
-			if bool(guest.get("leaves_at_dawn", false)):
-				var guest_id := String(guest.get("occupant_id", ""))
-				if bool(remove_camp_occupant(guest_id).get("ok", false)):
-					departed_guests.append(guest_id)
+		var departed_guests := _remove_guests_leaving_at_dawn()
 		morning_elapsed_world_seconds = 0.0
 		routine_stage = 0
 		morning_summary = summary.duplicate(true)
@@ -1399,11 +1394,28 @@ func continue_sleep() -> Dictionary:
 	return resolve_night(maxf(1.0, night_planned_hours - night_elapsed_hours), false)
 
 
+func _remove_guests_leaving_at_dawn() -> Array[String]:
+	var departed_guests: Array[String] = []
+	for guest in occupants_of_kind("guest"):
+		if not bool(guest.get("leaves_at_dawn", false)):
+			continue
+		var guest_id := String(guest.get("occupant_id", ""))
+		if bool(remove_camp_occupant(guest_id).get("ok", false)):
+			departed_guests.append(guest_id)
+	return departed_guests
+
+
 func finish_interrupted_night() -> Dictionary:
 	if phase != "interrupted":
 		return {"ok": false, "reason": "no_interrupted_sleep"}
+	var departed_guests := _remove_guests_leaving_at_dawn()
+	morning_summary["guests_departed_at_dawn"] = departed_guests
 	phase = "resolved"
-	return {"ok": true, "remaining_hours": maxf(0.0, night_planned_hours - night_elapsed_hours)}
+	return {
+		"ok": true,
+		"remaining_hours": maxf(0.0, night_planned_hours - night_elapsed_hours),
+		"guests_departed_at_dawn": departed_guests
+	}
 
 
 
