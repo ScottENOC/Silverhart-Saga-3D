@@ -314,12 +314,15 @@ func prepare_steward_meal(world_seconds: float, player: CharacterState) -> Dicti
 		food_index = index
 		food_id = candidate_id
 		break
+	if food_index < 0:
+		return {"ok": false, "reason": "no_food_for_steward"}
+	# A missed cooking window should only be recorded after ingredients are
+	# actually consumed. This lets Halvard retry later in the same shift if the
+	# player returns with food before the window closes.
 	if meal_slot == "breakfast":
 		steward_breakfast_day = day_index
 	else:
 		steward_supper_day = day_index
-	if food_index < 0:
-		return {"ok": false, "reason": "no_food_for_steward"}
 	var quantity := int(player.inventory[food_index].get("quantity", 1))
 	if quantity > 1:
 		player.inventory[food_index]["quantity"] = quantity - 1
