@@ -1142,7 +1142,7 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
             candidate, candidate_normal, _index, distance = tree.find_nearest(
                 Vector((centre_x + height * x_offset, 3.0, anal_z + height * z_offset))
             )
-            if candidate is not None and distance < 1.5:
+            if candidate is not None and distance < 6.0:
                 sampled[round(x_offset, 6)] = (candidate, candidate_normal)
         if 0.0 in sampled:
             hit, normal = sampled[0.0]
