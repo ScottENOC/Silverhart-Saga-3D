@@ -1128,8 +1128,10 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
 def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipline_z, centre_x=0.0):
     """Create a restrained, surface-conforming anal opening on the posterior midline.
 
-    The male placement is referenced from the scrotoperineal region. Its vertical
-    position is a modelling guide, not a claimed clinical population measurement.
+    The search band is derived from the upper-leg-root/hipline landmark, then
+    snapped to the nearest posterior skin surface around the gluteal cleft.
+    The reported offset is measured from that hipline landmark; it is not a
+    claimed clinical population measurement or a skin-surface geodesic.
     """
     # Ara faces -Y; sample posterior skin from +Y.
     anal_z = hipline_z - height * 0.065
@@ -1169,7 +1171,7 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
             break
     if hit is None or normal is None:
         raise RuntimeError("Could not locate posterior skin surfaces around the gluteal cleft") 
-    rear = Vector((0.0, 1.0, 0.0))
+    anal_z = hit.z  # report the final surface position, not the initial search height\n    rear = Vector((0.0, 1.0, 0.0))
     if normal.dot(rear) < 0.0:
         normal.negate()
     tangent_x = Vector((1.0, 0.0, 0.0)) - normal * normal.x
@@ -1229,8 +1231,8 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
         item.color = (1.0, 1.0, 1.0, 1.0)
     obj.data.color_attributes.active_color = colour
     obj["anatomy_parts"] = "external_anal_opening,perianal_rim"
-    obj["anal_reference_landmark"] = "male_scrotoperineal_region"
-    obj["anal_position_method"] = "posterior_midline_surface_raycast_with_cleft_bridge"
+    obj["anal_reference_landmark"] = "upper_leg_root_midpoint_hipline"
+    obj["anal_position_method"] = "posterior_midline_nearest_surface_with_cleft_bridge"
     obj["anal_vertical_offset_from_hipline_mm"] = round((hipline_z - anal_z) * 1000.0, 2)
     obj["anal_opening_dimensions_mm"] = "12.2 x 7.8 inner oval; 20 x 13.6 outer rim"
     print("Male anal anatomy: posterior midline surface hit "
