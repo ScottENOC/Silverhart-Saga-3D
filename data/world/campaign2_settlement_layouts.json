@@ -16026,8 +16026,8 @@
             "q": 203,
             "r": 21
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 203,
             "r": 22
@@ -16054,8 +16054,8 @@
             "q": 200,
             "r": 22
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 201,
             "r": 22
@@ -16071,8 +16071,8 @@
             "q": 206,
             "r": 22
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 205,
             "r": 22
@@ -16088,8 +16088,8 @@
             "q": 200,
             "r": 25
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 201,
             "r": 25
@@ -16105,8 +16105,8 @@
             "q": 206,
             "r": 25
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 205,
             "r": 25
@@ -16122,8 +16122,8 @@
             "q": 203,
             "r": 26
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 203,
             "r": 25
@@ -16153,7 +16153,8 @@
             "wall_colour": "#e36c2f",
             "timber_colour": "#493020"
           },
-          "source": "buildGoblinCamp:central campfire"
+          "source": "buildGoblinCamp:central campfire",
+          "blocks_movement": false
         }
       ],
       "paths": [],
