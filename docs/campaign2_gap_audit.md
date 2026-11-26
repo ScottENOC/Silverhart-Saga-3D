@@ -110,3 +110,43 @@ Priority named groups: Hollowmere opening cast and Ironbond shakedown; Silverhar
 ## 6. Definition of done for this audit
 
 A gap is closed only when its source behaviour/content is identified, the target implementation is linked, the intended adaptation is recorded, and a relevant test or explicit visual/runtime acceptance exists. The next audit revision should include a machine-readable CSV/JSON row for every source POI, named NPC, quest/dialogue ID, object interaction and source system feature. No overall completion percentage should be published until the denominator and target matching rules are agreed.
+
+
+## 7. Source builder coverage cross-check
+
+The original `campaign2World.js` contains the following named world-builder families. This list is a checklist of source owners, not a requirement to reproduce their exact rendering implementation.
+
+| Source builder / family | Target evidence | Gap status |
+|---|---|---|
+| `setupVillageScene`, `paintRoad`, `paintPath`, `paintStreamSegment` | Hollowmere data, strategic/local road data, regional hydrology and terrain stream | **Verify** route connectivity, bridge/water traversal, and that source-authored named approaches all resolve |
+| `buildFarmstead` | Old Mac's farmhouse, pasture/fences/evidence and interior | **Partial** wolf encounter and full farm gameplay |
+| `buildGoblinCamp` / `buildGoblinNPC` | Skarn-tooth structures and camp terrain | **Partial** named actors, faction and encounter behaviour |
+| `buildOrcStronghold` / `buildOrcNPC` | Skarnak's Hold structures, clearing, wall/gate and approach | **Partial** moved-site verification, named actors, trader/troll, trust quest |
+| `buildDwarvenKingdom`, `revealSunkenDeepPassage` | Kragmoor six-floor location registry and gated floor state | **Partial** exterior presentation, named population, mining/services, travel and quest interaction |
+| `buildElvenCapital` | Sil'thandriel three-level location registry and terrain | **Partial** population, services and faction/quest behaviour |
+| `buildLichChapterhouse` | Chapterhouse floor map | **Partial** actors, faction content, encounter and entry/exit |
+| `buildSideQuestContent` | Mirabel's spider ruin and several named quest sites | **Partial** spider actor support and complete side-quest interactions |
+| `buildPlayerCottagePlot`, `buildPlayerCottage`, `upgradePlayerCottage` | Plot marker/approach and dwelling-state foundations | **Partial** full construction, upgrade, entry and persistence loop |
+| `buyPlayerField`, `placeFieldFence`, `buyFieldLamb`, `plantAppleTree` | Field/fence geometry and farmstead state foundations | **Partial / Verify** crop rows, seasonal growth, livestock purchase, harvest and save/load |
+| `buildAbandonedHouse`, `renovateAbandonedHouse`, `isAbandonedHouseCleared` | House exterior/interior, journal and altar positions | **Partial** clearing/renovation state, dormant skeletons, journal/altar and quest chain |
+| `buildNecromancerCrypt`, `buildLichBarrow` | Crypt and barrow floors/corridors | **Partial** encounters, journals, faction/quest progression and entry/exit |
+| `buildMillbrook` | House, road and two NPCs | **Partial** entry/exit and services |
+| `buildDragonLair`, `revealDragonLairArea` | Lair terrain and dressing | **Partial** dragon actor, reveal/encounter logic and rewards |
+| `buildSilverhartPalace`, `fortifySilverhartManor` | Extensive city/settlement records and selected palace floor stacks | **Partial** remaining rooms, wall traversal, gated access, services and kingdom interactions |
+| `buildThievesCoveCaves`, `searchSecretPassage`, `revealSingleTunnelEntrance`, `revealTunnelEntrances`, `openTunnelJunction` | Four-level cave registry and entrance/site records | **Partial** secret passage discovery, tunnel reveal/junction state, guild actors and quest interactions |
+| `buildVampireGrave` | Grave evidence and journal object | **Partial** vampire encounter, investigation and journal interaction |
+| `buildDruidGrove` | Grove terrain, spring and herb visuals | **Partial** gathering and grove inhabitants/trial consequences |
+| `spawnWildUnicorn` | Vale, hoofprints and patrol waypoints | **Partial** live unicorn, patrol AI and discovery |
+| `buildEmberlode` | Settlement and mine floors | **Partial** actor spawning, mining, services and quest consequences |
+| `buildReddale` | Six buildings/interiors, twelve NPC placements and ruin site | **Partial** services, bribes, evidence, spider actor and espionage consequences |
+| `buildNorthwatchFort`, `buildRidgeholdFort` | Fort geometry, keeps, waterway and selected props | **Partial** complete defender/siege actors, schedules and battle flows |
+| `buildHollowmereGuildDen` | Guild Den floor map | **Partial** guild contact, recruitment/services and entry/exit |
+
+### Source runtime inventory counts to retain as denominators
+
+- Source runtime scene: 16,566 unique terrain cells; 11,324 cells touched by named feature builders after deduplication; 246 physical tile-object placements; 72 interior regions; 9 multi-storey building definitions; 8 unicorn patrol waypoints.
+- Target JSON-backed exterior inventory: 4,732 unique cells, plus regional GDScript features that are not included in that number; 1,543 walkable cells across the registered floor maps in the existing geometry audit.
+- The target multi-story location registry contains 70 location records (many are single-floor), while the source runtime inventory reports 72 interior regions. The counts are not directly equivalent: some source interiors are represented by settlement-layout metadata, some target records are 3D adaptations, and registration does not imply runtime entry/exit. Resolve this with a location-by-location interior mapping rather than comparing totals.
+- The target settlement-layout registry contains seven definitions on `dev`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold. Hollowmere uses its separate location presenter; Kragmoor and Emberlode Mine use the multi-story registry.
+
+The named-builder table and the location table above are the current actionable gap register. The next refinement is to attach exact source IDs and target file/test references to each NPC, quest, dialogue branch and physical interaction, not to inflate decorative geometry counts.
