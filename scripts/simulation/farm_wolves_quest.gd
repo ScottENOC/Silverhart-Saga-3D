@@ -11,6 +11,7 @@ const REWARD_EXPERIENCE := 150
 const REWARD_REPUTATION := 15
 const WOLF_IDS: Array[String] = ["farm_wolf_01", "farm_wolf_02", "farm_wolf_03"]
 const PARTY_IDS: Array[String] = ["player", "companion_wren_talbot"]
+const COMBAT_ENCOUNTER_SERVICE = preload("res://scripts/simulation/combat_encounter_service.gd")
 
 static func definition() -> Dictionary:
 	return {
@@ -131,4 +132,76 @@ static func _response(body: String, choice_label: String) -> Dictionary:
 		"speaker": "Old Mac",
 		"text": body,
 		"choices": [{"id": "continue", "label": choice_label, "text": ""}]
+	}
+
+static func start_encounter(
+	simulation: WorldSimulation,
+	party_ids: Array[String],
+	enemy_ids: Array[String] = WOLF_IDS
+) -> Dictionary:
+	if simulation == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	var valid_party: Array[String] = []
+	for character_id in party_ids:
+		var member := simulation.get_character(character_id)
+		if member != null and member.can_act() and not valid_party.has(character_id):
+			valid_party.append(character_id)
+	var active_enemies: Array[String] = []
+	for character_id in enemy_ids:
+		var enemy := simulation.get_character(character_id)
+		if enemy != null and enemy.can_act() and not active_enemies.has(character_id):
+			active_enemies.append(character_id)
+	var started: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, active_enemies)
+	if not bool(started.get("ok", false)):
+		return started
+	var session: Dictionary = started.get("session", {})
+	return {
+		"ok": true,
+		"party_ids": valid_party,
+		"enemy_ids": active_enemies,
+		"session": session
+	}
+
+
+static func resolve_combat(
+	simulation: WorldSimulation,
+	journal: CampaignJournal,
+	party_ids: Array[String],
+	session: Dictionary
+) -> Dictionary:
+	if simulation == null:
+		return {"ok": false, "resolved": false, "reason": "missing_simulation"}
+	var party_defeated := true
+	for character_id in party_ids:
+		var member := simulation.get_character(character_id)
+		if member != null and member.can_act():
+			party_defeated = false
+			break
+	var enemies_defeated := true
+	for character_id in WOLF_IDS:
+		var enemy := simulation.get_character(character_id)
+		if enemy != null and enemy.can_act():
+			enemies_defeated = false
+			break
+	if not party_defeated and not enemies_defeated:
+		return {"ok": true, "resolved": false}
+	COMBAT_ENCOUNTER_SERVICE.finish(simulation, session)
+	if party_defeated:
+		return {
+			"ok": true,
+			"resolved": true,
+			"outcome": "defeat",
+			"speaker": "Wilderness",
+			"message": "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger. You can return when ready.",
+			"choice_label": "Retreat."
+		}
+	var progress := record_wolf_defeat(journal, WOLF_IDS.size())
+	return {
+		"ok": bool(progress.get("ok", false)),
+		"resolved": true,
+		"outcome": "victory",
+		"speaker": "Wilderness",
+		"message": "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.",
+		"choice_label": "Return to the farm.",
+		"status_text": "The wolf pack is defeated. Return to Old Mac."
 	}
