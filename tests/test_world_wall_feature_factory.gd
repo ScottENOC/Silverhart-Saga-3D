@@ -31,7 +31,14 @@ func _test_northwatch_wall_chunk() -> void:
 	_check(bool(result.get("ok", false)), "Northwatch wall chunk should present successfully")
 	_check(int(result.get("wall_hex_count", 0)) > 0, "Northwatch's source wall ring should produce wall cells")
 	_check(int(result.get("face_count", 0)) > 0, "Wall cells should produce vertical faces against non-wall neighbours")
-	_check(int(result.get("mesh_count", 0)) > 0, "Wall faces should be emitted as renderable meshes")
+	_check(int(result.get("mesh_count", 0)) >= 2, "Wall faces and solid top surfaces should be emitted as renderable meshes")
+	_check(int(result.get("top_triangle_count", 0)) == int(result.get("wall_hex_count", 0)) * HexGrid.SIDE_COUNT, "Every wall hex should receive a complete six-triangle top cap")
+	var top_mesh_found := false
+	for child in parent.get_children():
+		if child is MeshInstance3D and String(child.name).begins_with("WallTops_"):
+			top_mesh_found = true
+			_check((child as MeshInstance3D).mesh.get_surface_count() > 0, "Wall top cap mesh should contain a renderable surface")
+	_check(top_mesh_found, "Northwatch walls should include a distinct solid top-cap mesh")
 	parent.free()
 
 func _test_wall_heights() -> void:
