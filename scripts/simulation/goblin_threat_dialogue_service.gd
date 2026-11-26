@@ -16,8 +16,6 @@ static func handles_npc(npc_id: String) -> bool:
 		"ser_aldric_captive",
 		"goblin_trader",
 		"grondle",
-		"marta_wynfield",
-		"elder_marta_wynfield"
 	]
 
 
@@ -34,8 +32,6 @@ static func dialogue_for_npc(
 		return {"ok": false, "reason": "missing_simulation"}
 	var journal := simulation.campaign_journal
 	match npc_id:
-		"marta_wynfield", "elder_marta_wynfield":
-			return RUNTIME_SERVICE.marta_greeting(simulation)
 		"chief_skarnub":
 			var quest := journal.quest_state(CONTENT_SCRIPT.QUEST_ID)
 			var context := {
@@ -89,7 +85,7 @@ static func select_choice(
 			npc_id = "grondle"
 		elif choice_id.begins_with("marta_spy_"):
 			npc_id = "marta_wynfield"
-	if not handles_npc(npc_id):
+	if not handles_npc(npc_id) and npc_id not in ["marta_wynfield", "elder_marta_wynfield"]:
 		return {"ok": false, "handled": false}
 	if choice_id in ["skarnub_leave", "nix_leave", "aldric_leave", "grondle_leave", "marta_spy_leave"]:
 		return {"ok": true, "handled": true, "closed": true}
