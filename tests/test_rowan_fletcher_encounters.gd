@@ -54,7 +54,7 @@ func _test_overnight_guest_and_progression() -> void:
 	_check(not bool(repeated.get("available", true)) and String(repeated.get("reason", "")) == "visit_already_resolved", "The same camp visit should not repeat after resolution.")
 
 	var second := RowanFletcherEncounterContent.build_encounter(relationships, _context("day4:camp2"))
-	_check(bool(second.get("available", false)) and String(second.get("stage", "")) == "first_meeting", "A later meeting should be a new encounter while familiarity is still low.")
+	_check(bool(second.get("available", false)) and String(second.get("stage", "")) == "recognition", "A later meeting should be a new encounter while familiarity is still low.")
 	var conversation := RowanFletcherEncounterContent.resolve_choice(relationships, "day4:camp2", "ask_about_travels")
 	_check(int(conversation.relationship.get("familiarity", 0)) == 4, "A later conversation should increase familiarity.")
 	_check(bool(conversation.get("accepted_overnight_stay", false)), "Continuing the conversation should still permit Rowan to stay for the night.")
