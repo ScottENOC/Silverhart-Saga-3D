@@ -26,6 +26,8 @@ const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned
 const DWELLING_WORLD_PRESENTATION = preload("res://scripts/presentation/campaign_dwelling_world_presentation.gd")
 const SKELETAL_GUARDIAN_ACTOR_SCRIPT = preload("res://scripts/presentation/skeletal_guardian_actor.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const HALVARD_CHARACTER_ID := "steward_halvard_greer"
+const HALVARD_MANOR_HEX := Vector2i(39, -502)
 const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
@@ -47,8 +49,6 @@ const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
-const HALVARD_CHARACTER_ID := "steward_halvard_greer"
-const HALVARD_MANOR_HEX := Vector2i(39, -502)
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -116,6 +116,8 @@ var bottle_green_material: StandardMaterial3D
 var ambient_chatter: AmbientChatter
 var ambient_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var ambient_accumulator: float = 0.0
+var halvard_routine_accumulator: float = 0.0
+var halvard_routine_busy: bool = false
 var ambient_exchange_running: bool = false
 var ambient_security: int = 50
 var shakedown_started: bool = false
@@ -146,8 +148,6 @@ var camp_selection_mode: bool = false
 var camp_button: Button
 var camp_sleep_button: Button
 var camp_status_label: Label
-var halvard_routine_accumulator: float = 0.0
-var halvard_routine_busy: bool = false
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
