@@ -37,6 +37,9 @@ func _test_source_backed_quest_flow() -> void:
 	assert(player.experience == 150)
 	assert(String(journal.quest_state(FARM_QUEST.QUEST_ID).status) == "completed")
 	assert(is_equal_approx(journal.npc_standing("old_mac"), 15.0))
+	assert(is_equal_approx(float(journal.region_campaign_state("hollowmere").get("security", 0.0)), 56.0))
+	assert(is_equal_approx(float(journal.region_campaign_state("aldervale").get("security", 0.0)), 51.8))
+	assert(is_equal_approx(float(journal.region_campaign_state("silverhart_kingdom").get("security", 0.0)), 55.54))
 
 func _test_creature_assets_exist() -> void:
 	assert(AnimalCatalog.has_profile("sheep"), "Sheep must have a first-class animal gameplay profile")
