@@ -1,5 +1,7 @@
 extends SceneTree
 
+const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
+
 var failures: int = 0
 
 func _initialize() -> void:
@@ -26,6 +28,7 @@ func _test_campaign2_road_manifest() -> void:
 	_assert_hex(manifest, "crossroads", Vector2i(8, 24))
 
 	var roads: Dictionary = manifest.get("roads", {})
+	var terrain := TERRAIN_DATA.new() as Campaign2WorldTerrainData
 	for route_name in ["north", "south", "east", "east_border", "west"]:
 		_check(roads.has(route_name), "Missing authored route: %s" % route_name)
 		if not roads.has(route_name):
@@ -40,6 +43,7 @@ func _test_campaign2_road_manifest() -> void:
 				continue
 			var cell := Vector2i(int(raw_cell.get("q", 999999)), int(raw_cell.get("r", 999999)))
 			_check(HexGrid.distance(previous, cell) == 1, "%s contains a non-adjacent road step: %s -> %s" % [route_name, previous, cell])
+			_check(terrain.is_walkable_for_hex(cell), "%s source road cell must remain traversable in the composed world: %s (terrain=%s)" % [route_name, cell, terrain.terrain_for_hex(cell)])
 			previous = cell
 		var end: Dictionary = route.get("end", {})
 		_check(previous == Vector2i(int(end.get("q", 999999)), int(end.get("r", 999999))), "%s endpoint must match its final cell" % route_name)
