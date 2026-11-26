@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_abandoned_house_quest_gate()
 	_test_manor_reputation_and_fortification()
 	_test_dwelling_camp_lodging()
+	_test_companion_residence_and_schedule()
 	_test_save_restore()
 	if _failures > 0:
 		push_error("%d dwelling assertion(s) failed." % _failures)
@@ -93,14 +94,44 @@ func _test_manor_reputation_and_fortification() -> void:
 	_check(int(state.camp_profile_for("silverhart_manor").get("sleeping_capacity", 0)) == 8, "Four placed double beds should provide eight indoor sleeping places.")
 
 
+
+func _test_companion_residence_and_schedule() -> void:
+	var state := CampaignDwellingState.new()
+	var journal := CampaignJournal.new()
+	var player := _player()
+	_check(bool(state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot").get("ok", false)), "The cottage should be claimable before assigning a resident.")
+	_check(state.resident_capacity_for("crossroads_cottage") == 3, "The cottage should use its existing indoor sleeping capacity for resident limits.")
+	var assigned := state.assign_resident("crossroads_cottage", "wren", {"tags": ["scholarly"]})
+	_check(bool(assigned.get("ok", false)), "A recruited companion should be assignable to an owned home.")
+	_check(String(state.resident_schedule_for("wren", 10.0).get("activity", "")) == "study_map", "A scholarly resident should use the existing study routine during the day.")
+	_check(String(state.resident_schedule_for("wren", 10.0).get("station_role", "")) == "study", "The resident routine should reuse the existing study station.")
+	_check(String(state.resident_schedule_for("wren", 6.5).get("activity", "")) == "wake", "Residents should wake in the morning.")
+	_check(String(state.resident_schedule_for("wren", 8.0).get("activity", "")) == "breakfast", "Residents should gather for breakfast.")
+	_check(String(state.resident_schedule_for("wren", 18.0).get("activity", "")) == "socialise", "Residents should use the common area in the evening.")
+	_check(String(state.resident_schedule_for("wren", 22.0).get("activity", "")) == "sleep", "Residents should return to the bedroom overnight.")
+	_check(String(state.resident_schedule_for("wren", 22.0, ["wren"]).get("activity", "")) == "travelling_with_party", "Joining the active party should suspend the home schedule without deleting residence.")
+	_check(state.resident_ids_for_dwelling("crossroads_cottage").has("wren"), "Party membership must not erase the permanent residence.")
+	_check(bool(state.assign_resident("crossroads_cottage", "aldric", {"tags": ["guardian"]}).get("ok", false)), "A second companion should be able to reside at the same home.")
+	_check(String(state.resident_schedule_for("aldric", 11.0).get("activity", "")) == "watch", "An authored guardian preference should use the existing watch routine.")
+	_check(bool(state.assign_resident("crossroads_cottage", "mirabel").get("ok", false)), "The final available resident place should be assignable.")
+	var full := state.assign_resident("crossroads_cottage", "reyna")
+	_check(not bool(full.get("ok", false)) and String(full.get("reason", "")) == "residence_at_capacity", "The home should reject residents beyond its available sleeping capacity.")
+	_check(bool(state.remove_resident("aldric").get("ok", false)), "A resident should be removable from the home.")
+	_check(not state.resident_ids_for_dwelling("crossroads_cottage").has("aldric"), "Removing a resident should release their home assignment.")
+	_check(bool(state.assign_resident("crossroads_cottage", "reyna").get("ok", false)), "Removing a resident should free capacity for another companion.")
+
+
 func _test_save_restore() -> void:
 	var state := CampaignDwellingState.new()
 	var journal := CampaignJournal.new()
 	var player := _player()
 	state.complete_action("build_crossroads_cottage", journal, player, "materials", "crossroads_plot")
+	state.assign_resident("crossroads_cottage", "wren", {"tags": ["scholarly"]})
+	state.assign_resident("crossroads_cottage", "aldric", {"tags": ["guardian"]})
 	var restored := CampaignDwellingState.new()
-	_check(restored.from_dict(state.to_dict()), "Dwelling ownership should restore from a save.")
-	_check(restored.to_dict() == state.to_dict(), "Dwelling ownership and improvements should round-trip.")
+	_check(restored.from_dict(state.to_dict()), "Dwelling ownership and resident assignments should restore from a save.")
+	_check(restored.to_dict() == state.to_dict(), "Dwelling ownership, improvements and resident schedules should round-trip.")
+	_check(restored.resident_ids_for_dwelling("crossroads_cottage").size() == 2, "Both residents should remain assigned after loading.")
 
 
 func _test_dwelling_camp_lodging() -> void:
