@@ -5,6 +5,7 @@ const HOLLOWMERE_BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd
 const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
 const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
 const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
+const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
 const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 
@@ -68,4 +69,13 @@ func _test_hollowmere_bridge_integration() -> void:
 	assert(bridge != null, "Hollowmere should delegate its authored bridge to the shared factory")
 	assert(bridge.get_child_count() == HOLLOWMERE_BRIDGES.BRIDGE_PRESENTATION.parts.size(), "Hollowmere bridge should render every authored part")
 	assert(not TERRAIN_PROVIDER.is_blocked(HOLLOWMERE_SETTLEMENT.BRIDGE, HOLLOWMERE_TERRAIN.DEFINITION), "Presentation extraction must not alter bridge movement traversability")
+	var world_terrain := TERRAIN_DATA.new() as Campaign2WorldTerrainData
+	assert(world_terrain.terrain_for_hex(HOLLOWMERE_SETTLEMENT.BRIDGE) == "path", "The composed world must present the bridge crossing as a path rather than stream water")
+	assert(world_terrain.is_walkable_for_hex(HOLLOWMERE_SETTLEMENT.BRIDGE), "The authored bridge crossing must be walkable in the composed world")
+	var adjacent_stream_hex := Vector2i(7, -25)
+	assert(world_terrain.terrain_for_hex(adjacent_stream_hex) == "water", "The stream must remain water immediately beside the bridge")
+	assert(not world_terrain.is_walkable_for_hex(adjacent_stream_hex), "The bridge opening must not make adjacent unbridged stream cells walkable")
+	var regional_stream_hex := Vector2i(100, -28)
+	assert(world_terrain.terrain_for_hex(regional_stream_hex) == "water", "Regional stream geometry must compose into the playable terrain layer")
+	assert(not world_terrain.is_walkable_for_hex(regional_stream_hex), "Unbridged regional stream cells must remain blocked in the composed world")
 	village.free()
