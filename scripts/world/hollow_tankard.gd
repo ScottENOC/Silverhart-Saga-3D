@@ -25,6 +25,8 @@ const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settle
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_player_movement_controller.gd")
+const MULTISTORY_LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+const TUNNEL_NETWORK = preload("res://scripts/world/campaign2_tunnel_network.gd")
 const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_interaction_service.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
@@ -65,6 +67,8 @@ const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 
 var simulation: WorldSimulation
 var world_cell_loader: Campaign2WorldCellLoader
+var multistory_runtime_by_location: Dictionary = {}
+var active_multistory_runtime: Campaign2MultiStoryLocationRuntime
 var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
@@ -165,6 +169,11 @@ func _ready() -> void:
 	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
+		var saved_multistory_location := String(pending_save_data.get("active_multistory_location_id", ""))
+		if not saved_multistory_location.is_empty():
+			var restored_location := enter_multistory_location(saved_multistory_location)
+			if not bool(restored_location.get("ok", false)):
+				push_warning("Saved multi-story location could not be restored: %s" % restored_location)
 		pending_save_data.clear()
 	_refresh_dwelling_world_presentation()
 	_restore_abandoned_house_guardian_actors()
@@ -1119,6 +1128,7 @@ func _build_save_snapshot() -> Dictionary:
 		"party_member_ids": simulation.get_party_member_ids(),
 		"active_character_id": active_character_id,
 		"active_party_index": active_party_index,
+		"active_multistory_location_id": String(active_multistory_runtime.definition.get("id", "")) if is_instance_valid(active_multistory_runtime) else "",
 		"clock": simulation.clock.to_dict(),
 		"world_weather": simulation.weather_state.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
@@ -1355,6 +1365,9 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with("tunnel_enter:") or choice_id.begins_with("tunnel_travel:") or choice_id.begins_with("tunnel_return:"):
+		_handle_tunnel_choice(choice_id)
+		return
 	if choice_id == "continue_camp_sleep":
 		if simulation != null and not simulation.is_in_combat:
 			var resumed := simulation.continue_camp_sleep()
@@ -2753,7 +2766,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_F:
-			if not _interact_with_tavern_stairs() and not _interact_with_nearest_door():
+			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door():
 				_interact_with_nearest_npc()
 			get_viewport().set_input_as_handled()
 			return
@@ -2909,6 +2922,152 @@ func _refresh_tavern_floor_presentation() -> void:
 	upper_floor_group.visible = upstairs
 	if location_label != null:
 		location_label.text = "LOCATION  /  HOLLOW TANKARD  —  " + ("UPPER FLOOR" if upstairs else "TAPROOM")
+
+## Called before a new runtime is added so its floor map snapshots the
+## regional map, not the currently active interior's cells.
+func prepare_multistory_location_runtime(location_id: String) -> void:
+	if is_instance_valid(active_multistory_runtime) and String(active_multistory_runtime.definition.get("id", "")) != location_id:
+		active_multistory_runtime.set_location_active(false)
+
+## Called by Campaign2LocationLoader when a multi-story location is entered.
+func register_multistory_location_runtime(runtime: Campaign2MultiStoryLocationRuntime) -> void:
+	if runtime == null or not is_instance_valid(runtime):
+		return
+	var location_id := String(runtime.definition.get("id", ""))
+	if location_id.is_empty():
+		return
+	if is_instance_valid(active_multistory_runtime) and active_multistory_runtime != runtime:
+		active_multistory_runtime.set_location_active(false)
+	var anchor_data: Dictionary = runtime.definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	runtime.position = _hex_world_position(anchor)
+	runtime.set_location_active(true)
+	multistory_runtime_by_location[location_id] = runtime
+	active_multistory_runtime = runtime
+	var actor := actor_by_id.get(active_character_id) as Node3D
+	if actor != null:
+		runtime.register_character_actor(active_character_id, actor)
+
+## Load or reactivate an authored multi-story location in this campaign.
+## Location doors can call this when their normal entry interaction is completed.
+func enter_multistory_location(location_id: String) -> Dictionary:
+	if simulation == null or location_id.strip_edges().is_empty():
+		return {"ok": false, "reason": "runtime_not_ready"}
+	prepare_multistory_location_runtime(location_id)
+	var runtime := _get_or_load_multistory_runtime(location_id)
+	if runtime == null:
+		if is_instance_valid(active_multistory_runtime):
+			active_multistory_runtime.set_location_active(true)
+		return {"ok": false, "reason": "could_not_load_multistory_location", "location_id": location_id}
+	if is_instance_valid(active_multistory_runtime) and active_multistory_runtime != runtime:
+		active_multistory_runtime.set_location_active(false)
+	active_multistory_runtime = runtime
+	runtime.set_location_active(true)
+	var actor := actor_by_id.get(active_character_id) as Node3D
+	if actor != null:
+		runtime.register_character_actor(active_character_id, actor)
+	if movement_controller != null:
+		movement_controller.clear_path()
+	return {"ok": true, "location_id": location_id, "floor": runtime.get_current_floor()}
+
+func _get_or_load_multistory_runtime(location_id: String) -> Campaign2MultiStoryLocationRuntime:
+	var existing := multistory_runtime_by_location.get(location_id) as Campaign2MultiStoryLocationRuntime
+	if existing != null and is_instance_valid(existing):
+		return existing
+	var loaded: Dictionary = MULTISTORY_LOCATION_LOADER.load_multistory_location(self, location_id, simulation)
+	if not bool(loaded.get("ok", false)):
+		push_warning("Could not load multi-story location %s: %s" % [location_id, loaded])
+		return null
+	var runtime := loaded.get("runtime") as Campaign2MultiStoryLocationRuntime
+	if runtime == null:
+		return null
+	var anchor_data: Dictionary = runtime.definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	runtime.position = _hex_world_position(anchor)
+	multistory_runtime_by_location[location_id] = runtime
+	return runtime
+
+func _interact_with_multistory_tunnels() -> bool:
+	if not is_instance_valid(active_multistory_runtime):
+		return false
+	var entry_node := active_multistory_runtime.get_tunnel_entry_node(active_character_id)
+	if not entry_node.is_empty():
+		_show_dialogue("Hidden Passage", "A concealed stair descends into the Guild's old tunnel network.", [
+			{"id": "tunnel_enter:" + entry_node, "label": "Descend into the tunnels.", "text": ""},
+			{"id": "continue", "label": "Leave it for now.", "text": ""}
+		])
+		return true
+	var junction_node := active_multistory_runtime.get_tunnel_junction_node(active_character_id)
+	if junction_node.is_empty():
+		return false
+	var choices: Array[Dictionary] = []
+	for destination in active_multistory_runtime.get_tunnel_junction_destinations(active_character_id):
+		choices.append({
+			"id": "tunnel_travel:" + String(destination.get("id", "")),
+			"label": "Go to %s." % String(destination.get("label", "the other passage")),
+			"text": ""
+		})
+	var current_node: Dictionary = TUNNEL_NETWORK.get_node(junction_node)
+	var surface_location_id := String(current_node.get("surface_location_id", ""))
+	var surface_secret_id := String(current_node.get("surface_secret_id", ""))
+	var surface_state := simulation.multistory_location_states.get(surface_location_id) as Campaign2MultiStoryLocationState
+	if surface_state != null and surface_state.is_secret_discovered(surface_secret_id):
+		choices.append({
+			"id": "tunnel_return:" + junction_node,
+			"label": "Return to the surface passage.",
+			"text": ""
+		})
+	choices.append({"id": "continue", "label": "Stay at the junction.", "text": ""})
+	_show_dialogue("Tunnel Junction", "Old brick, worn smooth by years of foot traffic. Passages lead off in more than one direction.", choices)
+	return true
+
+func _handle_tunnel_choice(choice_id: String) -> void:
+	if not is_instance_valid(active_multistory_runtime):
+		return
+	var source_runtime := active_multistory_runtime
+	var action := choice_id.get_slice(":", 0)
+	var node_id := choice_id.get_slice(":", 1)
+	var destination: Dictionary = TUNNEL_NETWORK.get_node(node_id)
+	var target_location_id := String(destination.get("location_id", ""))
+	if action == "tunnel_return":
+		target_location_id = String(destination.get("surface_location_id", ""))
+	if target_location_id.is_empty():
+		_show_dialogue("Tunnel Junction", "That passage cannot be found.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	# Release the source map before the destination runtime captures its
+	# previous cells; this prevents overlapping axial floors from restoring
+	# stale source geometry into the shared simulation map.
+	source_runtime.set_location_active(false)
+	var target_runtime := _get_or_load_multistory_runtime(target_location_id)
+	if target_runtime == null:
+		source_runtime.set_location_active(true)
+		_show_dialogue("Tunnel Junction", "The destination could not be loaded.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	var result: Dictionary = {}
+	match action:
+		"tunnel_enter":
+			result = source_runtime.enter_tunnel_node(active_character_id, target_runtime, node_id)
+		"tunnel_travel":
+			result = source_runtime.travel_to_tunnel_node(active_character_id, target_runtime, node_id)
+		"tunnel_return":
+			result = source_runtime.return_to_surface_passage(active_character_id, target_runtime, node_id)
+	if not bool(result.get("ok", false)):
+		source_runtime.set_location_active(true)
+		active_multistory_runtime = source_runtime
+		_show_dialogue("Tunnel Junction", "The passage cannot be used: %s." % String(result.get("reason", "travel_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	active_multistory_runtime = target_runtime
+	var actor := actor_by_id.get(active_character_id) as Node3D
+	if actor != null:
+		target_runtime.register_character_actor(active_character_id, actor)
+	if camera_rig != null:
+		camera_rig.follow_target = actor
+	if movement_controller != null:
+		movement_controller.clear_path()
+	var arrival_text := "You arrive at %s." % String(destination.get("label", "the passage"))
+	if action == "tunnel_return":
+		arrival_text = "You emerge through the concealed surface passage."
+	_show_dialogue("Tunnel Junction", arrival_text, [{"id": "continue", "label": "Continue", "text": ""}])
 
 func _interact_with_tavern_stairs() -> bool:
 	var state := simulation.get_character(active_character_id)
