@@ -121,6 +121,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_campaign_content.gd
       - name: Run Reddale innkeeper quest content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_innkeeper_content.gd
+      - name: Run Dwarven ambassador content tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_dwarven_ambassador_content.gd
       - name: Run companion relationship state tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_relationship_state.gd
       - name: Run companion-to-companion bond tests
