@@ -210,3 +210,7 @@ jobs:
             build/wren-native/character-details-build.log
           if-no-files-found: error
           retention-days: 30
+
+  bikini-fit:
+    name: Test Ara bikini fit on the accepted Wren body
+    uses: ./.github/workflows/test-wren-ara-bikini-fit.yml
