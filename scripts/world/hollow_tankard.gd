@@ -1371,6 +1371,7 @@ func _apply_save_data(data: Dictionary) -> void:
 		actor.position = _hex_world_position(state.axial)
 		actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 		CampaignCharacterActorFactory.apply_equipment_visuals(actor, state)
+	_restore_farm_wolf_actor_presentations()
 	var saved_dire_wolf := simulation.get_character(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
 	if saved_dire_wolf == null or not saved_dire_wolf.can_act():
 		var defeated_wolf_actor := actor_by_id.get(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID) as Node3D
@@ -2549,6 +2550,34 @@ func _check_farm_wolf_proximity() -> void:
 		return
 	if not farm_wolves_spawned or farm_wolves_retry_armed and _farm_wolves_remaining() > 0:
 		_start_farm_wolf_encounter()
+
+
+func _restore_farm_wolf_actor_presentations() -> void:
+	## Farm wolves are runtime-created combatants, not part of the static NPC
+	## roster. Rebuild their visible actors after loading saved character states.
+	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
+		var wolf_state := simulation.get_character(wolf_id)
+		var existing_actor := actor_by_id.get(wolf_id) as Node3D
+		if wolf_state == null or not wolf_state.can_act():
+			if is_instance_valid(existing_actor):
+				existing_actor.queue_free()
+			actor_by_id.erase(wolf_id)
+			continue
+		if is_instance_valid(existing_actor):
+			existing_actor.position = _hex_world_position(wolf_state.axial)
+			continue
+		var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+		actor.name = wolf_id
+		actor.creature_kind = "wolf"
+		actor.behaviour = "predator"
+		actor.model_scale = 0.76
+		actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+		actor.position = _hex_world_position(wolf_state.axial)
+		actor.set_meta("character_id", wolf_id)
+		actor.set_meta("ambient_enabled", false)
+		actor.set_meta("farm_quest_wolf", true)
+		add_child(actor)
+		actor_by_id[wolf_id] = actor
 
 
 func _start_farm_wolf_encounter() -> void:
