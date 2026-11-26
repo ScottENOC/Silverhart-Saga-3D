@@ -280,7 +280,7 @@ static func _speaker_for(npc_id: String) -> String:
 			return "Nix Sharpear"
 		"ser_aldric_thorne":
 			return "Ser Aldric Thorne"
-		"marta_wynfield", "elder_marta_wynfield":
+		"marta_wynfield", "elder_marta", "elder_marta_wynfield":
 			return "Elder Marta Wynfield"
 		_:
 			return "Grondle"
