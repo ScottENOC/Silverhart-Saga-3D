@@ -483,13 +483,18 @@ func _test_night_watch_rotation_and_detection() -> void:
 	world.player_character_id = "a"
 	var watch_leader := CharacterState.new("a", "Watch Leader", Vector2i(0, 0))
 	watch_leader.side = "player"
+	watch_leader.time_points = 100.0
 	world.register_character(watch_leader)
 	watch_leader.skills["keen_perception"] = 3
 	var watch_partner := CharacterState.new("b", "Watch Partner", Vector2i(1, 0))
 	watch_partner.side = "player"
+	watch_partner.time_points = 100.0
 	world.register_character(watch_partner)
 	_camp_night_events = 0
 	world.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
+	world.camp_night_encounter_resolved.connect(func(_result: Dictionary) -> void:
+		world.start_combat()
+	)
 	var world_camp := world.begin_camp(
 		{"walkable": true, "site_id": "world_watch_test"},
 		{"danger": 1.0, "night_seed": detected_seed},
@@ -502,6 +507,8 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(_camp_night_events == 1, "WorldSimulation should publish a detected night attack for encounter presentation")
 	var elapsed_world_seconds := world.clock.world_seconds - world_start_seconds
 	_check(is_equal_approx(elapsed_world_seconds, float(world_night_result.summary.hours) * WorldClock.SECONDS_PER_HOUR), "WorldSimulation should advance only to the actual attack time when sleep is interrupted")
+	_check(world.is_in_combat, "A camp attack hand-off should be able to start combat synchronously during night resolution")
+	_check(is_equal_approx(watch_leader.time_points, 100.0) and is_equal_approx(watch_partner.time_points, 100.0), "Interrupted sleep must not grant the remaining night as combat TP regeneration")
 	world.free()
 
 
