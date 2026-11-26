@@ -839,15 +839,10 @@ func _select_camp_site(hex: Vector2i) -> void:
 		"water_nearby": water_nearby,
 		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
 	}
-	var manor_meal_available := String(site.get("dwelling_id", "")) == "silverhart_manor" and simulation.campaign_dwellings.steward_meals_ready > 0
-	if manor_meal_available:
-		environment["meal_prepared"] = true
 	var result := simulation.begin_camp(site, environment, {}, active_character_id)
 	if not bool(result.get("ok", false)):
 		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
 		return
-	if manor_meal_available:
-		simulation.campaign_dwellings.consume_steward_meal()
 	camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 	camp_activity_director.begin_camp(simulation.camp_simulation.site)
 	var weather_summary := _camp_weather_summary(simulation.camp_simulation.environment)
