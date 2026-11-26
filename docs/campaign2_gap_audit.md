@@ -191,8 +191,8 @@ Work is ordered by the smallest independently verifiable spatial gap first. A ta
 |---|---|---|---|---|---|
 | 1 | Remove false-positive crop-row gap; confirm source has no authored crop rows | XS | ChatGPT | **Complete** | Source builder and target data agree; audit corrected |
 | 2 | Verify Old Mac pasture/fence/road-spur geometry against source | XS | ChatGPT | **Complete** | Automated coordinate/feature test passes on `dev`; Godot suite passed |
-| 3 | Verify Unicorn Vale's eight patrol waypoints are all on usable terrain and connected by a route | S | ChatGPT | **In progress** | Coordinate/topology test passes; user only needed if visual route looks wrong |
-| 4 | Verify named wilderness-site anchors and approaches (grave, grove, lair, den, barrow) | S | ChatGPT | Source-to-target anchor/approach checks pass |
+| 3 | Verify Unicorn Vale's eight patrol waypoints are all on usable terrain and connected by a route | S | ChatGPT | **Complete** | Full Godot validation passes with waypoint and patrol-leg route checks |
+| 4 | Verify named wilderness-site anchors and natural/explicit approaches (grave, grove, lair, den) | S | ChatGPT | **In progress** | Grave, wolf-den and trial-den anchors are non-void/walkable; grove and lair approach cells are non-void/walkable; no roads invented for off-road sites |
 | 5 | Create exterior/interior entrance and return-point register for existing floor maps | M | ChatGPT | Every registered interior has exterior entrance, interior door, return anchor and reciprocal stair data or an explicit documented exception |
 | 6 | Add missing map tests for road, stream, bridge, gate and chunk-boundary joins | M | ChatGPT | Targeted Godot tests pass |
 | 7 | Complete site-by-site visual/traversal acceptance | M–L | User + ChatGPT | User reviews only the resulting captures/build; ChatGPT records outcomes and fixes defects |
