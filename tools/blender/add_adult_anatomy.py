@@ -518,8 +518,8 @@ def _tube_frame(n, cfg):
     return L, L.cross(A).normalized(), A
 
 
-def _mouth_patch(bm, mw, C, L, T, A, ax, at, reach):
-    """Largest connected set of outward-facing skin faces inside the mouth ellipse (projected along the axis)."""
+def _mouth_patch(bm, mw, C, L, T, A, ax, at, reach, normal_limit=-0.1):
+    """Largest connected outward-facing skin patch inside an adaptively sized mouth ellipse."""
     rot = mw.to_3x3()
     cand = set()
     for f in bm.faces:
@@ -528,7 +528,9 @@ def _mouth_patch(bm, mw, C, L, T, A, ax, at, reach):
             continue
         if (rel.dot(L) / ax) ** 2 + (rel.dot(T) / at) ** 2 > 1.0:
             continue
-        if (rot @ f.normal).dot(A) > -0.1:
+        # A relaxed threshold tolerates triangulated/curved skin whose face normals
+        # are not perfectly aligned with the local inward passage axis.
+        if (rot @ f.normal).dot(A) > normal_limit:
             continue
         cand.add(f)
     best, seen = [], set()
@@ -619,16 +621,35 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
     world = [mw @ v.co for v in bm.verts]
     L0, T0, A0 = _tube_frame(n, cfg)
 
-    patch = []
-    for grow in (1.0, 1.15, 0.85, 1.3, 0.7):
+    patch, mouth_C, selected = [], C.copy(), None
+    # Imported Ara meshes vary in triangulation, UV seam placement and local curvature.
+    # Search progressively wider ellipses, slightly shifted centres, and more tolerant
+    # face-normal angles. Keep the first clean disc, preferring the intended anchor.
+    offsets = ((0.0, 0.0), (0.25, 0.0), (-0.25, 0.0), (0.0, 0.25), (0.0, -0.25),
+               (0.5, 0.0), (-0.5, 0.0), (0.0, 0.5), (0.0, -0.5))
+    for grow, reach_scale, normal_limit in (
+            (1.0, 1.0, -0.1), (1.25, 1.25, -0.1), (1.6, 1.5, -0.05),
+            (2.0, 1.75, 0.0), (2.5, 2.0, 0.1)):
         mu, mv = cfg["u"][0] * k * grow, cfg["v"][0] * k * grow
-        cand = _mouth_patch(bm, mw, C, L0, T0, A0, mu, mv, 0.012 * k)
-        if len(cand) >= 6 and _single_clean_loop(cand):
-            patch = cand
+        for ou, ov in offsets:
+            candidate_C = C + L0 * (ou * mu) + T0 * (ov * mv)
+            cand = _mouth_patch(bm, mw, candidate_C, L0, T0, A0, mu, mv,
+                                0.012 * k * reach_scale, normal_limit)
+            if len(cand) >= 6 and _single_clean_loop(cand):
+                patch, mouth_C = cand, candidate_C
+                selected = (grow, reach_scale, normal_limit, ou, ov)
+                break
+        if patch:
             break
     if not patch:
-        raise RuntimeError(f"{name}: no clean disc of skin faces at the mouth (mesh too coarse or broken there); "
-                           "rerun with the matching --no-... flag to skip it")
+        raise RuntimeError(f"{name}: no clean disc of skin faces after adaptive search "
+                           "(expanded mouth region, centre offsets and relaxed normals); "
+                           "mesh topology may be unsuitable")
+    if selected != (1.0, 1.0, -0.1, 0.0, 0.0):
+        print(f"{name} mouth selection adapted: scale={selected[0]:.2f}, "
+              f"reach={selected[1]:.2f}, normal_limit={selected[2]:.2f}, "
+              f"offset=({selected[3]:.2f},{selected[4]:.2f})")
+    C = mouth_C
 
     n_steps = int(cfg["segments"])
     depths = [cfg["length"] * k * (j / n_steps) ** 1.6 for j in range(1, n_steps + 1)]
