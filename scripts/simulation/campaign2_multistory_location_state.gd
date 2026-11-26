@@ -33,7 +33,7 @@ func configure(location_definition: Dictionary, saved_state: Dictionary = {}) ->
 		if not floor_variant is Dictionary:
 			continue
 		for object_variant in floor_variant.get("tile_objects", []):
-			if not object_variant is Dictionary or String(object_variant.get("type", "")) != "secret_door":
+			if not object_variant is Dictionary or String(object_variant.get("type", "")) not in ["secret_door", "secret_passage"]:
 				continue
 			var secret_id := String(object_variant.get("id", "")).strip_edges()
 			if secret_id.is_empty() or _secret_ids.has(secret_id):
@@ -56,6 +56,22 @@ func configure(location_definition: Dictionary, saved_state: Dictionary = {}) ->
 	if not saved_state.is_empty() and not restore(saved_state):
 		return {"ok": false, "reason": "invalid_saved_location_state"}
 	return {"ok": true, "location_id": location_id, "current_floor": current_floor}
+
+
+## Switch to a floor reached through a cross-location campaign route, such as
+## the Guild tunnel network. The caller must validate the route before use.
+func set_current_floor_for_network_travel(target_floor: int) -> Dictionary:
+	if target_floor not in [0, -9]:
+		return {"ok": false, "reason": "unsupported_network_floor"}
+	if not _floor_ids.has(target_floor):
+		return {"ok": false, "reason": "unknown_floor"}
+	if current_floor == target_floor:
+		return {"ok": true, "already_on_floor": true, "current_floor": current_floor}
+	var previous_floor := current_floor
+	current_floor = target_floor
+	floor_changed.emit(previous_floor, current_floor, Vector2i.ZERO)
+	return {"ok": true, "from_floor": previous_floor, "to_floor": current_floor}
+
 
 func try_transition(to_floor: int, stair_position: Vector2i) -> Dictionary:
 	if not _floor_ids.has(current_floor) or not _floor_ids.has(to_floor):
