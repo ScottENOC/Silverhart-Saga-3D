@@ -104,10 +104,9 @@ static func resolve_combat(
 		return {"resolved": false, "reason": String(finished.get("reason", "encounter_cleanup_failed"))}
 
 	var removed_actor_ids: Array[String] = []
-	if outcome == "victory":
-		for enemy_id in enemy_ids:
-			if simulation.unregister_character(enemy_id):
-				removed_actor_ids.append(enemy_id)
+	for enemy_id in enemy_ids:
+		if simulation.unregister_character(enemy_id):
+			removed_actor_ids.append(enemy_id)
 
 	return {
 		"resolved": true,
