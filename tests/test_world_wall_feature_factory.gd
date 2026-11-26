@@ -37,7 +37,14 @@ func _test_northwatch_wall_chunk() -> void:
 	for child in parent.get_children():
 		if child is MeshInstance3D and String(child.name).begins_with("WallTops_"):
 			top_mesh_found = true
-			_check((child as MeshInstance3D).mesh.get_surface_count() > 0, "Wall top cap mesh should contain a renderable surface")
+			var top_mesh: Mesh = (child as MeshInstance3D).mesh
+			_check(top_mesh.get_surface_count() > 0, "Wall top cap mesh should contain a renderable surface")
+			if top_mesh.get_surface_count() > 0:
+				var arrays: Array = top_mesh.surface_get_arrays(0)
+				var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+				_check(not normals.is_empty(), "Wall top cap mesh should provide explicit normals")
+				for normal in normals:
+					_check(normal.y > 0.99, "Wall top cap normals should face upward")
 	_check(top_mesh_found, "Northwatch walls should include a distinct solid top-cap mesh")
 	parent.free()
 
