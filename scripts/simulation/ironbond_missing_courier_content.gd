@@ -82,15 +82,7 @@ static func resolve_choice(journal: CampaignJournal, choice_id: String) -> Dicti
 			var result := accept(journal)
 			if not bool(result.get("ok", false)):
 				return result
-			return {
-				"ok": true,
-				"quest_started": true,
-				"dialogue": {
-					"speaker": "Dray Coltayne",
-					"text": "Good. The satchel has the Company's contracts in it. Keep your eyes open along the North Road.",
-					"choices": [{"id": "ironbond_courier_leave", "label": "I'll find it.", "text": ""}]
-				}
-			}
+			return {"ok": true, "quest_started": true, "handled": true}
 		"ironbond_courier_decline":
 			return {
 				"ok": true,
