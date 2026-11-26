@@ -6,6 +6,7 @@ const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_crea
 const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const ELDER_MARTA_CONTENT = preload("res://scripts/simulation/elder_marta_content.gd")
 
 var simulation: WorldSimulation
 var settlement_presentation: Node3D
@@ -56,6 +57,7 @@ func _initialize_campaign_simulation(profile: Dictionary) -> void:
 	simulation.clock.set_world_seconds(11.0 * 3600.0)
 	simulation.campaign_journal.register_quest_definition(HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_quest_definition())
 	simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST.definition())
+	ELDER_MARTA_CONTENT.register_definition(simulation.campaign_journal)
 	COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
 	HOLLOWMERE_CAMPAIGN_CONTENT.initialize_social_standings(
 		simulation.campaign_journal,
