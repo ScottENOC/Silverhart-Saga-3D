@@ -14,6 +14,8 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
+const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
+const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
 const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
@@ -163,6 +165,8 @@ func _ready() -> void:
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
 	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
+	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
@@ -1522,6 +1526,40 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		elif bool(marta_result.get("handled", false)):
 			_close_dialogue()
 		return
+	if choice_id.begins_with("nella_"):
+		var nella_result := NELLA_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(nella_result.get("ok", false)):
+			_show_dialogue("Nella Brook", "That could not be completed: %s." % String(nella_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(nella_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: A Stone for Nella  ·  +20 gold"
+		var nella_dialogue: Variant = nella_result.get("dialogue", {})
+		if nella_dialogue is Dictionary and not nella_dialogue.is_empty():
+			_show_dialogue(String(nella_dialogue.get("speaker", "Nella Brook")), String(nella_dialogue.get("text", "")), nella_dialogue.get("choices", []))
+		elif bool(nella_result.get("handled", false)):
+			_close_dialogue()
+		return
+	if choice_id.begins_with("baron_tribute_"):
+		var baron_result := BARON_TRIBUTE_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(baron_result.get("ok", false)):
+			_show_dialogue("Baron Corwin Aldervale", "That could not be completed: %s." % String(baron_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(baron_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: The Baron's Tribute  ·  +20 gold"
+		var baron_dialogue: Variant = baron_result.get("dialogue", {})
+		if baron_dialogue is Dictionary and not baron_dialogue.is_empty():
+			_show_dialogue(String(baron_dialogue.get("speaker", "Baron Corwin Aldervale")), String(baron_dialogue.get("text", "")), baron_dialogue.get("choices", []))
+		elif bool(baron_result.get("handled", false)):
+			_close_dialogue()
+		return
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
@@ -1794,6 +1832,16 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if actor == null or target_state == null:
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
+	if dialogue_id == "reddale_innkeeper":
+		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		if bool(nella_conversation.get("ok", false)):
+			_show_dialogue(String(nella_conversation.get("speaker", target_state.display_name)), String(nella_conversation.get("text", "")), nella_conversation.get("choices", []))
+		return
+	if dialogue_id == "reddale_baron":
+		var baron_conversation := BARON_TRIBUTE_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
+		if bool(baron_conversation.get("ok", false)):
+			_show_dialogue(String(baron_conversation.get("speaker", target_state.display_name)), String(baron_conversation.get("text", "")), baron_conversation.get("choices", []))
+		return
 	if dialogue_id == "aldenreach_ambassador":
 		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
 		_show_dialogue(String(cassia_conversation.get("speaker", target_state.display_name)), String(cassia_conversation.get("text", "")), cassia_conversation.get("choices", []))
