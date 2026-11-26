@@ -41,7 +41,7 @@ static func build_encounter(
 	var attraction := int(relationship.get("attraction", 0))
 	var greeting := "Rowan steps out of the dark at the edge of the firelight, one hand raised in greeting. “Didn't expect to find you out here. Mind if I share your camp tonight? I'll be gone before first light.”"
 	var stage := "first_meeting"
-	if familiarity >= 10:
+	if familiarity >= 2:
 		stage = "recognition"
 		greeting = "A familiar whistle comes from the dark. Rowan approaches with an easy smile. “Seems we keep finding the same roads. Have you room for one more by the fire tonight?”"
 	if friendship >= 20:
@@ -55,12 +55,12 @@ static func build_encounter(
 		{"id": "guarded_welcome", "label": "You can stay, but I'll be keeping watch.", "kind": "accept_overnight_stay"},
 		{"id": "decline", "label": "Not tonight, Rowan. Safe travels.", "kind": "decline_overnight_stay"}
 	]
-	if familiarity >= 5:
+	if familiarity >= 2:
 		choices.insert(1, {"id": "ask_about_travels", "label": "Tell me where the road has taken you.", "kind": "conversation"})
 	if friendship >= 12:
 		choices.insert(1, {"id": "share_stories", "label": "Sit with me. I've missed our conversations.", "kind": "friendship"})
-	if attraction >= 12 and friendship >= 15:
-		choices.insert(1, {"id": "warm_greeting", "label": "I was hoping I'd see you again.", "kind": "romantic_interest"})
+	if friendship >= 8:
+		choices.insert(1, {"id": "warm_greeting", "label": "I'm always glad when our paths cross.", "kind": "romantic_interest"})
 	return {
 		"ok": true,
 		"available": true,
