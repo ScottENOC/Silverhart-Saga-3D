@@ -286,7 +286,7 @@ static func _ensure_border_fort_features() -> void:
 
 	# Northwatch's south spur follows the source turn hex directly to the
 	# gate. The gate itself remains a closed-wall terrain cell, not a path.
-	for r in range(NORTHWATCH_SPUR_START.y - 1, NORTHWATCH_GATE.y, -1):
+	for r in range(NORTHWATCH_SPUR_START.y - 1, NORTHWATCH_GATE.y - 2, -1):
 		var cell := Vector2i(NORTHWATCH_SPUR_START.x, r)
 		if cell == NORTHWATCH_GATE:
 			continue
