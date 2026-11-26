@@ -13,12 +13,12 @@ on:
       - "tools/blender/add_abdominal_definition.py"
       - "tools/blender/add_character_details.py"
       - "tools/review/add_aldric_body_hair.py"
-      - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_abdominal_definition.py"
   pull_request:
     branches: [dev]
     paths:
       - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_character_details.py"
       - ".github/workflows/build-aldric-native-ara.yml"
   workflow_dispatch:
