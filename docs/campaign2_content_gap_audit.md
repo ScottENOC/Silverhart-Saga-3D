@@ -1,7 +1,7 @@
 # Campaign 2 content gap audit — NPCs, dialogue and quests
 
 **Source:** [Hex-crpg](https://github.com/ScottENOC/Hex-crpg), `main` at `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
-**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `42eb115f5df5436b55944376359289b69d3e3b8f` (before this audit update)  
+**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `f185fa78eb2f13e478b4d79b967750216872bf56` (before this audit update)  
 **Audit date:** 2026-11-26  
 **Scope:** Named NPC roster, authored dialogue volume/coverage, explicit quest IDs and campaign-content migration status.
 
@@ -250,13 +250,14 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 
 - [x] Added `BaronTributeContent` for the source accept/active/turn-in/completed dialogue states, red-gem consumption, +20 gold, +20 Baron reputation / +20 knowledge, and +10 Silverhart standing / +15 knowledge.
 - [x] Added headless regression coverage for acceptance, missing-gem retry, turn-in, all rewards, item consumption and duplicate-reward prevention.
-- [ ] Connect the Baron content service to the live Reddale NPC interaction route. The source Baron has a settlement placement, but the wider Reddale actor/presentation route and the Baron's separate espionage/double-cross branches are not claimed as ported.
+- [x] Connected the `reddale_baron` streamed actor dialogue route and `baron_tribute_*` choice handling in `HollowTankard`. The Baron's separate espionage/double-cross branches remain unported.
 
 **A Stone for Nella**
 
 - [x] Added `ReddaleInnkeeperContent` with the source quest ID, source dialogue gate, accept/active/turn-in/completed states, blue-gem consumption, +20 gold and +20 Nella reputation/knowledge.
 - [x] Added headless regression coverage for the quest flow, missing-gem retry, journal-read gate, item consumption and duplicate-reward prevention.
-- [ ] Connect the service's greeting and choice IDs to the live Reddale NPC interaction route. The content logic is ported and tested, but the presentation/runtime hook is not yet claimed as complete.
+- [x] Connected the `reddale_innkeeper` streamed actor dialogue route and `nella_*` choice handling in `HollowTankard`.
+- [ ] Wire the source `abandonedHouseJournalRead` world flag into the optional alternate greeting; the current runtime route uses the default greeting because that source flag is not yet represented in target save state.
 
 **Coin for the Deepholds**
 
