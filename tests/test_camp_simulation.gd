@@ -331,7 +331,7 @@ func _test_night_resolution_and_save_load() -> void:
 	camp.begin_camp(
 		{"walkable": true},
 		["player", "wren", "aldric"],
-		{"night_temperature_c": 2.0, "danger": 0.6, "fire_lit": true},
+		{"night_temperature_c": 2.0, "danger": 0.0, "fire_lit": true},
 		{"wood": 2, "rations": 5, "water": 3, "tents": 1, "sleeping_bags": 3}
 	)
 	camp.plan_sleeping_arrangements(1)
@@ -557,7 +557,7 @@ func _test_world_simulation_integration() -> void:
 	companion.hobbled_stacks = 1
 	world.register_character(player)
 	world.register_character(companion)
-	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
+	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0, "danger": 0.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
 	_check(bool(started.ok), "World simulation should start camp with the current party")
 	_check(String(world.camp_simulation.companion_profiles.wren.personality) == "scholarly", "Authored personality tags should flow into camp routine preferences.")
 	_check(bool(world.camp_simulation.companion_profiles.wren.injured), "Current health and hobbling should inform camp routine choices.")
@@ -597,7 +597,7 @@ func _test_companions_walk_to_camp_stations() -> void:
 	world.register_character(player)
 	world.register_character(companion)
 	world.register_character(second_companion)
-	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
+	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {"danger": 0.0})
 	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
 	var probe := CampActivityProbe.new()
 	var second_probe := CampActivityProbe.new()
