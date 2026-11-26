@@ -1233,8 +1233,11 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 		"characters": results,
 		"resources_remaining": resources.duplicate(true)
 	}
-	if sleep_interrupted:
+	if not continuing:
+		# Persist both peaceful and hostile outcomes. A resumed interrupted
+		# night reuses the original result and must not overwrite or reroll it.
 		night_encounter_result = threat_result.duplicate(true)
+	if sleep_interrupted:
 		night_resolved.emit(summary.duplicate(true))
 	return {"ok": true, "summary": summary}
 
