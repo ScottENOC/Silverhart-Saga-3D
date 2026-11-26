@@ -145,14 +145,14 @@ The existing [NPC and dialogue extraction index](campaign2_npc_dialogue_index.md
 ### Counts
 
 - Source: **72 explicit quest IDs** — 49 from the Campaign 2 dialogue/index scan, nine companion quest chapters, eleven named character-arc quests and three Seraphine arc quests.
-- Target: **27 explicit quest IDs** on `dev`.
-- Exact ID overlap: **19**.
-- Source IDs without an exact target ID: **53**.
-- Target-only IDs: **8**.
+- Target: **29 explicit quest IDs** on `dev`.
+- Exact ID overlap: **20**.
+- Source IDs without an exact target ID: **52**.
+- Target-only IDs: **9**.
 
 An exact-ID difference is not proof that an entire storyline is absent. Some target quests may be adapted or renamed; those need an explicit source-to-target mapping and branch/consequence verification before being treated as migrated.
 
-### Semantic review of the eight target-only IDs
+### Semantic review of the nine target-only IDs
 
 I compared each target definition and its stated objective against the source quest definitions and the source's non-quest encounter/recruitment scripts. **None of the eight is a defensible one-to-one replacement for a source quest ID.** Two have meaningful overlap with source quest arcs, but only at sub-plot/encounter level.
 
@@ -167,11 +167,11 @@ I compared each target definition and its stated objective against the source qu
 | `fenn_herb_gathering` | `silverleaf_tonic`; `fenn_living_boundary` | **Thematic similarity only.** `silverleaf_tonic` asks for herbs for Healer Sylwen in Sil'thandriel; target `fenn_herb_gathering` asks for three bundles for Fenn. `fenn_living_boundary` is a later, separate companion quest. | Keep separate. Do not map the herb errands merely because both request herbs. |
 | `northwatch_siege` | `border_war`; source `northwatchSiegeSpawn.js` and Northwatch siege/war scripts | **Strong partial overlap, not full quest equivalence.** The source `border_war` sends the player to Northwatch's garrison and opens a broader war/mission progression. The source also has a distinct siege activation/spawn system. Target `northwatch_siege` records the defenders' successful resolution of a siege and unlocks Alden's recruitment. | Map as a candidate for the Northwatch siege encounter/sub-stage of `border_war`; retain the wider border-war objectives, missions, outcomes and follow-up until separately ported. |
 
-**Net result:** zero source quest IDs can be safely removed from the 53-ID exact mismatch list on this evidence alone. Two target quests have plausible partial mappings (`reyna_dire_wolf_hunt` and `northwatch_siege`); three formalise source events that were not separate quest IDs (`hollowmere_ironbond_shakedown`, `aldric_rescue`, `mirabel_spider_ruin`); the remaining three are new or related-but-distinct content. The exact-ID gap at that semantic-review stage therefore remained **52**, while the semantic review has narrowed where manual parity work is needed.
+**Net result:** zero source quest IDs can be safely removed from the 52-ID exact mismatch list on this evidence alone. Two target quests have plausible partial mappings (`reyna_dire_wolf_hunt` and `northwatch_siege`); three formalise source events that were not separate quest IDs (`hollowmere_ironbond_shakedown`, `aldric_rescue`, `mirabel_spider_ruin`); the remaining four are new or related-but-distinct content. The exact-ID gap therefore remains **52**, while the semantic review has narrowed where manual parity work is needed.
 
-### Source IDs without an exact target ID — 53
+### Source IDs without an exact target ID — 52
 
-**Campaign 2 dialogue/index IDs — 40**
+**Campaign 2 dialogue/index IDs — 39**
 - [ ] `border_war`
 - [ ] `buried_road`
 - [ ] `crimson_court`
@@ -190,7 +190,6 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `guild_initiation`
 - [ ] `guild_sunken_cache`
 - [ ] `hidden_bodies`
-- [~] `ironbond_missing_courier` — acceptance and initial faction reputation are implemented; recovery encounter and completion are not yet ported.
 - [ ] `ironbond_pitch`
 - [ ] `kragmoor_runesmith_teach`
 - [ ] `kragmoor_runesmith_trust`
@@ -233,13 +232,13 @@ I compared each target definition and its stated objective against the source qu
 
 ### Exact ID matches already present — 20
 
-`a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `toll_ogre`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
+`a_stone_for_nella`, `baron_tribute`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `toll_ogre`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`.
 
 These are exact-ID matches only. Their runtime triggers, all choices, completion conditions, rewards and consequences still need to pass their own parity checks.
 
-### Target-only quest IDs — 8
+### Target-only quest IDs — 9
 
-`abandoned_house_cleared`, `hollowmere_ironbond_shakedown`, `star_fort_companion`, `aldric_rescue`, `reyna_dire_wolf_hunt`, `mirabel_spider_ruin`, `fenn_herb_gathering`, `northwatch_siege`.
+`abandoned_house_cleared`, `hollowmere_ironbond_shakedown`, `star_fort_companion`, `aldric_rescue`, `reyna_dire_wolf_hunt`, `mirabel_spider_ruin`, `fenn_herb_gathering`, `northwatch_siege`, `fenn_living_boundary`.
 
 Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` versus source `missing_child` / `farm_wolves`, and `northwatch_siege` versus `border_war`. These are **unverified mapping candidates**, not accepted equivalences.
 
