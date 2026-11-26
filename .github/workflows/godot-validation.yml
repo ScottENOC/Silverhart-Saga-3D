@@ -137,6 +137,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_dwelling_state.gd
       - name: Run in-world camp simulation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_simulation.gd
+      - name: Run camp night ambush encounter tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_night_ambush_encounter.gd
       - name: Run autonomous companion camp dialogue tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_companion_dialogue.gd
       - name: Run persistent NPC relationship state tests

@@ -418,6 +418,9 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(bool(detected_event.get("attacked", false)), "The deterministic danger roll should produce an attack")
 	_check(bool(detected_event.get("detected", false)), "A perceptive watcher should detect the deterministic attack")
 	_check(String(detected_event.get("watcher_id", "")) == "a", "The strongest scheduled watcher should be credited with detection")
+	_check(float(detected_result.summary.get("hours", 8.0)) < 8.0, "A detected attack should interrupt sleep at its actual watch-shift time")
+	_check(bool(detected_result.summary.get("sleep_interrupted", false)), "An attacked night should be marked as interrupted")
+	_check(float(detected_event.get("attack_hour", 8.0)) == float(detected_result.summary.get("hours", 0.0)), "The encounter should resolve at its recorded attack hour")
 	var saved_resolved := restored.to_dict()
 	var restored_resolved := CampSimulation.new()
 	_check(restored_resolved.from_dict(saved_resolved), "Resolved encounter information should survive save/load")
@@ -450,7 +453,7 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(not bool(safe_night_event.get("attacked", true)), "A zero-danger site should not produce a night attack")
 	_check(short_night.night_encounter_result == safe_night_event, "A peaceful night result should also be retained as the resolved encounter state")
 	_check(is_equal_approx(float(short_night.night_watch_schedule[2].get("end_hour", 0.0)), 6.0), "Watch shift boundaries should scale to the actual sleep duration")
-	var short_watch_hours := short_night._watch_hours_by_character(6.0)
+	var short_watch_hours := short_night._watch_hours_by_character(0.0, 6.0)
 	var total_short_watch_hours := 0.0
 	for watched_hours in short_watch_hours.values():
 		total_short_watch_hours += float(watched_hours)
@@ -474,18 +477,24 @@ func _test_night_watch_rotation_and_detection() -> void:
 	_check(not bool(missed_event.get("detected", true)), "An exhausted novice watch should be capable of missing an attack")
 	_check(not String(missed_event.get("watcher_id", "")).is_empty(), "An undetected attack should still identify the strongest watcher who tried to spot it")
 	_check(float(missed_event.get("detection_chance", 1.0)) < 0.2, "Exhaustion should materially reduce detection chance")
+	_check(float(missed_result.summary.get("hours", 0.0)) > 4.0 and float(missed_result.summary.get("hours", 8.0)) < 8.0, "An undetected attack should interrupt sleep during the final watch shift")
 
 	var world := WorldSimulation.new()
 	world.player_character_id = "a"
 	var watch_leader := CharacterState.new("a", "Watch Leader", Vector2i(0, 0))
 	watch_leader.side = "player"
+	watch_leader.time_points = 100.0
 	world.register_character(watch_leader)
 	watch_leader.skills["keen_perception"] = 3
 	var watch_partner := CharacterState.new("b", "Watch Partner", Vector2i(1, 0))
 	watch_partner.side = "player"
+	watch_partner.time_points = 100.0
 	world.register_character(watch_partner)
 	_camp_night_events = 0
 	world.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
+	world.camp_night_encounter_resolved.connect(func(_result: Dictionary) -> void:
+		world.start_combat()
+	)
 	var world_camp := world.begin_camp(
 		{"walkable": true, "site_id": "world_watch_test"},
 		{"danger": 1.0, "night_seed": detected_seed},
@@ -493,8 +502,30 @@ func _test_night_watch_rotation_and_detection() -> void:
 	)
 	_check(bool(world_camp.get("ok", false)), "WorldSimulation should begin a camp with registered party members")
 	_check(float(world.camp_simulation.companion_profiles["a"].get("perception", 0.0)) == 3.0, "WorldSimulation should pass the authored keen perception skill into camp profiles")
-	world.skip_camp_to_morning()
+	var world_start_seconds := world.clock.world_seconds
+	var world_night_result := world.skip_camp_to_morning()
 	_check(_camp_night_events == 1, "WorldSimulation should publish a detected night attack for encounter presentation")
+	var elapsed_world_seconds := world.clock.world_seconds - world_start_seconds
+	_check(is_equal_approx(elapsed_world_seconds, float(world_night_result.summary.hours) * WorldClock.SECONDS_PER_HOUR), "WorldSimulation should advance only to the actual attack time when sleep is interrupted")
+	_check(world.is_in_combat, "A camp attack hand-off should be able to start combat synchronously during night resolution")
+	_check(is_equal_approx(watch_leader.time_points, 100.0) and is_equal_approx(watch_partner.time_points, 100.0), "Interrupted sleep must not grant the remaining night as combat TP regeneration")
+	_check(world.camp_simulation.phase == "interrupted", "An ambush should leave the camp in a resumable interrupted-night state")
+	var interrupted_save := world.to_dict()
+	var restored_world := WorldSimulation.new()
+	restored_world.load_dict(interrupted_save)
+	_check(restored_world.camp_simulation.phase == "interrupted", "Interrupted sleep should survive a save/load cycle")
+	_check(is_equal_approx(restored_world.camp_simulation.night_elapsed_hours, float(world_night_result.summary.hours)), "The resumed save should retain the exact elapsed sleep time")
+	var blocked_resume := world.continue_camp_sleep()
+	_check(not bool(blocked_resume.get("ok", false)) and String(blocked_resume.get("reason", "")) == "combat_active", "Sleep must not resume until the encounter has ended")
+	world.end_combat()
+	var resumed_result := world.continue_camp_sleep()
+	_check(bool(resumed_result.get("ok", false)), "The party should be able to resume sleep after winning the ambush")
+	_check(world.camp_simulation.phase == "resolved", "Resuming sleep should complete the remaining night")
+	_check(is_equal_approx(world.camp_simulation.night_elapsed_hours, CampSimulation.DEFAULT_NIGHT_HOURS), "Resumed sleep should finish the original planned eight-hour rest")
+	var total_elapsed_seconds := world.clock.world_seconds - world_start_seconds
+	_check(is_equal_approx(total_elapsed_seconds, CampSimulation.DEFAULT_NIGHT_HOURS * WorldClock.SECONDS_PER_HOUR), "World time should include the interrupted segment and the resumed remainder exactly once")
+	_check(_camp_night_events == 1, "Resuming sleep must not reroll or repeat the already-resolved ambush")
+	restored_world.free()
 	world.free()
 
 

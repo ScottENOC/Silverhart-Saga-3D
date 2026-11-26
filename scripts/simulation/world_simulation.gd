@@ -28,6 +28,7 @@ var clock: WorldClock = WorldClock.new()
 var weather_state: WorldWeatherState = WorldWeatherState.new()
 var turn_scheduler: CombatTurnScheduler = CombatTurnScheduler.new()
 var is_in_combat: bool = false
+var _suppress_time_point_regeneration: bool = false
 var pending_reaction: Dictionary = {}
 var next_reaction_request_id: int = 1
 var pending_attack_context: Dictionary = {}
@@ -1736,6 +1737,35 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
     if not bool(result.get("ok", false)):
         return result
     var skipped_seconds := float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR
+    var encounter_interrupted_sleep := bool(result.summary.get("sleep_interrupted", false))
+    # The encounter signal is emitted before the clock fast-forwards. Freeze TP
+    # regeneration across those ticks even if combat starts synchronously.
+    _suppress_time_point_regeneration = encounter_interrupted_sleep
+    var skipped_ticks := clock.skip_world_seconds(skipped_seconds)
+    _suppress_time_point_regeneration = false
+    # The remaining night is resumed explicitly after combat; it must not be
+    # granted as free TP regeneration during the interrupted segment.
+    if encounter_interrupted_sleep:
+        return result
+    for state_variant in characters.values():
+        var state := state_variant as CharacterState
+        if state == null or not state.alive:
+            continue
+        var recovery_multiplier := camp_simulation.time_point_regeneration_multiplier(state.id)
+        var bulk_ticks := maxi(0, skipped_ticks - 1)
+        var previous_tp := state.time_points
+        state.time_points = minf(150.0, state.time_points + float(bulk_ticks) * state.time_points_per_tick * recovery_multiplier)
+        _advance_character_spell_effects(state, maxf(0.0, state.time_points - previous_tp))
+    return result
+
+
+func continue_camp_sleep() -> Dictionary:
+    if is_in_combat:
+        return {"ok": false, "reason": "combat_active"}
+    var result := camp_simulation.continue_sleep()
+    if not bool(result.get("ok", false)):
+        return result
+    var skipped_seconds := float(result.summary.get("hours", 0.0)) * WorldClock.SECONDS_PER_HOUR
     var skipped_ticks := clock.skip_world_seconds(skipped_seconds)
     for state_variant in characters.values():
         var state := state_variant as CharacterState
@@ -1749,6 +1779,10 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
     return result
 
 
+func finish_interrupted_camp_night() -> Dictionary:
+    return camp_simulation.finish_interrupted_night()
+
+
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     # Guard direct/test-driven clock advancement as well as the normal
     # _process freeze: no TP or world tick work occurs during an active turn.
@@ -1757,6 +1791,8 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     for value in characters.values():
         var state := value as CharacterState
         if state != null and state.alive:
+            if _suppress_time_point_regeneration:
+                continue
             var previous_tp := state.time_points
             state.regenerate_time_points(camp_simulation.time_point_regeneration_multiplier(state.id))
             var gained_tp := maxf(0.0, state.time_points - previous_tp)

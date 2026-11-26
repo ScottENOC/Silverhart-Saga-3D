@@ -50,6 +50,11 @@ var lodging_profile: Dictionary = {}
 var night_index: int = 0
 var night_watch_schedule: Array[Dictionary] = []
 var night_encounter_result: Dictionary = {}
+var night_planned_hours: float = 0.0
+var night_elapsed_hours: float = 0.0
+var night_has_meal: bool = false
+var night_has_water: bool = false
+var night_resources_consumed: bool = false
 
 
 func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
@@ -101,6 +106,11 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	night_index = 0
 	night_watch_schedule.clear()
 	night_encounter_result.clear()
+	night_planned_hours = 0.0
+	night_elapsed_hours = 0.0
+	night_has_meal = false
+	night_has_water = false
+	night_resources_consumed = false
 	companion_profiles = environment.get("companion_profiles", {}).duplicate(true)
 	routine_stage = 0
 	_preparations_completed = false
@@ -1000,17 +1010,19 @@ func _scale_night_watch_schedule(hours: float) -> void:
 		night_watch_schedule[index] = shift
 
 
-func _watch_hours_by_character(hours: float) -> Dictionary:
+func _watch_hours_by_character(start_hour: float, end_hour: float) -> Dictionary:
 	var totals: Dictionary = {}
 	for shift in night_watch_schedule:
-		var duration := maxf(0.0, float(shift.get("end_hour", 0.0)) - float(shift.get("start_hour", 0.0)))
+		var shift_start := maxf(start_hour, float(shift.get("start_hour", 0.0)))
+		var shift_end := minf(end_hour, float(shift.get("end_hour", 0.0)))
+		var duration := maxf(0.0, shift_end - shift_start)
 		for watcher_id in shift.get("watcher_ids", []):
 			var key := String(watcher_id)
 			totals[key] = float(totals.get(key, 0.0)) + duration
 	return totals
 
 
-func _resolve_night_threat(ambush_chance: float) -> Dictionary:
+func _resolve_night_threat(ambush_chance: float, night_hours: float) -> Dictionary:
 	var seed_value := int(environment.get("night_seed", 0))
 	if seed_value == 0:
 		var seed_text := String(site.get("site_id", site.get("location_id", "camp")))
@@ -1024,13 +1036,14 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 	var attack_roll := rng.randf()
 	var attacked := attack_roll < ambush_chance
 	if not attacked:
-		return {"attacked": false, "detected": false, "attack_roll": attack_roll, "detection_chance": 0.0, "seed": seed_value}
+		return {"attacked": false, "detected": false, "attack_roll": attack_roll, "detection_chance": 0.0, "attack_hour": 0.0, "seed": seed_value}
 	var best_detection := 0.0
 	var detecting_watcher := ""
 	var visibility := clampf(float(environment.get("visibility_multiplier", 1.0)), 0.1, 1.5)
 	if bool(environment.get("fog", false)) or bool(environment.get("heavy_rain", false)):
 		visibility *= 0.7
-	for shift in night_watch_schedule:
+	for shift_index in range(night_watch_schedule.size()):
+		var shift: Dictionary = night_watch_schedule[shift_index]
 		var shift_detection := 0.0
 		var shift_watcher := ""
 		for watcher_value in shift.get("watcher_ids", []):
@@ -1048,8 +1061,15 @@ func _resolve_night_threat(ambush_chance: float) -> Dictionary:
 			detecting_watcher = shift_watcher
 		var detection_roll := rng.randf()
 		if detection_roll < shift_detection:
-			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "seed": seed_value}
-	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "seed": seed_value}
+			var detected_attack_hour := (float(shift.get("start_hour", 0.0)) + float(shift.get("end_hour", night_hours))) * 0.5
+			return {"attacked": true, "detected": true, "attack_roll": attack_roll, "detection_roll": detection_roll, "detection_chance": shift_detection, "watcher_id": shift_watcher, "shift_index": shift_index, "attack_hour": detected_attack_hour, "seed": seed_value}
+	var undetected_attack_hour := night_hours / 6.0
+	var attack_shift_index := -1
+	if not night_watch_schedule.is_empty():
+		attack_shift_index = night_watch_schedule.size() - 1
+		var last_shift: Dictionary = night_watch_schedule[attack_shift_index]
+		undetected_attack_hour = (float(last_shift.get("start_hour", 0.0)) + float(last_shift.get("end_hour", night_hours))) * 0.5
+	return {"attacked": true, "detected": false, "attack_roll": attack_roll, "detection_roll": 1.0, "detection_chance": best_detection, "watcher_id": detecting_watcher, "shift_index": attack_shift_index, "attack_hour": undetected_attack_hour, "seed": seed_value}
 
 
 func _has_activity(activity: String) -> bool:
@@ -1089,15 +1109,29 @@ func skip_to_morning(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	return resolve_night(hours)
 
 
-func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
-	if phase != "night":
+func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = true) -> Dictionary:
+	var continuing := phase == "interrupted"
+	if phase != "night" and not continuing:
 		return {"ok": false, "reason": "night_not_started"}
-	var night_hours := clampf(hours, 1.0, 16.0)
-	_scale_night_watch_schedule(night_hours)
+	if continuing and allow_encounter:
+		return {"ok": false, "reason": "interrupted_night_requires_resume"}
+	if not continuing:
+		night_planned_hours = clampf(hours, 1.0, 16.0)
+		night_elapsed_hours = 0.0
+		_scale_night_watch_schedule(night_planned_hours)
+		night_has_meal = bool(environment.get("meal_prepared", false))
+		night_has_water = int(resources.water) >= party_ids.size()
+		night_resources_consumed = false
+	var remaining_hours := maxf(0.0, night_planned_hours - night_elapsed_hours)
+	if remaining_hours <= 0.001:
+		phase = "resolved"
+		return {"ok": true, "summary": {"hours": 0.0, "planned_hours": night_planned_hours, "sleep_interrupted": false, "remaining_hours": 0.0}}
+	var segment_start := night_elapsed_hours
+	var segment_hours := remaining_hours
 	var party_size := party_ids.size()
 	var has_fire := bool(environment.get("fire_lit", false))
-	var has_meal := bool(environment.get("meal_prepared", false))
-	var has_water := int(resources.water) >= party_size
+	var has_meal := night_has_meal
+	var has_water := night_has_water
 	var watchers := _count_watchers()
 	var danger := clampf(float(environment.get("danger", 0.25)), 0.0, 1.0)
 	var base_ambush_chance := clampf(danger * 0.45 - float(watchers) * 0.07, 0.0, 0.45)
@@ -1111,22 +1145,27 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 				exposure = 0.65
 		exposure_total += exposure * (arrangement.get("character_ids", []) as Array).size()
 	var exposure_ratio := exposure_total / float(maxi(1, party_size))
-	# A solid dwelling substantially reduces exposure; tents provide partial cover.
 	var shelter_multiplier := 0.35 + 0.65 * exposure_ratio
 	var ambush_chance := base_ambush_chance * shelter_multiplier
-	var threat_result := _resolve_night_threat(ambush_chance)
-	night_encounter_result = threat_result.duplicate(true)
-	var watch_hours_by_character := _watch_hours_by_character(night_hours)
+	var threat_result := night_encounter_result.duplicate(true) if continuing else _resolve_night_threat(ambush_chance, night_planned_hours)
+	var sleep_interrupted := not continuing and bool(threat_result.get("attacked", false))
+	if sleep_interrupted:
+		var attack_hour := clampf(float(threat_result.get("attack_hour", night_planned_hours)), segment_start + 0.25, night_planned_hours)
+		segment_hours = attack_hour - segment_start
+	var segment_end := segment_start + segment_hours
+	var sleep_fraction := segment_hours / maxf(1.0, night_planned_hours)
+	var watch_hours_by_character := _watch_hours_by_character(segment_start, segment_end)
 	var starting_temperature := float(environment.get("night_temperature_c", 10.0))
 	var temperature_change := float(environment.get("temperature_change_per_hour", -0.4))
-	var temperature := starting_temperature + temperature_change * night_hours
+	var temperature := starting_temperature + temperature_change * segment_end
 	var cold_penalty := maxf(0.0, 10.0 - temperature) * 2.0
 	var bagged_characters: Dictionary = {}
 	for arrangement in sleeping_arrangements:
 		for bagged_id in arrangement.get("sleeping_bag_character_ids", []):
 			bagged_characters[String(bagged_id)] = true
-	if has_water:
+	if has_water and not night_resources_consumed:
 		resources["water"] = maxi(0, int(resources.water) - party_size)
+	night_resources_consumed = true
 	var results: Dictionary = {}
 	var total_comfort := 0.0
 	for character_id in party_ids:
@@ -1149,20 +1188,18 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var hydration := 90.0 if has_water else 35.0
 		var dwelling_security := float(lodging_profile.get("security_bonus", 0.0)) if in_dwelling else 0.0
 		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0 + dwelling_security, 0.0, 100.0)
-		# Social interactions can happen during any activity. The old dedicated
-		# "socialise" assignment is merely idle behaviour, not a social-time gate.
 		var social := clampf(50.0 + float(condition.get("social_satisfaction", 0.0)), 0.0, 100.0)
-		condition["social_satisfaction"] = maxf(0.0, float(condition.get("social_satisfaction", 0.0)) - 5.0)
+		condition["social_satisfaction"] = maxf(0.0, float(condition.get("social_satisfaction", 0.0)) - 5.0 * sleep_fraction)
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
 		var dwelling_comfort := float(lodging_profile.get("comfort_bonus", 0.0)) if in_dwelling else 0.0
 		var surface_comfort := 10.0 if sleeping_surface == "bed" else (3.0 if has_sleeping_bag else 0.0)
 		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10) + dwelling_comfort + surface_comfort, 0.0, 100.0)
 		var watched_hours := float(watch_hours_by_character.get(character_id, 0.0))
-		var watch_penalty := clampf(watched_hours / maxf(1.0, night_hours) * 10.0, 0.0, 10.0)
-		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, 20.0 + comfort * 0.35 - watch_penalty))
+		var watch_penalty := clampf(watched_hours / maxf(1.0, night_planned_hours) * 10.0, 0.0, 10.0)
+		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, (20.0 + comfort * 0.35 - watch_penalty) * sleep_fraction))
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
-		condition["hunger"] = clampf(float(condition.hunger) + night_hours * 2.0 - (25.0 if has_meal else 0.0), 0.0, 100.0)
-		condition["thirst"] = clampf(float(condition.thirst) + night_hours * 2.5 - (30.0 if has_water else 0.0), 0.0, 100.0)
+		condition["hunger"] = clampf(float(condition.hunger) + segment_hours * 2.0 - (25.0 if has_meal else 0.0) * sleep_fraction, 0.0, 100.0)
+		condition["thirst"] = clampf(float(condition.thirst) + segment_hours * 2.5 - (30.0 if has_water else 0.0) * sleep_fraction, 0.0, 100.0)
 		condition["warmth"] = warmth
 		condition["comfort"] = comfort
 		conditions[character_id] = condition
@@ -1174,19 +1211,50 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 			"sleeping_surface": sleeping_surface,
 			"shelter_type": "dwelling" if in_dwelling else ("tent" if in_tent else "open_air")
 		}
-	phase = "resolved"
+	night_elapsed_hours = segment_end
+	phase = "interrupted" if sleep_interrupted else "resolved"
 	var summary := {
-		"hours": night_hours, "party_size": party_size, "watchers": watchers,
-		"ambush_chance": ambush_chance, "base_ambush_chance": base_ambush_chance,
-		"night_index": night_index, "watch_schedule": night_watch_schedule.duplicate(true),
+		"hours": segment_hours,
+		"elapsed_hours": night_elapsed_hours,
+		"planned_hours": night_planned_hours,
+		"remaining_hours": maxf(0.0, night_planned_hours - night_elapsed_hours),
+		"sleep_interrupted": sleep_interrupted,
+		"continuation": continuing,
+		"party_size": party_size,
+		"watchers": watchers,
+		"ambush_chance": ambush_chance,
+		"base_ambush_chance": base_ambush_chance,
+		"night_index": night_index,
+		"watch_schedule": night_watch_schedule.duplicate(true),
 		"night_encounter": threat_result.duplicate(true),
-		"exposure_ratio": exposure_ratio, "shelter_multiplier": shelter_multiplier,
+		"exposure_ratio": exposure_ratio,
+		"shelter_multiplier": shelter_multiplier,
 		"average_comfort": total_comfort / float(maxi(1, party_size)),
 		"characters": results,
 		"resources_remaining": resources.duplicate(true)
 	}
-	night_resolved.emit(summary.duplicate(true))
+	if not continuing:
+		# Persist both peaceful and hostile outcomes. A resumed interrupted
+		# night reuses the original result and must not overwrite or reroll it.
+		night_encounter_result = threat_result.duplicate(true)
+	if sleep_interrupted:
+		night_resolved.emit(summary.duplicate(true))
 	return {"ok": true, "summary": summary}
+
+
+func continue_sleep() -> Dictionary:
+	if phase != "interrupted":
+		return {"ok": false, "reason": "no_interrupted_sleep"}
+	return resolve_night(maxf(1.0, night_planned_hours - night_elapsed_hours), false)
+
+
+func finish_interrupted_night() -> Dictionary:
+	if phase != "interrupted":
+		return {"ok": false, "reason": "no_interrupted_sleep"}
+	phase = "resolved"
+	return {"ok": true, "remaining_hours": maxf(0.0, night_planned_hours - night_elapsed_hours)}
+
+
 
 
 func to_dict() -> Dictionary:
@@ -1202,13 +1270,18 @@ func to_dict() -> Dictionary:
 		"occupants": occupants.duplicate(true), "animal_care": animal_care.duplicate(true),
 		"animal_care_tasks": animal_care_tasks.duplicate(true),
 		"night_index": night_index, "night_watch_schedule": night_watch_schedule.duplicate(true),
-		"night_encounter_result": night_encounter_result.duplicate(true)
+		"night_encounter_result": night_encounter_result.duplicate(true),
+		"night_planned_hours": night_planned_hours,
+		"night_elapsed_hours": night_elapsed_hours,
+		"night_has_meal": night_has_meal,
+		"night_has_water": night_has_water,
+		"night_resources_consumed": night_resources_consumed
 	}
 
 
 func from_dict(data: Dictionary) -> bool:
 	var saved_phase := String(data.get("phase", "inactive"))
-	if not ["inactive", "evening", "night", "resolved"].has(saved_phase):
+	if not ["inactive", "evening", "night", "interrupted", "resolved"].has(saved_phase):
 		return false
 	var saved_party: Variant = data.get("party_ids", [])
 	var saved_conditions: Variant = data.get("conditions", {})
@@ -1286,6 +1359,13 @@ func from_dict(data: Dictionary) -> bool:
 	for shift in saved_watch_schedule:
 		night_watch_schedule.append(shift.duplicate(true))
 	night_encounter_result = saved_encounter_result.duplicate(true)
+	night_planned_hours = maxf(0.0, float(data.get("night_planned_hours", 0.0)))
+	night_elapsed_hours = clampf(float(data.get("night_elapsed_hours", 0.0)), 0.0, night_planned_hours)
+	night_has_meal = bool(data.get("night_has_meal", false))
+	night_has_water = bool(data.get("night_has_water", false))
+	night_resources_consumed = bool(data.get("night_resources_consumed", false))
+	if saved_phase == "interrupted" and (night_planned_hours <= 0.0 or night_elapsed_hours >= night_planned_hours):
+		return false
 	site = data.get("site", {}).duplicate(true)
 	lodging_profile = saved_lodging.duplicate(true)
 	party_ids = ids

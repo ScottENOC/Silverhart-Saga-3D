@@ -32,6 +32,7 @@ const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interio
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const COMBAT_ENCOUNTER_CONTROLLER_SCRIPT = preload("res://scripts/presentation/combat_encounter_controller.gd")
+const CAMP_NIGHT_AMBUSH_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/camp_night_ambush_encounter.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
@@ -156,6 +157,8 @@ func _ready() -> void:
 	_create_camera()
 	_create_camp_presentation()
 	_create_hud()
+	if not simulation.camp_night_encounter_resolved.is_connected(_on_camp_night_encounter_resolved):
+		simulation.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
@@ -759,7 +762,7 @@ func _select_camp_site(hex: Vector2i) -> void:
 
 
 func _sleep_or_pack_camp() -> void:
-	if simulation == null:
+	if simulation == null or simulation.is_in_combat:
 		return
 	if simulation.camp_simulation.phase == "evening":
 		camp_activity_director.stop()
@@ -769,10 +772,24 @@ func _sleep_or_pack_camp() -> void:
 			return
 		var summary: Dictionary = result.get("summary", {})
 		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		if encounter_active:
+			camp_status_label.text = "Night ambush! The party has been roused to defend the camp."
+			camp_sleep_button.text = "Pack camp"
+			return
 		camp_status_label.text = "Morning. Camp comfort: %d/100 · estimated overnight ambush risk: %d%%." % [
 			roundi(float(summary.get("average_comfort", 0.0))),
 			roundi(float(summary.get("ambush_chance", 0.0)) * 100.0)
 		]
+		camp_sleep_button.text = "Pack camp"
+	elif simulation.camp_simulation.phase == "interrupted":
+		camp_activity_director.stop()
+		var resumed := simulation.continue_camp_sleep()
+		if not bool(resumed.get("ok", false)):
+			camp_status_label.text = "Could not resume sleep: %s" % String(resumed.get("reason", "unknown"))
+			return
+		var resumed_summary: Dictionary = resumed.get("summary", {})
+		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+		camp_status_label.text = "Morning. The party completed the remaining %.1f hours of sleep." % float(resumed_summary.get("hours", 0.0))
 		camp_sleep_button.text = "Pack camp"
 	elif simulation.camp_simulation.phase == "resolved":
 		camp_activity_director.stop()
@@ -1338,6 +1355,25 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id == "continue_camp_sleep":
+		if simulation != null and not simulation.is_in_combat:
+			var resumed := simulation.continue_camp_sleep()
+			if bool(resumed.get("ok", false)):
+				var summary: Dictionary = resumed.get("summary", {})
+				camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
+				camp_status_label.text = "Morning. The party completed the remaining %.1f hours of sleep." % float(summary.get("hours", 0.0))
+				if camp_sleep_button != null:
+					camp_sleep_button.text = "Pack camp"
+			else:
+				camp_status_label.text = "Could not resume sleep: %s" % String(resumed.get("reason", "unknown"))
+		return
+	if choice_id == "pack_camp_after_ambush":
+		if simulation != null:
+			simulation.finish_interrupted_camp_night()
+			camp_status_label.text = "The party leaves the remaining sleep hours behind. Pack camp when ready."
+			if camp_sleep_button != null:
+				camp_sleep_button.text = "Pack camp"
+		return
 	if choice_id.begins_with("furniture_buy:"):
 		var item_id := choice_id.trim_prefix("furniture_buy:")
 		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
@@ -2375,6 +2411,81 @@ func _start_farm_wolf_encounter() -> void:
 	_show_dialogue("Wilderness", "A low growl rolls through the trees. Three wolves emerge from the den and spread out to surround you.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
 
 
+
+func _on_camp_night_encounter_resolved(result: Dictionary) -> void:
+	if simulation == null or encounter_active or simulation.is_in_combat:
+		return
+	if not bool(result.get("attacked", false)):
+		return
+	var camp_hex_value: Variant = simulation.camp_simulation.site.get("hex", null)
+	if not camp_hex_value is Vector2i:
+		push_error("Camp night ambush has no valid campsite hex.")
+		return
+	var camp_hex: Vector2i = camp_hex_value
+	var spawn_offsets: Array[Vector2i] = [
+		Vector2i(3, 0), Vector2i(-3, 0), Vector2i(0, 3),
+		Vector2i(0, -3), Vector2i(3, -3), Vector2i(-3, 3)
+	]
+	var spawn_hexes: Array[Vector2i] = []
+	for offset in spawn_offsets:
+		var candidate := _find_valid_spawn_hex(camp_hex + offset)
+		if not spawn_hexes.has(candidate):
+			spawn_hexes.append(candidate)
+		if spawn_hexes.size() >= 2:
+			break
+	if spawn_hexes.size() < 2:
+		push_error("Could not find two valid cells for the camp night ambush.")
+		return
+	var party_ids: Array[String] = []
+	for party_id_value in simulation.get_party_member_ids():
+		var party_id := String(party_id_value)
+		var member := simulation.get_character(party_id)
+		if member != null and member.can_act():
+			party_ids.append(party_id)
+	var detected := bool(result.get("detected", false))
+	var started: Dictionary = CAMP_NIGHT_AMBUSH_ENCOUNTER_SCRIPT.start(
+		simulation, party_ids, spawn_hexes, detected
+	)
+	if not bool(started.get("ok", false)):
+		push_error("Could not start camp night ambush: %s" % started)
+		return
+	var enemy_ids: Array[String] = []
+	for enemy_id_value in started.get("enemy_ids", []):
+		var enemy_id := String(enemy_id_value)
+		enemy_ids.append(enemy_id)
+		var enemy := simulation.get_character(enemy_id)
+		if enemy == null:
+			continue
+		var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+		actor.name = enemy_id
+		actor.creature_kind = "wolf"
+		actor.behaviour = "predator"
+		actor.model_scale = 0.76
+		actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+		actor.position = _hex_world_position(enemy.axial)
+		add_child(actor)
+		actor_by_id[enemy_id] = actor
+	active_combat_session = started
+	active_encounter_resolver = Callable(CAMP_NIGHT_AMBUSH_ENCOUNTER_SCRIPT, "resolve_combat")
+	encounter_active = true
+	if not party_ids.has(active_character_id):
+		active_character_id = simulation.player_character_id
+	_activate_combat_controller(enemy_ids, party_ids, party_ids)
+	_update_combat_ui()
+	if detected:
+		_show_dialogue(
+			"Night Watch",
+			"%s spots movement beyond the firelight and raises the alarm. Two wolves rush the camp, but the party has time to ready itself." % String(result.get("watcher_id", "A watcher")),
+			[{"id": "continue", "label": "Defend the camp.", "text": ""}]
+		)
+	else:
+		_show_dialogue(
+			"Night Ambush",
+			"A sudden snarl tears through the darkness. Two wolves are already among the sleeping party!",
+			[{"id": "continue", "label": "Fight back!", "text": ""}]
+		)
+
+
 func _check_encounter_resolution() -> void:
 	if not encounter_active or not active_encounter_resolver.is_valid():
 		return
@@ -2406,6 +2517,19 @@ func _check_encounter_resolution() -> void:
 	var companion_dialogue_id := String(result.get("companion_dialogue_id", ""))
 	if not companion_dialogue_id.is_empty():
 		_show_companion_dialogue(companion_dialogue_id)
+		return
+	if String(result.get("outcome", "")) == "victory" and simulation.camp_simulation.phase == "interrupted":
+		if camp_sleep_button != null:
+			camp_sleep_button.visible = true
+			camp_sleep_button.text = "Continue sleeping"
+		_show_dialogue(
+			"Night Watch",
+			"The wolves have been driven off. The camp is secure again, and there are %.1f hours left before morning." % maxf(0.0, simulation.camp_simulation.night_planned_hours - simulation.camp_simulation.night_elapsed_hours),
+			[
+				{"id": "continue_camp_sleep", "label": "Return to sleep", "text": ""},
+				{"id": "pack_camp_after_ambush", "label": "Pack camp now", "text": ""}
+			]
+		)
 		return
 	var speaker := String(result.get("speaker", ""))
 	var message := String(result.get("message", ""))
