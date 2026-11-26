@@ -46,7 +46,7 @@ static func river_half_width(q: int, definition: Dictionary) -> float:
 
 static func is_building(hex: Vector2i, definition: Dictionary) -> bool:
 	for building in definition.get("buildings", []):
-		if not building is Dictionary:
+		if not building is Dictionary or not bool(building.get("blocks_movement", true)):
 			continue
 		var centre: Vector2i = building.get("center", Vector2i.ZERO)
 		if absi(hex.x - centre.x) <= int(building.get("half_q", 0)) and absi(hex.y - centre.y) <= int(building.get("half_r", 0)):
