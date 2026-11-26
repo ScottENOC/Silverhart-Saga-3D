@@ -90,7 +90,14 @@ static func turn_in(journal: CampaignJournal, player: CharacterState) -> Diction
 	player.gold += REWARD_GOLD
 	player.experience += REWARD_EXPERIENCE
 	journal.adjust_npc_reputation("old_mac", REWARD_REPUTATION, 20.0, "Protected Old Mac's cattle")
-	return {"ok": true, "gold": REWARD_GOLD, "experience": REWARD_EXPERIENCE, "reputation": REWARD_REPUTATION}
+	var regional_effect := journal.cascade_region_campaign_state("hollowmere", "security", 6.0)
+	return {
+		"ok": true,
+		"gold": REWARD_GOLD,
+		"experience": REWARD_EXPERIENCE,
+		"reputation": REWARD_REPUTATION,
+		"regional_effect": regional_effect
+	}
 
 
 static func resolve_dialogue_choice(
