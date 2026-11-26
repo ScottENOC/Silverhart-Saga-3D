@@ -1,6 +1,8 @@
 extends SceneTree
 
 const REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
+const LOCATION_STATE = preload("res://scripts/simulation/campaign2_multistory_location_state.gd")
+const FLOOR_BUILDER = preload("res://scripts/world/campaign2_multistory_floor_map_builder.gd")
 var failures: int = 0
 
 func _initialize() -> void:
@@ -523,6 +525,68 @@ func _initialize() -> void:
 			queen_room_found = true
 	_check(queen_room_found, "Queen private chambers must remain a room within the Grand Hall location")
 	_check(_has_record(palace_floor.get("tile_objects", []), "queen_chambers_bed") and _has_record(palace_floor.get("tile_objects", []), "queen_chambers_fireplace"), "Queen private chambers must preserve their source bed and fireplace fixtures")
+
+
+	# Every ordinary floor transition must have a reciprocal return link at
+	# the same axial shaft. The floor builder may synthesise a stair object
+	# from transition data, so validate the built presentation rather than
+	# requiring a literal JSON stair object.
+	var transition_record_count := 0
+	var unique_shaft_links: Dictionary = {}
+	for location_id in registry.location_ids():
+		var location_definition: Dictionary = registry.get_definition(location_id)
+		var location_state = LOCATION_STATE.new()
+		_check(bool(location_state.configure(location_definition).get("ok", false)), "Location transition state must configure: " + location_id)
+		for transition_variant in location_definition.get("transitions", []):
+			if not transition_variant is Dictionary:
+				continue
+			var transition: Dictionary = transition_variant
+			transition_record_count += 1
+			var from_floor := int(transition.get("from_floor", 999999))
+			var to_floor := int(transition.get("to_floor", 999999))
+			var position: Dictionary = transition.get("position", {})
+			var shaft := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+			var reverse_found := false
+			for reverse_variant in location_definition.get("transitions", []):
+				if not reverse_variant is Dictionary:
+					continue
+				var reverse: Dictionary = reverse_variant
+				var reverse_position: Dictionary = reverse.get("position", {})
+				if int(reverse.get("from_floor", 999999)) == to_floor and int(reverse.get("to_floor", 999999)) == from_floor and Vector2i(int(reverse_position.get("q", 0)), int(reverse_position.get("r", 0))) == shaft:
+					reverse_found = true
+					break
+			_check(reverse_found, "%s transition %d>%d must have a same-coordinate return route" % [location_id, from_floor, to_floor])
+			if from_floor < to_floor:
+				unique_shaft_links["%s:%d>%d@%d,%d" % [location_id, from_floor, to_floor, shaft.x, shaft.y]] = true
+			if not location_state.is_transition_available(from_floor, to_floor, shaft):
+				continue
+			var built_floor: Dictionary = FLOOR_BUILDER.build_floor_map(location_definition, from_floor, location_state)
+			_check(bool(built_floor.get("ok", false)), "%s floor %d must build for an available stair" % [location_id, from_floor])
+			if not bool(built_floor.get("ok", false)):
+				continue
+			var stair_found := false
+			for object_variant in built_floor.get("tile_objects", []):
+				if not object_variant is Dictionary:
+					continue
+				var object_position: Dictionary = object_variant.get("position", {})
+				if String(object_variant.get("type", "")) in ["stair_up", "stair_down"] and Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0))) == shaft:
+					stair_found = true
+					break
+			_check(stair_found, "%s available transition %d>%d must render a stair at %s" % [location_id, from_floor, to_floor, shaft])
+			_check(built_floor.get("map_data").is_walkable(shaft), "%s available transition must be walkable at its stair coordinate" % location_id)
+	_check(transition_record_count == 32, "Source floor registry must retain all 32 directed transition records")
+	_check(unique_shaft_links.size() == 16, "Source floor registry must retain all 16 reciprocal stair shafts")
+
+	# The palace and city surface passages are authored in their parent
+	# building records, while the underground junctions are separate stubs.
+	var palace_surface_passage := _record_by_id(registry.get_floor_definition("silverhart_palace_council_chamber", 0).get("tile_objects", []), "palace_secret_passage")
+	_check(String(palace_surface_passage.get("type", "")) == "secret_passage" and _position_matches(palace_surface_passage.get("position", {}), Vector2i(-9, -492)), "Palace secret passage must retain its source surface coordinate")
+	var city_surface_passage := _record_by_id(registry.get_floor_definition("silverhart_general_goods", 0).get("tile_objects", []), "city_secret_passage")
+	_check(String(city_surface_passage.get("type", "")) == "secret_passage" and _position_matches(city_surface_passage.get("position", {}), Vector2i(-20, -489)), "City secret passage must retain its source surface coordinate")
+	var palace_junction := _record_by_id(registry.get_floor_definition("silverhart_palace_tunnel", -9).get("tile_objects", []), "palace_tunnel_junction")
+	_check(String(palace_junction.get("type", "")) == "tunnel_junction" and _position_matches(palace_junction.get("position", {}), Vector2i(-9, -492)), "Palace underground tunnel stub must align with its surface passage")
+	var city_junction := _record_by_id(registry.get_floor_definition("silverhart_city_tunnel", -9).get("tile_objects", []), "city_tunnel_junction")
+	_check(String(city_junction.get("type", "")) == "tunnel_junction" and _position_matches(city_junction.get("position", {}), Vector2i(-20, -489)), "City underground tunnel stub must align with its surface passage")
 
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
