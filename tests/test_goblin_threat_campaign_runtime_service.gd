@@ -89,6 +89,7 @@ func _test_grondle_purchases_are_gated_and_charged() -> void:
 			axe_instances.append(String(item.get("instance_id", "")))
 	_check(axe_instances.size() == 1 and not axe_instances[0].is_empty(), "Purchased axe should be added as a real inventory instance")
 
+	player.gold = 40
 	var second := RUNTIME_SERVICE.purchase_grondle_item(simulation, "axe")
 	_check(bool(second.get("ok", false)), "The static trader stock should allow a second axe purchase")
 	_check(String(second.get("instance_id", "")) != axe_instances[0], "Repeated purchases must receive unique item instance IDs")
