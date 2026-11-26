@@ -33,7 +33,6 @@ static func ensure_ogre(simulation: WorldSimulation, spawn_hex: Vector2i = OGRE_
 	ogre.max_health = OGRE_HEALTH
 	ogre.base_damage = 9
 	ogre.to_hit_melee = 6.0
-	ogre.passive_dodge = -1.0
 	ogre.skills = {"club_hit": 2, "club_dmg": 2, "health": 3}
 	ogre.side = "enemy"
 	ogre.combat_dormant = true
@@ -70,7 +69,8 @@ static func start_encounter(simulation: WorldSimulation, party_ids: Array[String
 			valid_party.append(character_id)
 	if valid_party.is_empty():
 		return {"ok": false, "reason": "no_able_party_members"}
-	var started: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, [OGRE_ID])
+	var enemy_ids: Array[String] = [OGRE_ID]
+	var started: Dictionary = COMBAT_ENCOUNTER_SERVICE.begin(simulation, valid_party, enemy_ids)
 	if not bool(started.get("ok", false)):
 		return started
 	return {
