@@ -597,6 +597,40 @@ def _patch_loop_diagnostic(patch):
             sum(d == 2 for d in degrees), sum(d > 2 for d in degrees), loops)
 
 
+def _grow_clean_disc(candidates, bm, mw, centre):
+    """Grow a single-loop disc through adjacent candidate faces, never across a branch."""
+    if not candidates:
+        return []
+    allowed = set(candidates)
+    seed = min(allowed, key=lambda face: (mw @ face.calc_center_median() - centre).length_squared)
+    patch = [seed]
+    patch_set = {seed}
+    frontier = {linked for edge in seed.edges for linked in edge.link_faces
+                if linked in allowed and linked not in patch_set}
+    while frontier:
+        choices = []
+        for face in frontier:
+            shared = sum(1 for edge in face.edges
+                         if any(linked in patch_set for linked in edge.link_faces))
+            if shared != 1:
+                continue
+            trial = patch + [face]
+            if _single_clean_loop(trial):
+                distance = (mw @ face.calc_center_median() - centre).length_squared
+                choices.append((distance, face))
+        if not choices:
+            break
+        _distance, chosen = min(choices, key=lambda item: item[0])
+        frontier.remove(chosen)
+        patch.append(chosen)
+        patch_set.add(chosen)
+        for edge in chosen.edges:
+            for linked in edge.link_faces:
+                if linked in allowed and linked not in patch_set:
+                    frontier.add(linked)
+    return patch
+
+
 class _TubePath:
     """Advances a cross-section along a curved centreline (bends about the lateral axis, parallel transport).
     The dry run and the real carve both use this class, so what is checked is exactly what is built."""
@@ -658,21 +692,27 @@ def _carve_tube(bm, mw, inv, C, n, k, cfg, name, hips_gi=None):
         best_diag = None
         for ou, ov in offsets:
             candidate_C = C + L0 * (ou * mu) + T0 * (ov * mv)
-            cand = _mouth_patch(bm, mw, candidate_C, L0, T0, A0, mu, mv,
-                                0.012 * k * reach_scale, normal_limit)
-            if cand:
-                diag = _patch_loop_diagnostic(cand)
-                if best_diag is None or diag[0] > best_diag[0]:
-                    best_diag = diag
-            if len(cand) >= 6 and _single_clean_loop(cand):
-                patch, mouth_C = cand, candidate_C
+            raw_cand = _mouth_patch(bm, mw, candidate_C, L0, T0, A0, mu, mv,
+                                    0.012 * k * reach_scale, normal_limit)
+            if raw_cand:
+                diag = _patch_loop_diagnostic(raw_cand)
+                clean_cand = _grow_clean_disc(raw_cand, bm, mw, candidate_C)
+                clean_diag = _patch_loop_diagnostic(clean_cand)
+                if best_diag is None or len(clean_cand) > best_diag[0]:
+                    best_diag = (len(clean_cand), clean_diag[1], clean_diag[2],
+                                 clean_diag[3], clean_diag[4], clean_diag[5],
+                                 "from", diag[0])
+            else:
+                clean_cand = []
+            if len(clean_cand) >= 6 and _single_clean_loop(clean_cand):
+                patch, mouth_C = clean_cand, candidate_C
                 selected = (grow, reach_scale, normal_limit, ou, ov)
                 break
         diagnostics.append((grow, reach_scale, normal_limit, best_diag))
         if patch:
             break
     if not patch:
-        print(f"{name} mouth-patch diagnostics (scale, reach, normal, best faces/boundary/degree1/degree2/degree3+/loops): {diagnostics}")
+        print(f"{name} mouth-patch diagnostics (scale, reach, normal, clean faces/boundary/degree1/degree2/degree3+/loops, raw faces): {diagnostics}")
         raise RuntimeError(f"{name}: no clean disc of skin faces after adaptive search "
                            "(see mouth-patch diagnostics above); mesh topology may be unsuitable")
     if selected != (1.0, 1.0, -0.1, 0.0, 0.0):
