@@ -566,7 +566,12 @@
     },
     {
       "id": "skarnaks_hold",
-      "short": "K"
+      "short": "K",
+      "cell_override": [
+        11,
+        6
+      ],
+      "source_note": "Deliberately relocated into orc territory; keep clear of Ridgehold's human border position."
     },
     {
       "id": "kragmoor",
