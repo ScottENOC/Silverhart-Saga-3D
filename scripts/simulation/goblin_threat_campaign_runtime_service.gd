@@ -9,6 +9,8 @@ const WORLD_EFFECT_SERVICE = preload("res://scripts/simulation/campaign_world_ef
 const CHARACTER_FACTORY = preload("res://scripts/simulation/campaign_character_factory.gd")
 const QUEST_DEFINITION_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
 const SCOUT_NOTE_QUEST_ID := "goblin_scout_note"
+const MARTA_SPY_QUEST_ID := "goblin_spy_for_humans"
+const MARTA_VOUCHED_FLAG := "goblin_vouched_by_marta"
 
 
 static func give_chief_gift(simulation: WorldSimulation, relationships: PersistentCharacterRelationshipState) -> Dictionary:
@@ -341,6 +343,84 @@ static func _player_has_item_instance(player: CharacterState, instance_id: Strin
 		if String(item.get("instance_id", "")) == instance_id:
 			return true
 	return false
+
+
+static func marta_greeting(simulation: WorldSimulation) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	var player := simulation.get_character(simulation.player_character_id)
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	var race := String(player.race).strip_edges().to_lower()
+	var is_greenskin := race in ["goblin", "orc"]
+	if not is_greenskin:
+		return {"ok": false, "handled": false, "reason": "not_greenskin"}
+	var journal := simulation.campaign_journal
+	var quest := journal.quest_state(MARTA_SPY_QUEST_ID)
+	var is_orc := race == "orc"
+	return FOLLOWUP_SCRIPT.new().marta_greeting({
+		"is_greenskin": true,
+		"is_orc": is_orc,
+		"leader_noun": "warlord" if is_orc else "chief",
+		"faction_noun": "the orc raiders pressing the border" if is_orc else "the Skarn-tooth tribe",
+		"quest_status": String(quest.get("status", "")),
+		"vouched_by_marta": bool(journal.world_campaign_flag(MARTA_VOUCHED_FLAG, false))
+	})
+
+
+static func accept_marta_spy_quest(simulation: WorldSimulation) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	var player := simulation.get_character(simulation.player_character_id)
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	var race := String(player.race).strip_edges().to_lower()
+	if race not in ["goblin", "orc"]:
+		return {"ok": false, "reason": "greenskin_player_required"}
+	if bool(simulation.campaign_journal.world_campaign_flag(MARTA_VOUCHED_FLAG, false)):
+		return {"ok": false, "reason": "already_vouched"}
+	return FOLLOWUP_SCRIPT.new().accept_goblin_spy_for_humans(simulation.campaign_journal)
+
+
+static func resolve_marta_spy_quest(simulation: WorldSimulation) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	var player := simulation.get_character(simulation.player_character_id)
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	var race := String(player.race).strip_edges().to_lower()
+	if race not in ["goblin", "orc"]:
+		return {"ok": false, "reason": "greenskin_player_required"}
+	var journal := simulation.campaign_journal
+	if bool(journal.world_campaign_flag(MARTA_VOUCHED_FLAG, false)):
+		return {"ok": true, "already_applied": true}
+	var quest := journal.quest_state(MARTA_SPY_QUEST_ID)
+	if String(quest.get("status", "")) != "active":
+		return {"ok": false, "reason": "marta_spy_quest_not_active"}
+	var recorded := journal.record_decision(MARTA_SPY_QUEST_ID, "reported_plans", "claimed_no_hostile_intent")
+	if not bool(recorded.get("ok", false)):
+		return recorded
+	var kingdom_change := journal.adjust_faction_reputation(
+		"silverhart_kingdom", 20.0, 20.0, "goblin_spy_for_humans"
+	)
+	var own_faction := "orc_raiders" if race == "orc" else "goblin_tribe"
+	var own_change := journal.adjust_faction_reputation(
+		own_faction, -15.0, 15.0, "goblin_spy_for_humans"
+	)
+	journal.apply_world_campaign_flags({MARTA_VOUCHED_FLAG: true})
+	player.experience += 150
+	var completed := journal.complete_quest(MARTA_SPY_QUEST_ID)
+	if not bool(completed.get("ok", false)):
+		return completed
+	return {
+		"ok": true,
+		"already_applied": false,
+		"experience_awarded": 150,
+		"kingdom_reputation": kingdom_change,
+		"own_faction_reputation": own_change,
+		"vouched_by_marta": true,
+		"message": "Elder Marta nods slowly. Begrudgingly, you've earned a little trust. Don't make me regret it."
+	}
 
 
 static func aldric_captive_greeting(simulation: WorldSimulation) -> Dictionary:
