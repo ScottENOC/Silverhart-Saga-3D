@@ -5,6 +5,7 @@ extends RefCounted
 
 const COMPANION_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const GOBLIN_CONTENT = preload("res://scripts/simulation/goblin_threat_campaign_content.gd")
+const GOBLIN_FOLLOWUP_CONTENT = preload("res://scripts/simulation/goblin_threat_followup_content.gd")
 
 
 static func register_all(journal: CampaignJournal) -> void:
@@ -14,6 +15,7 @@ static func register_all(journal: CampaignJournal) -> void:
 	var definitions: Array[Dictionary] = [
 		GOBLIN_CONTENT.mine_raid_quest_definition(),
 		GOBLIN_CONTENT.greenskin_spy_quest_definition(),
+		GOBLIN_FOLLOWUP_CONTENT.new().goblin_spy_for_humans_quest_definition(),
 		{
 			"id": "goblin_scout_note",
 			"title": "The Goblin Scout's Note",
