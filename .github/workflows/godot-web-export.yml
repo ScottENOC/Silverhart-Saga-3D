@@ -35,8 +35,8 @@ concurrency:
 
 jobs:
   export:
-    # Export independently of optional upstream asset builds. Each asset lookup
-    # below reuses the newest available artifact or emits a warning and skips it.
+    # Export independently of optional upstream asset builds. Required base
+    # character assets use the latest successful pack; optional assets may skip.
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -84,7 +84,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&status=success&per_page=10" --jq '.workflow_runs[].id')"
           for run_id in $RUNS; do
             artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.expired == false) | select(.name | startswith("ara-runtime-assets-")) | .name' | head -n 1 || true)"
             if [ -n "$artifact_name" ]; then
