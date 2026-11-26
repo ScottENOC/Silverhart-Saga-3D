@@ -146,6 +146,8 @@ var camp_button: Button
 var camp_sleep_button: Button
 var camp_status_label: Label
 var rowan_roaming_hex: Vector2i = INVALID_HEX
+var rowan_return_accumulator: float = 0.0
+var rowan_return_busy: bool = false
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
@@ -1876,7 +1878,7 @@ func _resolve_rowan_camp_choice(choice: Dictionary) -> void:
 
 
 func _return_rowan_after_night() -> void:
-	if rowan_roaming_hex == INVALID_HEX or simulation == null:
+	if rowan_roaming_hex == INVALID_HEX or simulation == null or rowan_return_busy:
 		return
 	if simulation.camp_simulation.occupants.has("rowan_fletcher"):
 		return
@@ -1884,12 +1886,14 @@ func _return_rowan_after_night() -> void:
 	if rowan_state == null:
 		rowan_roaming_hex = INVALID_HEX
 		return
+	rowan_return_busy = true
 	camp_activity_director.stop()
 	var destination := rowan_roaming_hex
 	var path := simulation.find_path("rowan_fletcher", destination)
 	if path.size() > 1:
 		for step_index in range(1, path.size()):
 			if not simulation.try_move_character_step("rowan_fletcher", path[step_index]):
+				rowan_return_busy = false
 				return
 			await get_tree().create_timer(0.16).timeout
 			if not is_instance_valid(self):
@@ -1898,6 +1902,7 @@ func _return_rowan_after_night() -> void:
 		rowan_roaming_hex = INVALID_HEX
 		if simulation.camp_simulation.phase in ["morning", "resolved"]:
 			camp_activity_director.begin_camp(simulation.camp_simulation.site)
+	rowan_return_busy = false
 
 
 func _close_dialogue() -> void:
@@ -2976,6 +2981,11 @@ func _process(delta: float) -> void:
 		movement_controller.process_movement(delta)
 	if camp_activity_director != null:
 		camp_activity_director.process_activity_movement(delta)
+	if rowan_roaming_hex != INVALID_HEX and not rowan_return_busy and simulation != null and not simulation.camp_simulation.occupants.has("rowan_fletcher") and simulation.camp_simulation.phase in ["morning", "resolved", "inactive"]:
+		rowan_return_accumulator += delta
+		if rowan_return_accumulator >= 1.0:
+			rowan_return_accumulator = 0.0
+			_return_rowan_after_night()
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")
