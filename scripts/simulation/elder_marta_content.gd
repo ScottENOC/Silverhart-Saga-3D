@@ -1,12 +1,11 @@
 class_name ElderMartaContent
 extends RefCounted
 ## Source-backed port of Elder Marta's "A Missing Locket" errand.
-## The quest logic is independent of actor placement; Marta still needs a
-## persistent profile and live interaction route before this is playable.
+## The quest uses the existing Elder Marta actor; the chapel pickup remains a separate world-content dependency.
 
 const QUEST_ID := "elder_locket"
 const OBJECTIVE_ID := "recover_mothers_locket"
-const NPC_ID := "elder_marta_wynfield"
+const NPC_ID := "elder_marta"
 const LOCKET_ITEM_ID := "elder_locket"
 const REWARD_GOLD := 20
 const REWARD_EXPERIENCE := 100

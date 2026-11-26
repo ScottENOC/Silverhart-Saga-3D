@@ -14,6 +14,7 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
+const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
@@ -1449,6 +1450,25 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
 				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
 			return
+	if choice_id.begins_with("cassia_"):
+		var cassia_result := ALDENREACH_MESSAGE_CONTENT_SCRIPT.resolve_choice(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id),
+			choice_id
+		)
+		if not bool(cassia_result.get("ok", false)):
+			_show_dialogue("Ambassador Cassia Wren", "That could not be completed: %s." % String(cassia_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+			return
+		if bool(cassia_result.get("quest_started", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest added: A Quiet Word."
+		if bool(cassia_result.get("quest_completed", false)) and resource_status_label != null:
+			resource_status_label.text = "Quest complete: A Quiet Word  ·  +15 gold  ·  +60 XP"
+		var cassia_dialogue: Variant = cassia_result.get("dialogue", {})
+		if cassia_dialogue is Dictionary and not cassia_dialogue.is_empty():
+			_show_dialogue(String(cassia_dialogue.get("speaker", "Ambassador Cassia Wren")), String(cassia_dialogue.get("text", "")), cassia_dialogue.get("choices", []))
+		elif bool(cassia_result.get("handled", false)):
+			_close_dialogue()
+		return
 	if choice_id.begins_with("marta_"):
 		var marta_result := ELDER_MARTA_CONTENT_SCRIPT.resolve_choice(
 			simulation.campaign_journal,
@@ -1633,6 +1653,9 @@ func _interact_with_character(character_id: String) -> void:
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
 		return
 	if character_id in ["elder_marta", "marta_wynfield"]:
+		var message_delivery := ALDENREACH_MESSAGE_CONTENT_SCRIPT.deliver_to_elder(simulation.campaign_journal)
+		if bool(message_delivery.get("delivered_now", false)) and resource_status_label != null:
+			resource_status_label.text = "Delivered Ambassador Cassia Wren's quiet word to Elder Marta."
 		var marta_player := simulation.get_character(simulation.player_character_id)
 		var marta_conversation := ELDER_MARTA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, marta_player)
 		if bool(marta_conversation.get("ok", false)):
@@ -1735,6 +1758,10 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if actor == null or target_state == null:
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
+	if dialogue_id == "aldenreach_ambassador":
+		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
+		_show_dialogue(String(cassia_conversation.get("speaker", target_state.display_name)), String(cassia_conversation.get("text", "")), cassia_conversation.get("choices", []))
+		return
 	if dialogue_id == "silverhart_queen":
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var content := PERSISTENT_DIALOGUE_CONTENT.new()

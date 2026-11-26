@@ -1,7 +1,7 @@
 # Campaign 2 content gap audit — NPCs, dialogue and quests
 
 **Source:** [Hex-crpg](https://github.com/ScottENOC/Hex-crpg), `main` at `4de96f16889d43cae91e03832c8eb1c1b4b00e42`  
-**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `d6e08edc529a7d61862cd3ea3b307ef9e492ef9d` (before this audit update)  
+**Target:** [Silverhart-Saga-3D](https://github.com/ScottENOC/Silverhart-Saga-3D), `dev` at `6d44b26a2b497862660162b06a580e65efd27b27` (before this audit update)  
 **Audit date:** 2026-11-26  
 **Scope:** Named NPC roster, authored dialogue volume/coverage, explicit quest IDs and campaign-content migration status.
 
@@ -13,7 +13,7 @@ This is the campaign-content companion to [the map-only gap audit](campaign2_gap
 |---|---:|---:|---|
 | Named NPC roster | 120 named NPCs across three explicit rosters | 72 of those names appear in target character profiles or settlement placements | **48 lack an active profile/placement record** |
 | Dialogue | At least 509 explicit dialogue call-sites; at least 416 literal lines passed directly to them | About 209 direct static utterances found in the current dialogue/content files | **Partial; no complete line/branch mapping exists** |
-| Quests | 72 explicit source quest IDs | 25 explicit target quest IDs; 17 exact ID matches | **55 source IDs have no exact target ID** |
+| Quests | 72 explicit source quest IDs | 26 explicit target quest IDs; 18 exact ID matches | **54 source IDs have no exact target ID** |
 
 These are inventory counts, not a completion percentage. A profile, placement, dialogue string or quest ID is not proof that the associated actor can spawn, the full dialogue tree is reachable, or the quest's consequences work in a playable campaign.
 
@@ -145,9 +145,9 @@ The existing [NPC and dialogue extraction index](campaign2_npc_dialogue_index.md
 ### Counts
 
 - Source: **72 explicit quest IDs** — 49 from the Campaign 2 dialogue/index scan, nine companion quest chapters, eleven named character-arc quests and three Seraphine arc quests.
-- Target: **25 explicit quest IDs** on `dev`.
-- Exact ID overlap: **17**.
-- Source IDs without an exact target ID: **55**.
+- Target: **26 explicit quest IDs** on `dev`.
+- Exact ID overlap: **18**.
+- Source IDs without an exact target ID: **54**.
 - Target-only IDs: **8**.
 
 An exact-ID difference is not proof that an entire storyline is absent. Some target quests may be adapted or renamed; those need an explicit source-to-target mapping and branch/consequence verification before being treated as migrated.
@@ -169,10 +169,9 @@ I compared each target definition and its stated objective against the source qu
 
 **Net result:** zero source quest IDs can be safely removed from the 59-ID exact mismatch list on this evidence alone. Two target quests have plausible partial mappings (`reyna_dire_wolf_hunt` and `northwatch_siege`); three formalise source events that were not separate quest IDs (`hollowmere_ironbond_shakedown`, `aldric_rescue`, `mirabel_spider_ruin`); the remaining three are new or related-but-distinct content. The exact-ID gap therefore remains **59**, while the semantic review has narrowed where manual parity work is needed.
 
-### Source IDs without an exact target ID — 56
+### Source IDs without an exact target ID — 54
 
-**Campaign 2 dialogue/index IDs — 42**
-- [ ] `aldenreach_message`
+**Campaign 2 dialogue/index IDs — 41**
 - [ ] `baron_tribute`
 - [ ] `border_war`
 - [ ] `buried_road`
@@ -234,9 +233,9 @@ I compared each target definition and its stated objective against the source qu
 - [ ] `seraphine_border_decree`
 - [ ] `seraphine_what_crown_may_hide`
 
-### Exact ID matches already present — 17
+### Exact ID matches already present — 18
 
-`a_stone_for_nella`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
+`a_stone_for_nella`, `aldenreach_message`, `elder_locket`, `corvane_watch`, `dwarven_toll`, `farm_wolves`, `goblin_threat`, `orc_stronghold_trust`, `aldric_weight_of_command`, `mirabel_borrowed_voice`, `mirabel_place_for_dangerous_books`, `fenn_fire_in_understory`, `fenn_groves_answer`, `reyna_shared_watch`, `reyna_rangers_writ`, `alden_missing_sixth`, `alden_rule_for_living`, `fenn_living_boundary`.
 
 These are exact-ID matches only. Their runtime triggers, all choices, completion conditions, rewards and consequences still need to pass their own parity checks.
 
@@ -274,10 +273,17 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Connected her greeting and choice handling to the live Hollow Tankard NPC interaction dispatcher and registered the quest with the campaign journal at startup.
 - [ ] Add or verify the source-authored chapel pickup at world hex `(-14, 0)`. The `elder_locket` item definition exists, but I have not yet found a target world pickup corresponding to the source's chapel placement; the quest logic and dialogue route are therefore not yet fully playable end-to-end.
 
+**A Quiet Word**
+
+- [x] Added `AldenreachMessageContent` for the source's accept, waiting, delivered-to-elder and report-back states.
+- [x] Connected Cassia's existing streamed actor dialogue route and Elder Marta's existing local interaction route; delivery is recorded when the player speaks to Marta.
+- [x] Added regression coverage for the two-stage delivery, rewards (+15 gold, +60 experience, +10 Cassia reputation / +15 knowledge) and duplicate-claim prevention.
+- [ ] Verify Cassia's streamed actor model/presentation in the Silverhart world; her settlement entry and dialogue ID exist, but her appearance record remains a legacy fallback.
+
 ## 4. Work order — smallest verifiable steps first
 
 1. [ ] **NPC reconciliation:** resolve the 48 missing active profile/placement records, starting with named NPCs already referenced by implemented quests or dialogue. Do not generate a model before confirming the character is meant to be a persistent/spawned actor.
-2. [x] **Quest semantic mapping:** reviewed all eight target-only IDs against source quest and event scripts. No one-to-one source quest equivalence is safe to accept yet; two partial overlap candidates are documented above; the exact-ID gap is now 55 after four small quest-content ports.
+2. [x] **Quest semantic mapping:** reviewed all eight target-only IDs against source quest and event scripts. No one-to-one source quest equivalence is safe to accept yet; two partial overlap candidates are documented above; the exact-ID gap is now 54 after five small quest-content ports.
 3. [ ] **Quest branch parity:** for each source quest, compare start gates, objectives, decision branches, completion, failure/alternate outcomes, rewards and world-state consequences.
 4. [ ] **Dialogue tree mapping:** reconcile the 69 dialogue IDs and then map each source call-site/branch to target nodes and typed effects.
 5. [ ] **Runtime integration:** verify persistence, actor spawning, interaction routing, schedules, companion reactivity and save/load. Static data alone does not close a row.
