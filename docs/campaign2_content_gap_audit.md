@@ -248,7 +248,8 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 
 - [~] Added `IronbondMissingCourierContent` with Dray Coltayne's source offer, accept/decline choices, journal registration, and the source's +10 Ironbond reputation / +10 knowledge on acceptance.
 - [~] Added headless regression coverage for decline, acceptance, one-time faction reward and journal save/restore.
-- [ ] Not yet runtime-wired: Dray does not currently have a persistent streamed dialogue route in the target scene, and the source itself contains no courier recovery encounter or completion branch. Do not count this as a playable quest.
+- [x] Connected the offer and choice handling to Dray Coltayne's existing Hollowmere actor (`dialogue_id: dray_coltayne`, authored placement `Vector2i(-1, 6)`) and registered the quest with the campaign journal at startup.
+- [ ] The source itself contains no courier recovery encounter or completion branch; those gameplay stages remain unported. Count this as a playable offer/acceptance beat, not a complete quest.
 
 **The Toll-Taker — `toll_ogre`**
 
