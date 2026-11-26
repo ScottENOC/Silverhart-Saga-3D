@@ -5,6 +5,7 @@ extends Node3D
 ## built relative to that anchor while simulation cells retain global axial IDs.
 
 const FLOOR_MAP_BUILDER = preload("res://scripts/world/campaign2_multistory_floor_map_builder.gd")
+const TUNNEL_NETWORK = preload("res://scripts/world/campaign2_tunnel_network.gd")
 const CANOPY_PRESENTATION = preload("res://scripts/world/world_canopy_settlement_presentation.gd")
 const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
 const CHARACTER_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_character_definition_registry.gd")
@@ -84,18 +85,22 @@ func register_character_actor(character_id: String, actor: Node3D) -> bool:
 	if character_id.strip_edges().is_empty() or actor == null or not is_instance_valid(actor):
 		return false
 	character_actor_nodes[character_id] = actor
-	_set_actor_floor_height(actor, get_current_floor())
+	_set_actor_location(character_id, actor, get_current_floor())
 	return true
 
 func unregister_character_actor(character_id: String) -> void:
 	character_actor_nodes.erase(character_id)
 
-func _set_actor_floor_height(actor: Node3D, floor_number: int) -> void:
-	if actor == null or not is_instance_valid(actor):
+func _set_actor_location(character_id: String, actor: Node3D, floor_number: int) -> void:
+	if actor == null or not is_instance_valid(actor) or simulation == null:
 		return
-	var actor_position := actor.global_position
-	actor_position.y = global_position.y + float(floor_number) * FLOOR_HEIGHT + 0.1
-	actor.global_position = actor_position
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return
+	var anchor_data: Dictionary = definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	var local_position := HexGrid.axial_to_world(character.axial - anchor, HEX_RADIUS, float(floor_number) * FLOOR_HEIGHT + 0.1)
+	actor.global_position = to_global(local_position)
 
 func _sync_registered_character_actor_floors(floor_number: int) -> void:
 	for character_id_variant in character_actor_nodes.keys():
@@ -104,7 +109,7 @@ func _sync_registered_character_actor_floors(floor_number: int) -> void:
 		if actor == null or not is_instance_valid(actor):
 			character_actor_nodes.erase(character_id)
 			continue
-		_set_actor_floor_height(actor, floor_number)
+		_set_actor_location(character_id, actor, floor_number)
 
 func has_floor_object(floor_number: int, object_id: String) -> bool:
 	var group := floor_groups.get(floor_number) as Node3D
@@ -160,14 +165,14 @@ func reveal_secret_door(character_id: String, secret_id: String) -> Dictionary:
 			if not object_variant is Dictionary:
 				continue
 			var object_data: Dictionary = object_variant
-			if String(object_data.get("id", "")) == secret_id and String(object_data.get("type", "")) == "secret_door":
+			if String(object_data.get("id", "")) == secret_id and String(object_data.get("type", "")) in ["secret_door", "secret_passage"]:
 				secret_object = object_data
 				secret_floor = int(floor_definition.get("floor", 999999))
 				break
 		if not secret_object.is_empty():
 			break
 	if secret_object.is_empty() or secret_floor != location_state.current_floor:
-		return {"ok": false, "reason": "secret_door_not_on_active_floor"}
+		return {"ok": false, "reason": "secret_not_on_active_floor"}
 	var position_data: Dictionary = secret_object.get("position", {})
 	var secret_hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
 	if HexGrid.distance(character.axial, secret_hex) > 1:
@@ -179,6 +184,181 @@ func reveal_secret_door(character_id: String, secret_id: String) -> Dictionary:
 		_rebuild_floor_presentation(secret_floor)
 		_activate_floor(location_state.current_floor)
 	return {"ok": true, "already_discovered": bool(discovery.get("already_discovered", false)), "secret_id": secret_id}
+
+
+## Return the two other fast-travel destinations when the character is standing
+## on this location's authored -9 tunnel junction.
+func get_tunnel_junction_node(character_id: String) -> String:
+	return _tunnel_node_for_character(character_id)
+
+func get_tunnel_junction_destinations(character_id: String) -> Array[Dictionary]:
+	return TUNNEL_NETWORK.destinations_from(_tunnel_node_for_character(character_id))
+
+## A discovered surface passage enters its matching tunnel node.
+func get_tunnel_entry_node(character_id: String) -> String:
+	return _secret_passage_node_for_character(character_id)
+
+func _secret_passage_node_for_character(character_id: String) -> String:
+	if simulation == null or location_state == null or location_state.current_floor != 0:
+		return ""
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return ""
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != 0:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			if String(object_data.get("type", "")) != "secret_passage" or not location_state.is_secret_discovered(String(object_data.get("id", ""))):
+				continue
+			var position: Dictionary = object_data.get("position", {})
+			var entrance_hex := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+			if HexGrid.distance(character.axial, entrance_hex) <= 1:
+				return String(object_data.get("node_id", ""))
+	return ""
+
+func has_revealed_tunnel_passage(node_id: String) -> bool:
+	return _tunnel_passage_position(node_id) != Vector2i(2147483647, 2147483647)
+
+func get_tunnel_passage_position(node_id: String) -> Vector2i:
+	return _tunnel_passage_position(node_id)
+
+func _tunnel_passage_position(node_id: String) -> Vector2i:
+	if location_state == null or location_state.current_floor != 0:
+		return Vector2i(2147483647, 2147483647)
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != 0:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			if String(object_data.get("type", "")) != "secret_passage" or String(object_data.get("node_id", "")) != node_id:
+				continue
+			if not location_state.is_secret_discovered(String(object_data.get("id", ""))):
+				continue
+			var position: Dictionary = object_data.get("position", {})
+			return Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+	return Vector2i(2147483647, 2147483647)
+
+func set_location_active(active: bool) -> void:
+	if active:
+		_activate_floor(get_current_floor())
+		return
+	for floor_key in floor_groups:
+		var group := floor_groups[floor_key] as Node3D
+		if group != null:
+			group.visible = false
+	_restore_active_map_cells()
+
+## Enter from a discovered surface passage into the matching tunnel stub.
+func enter_tunnel_node(character_id: String, target_runtime: Campaign2MultiStoryLocationRuntime, node_id: String) -> Dictionary:
+	if simulation == null or target_runtime == null or target_runtime.simulation != simulation:
+		return {"ok": false, "reason": "incompatible_tunnel_runtime"}
+	if _secret_passage_node_for_character(character_id) != node_id:
+		return {"ok": false, "reason": "not_at_revealed_tunnel_passage"}
+	if not target_runtime.has_tunnel_node(node_id):
+		return {"ok": false, "reason": "unknown_tunnel_destination"}
+	return _transfer_to_location(character_id, target_runtime, TUNNEL_NETWORK.FLOOR_NUMBER, TUNNEL_NETWORK.get_node(node_id).get("position", Vector2i.ZERO), node_id)
+
+## Return from a junction through its matching discovered surface entrance.
+func return_to_surface_passage(character_id: String, target_runtime: Campaign2MultiStoryLocationRuntime, node_id: String) -> Dictionary:
+	if simulation == null or target_runtime == null or target_runtime.simulation != simulation:
+		return {"ok": false, "reason": "incompatible_tunnel_runtime"}
+	if _tunnel_node_for_character(character_id) != node_id:
+		return {"ok": false, "reason": "not_at_tunnel_junction"}
+	if not target_runtime.has_revealed_tunnel_passage(node_id):
+		return {"ok": false, "reason": "surface_passage_not_discovered"}
+	return _transfer_to_location(character_id, target_runtime, 0, target_runtime.get_tunnel_passage_position(node_id), node_id)
+
+func _transfer_to_location(character_id: String, target_runtime: Campaign2MultiStoryLocationRuntime, target_floor: int, destination_hex: Vector2i, node_id: String) -> Dictionary:
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var actor := character_actor_nodes.get(character_id) as Node3D
+	set_location_active(false)
+	target_runtime.set_location_active(false)
+	var floor_result: Dictionary = target_runtime.location_state.set_current_floor_for_network_travel(target_floor)
+	if not bool(floor_result.get("ok", false)):
+		set_location_active(true)
+		return floor_result
+	target_runtime.set_location_active(true)
+	if not simulation.relocate_character(character_id, destination_hex):
+		target_runtime.set_location_active(false)
+		set_location_active(true)
+		return {"ok": false, "reason": "destination_unwalkable_or_occupied"}
+	unregister_character_actor(character_id)
+	if actor != null:
+		target_runtime.register_character_actor(character_id, actor)
+	return {"ok": true, "to_node": node_id, "position": destination_hex, "location_id": String(target_runtime.definition.get("id", ""))}
+
+## Reveal a concealed Guild tunnel entrance after the caller's search/check.
+func reveal_secret_passage(character_id: String, secret_id: String) -> Dictionary:
+	return reveal_secret_door(character_id, secret_id)
+
+
+func has_tunnel_node(node_id: String) -> bool:
+	var location_node := TUNNEL_NETWORK.get_node(node_id)
+	if location_node.is_empty() or String(location_node.get("location_id", "")) != String(definition.get("id", "")):
+		return false
+	var expected_object_id := String(location_node.get("object_id", ""))
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != TUNNEL_NETWORK.FLOOR_NUMBER:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if object_variant is Dictionary and String(object_variant.get("id", "")) == expected_object_id and String(object_variant.get("type", "")) == "tunnel_junction":
+				return true
+	return false
+
+## Transfer a party character between two already-loaded tunnel stub runtimes.
+## The target runtime must share this campaign simulation.
+func travel_to_tunnel_node(character_id: String, target_runtime: Campaign2MultiStoryLocationRuntime, target_node_id: String) -> Dictionary:
+	if simulation == null or target_runtime == null or target_runtime.simulation != simulation:
+		return {"ok": false, "reason": "incompatible_tunnel_runtime"}
+	var source_node_id := _tunnel_node_for_character(character_id)
+	if source_node_id.is_empty():
+		return {"ok": false, "reason": "not_at_tunnel_junction"}
+	var destination := TUNNEL_NETWORK.get_node(target_node_id)
+	if destination.is_empty() or not target_runtime.has_tunnel_node(target_node_id):
+		return {"ok": false, "reason": "unknown_tunnel_destination"}
+	if target_node_id == source_node_id:
+		return {"ok": false, "reason": "already_at_destination"}
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var destination_hex: Vector2i = destination.get("position", Vector2i.ZERO)
+	var result := _transfer_to_location(character_id, target_runtime, TUNNEL_NETWORK.FLOOR_NUMBER, destination_hex, target_node_id)
+	if bool(result.get("ok", false)):
+		result["from_node"] = source_node_id
+	return result
+
+func _tunnel_node_for_character(character_id: String) -> String:
+	if simulation == null or location_state == null:
+		return ""
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return ""
+	var active_floor := location_state.current_floor
+	if active_floor != TUNNEL_NETWORK.FLOOR_NUMBER:
+		return ""
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != active_floor:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			var object_type := String(object_data.get("type", ""))
+			if object_type != "tunnel_junction":
+				continue
+			var position: Dictionary = object_data.get("position", {})
+			var object_hex := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+			if character.axial == object_hex:
+				return String(object_data.get("node_id", ""))
+	return ""
+
 
 func try_transition_at_stair(to_floor: int, stair_position: Vector2i) -> Dictionary:
 	if location_state == null:
@@ -318,6 +498,16 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 				marker.mesh = stair_mesh
 				material.albedo_color = Color(0.55, 0.48, 0.32)
 				material.metallic = 0.45
+			"tunnel_entrance":
+				var entrance_mesh := CylinderMesh.new()
+				entrance_mesh.top_radius = HEX_RADIUS * 0.40
+				entrance_mesh.bottom_radius = HEX_RADIUS * 0.40
+				entrance_mesh.height = 0.24
+				entrance_mesh.radial_segments = 6
+				marker.mesh = entrance_mesh
+				material.albedo_color = Color(0.18, 0.34, 0.29)
+				material.emission_enabled = true
+				material.emission = Color(0.08, 0.22, 0.15)
 			"fireplace", "rune_forge":
 				var forge_mesh := CylinderMesh.new()
 				forge_mesh.top_radius = HEX_RADIUS * 0.38
