@@ -62,6 +62,16 @@ func _test_overnight_guest_and_progression() -> void:
 
 	var progressed := relationships.adjust_relationship("rowan_fletcher", {"familiarity": 12, "friendship": 20, "trust": 25, "attraction": 20, "romantic_bond": 20}, "test accumulated long-distance relationship")
 	_check(RowanFletcherEncounterContent.relationship_phase(progressed) == "long_distance_romance", "The relationship phase should recognise a gradual long-distance romance only after its separate axes mature.")
+	var warm_state := PersistentCharacterRelationshipState.new()
+	warm_state.adjust_relationship("rowan_fletcher", {"friendship": 8}, "test earned friendship")
+	var warm_encounter := RowanFletcherEncounterContent.build_encounter(warm_state, _context("day8:camp3"))
+	var warm_choice_available := false
+	for choice in warm_encounter.get("choices", []):
+		if String(choice.get("id", "")) == "warm_greeting":
+			warm_choice_available = true
+	_check(warm_choice_available, "The player-led romantic option should unlock only after some friendship has developed.")
+	var warm_result := RowanFletcherEncounterContent.resolve_choice(warm_state, "day8:camp3", "warm_greeting")
+	_check(int(warm_result.relationship.get("attraction", 0)) == 3 and int(warm_result.relationship.get("romantic_bond", 0)) == 3, "Warm greetings should build attraction and romantic bond independently.")
 
 
 func _test_decline_and_save_load() -> void:
