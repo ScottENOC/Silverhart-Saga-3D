@@ -1780,7 +1780,18 @@ func continue_camp_sleep() -> Dictionary:
 
 
 func finish_interrupted_camp_night() -> Dictionary:
-    return camp_simulation.finish_interrupted_night()
+    if is_in_combat:
+        return {"ok": false, "reason": "combat_active"}
+    var result := camp_simulation.finish_interrupted_night()
+    if not bool(result.get("ok", false)):
+        return result
+    var remaining_seconds := maxf(0.0, float(result.get("remaining_hours", 0.0))) * WorldClock.SECONDS_PER_HOUR
+    var skipped_ticks := 0
+    if remaining_seconds > 0.0:
+        skipped_ticks = clock.skip_world_seconds(remaining_seconds)
+    result["skipped_seconds"] = remaining_seconds
+    result["skipped_ticks"] = skipped_ticks
+    return result
 
 
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
