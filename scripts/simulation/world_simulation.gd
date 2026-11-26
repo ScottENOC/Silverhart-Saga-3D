@@ -1736,7 +1736,13 @@ func skip_camp_to_morning(hours: float = CampSimulation.DEFAULT_NIGHT_HOURS) -> 
     if not bool(result.get("ok", false)):
         return result
     var skipped_seconds := float(result.summary.get("hours", hours)) * WorldClock.SECONDS_PER_HOUR
+    var encounter_interrupted_sleep := is_in_combat
     var skipped_ticks := clock.skip_world_seconds(skipped_seconds)
+    # A night encounter can start synchronously from the camp-resolution signal.
+    # Advance the clock to the attack, but do not grant the rest of the night as
+    # post-combat TP regeneration or erase the encounter's surprise modifier.
+    if encounter_interrupted_sleep:
+        return result
     for state_variant in characters.values():
         var state := state_variant as CharacterState
         if state == null or not state.alive:
