@@ -88,9 +88,8 @@ func _test_alliance_rescues_aldric_and_completes_his_quest() -> void:
 	_check(String(simulation.campaign_journal.quest_state("goblin_threat").get("status", "")) == "completed")
 	_check(String(simulation.campaign_journal.quest_state("aldric_rescue").get("status", "")) == "completed")
 	_check(bool(simulation.campaign_journal.world_campaign_flag("aldric_rescued", false)))
-	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 60.0)
 	_check(simulation.get_character(ALDRIC_ID).side == "neutral")
-	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 40.0)
+	_check(simulation.campaign_journal.npc_standing(ALDRIC_ID) == 40.0, "The alliance's -20 attitude consequence should reduce Aldric's initial 60 standing to 40")
 	_check(simulation.get_character("player").experience == 100)
 	_check(is_equal_approx(float(simulation.campaign_journal.region_campaign_state("hollowmere").get("security", 0.0)), -10.0))
 
