@@ -6,7 +6,8 @@ extends RefCounted
 static func begin(
 	simulation: WorldSimulation,
 	party_ids: Array[String],
-	enemy_ids: Array[String]
+	enemy_ids: Array[String],
+	start_modifiers: Dictionary = {}
 ) -> Dictionary:
 	if simulation == null:
 		return {"ok": false, "reason": "missing_simulation"}
@@ -50,6 +51,12 @@ static func begin(
 		var enemy := simulation.get_character(character_id)
 		enemy.side = "enemy"
 		enemy.combat_dormant = false
+
+	var party_time_point_penalty := maxf(0.0, float(start_modifiers.get("party_time_point_penalty", 0.0)))
+	if party_time_point_penalty > 0.0:
+		for character_id in party_ids:
+			var member := simulation.get_character(character_id)
+			member.time_points = maxf(0.0, member.time_points - party_time_point_penalty)
 
 	simulation.start_combat()
 	return {
