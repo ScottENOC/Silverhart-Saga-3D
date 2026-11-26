@@ -161,7 +161,16 @@ static func resolve_choice(
 					"choices": [{"id": "nella_leave", "label": "I'm glad I could help.", "text": ""}]
 				}
 			}
-		"nella_not_yet", "nella_leave", "nella_rumours":
+		"nella_rumours":
+			return {
+				"ok": true,
+				"dialogue": {
+					"speaker": "Nella Brook",
+					"text": "Nothing much travels this far down the road. Quiet out that way, far as I know.",
+					"choices": [{"id": "nella_leave", "label": "Thanks.", "text": ""}]
+				}
+			}
+		"nella_not_yet", "nella_leave":
 			return {"ok": true, "handled": true}
 		_:
 			return {"ok": false, "reason": "unknown_choice"}
