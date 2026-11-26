@@ -284,7 +284,7 @@ Potential semantic relationships to investigate include `reyna_dire_wolf_hunt` v
 - [x] Added `AldenreachMessageContent` for the source's accept, waiting, delivered-to-elder and report-back states.
 - [x] Connected Cassia's existing streamed actor dialogue route and Elder Marta's existing local interaction route; delivery is recorded when the player speaks to Marta.
 - [x] Added regression coverage for the two-stage delivery, rewards (+15 gold, +60 experience, +10 Cassia reputation / +15 knowledge) and duplicate-claim prevention.
-- [ ] Verify Cassia's streamed actor model/presentation in the Silverhart world; her settlement entry and dialogue ID exist, but her appearance record remains a legacy fallback.
+- [x] Applied Cassia's source-authored Ara appearance profile directly to her Silverhart settlement character definition (hazel eyes, dark cornrows, source skin tone and body proportions). The existing settlement actor factory consumes these fields when creating her streamed Ara actor; regression coverage now checks the dialogue identity and key appearance parameters. This uses the shared Ara base body, not a bespoke generated GLB.
 
 ## 4. Work order — smallest verifiable steps first
 
