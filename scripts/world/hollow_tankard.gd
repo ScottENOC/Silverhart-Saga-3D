@@ -2524,11 +2524,15 @@ func _update_halvard_household_routine() -> void:
 		"threshold": Vector2i(0, -1), "bedroom": Vector2i(-1, -1)
 	}
 	var station_role := String(schedule.get("station_role", "common"))
-	var target_hex: Vector2i = HALVARD_MANOR_HEX + (offsets.get(station_role, Vector2i.ZERO) as Vector2i)
+	var station_offset: Vector2i = offsets.get(station_role, Vector2i.ZERO)
+	var target_hex: Vector2i = HALVARD_MANOR_HEX + station_offset
 	simulation.ensure_exploration_region(target_hex)
 	if not simulation.map_data.is_walkable(target_hex) or (simulation.occupied_hexes.has(target_hex) and String(simulation.occupied_hexes[target_hex]) != HALVARD_CHARACTER_ID):
 		target_hex = _find_valid_spawn_hex(target_hex)
-	if target_hex != simulation.get_character(HALVARD_CHARACTER_ID).axial:
+	var halvard_state := simulation.get_character(HALVARD_CHARACTER_ID)
+	if halvard_state == null:
+		return
+	if target_hex != halvard_state.axial:
 		halvard_routine_busy = true
 		_move_halvard_to_station(target_hex)
 
