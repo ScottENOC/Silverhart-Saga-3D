@@ -143,7 +143,7 @@ jobs:
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/aldric_native_preview.gd
-          for view in front side threequarter face pelvis abdomen; do
+          for view in front side threequarter face pelvis rear_pelvis abdomen; do
             test -s "build/aldric-native-preview-project/build/aldric-native/preview/$view.png"
           done
           test -s build/aldric-native-preview-project/build/aldric-native/preview/render-report.json
