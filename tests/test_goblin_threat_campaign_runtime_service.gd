@@ -14,6 +14,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
 	_test_chief_gift_is_paid_once()
+	_test_grondle_purchases_are_gated_and_charged()
 	_test_favour_effects_reach_campaign_state()
 	_test_alliance_rescues_aldric_and_completes_his_quest()
 	_test_scout_note_is_a_one_time_world_effect()
@@ -60,6 +61,41 @@ func _test_chief_gift_is_paid_once() -> void:
 	var repeated := RUNTIME_SERVICE.give_chief_gift(simulation, relationships)
 	_check(not bool(repeated.get("ok", true)))
 	_check(simulation.get_character("player").gold == 40, "A repeated gift must not spend gold twice")
+
+
+func _test_grondle_purchases_are_gated_and_charged() -> void:
+	var simulation := _simulation()
+	var player := simulation.get_character("player")
+	var blocked := RUNTIME_SERVICE.purchase_grondle_item(simulation, "axe")
+	_check(not bool(blocked.get("ok", true)), "Grondle must not sell to the player before the goblin alliance")
+	_check(player.gold == 100 and player.inventory.is_empty(), "A blocked purchase must not change gold or inventory")
+
+	var relationships := RELATIONSHIP_SCRIPT.new()
+	var gift := RUNTIME_SERVICE.give_chief_gift(simulation, relationships)
+	_check(bool(gift.get("ok", false)))
+	var alliance := RUNTIME_SERVICE.resolve_threat(simulation, "goblin_alliance", relationships)
+	_check(bool(alliance.get("ok", false)))
+
+	var greeting := DIALOGUE_SERVICE.dialogue_for_npc(simulation, "grondle", relationships)
+	_check(bool(greeting.get("ok", false)), "Grondle should open his dialogue after the alliance")
+	var shop := DIALOGUE_SERVICE.select_choice(simulation, "grondle", "grondle_trade", relationships)
+	_check(bool(shop.get("handled", false)) and shop.get("choices", []).size() == FOLLOWUP_SCRIPT.GRONDLE_STOCK.size() + 1)
+	var bought := DIALOGUE_SERVICE.select_choice(simulation, "grondle", "grondle_buy:axe", relationships)
+	_check(bool(bought.get("ok", false)), "Grondle should sell an item through the dialogue choice")
+	_check(player.gold == 15, "The source axe buyPrice of 25 gold should be deducted after the 60-gold gift")
+	var axe_instances: Array[String] = []
+	for item in player.inventory:
+		if String(item.get("id", "")) == "axe":
+			axe_instances.append(String(item.get("instance_id", "")))
+	_check(axe_instances.size() == 1 and not axe_instances[0].is_empty(), "Purchased axe should be added as a real inventory instance")
+
+	var second := RUNTIME_SERVICE.purchase_grondle_item(simulation, "axe")
+	_check(bool(second.get("ok", false)), "The static trader stock should allow a second axe purchase")
+	_check(String(second.get("instance_id", "")) != axe_instances[0], "Repeated purchases must receive unique item instance IDs")
+	player.gold = 0
+	var insufficient := RUNTIME_SERVICE.purchase_grondle_item(simulation, "potion_health")
+	_check(not bool(insufficient.get("ok", true)), "Grondle must reject purchases the player cannot afford")
+	_check(player.gold == 0, "An unaffordable purchase must not change the player's gold")
 
 
 func _test_favour_effects_reach_campaign_state() -> void:
