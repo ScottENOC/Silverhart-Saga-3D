@@ -19,6 +19,12 @@ on:
       - "character-preview/wren-ara.json"
       - "tools/review/add_aldric_body_hair.py"
       - ".github/workflows/build-wren-native-ara.yml"
+      - ".github/workflows/test-wren-ara-bikini-fit.yml"
+      - "tools/ara/assemble_modular_glb.py"
+      - "art/characters/companions/wren.glb"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/review/wren_native_preview.gd"
   workflow_dispatch:
 
 permissions:
