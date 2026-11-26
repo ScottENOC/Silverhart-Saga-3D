@@ -28,6 +28,7 @@ const REGION_PARENT_BASELINE_WEIGHT := 0.4
 const REGION_PROSPERITY_SECURITY_THRESHOLD := 60.0
 const REGION_PROSPERITY_SECURITY_WEIGHT := 0.3
 const REGION_DECAY_RATE_PER_HOUR := 0.01
+const GOBLIN_REPORTING_FRACTION := 0.35
 
 
 func _init() -> void:
@@ -220,8 +221,8 @@ func adjust_faction_reputation(faction_id: String, standing_delta: float, knowle
 	if faction_id == "goblin_tribe":
 		result["orc_raiders_cascade"] = adjust_faction_reputation(
 			"orc_raiders",
-			standing_delta * 0.35,
-			knowledge_delta * 0.35,
+			standing_delta * GOBLIN_REPORTING_FRACTION,
+			knowledge_delta * GOBLIN_REPORTING_FRACTION,
 			"%s (goblin scout report)" % reason
 		)
 	return result
