@@ -1125,6 +1125,96 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
     return obj
 
 
+def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipline_z, centre_x=0.0):
+    """Create a restrained, surface-conforming anal opening on the posterior midline.
+
+    The male placement is referenced from the scrotoperineal region. Its vertical
+    position is a modelling guide, not a claimed clinical population measurement.
+    """
+    # Ara faces -Y; sample posterior skin from +Y.
+    anal_z = hipline_z - height * 0.065
+    hit = normal = None
+    for offset in (0.0, -0.008, 0.008, -0.016, 0.016):
+        candidate, candidate_normal, _index, _distance = tree.ray_cast(
+            Vector((centre_x, 3.0, anal_z + height * offset)),
+            Vector((0.0, -1.0, 0.0)), 6.0
+        )
+        if candidate is not None:
+            hit, normal = candidate, candidate_normal
+            anal_z += height * offset
+            break
+    if hit is None or normal is None:
+        raise RuntimeError("Could not locate posterior midline skin for anal anatomy")
+    rear = Vector((0.0, 1.0, 0.0))
+    if normal.dot(rear) < 0.0:
+        normal.negate()
+    tangent_x = Vector((1.0, 0.0, 0.0)) - normal * normal.x
+    if tangent_x.length < 1e-5:
+        raise RuntimeError("Posterior skin normal is unsuitable for anal detail orientation")
+    tangent_x.normalize()
+    tangent_z = tangent_x.cross(normal).normalized()
+    centre = hit + normal * 0.00025
+
+    segments = 48
+    loops = (
+        (0.0100, 0.0068, 0.00025),
+        (0.0080, 0.0054, 0.00110),
+        (0.0061, 0.0039, 0.00075),
+    )
+    vertices = []
+    for rx, rz, lift in loops:
+        for j in range(segments):
+            angle = 2.0 * math.pi * j / segments
+            point = (centre + tangent_x * (rx * math.cos(angle))
+                     + tangent_z * (rz * math.sin(angle)) + normal * lift)
+            vertices.append(tuple(point))
+    faces = []
+    material_indices = []
+    for ring in range(len(loops) - 1):
+        outer = ring * segments
+        inner = (ring + 1) * segments
+        for j in range(segments):
+            nxt = (j + 1) % segments
+            faces.append((outer + j, inner + j, inner + nxt, outer + nxt))
+            material_indices.append(0)
+
+    centre_index = len(vertices)
+    vertices.append(tuple(centre - normal * 0.00035))
+    inner = (len(loops) - 1) * segments
+    for j in range(segments):
+        nxt = (j + 1) % segments
+        faces.append((centre_index, inner + nxt, inner + j))
+        material_indices.append(1)
+
+    obj = create_mesh_object(
+        "Male anatomy · anal opening and perianal rim",
+        vertices, faces, skin_material, armature, pelvis_bone
+    )
+    dark = bpy.data.materials.new("Anatomy detail · recessed anal opening")
+    dark.diffuse_color = (0.16, 0.055, 0.045, 1.0)
+    dark.use_nodes = True
+    shader = next((node for node in dark.node_tree.nodes if node.type == "BSDF_PRINCIPLED"), None)
+    if shader:
+        shader.inputs["Base Color"].default_value = (0.16, 0.055, 0.045, 1.0)
+        shader.inputs["Roughness"].default_value = 0.88
+    obj.data.materials.append(dark)
+    for polygon, material_index in zip(obj.data.polygons, material_indices):
+        polygon.material_index = material_index
+    colour = obj.data.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="POINT")
+    for item in colour.data:
+        item.color = (1.0, 1.0, 1.0, 1.0)
+    obj.data.color_attributes.active_color = colour
+    obj["anatomy_parts"] = "external_anal_opening,perianal_rim"
+    obj["anal_reference_landmark"] = "male_scrotoperineal_region"
+    obj["anal_position_method"] = "posterior_midline_surface_raycast"
+    obj["anal_vertical_offset_from_hipline_mm"] = round((hipline_z - anal_z) * 1000.0, 2)
+    obj["anal_opening_dimensions_mm"] = "12.2 x 7.8 inner oval; 20 x 13.6 outer rim"
+    print("Male anal anatomy: posterior midline surface hit "
+          f"at ({hit.x:.4f}, {hit.y:.4f}, {hit.z:.4f}); "
+          f"hipline vertical offset {(hipline_z - anal_z) * 1000.0:.1f} mm")
+    return obj
+
+
 def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius, anchor_y):
     # A very small recessed-looking, darker oval at the distal glans surface.
     glans_z = tip_z + height * 0.006
@@ -1209,7 +1299,7 @@ def join_male_anatomy_parts(parts, armature, pelvis_bone):
     modifier.object = armature
     combined["anatomy_profile"] = "adult_male"
     combined["anatomy_method"] = "Ara_middle_finger_surface_plus_contoured_scrotum_no_voxel_remesh"
-    combined["anatomy_parts"] = "integrated_root,shaft,rounded_tip,scrotal_sac"
+    combined["anatomy_parts"] = "integrated_root,shaft,rounded_tip,scrotal_sac,anal_opening,perianal_rim"
     combined["review_status"] = "native_Ara_geometry_requires_multi_angle_visual_acceptance"
     return combined
 
@@ -1238,7 +1328,7 @@ def merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone):
 
     skin["male_anatomy_geometry"] = "joined_into_original_ara_skin_mesh"
     skin["male_anatomy_rig"] = "shares_full_original_ara_skeleton"
-    skin["male_anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
+    skin["male_anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac,anal_opening,perianal_rim"
     return skin
 
 def masculinise_body_mesh(skin):
@@ -1702,6 +1792,7 @@ def main():
         surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z,
         pelvic_surface_y, "erect", centre_x
     )
+    anal_detail = create_anal_detail(surface_tree, skin_material, armature, pelvis_bone, height, hipline_z, centre_x)
     # Colour is painted by vertex membership, so it follows the vertices through the morph.
     paint_male_anatomy_detail(phallus, centre_x, anatomy_z, height, pelvic_surface_y, "erect", "phallus",
                               MALE_TRANSITION["erect_length_scale"], MALE_TRANSITION["erect_girth_scale"])
@@ -1722,7 +1813,7 @@ def main():
     erect_world = ph_erect + sc_erect          # morph target = erect (scrotum: tightened)
 
     anatomy = join_male_anatomy_parts(
-        [phallus, scrotum], armature, pelvis_bone
+        [phallus, scrotum, anal_detail], armature, pelvis_bone
     )
     anatomy["profile_name"] = args.profile_name
     anatomy["anatomy_state"] = args.anatomy_state
