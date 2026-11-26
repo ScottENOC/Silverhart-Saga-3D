@@ -1134,17 +1134,38 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
     # Ara faces -Y; sample posterior skin from +Y.
     anal_z = hipline_z - height * 0.065
     hit = normal = None
-    for offset in (0.0, -0.008, 0.008, -0.016, 0.016):
-        candidate, candidate_normal, _index, _distance = tree.ray_cast(
-            Vector((centre_x, 3.0, anal_z + height * offset)),
-            Vector((0.0, -1.0, 0.0)), 6.0
-        )
-        if candidate is not None:
-            hit, normal = candidate, candidate_normal
-            anal_z += height * offset
+    z_offsets = (0.0, -0.008, 0.008, -0.016, 0.016, -0.024, 0.024)
+    x_offsets = (0.0, 0.006, -0.006, 0.012, -0.012, 0.020, -0.020, 0.030, -0.030)
+    for z_offset in z_offsets:
+        sampled = {}
+        for x_offset in x_offsets:
+            candidate, candidate_normal, _index, _distance = tree.ray_cast(
+                Vector((centre_x + height * x_offset, 3.0, anal_z + height * z_offset)),
+                Vector((0.0, -1.0, 0.0)), 6.0
+            )
+            if candidate is not None:
+                sampled[round(x_offset, 6)] = (candidate, candidate_normal)
+        if 0.0 in sampled:
+            hit, normal = sampled[0.0]
+            anal_z += height * z_offset
+            break
+        # Ara's gluteal cleft can be an actual gap in the body mesh. When the
+        # exact midline misses, bridge the opening between matching left/right
+        # posterior surface samples instead of attaching it to one buttock.
+        for magnitude in (0.006, 0.012, 0.020, 0.030):
+            left_key, right_key = round(-magnitude, 6), round(magnitude, 6)
+            if left_key in sampled and right_key in sampled:
+                left, left_normal = sampled[left_key]
+                right, right_normal = sampled[right_key]
+                hit = (left + right) * 0.5
+                normal = (left_normal + right_normal).normalized()
+                hit.x = centre_x
+                anal_z += height * z_offset
+                break
+        if hit is not None:
             break
     if hit is None or normal is None:
-        raise RuntimeError("Could not locate posterior midline skin for anal anatomy")
+        raise RuntimeError("Could not locate paired posterior skin surfaces around the gluteal cleft")
     rear = Vector((0.0, 1.0, 0.0))
     if normal.dot(rear) < 0.0:
         normal.negate()
@@ -1206,7 +1227,7 @@ def create_anal_detail(tree, skin_material, armature, pelvis_bone, height, hipli
     obj.data.color_attributes.active_color = colour
     obj["anatomy_parts"] = "external_anal_opening,perianal_rim"
     obj["anal_reference_landmark"] = "male_scrotoperineal_region"
-    obj["anal_position_method"] = "posterior_midline_surface_raycast"
+    obj["anal_position_method"] = "posterior_midline_surface_raycast_with_cleft_bridge"
     obj["anal_vertical_offset_from_hipline_mm"] = round((hipline_z - anal_z) * 1000.0, 2)
     obj["anal_opening_dimensions_mm"] = "12.2 x 7.8 inner oval; 20 x 13.6 outer rim"
     print("Male anal anatomy: posterior midline surface hit "
