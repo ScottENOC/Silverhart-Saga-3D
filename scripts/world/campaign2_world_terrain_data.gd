@@ -216,8 +216,11 @@ func _terrain_for_hex_uncached(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		var feature_id := String(regional_override.get("feature_id", ""))
-		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
-			return "authored"
+		if feature_id.ends_with("_clearing"):
+			if settlement_building_cells.has(_hex_key(hex)):
+				return "authored"
+			if road_cells.has(_hex_key(hex)):
+				return "path"
 		return String(regional_override.get("terrain", "grass"))
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
@@ -256,8 +259,11 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		var feature_id := String(regional_override.get("feature_id", ""))
-		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
-			return "building"
+		if feature_id.ends_with("_clearing"):
+			if settlement_building_cells.has(_hex_key(hex)):
+				return "building"
+			if road_cells.has(_hex_key(hex)):
+				return "path"
 		return String(regional_override.get("terrain", "grass"))
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
@@ -283,8 +289,11 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		var feature_id := String(regional_override.get("feature_id", ""))
-		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
-			return false
+		if feature_id.ends_with("_clearing"):
+			if settlement_building_cells.has(_hex_key(hex)):
+				return false
+			if road_cells.has(_hex_key(hex)):
+				return true
 		var override_terrain := String(regional_override.get("terrain", "grass"))
 		return override_terrain not in ["water", "building", "keep_wall", "climbable_wall"]
 	# Strategic roads are explicit source-painted crossings, including roads
