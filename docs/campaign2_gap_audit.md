@@ -101,7 +101,7 @@ This is a checklist of source spatial builders, not a requirement to reproduce t
 
 - Source runtime scene: 16,566 unique terrain cells; 11,324 cells touched by named feature builders after deduplication; 246 physical tile-object placements; 72 interior regions; 9 multi-storey building definitions; 8 unicorn patrol waypoints.
 - Target JSON-backed exterior inventory: 4,732 unique cells, plus regional GDScript features not included in that number; 1,543 walkable cells across registered floor maps in the existing geometry audit.
-- Target multi-story location registry contains 70 location records (many are single-floor), while the source runtime inventory reports 72 interior regions. These are not directly equivalent: some source interiors are represented by settlement-layout metadata and some target records are 3D adaptations. Registration does not prove runtime entry/exit.
+- Target multi-story location registry contains 71 location records (after the tunnel-network additions merged in PR #408) (many are single-floor), while the source runtime inventory reports 72 interior regions. These are not directly equivalent: some source interiors are represented by settlement-layout metadata and some target records are 3D adaptations. Registration does not prove runtime entry/exit.
 - Target settlement-layout registry contains seven definitions on `dev`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold. Hollowmere uses its separate location presenter; Kragmoor and Emberlode Mine use the multi-story registry.
 - No overall completion percentage should be published until every meaningful source spatial feature has a row in a source-to-target register with a clear matching rule.
 
@@ -133,7 +133,7 @@ The current target data contains:
 
 - 25 named global geography anchors and 22 strategic connections in `campaign2_geography.json`.
 - Seven definitions in `campaign2_settlement_layouts.json`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold.
-- 70 registered location records in `campaign2_multistory_locations.json`.
+- 71 registered location records in `campaign2_multistory_locations.json` (including the two tunnel stubs added in PR #408).
 - A source-road reference trace in `campaign2_road_paths.json`, pinned to the same source commit above.
 
 These are registration counts, not completion counts. Hollowmere is handled through its own settlement/location implementation rather than being an eighth entry in the seven-record settlement-layout JSON. The broader canonical settlement registry may include it separately. The 70 multi-story location records are not directly comparable with the source extractor's 72 interior regions: registration, room geometry, runtime transitions and successful traversal are different levels of evidence.
@@ -192,11 +192,11 @@ Work is ordered by the smallest independently verifiable spatial gap first. A ta
 | 1 | Remove false-positive crop-row gap; confirm source has no authored crop rows | XS | ChatGPT | **Complete** | Source builder and target data agree; audit corrected |
 | 2 | Verify Old Mac pasture/fence/road-spur geometry against source | XS | ChatGPT | **Complete** | Automated coordinate/feature test passes on `dev`; Godot suite passed |
 | 3 | Verify Unicorn Vale's eight patrol waypoints are all on usable terrain and connected by a route | S | ChatGPT | **Complete** | Full Godot validation passes with waypoint and patrol-leg route checks |
-| 4 | Verify named wilderness-site anchors and natural/explicit approaches (grave, grove, lair, den) | S | ChatGPT | **In progress** | Grave, wolf-den and trial-den anchors are non-void/walkable; grove and lair approach cells are non-void/walkable; no roads invented for off-road sites |
-| 5 | Create exterior/interior entrance and return-point register for existing floor maps | M | ChatGPT | Every registered interior has exterior entrance, interior door, return anchor and reciprocal stair data or an explicit documented exception |
-| 6 | Add missing map tests for road, stream, bridge, gate and chunk-boundary joins | M | ChatGPT | Targeted Godot tests pass |
-| 7 | Complete site-by-site visual/traversal acceptance | M–L | User + ChatGPT | User reviews only the resulting captures/build; ChatGPT records outcomes and fixes defects |
-| 8 | Complete Silverhart city spatial reconciliation | L | ChatGPT, then user visual acceptance | Source districts/buildings/walls/routes reconciled, automated tests pass, visual review accepted |
-| 9 | Rebuild and validate Kragmoor exterior presentation | L | ChatGPT, then user visual acceptance | Source landmark/entrance footprint implemented, tests pass, user accepts the resulting map view |
+| 4 | Verify named wilderness-site anchors and natural/explicit approaches (grave, grove, lair, den) | S | ChatGPT | **Complete** | `tests/test_campaign2_regional_features.gd` checks the Vampire Grave, Old Mac's Wolf Den and Druid trial-den anchors are non-void/walkable, and checks continuous non-void/walkable natural approaches to Emberwood Grove and Ashveil's Dragon Lair. Full Godot validation passed on PR #408 head (115/115 steps); no roads invented for off-road sites |
+| 5 | Create exterior/interior entrance and return-point register for existing floor maps | M | ChatGPT | **In progress** | Every registered interior has exterior entrance, interior door, return anchor and reciprocal stair data or an explicit documented exception |
+| 6 | Add missing map tests for road, stream, bridge, gate and chunk-boundary joins | M | ChatGPT | **In progress** | Targeted Godot tests pass |
+| 7 | Complete site-by-site visual/traversal acceptance | M–L | User + ChatGPT | **Not started** | User reviews only the resulting captures/build; ChatGPT records outcomes and fixes defects |
+| 8 | Complete Silverhart city spatial reconciliation | L | ChatGPT, then user visual acceptance | **Not started** | Source districts/buildings/walls/routes reconciled, automated tests pass, visual review accepted |
+| 9 | Rebuild and validate Kragmoor exterior presentation | L | ChatGPT, then user visual acceptance | **Not started** | Source landmark/entrance footprint implemented, tests pass, user accepts the resulting map view |
 
 The XS/S items are deliberately bounded so several can be completed without requiring the user to open Godot. Larger visual tasks are deferred until their data and automated checks are ready. This is a work order, not a claim that the listed tasks are already complete.
