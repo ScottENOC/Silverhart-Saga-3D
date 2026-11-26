@@ -34,6 +34,7 @@ func _initialize() -> void:
 	_test_tent_capacity_and_relationship_matching()
 	_test_indoor_floor_sleeping_and_security()
 	_test_general_camp_occupant_registry()
+	_test_overnight_guest_sleep_and_dawn_departure()
 	_test_world_camp_animal_care_integration()
 	_test_scheduled_horse_care_routine()
 	_test_night_resolution_and_save_load()
@@ -160,6 +161,41 @@ func _test_indoor_floor_sleeping_and_security() -> void:
 	)
 	var unsafe_arrangement := uninhabitable.plan_sleeping_arrangements(0)
 	_check(String(unsafe_arrangement[0].shelter_type) == "open_air", "A structurally uninhabitable dwelling must not provide indoor sleeping space")
+
+
+func _test_overnight_guest_sleep_and_dawn_departure() -> void:
+	var camp := CampSimulation.new()
+	var started := camp.begin_camp(
+		{"walkable": true}, ["player", "aldric"],
+		{"danger": 0.2}, {"rations": 0, "water": 0, "tents": 1}
+	)
+	_check(bool(started.get("ok", false)), "Camp should start before a guest arrives")
+	var guest := {
+		"occupant_id": "rowan_fletcher", "kind": "guest", "species": "humanoid",
+		"participates_in_party": false, "can_sleep": true, "can_work": false,
+		"staying_overnight": true, "leaves_at_dawn": true
+	}
+	_check(bool(camp.register_camp_occupant(guest).get("ok", false)), "Rowan should register as an overnight guest")
+	var guest_arrangements := camp.sleeping_arrangements.filter(func(entry: Dictionary) -> bool:
+		return (entry.get("character_ids", []) as Array).has("rowan_fletcher")
+	)
+	_check(guest_arrangements.size() == 1, "A guest who arrives after camp setup should receive one sleeping place")
+	var supplies_before := camp.resources.duplicate(true)
+	var night := camp.skip_to_morning()
+	_check(bool(night.get("ok", false)), "The guest's night should resolve with the party")
+	_check(night.summary.get("overnight_guests", {}).has("rowan_fletcher"), "Night summary should record guest rest")
+	_check(camp.resources == supplies_before, "An overnight guest should not consume party food or water")
+	_check(not camp.occupants.has("rowan_fletcher"), "A guest marked to leave at dawn should be removed when morning begins")
+	_check((camp.morning_summary.get("guests_departed_at_dawn", []) as Array).has("rowan_fletcher"), "Morning summary should record the guest's departure")
+	var interrupted := CampSimulation.new()
+	interrupted.begin_camp({"walkable": true}, ["player"], {}, {})
+	interrupted.register_camp_occupant(guest)
+	interrupted.phase = "interrupted"
+	interrupted.night_planned_hours = 8.0
+	interrupted.night_elapsed_hours = 3.0
+	var ended := interrupted.finish_interrupted_night()
+	_check((ended.get("guests_departed_at_dawn", []) as Array).has("rowan_fletcher"), "A guest should also leave when the player ends an interrupted night at dawn")
+	_check(not interrupted.occupants.has("rowan_fletcher"), "Ending an interrupted night should release the guest from camp")
 
 
 func _test_general_camp_occupant_registry() -> void:
