@@ -15,7 +15,6 @@ const FACTION_RACES := {
 }
 const IRONBOND_STANDING_THRESHOLD: float = 10.0
 const IRONBOND_INFLUENCE_DRIFT_PER_HOUR: float = 0.02
-const GOBLIN_REPORTING_FRACTION: float = 0.35
 
 var last_world_seconds: float = 0.0
 
