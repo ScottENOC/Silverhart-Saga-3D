@@ -102,12 +102,12 @@ func _test_ridgehold_source_gate_arch() -> void:
 	root.add_child(parent)
 	var result := _present_at(data, parent, gate)
 	var gate_root := parent.get_node_or_null("RidgeholdGateArch") as Node3D
-	_check(gate == Vector2i(406, 35), "Ridgehold gate must use the original buildRidgeholdFort gateHex")
+	_check(gate == Vector2i(407, 43), "Ridgehold gate must sit in the actual west perimeter opening")
 	_check(data.terrain_for_hex(gate) == "path", "Ridgehold's source gate must remain an open walkable wall gap")
 	_check(bool(result.get("ok", false)) and gate_root != null, "Ridgehold must render a stone arch at its source gate anchor")
 	if gate_root != null:
 		_check(gate_root.get_node_or_null("GateArchLintel") != null, "Ridgehold gate arch must have a lintel")
-		_check(gate_root.get_node_or_null("GatePier_-1.0") != null and gate_root.get_node_or_null("GatePier_1.0") != null, "Ridgehold gate arch must have both stone piers")
+		_check(_count_named_prefix(gate_root, "GatePier_") == 2, "Ridgehold gate arch must have both stone piers")
 	parent.free()
 
 
