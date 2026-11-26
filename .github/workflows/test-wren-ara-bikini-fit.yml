@@ -130,6 +130,11 @@ jobs:
           body_nodes = [
               node for node in document.get("nodes", [])
               if "mesh" in node and "skin" in node
+              and any(
+                  document["materials"][primitive["material"]].get("name", "").lower().startswith("skin")
+                  for primitive in document["meshes"][node["mesh"]].get("primitives", [])
+                  if primitive.get("material") is not None
+              )
           ]
           if len(body_nodes) != 1:
               raise SystemExit(f"Expected one Ara skinned character mesh, found {len(body_nodes)}")
@@ -180,8 +185,18 @@ jobs:
 
           base = read("build/wren-native/Wren_Accepted_Baseline.glb")
           fitted = read("build/wren-native/Wren_Ara_Bikini_Fit.glb")
-          base_nodes = [n for n in base["nodes"] if "mesh" in n and "skin" in n]
-          out_nodes = [n for n in fitted["nodes"] if "mesh" in n and "skin" in n]
+          def skin_nodes(doc):
+              return [
+                  node for node in doc["nodes"]
+                  if "mesh" in node and "skin" in node
+                  and any(
+                      doc["materials"][primitive["material"]].get("name", "").lower().startswith("skin")
+                      for primitive in doc["meshes"][node["mesh"]].get("primitives", [])
+                      if primitive.get("material") is not None
+                  )
+              ]
+          base_nodes = skin_nodes(base)
+          out_nodes = skin_nodes(fitted)
           if len(base_nodes) != 1 or len(out_nodes) != 1:
               raise SystemExit("Accepted Wren body node was not preserved")
           for key in ("name", "skin", "translation", "rotation", "scale", "matrix"):
