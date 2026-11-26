@@ -42,3 +42,12 @@ Furniture can also be crafted at an owned property from existing campaign resour
 ## Current implementation boundary
 
 The catalogue, purchase/crafting transactions, placement/removal validation, save persistence, dynamic bed capacity, enlarged dwelling exteriors and distinct Silverhart Furnishings storefront are implemented as the first foundation. The storefront is a physical presentation linked to the existing nearby-site interaction; it does not yet have a dedicated animated merchant character. The in-world placement-mode UI, 3D furniture rendering, room-specific placement, enclosed interior geometry and interior NPC navigation are follow-on implementation work. The current camp routine anchors remain invisible and do not furnish houses.
+
+
+## Permanent household residents and Halvard Greer
+
+A fortified, livable Silverhart Manor automatically appoints Halvard Greer as its non-companion household steward. His residence is saved in `CampaignDwellingState` independently of party membership. The world presentation creates him from the authored legacy appearance profile using the shared Ara male base mesh; there is no dedicated Halvard GLB yet. His daily routine uses the existing Ara clips and manor station hexes: sleep, wake, cook at the hearth, housekeeping, store management, welcome guests and evening cooking. No new animation or clothing assets are required.
+
+Halvard's cooking has a small, real inventory consequence. During the 07:00–09:00 and 17:00–19:00 cooking windows, he consumes one existing food item from the player's carried supplies and stores one prepared household meal. Each window can run once per world day. A prepared meal can be consumed when establishing camp at the manor; it sets the camp's existing prepared-meal condition and improves the party's overnight nutrition. Cooking limits and ready meals are saved. If the player has no food, no meal is created.
+
+The current resident presentation is a world-map routine with station movement, not a fully explorable interior simulation. Household residents remain independent of the party roster.
