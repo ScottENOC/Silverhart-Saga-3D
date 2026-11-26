@@ -118,6 +118,16 @@ The routine-stage thresholds are measured in world seconds: 120 seconds (24 seco
 Physical evening duties now add fatigue over elapsed world time: training, gathering wood, pitching tents and fetching water are more tiring than cooking, repair, map study or conversation. This feeds back into the next routine decision, while the existing overnight recovery remains authoritative. A player override also updates the hidden autonomous fallback at each stage, so it resumes the current routine when the override expires rather than reverting to an obsolete setup chore.
 
 
+### Morning wake-up and breaking camp
+
+Resolving the night now enters a saved, time-based morning phase instead of ending the camp immediately. The sequence uses the ordinary exploration clock: companions wake, dress for travel, share breakfast, then pack the camp. Dwelling camps use the bedroom and table stations; wilderness camps use outdoor staging positions.
+
+Breakfast consumes one ration per party member when available. Servings are allocated deterministically in party order; anyone without a serving starts the day hungrier. The morning summary records servings and shortfall, and the routine state survives save/load.
+
+At an exposed wilderness camp, one companion is assigned to deal with the fire while the others pack. Completion records the fire as extinguished, covered with soil and no longer lit, then marks the camp packed. Sheltered dwellings do not perform the wilderness fire-burying step.
+
+The current Ara animation package does not document a dedicated dressing, eating or fire-burying clip. Morning actions therefore use the nearest available interaction, pickup, carrying or idle clips; these are honest animation fallbacks, not bespoke performances. Equipment remains equipped overnight in the current character presentation, so the dressing phase is a staged routine rather than an armour unequip/re-equip visual transition.
+
 ### World weather and camp response
 
 The campaign already had an authoritative calendar and seasonal presentation (the 12-month WorldClock and SeasonalTreeVisual), but no live precipitation, wind or temperature simulation. WorldWeatherState now extends that existing calendar rather than introducing a second clock: a campaign seed deterministically selects weather in three-hour world-time periods, with season-weighted clear, overcast, rain, heavy-rain, storm, fog and snow conditions. Temperature follows the existing seasonal month mapping and time of day. Local terrain modifies exposure: forest cover reduces wind, while mountain and rocky ground increase it.

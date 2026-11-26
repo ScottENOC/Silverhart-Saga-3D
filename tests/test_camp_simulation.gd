@@ -331,10 +331,11 @@ func _test_night_resolution_and_save_load() -> void:
 	camp.begin_camp(
 		{"walkable": true},
 		["player", "wren", "aldric"],
-		{"night_temperature_c": 2.0, "danger": 0.6, "fire_lit": true},
-		{"wood": 2, "rations": 3, "water": 3, "tents": 1, "sleeping_bags": 3}
+		{"night_temperature_c": 2.0, "danger": 0.0, "fire_lit": true},
+		{"wood": 2, "rations": 5, "water": 3, "tents": 1, "sleeping_bags": 3}
 	)
 	camp.plan_sleeping_arrangements(1)
+	camp.assign_activity("wren", "cook", false)
 	var saved := camp.to_dict()
 	var restored := CampSimulation.new()
 	_check(restored.from_dict(saved), "Camp state should restore from a save snapshot")
@@ -344,14 +345,31 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(float(result.summary.ambush_chance) >= 0.0 and float(result.summary.ambush_chance) <= 0.45)
 	_check(int(result.summary.watchers) > 0, "The night watch should be assigned when sleep begins")
 	_check(float(result.summary.characters.player.comfort) > 0.0)
-	_check(String(restored.phase) == "resolved")
+	_check(String(restored.phase) == "morning", "Night resolution should hand off to a distinct morning routine.")
+	_check(String(restored.assignments.player.activity) == "wake", "The party should begin with a wake-up activity.")
+	_check(String(restored.assignments.wren.activity) == "wake", "Companions should be assigned the same wake-up stage.")
 	_check(int(restored.resources.water) == 0, "Drinking water should be consumed once for the whole party, not once per character")
 	_check(String(restored.next_day_effects("player").get("fatigue_band", "")) == "rested")
 	_check(restored.time_point_regeneration_multiplier("player") > 1.0, "A well-rested character should receive a modest next-day recovery bonus")
-	var after_night := restored.condition_for("player")
-	restored.begin_camp({"walkable": true}, ["player", "wren"])
-	_check(restored.condition_for("player") == after_night, "Fatigue, hunger and thirst must persist between camp sessions")
-	_check(not bool(restored.resolve_night().ok), "A resolved camp cannot resolve twice")
+	var morning_save := restored.to_dict()
+	var morning_restored := CampSimulation.new()
+	_check(morning_restored.from_dict(morning_save), "An in-progress morning routine should survive save/load.")
+	morning_restored.advance_real_time(13.0)
+	_check(String(morning_restored.assignments.wren.activity) == "extinguish_fire", "A companion should be assigned to extinguish the wilderness fire before departure.")
+	_check(String(morning_restored.assignments.player.activity) == "pack_camp", "The player should receive the camp-packing assignment in the morning model.")
+	morning_restored.advance_real_time(9.0)
+	_check(bool(morning_restored.environment.get("fire_buried", false)), "The fire should be covered with soil before the party regroups to depart.")
+	_check(String(morning_restored.assignments.wren.activity) == "depart", "The party should regroup only after the fire is safe.")
+	morning_restored.advance_real_time(7.0)
+	_check(int(morning_restored.morning_summary.get("breakfast_servings", 0)) == 2, "Breakfast should consume the rations left after the evening meal.")
+	_check(int(morning_restored.morning_summary.get("breakfast_shortfall", 0)) == 1, "Breakfast should record any party ration shortfall.")
+	_check(String(morning_restored.phase) == "resolved", "The morning sequence should finish after wake-up, dressing, breakfast and camp packing.")
+	_check(bool(morning_restored.environment.get("fire_buried", false)), "A wilderness campfire should be extinguished and covered with soil before departure.")
+	_check(bool(morning_restored.environment.get("camp_packed", false)), "The camp should be marked packed only after the morning routine completes.")
+	var after_night := morning_restored.condition_for("player")
+	morning_restored.begin_camp({"walkable": true}, ["player", "wren"])
+	_check(morning_restored.condition_for("player") == after_night, "Fatigue, hunger and thirst must persist between camp sessions")
+	_check(not bool(morning_restored.resolve_night().ok), "A resolved camp cannot resolve twice")
 
 
 
@@ -520,7 +538,7 @@ func _test_night_watch_rotation_and_detection() -> void:
 	world.end_combat()
 	var resumed_result := world.continue_camp_sleep()
 	_check(bool(resumed_result.get("ok", false)), "The party should be able to resume sleep after winning the ambush")
-	_check(world.camp_simulation.phase == "resolved", "Resuming sleep should complete the remaining night")
+	_check(world.camp_simulation.phase == "morning", "Resuming sleep should finish the night and hand off to the morning routine")
 	_check(is_equal_approx(world.camp_simulation.night_elapsed_hours, CampSimulation.DEFAULT_NIGHT_HOURS), "Resumed sleep should finish the original planned eight-hour rest")
 	var total_elapsed_seconds := world.clock.world_seconds - world_start_seconds
 	_check(is_equal_approx(total_elapsed_seconds, CampSimulation.DEFAULT_NIGHT_HOURS * WorldClock.SECONDS_PER_HOUR), "World time should include the interrupted segment and the resumed remainder exactly once")
@@ -539,7 +557,7 @@ func _test_world_simulation_integration() -> void:
 	companion.hobbled_stacks = 1
 	world.register_character(player)
 	world.register_character(companion)
-	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
+	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0, "danger": 0.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
 	_check(bool(started.ok), "World simulation should start camp with the current party")
 	_check(String(world.camp_simulation.companion_profiles.wren.personality) == "scholarly", "Authored personality tags should flow into camp routine preferences.")
 	_check(bool(world.camp_simulation.companion_profiles.wren.injured), "Current health and hobbling should inform camp routine choices.")
@@ -558,6 +576,9 @@ func _test_world_simulation_integration() -> void:
 	var morning := restored.skip_camp_to_morning(6.0)
 	_check(bool(morning.ok), "The world simulation should resolve the camp night")
 	_check(is_equal_approx(restored.clock.world_seconds, 10.0 + 6.0 * WorldClock.SECONDS_PER_HOUR), "Sleeping should skip directly to morning and advance the authoritative clock by the sleep duration")
+	_check(String(restored.camp_simulation.phase) == "morning", "The world simulation should preserve the morning camp phase after the overnight skip.")
+	restored.advance_real_time(30.0)
+	_check(String(restored.camp_simulation.phase) == "resolved", "The morning routine should advance on the ordinary world clock.")
 	_check(restored.get_character("player").time_points >= 149.0, "Instant sleep should bulk-apply overnight time-point recovery without simulating every 0.4-second tick")
 
 
@@ -576,10 +597,12 @@ func _test_companions_walk_to_camp_stations() -> void:
 	world.register_character(player)
 	world.register_character(companion)
 	world.register_character(second_companion)
-	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
+	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {"danger": 0.0})
 	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
 	var probe := CampActivityProbe.new()
 	var second_probe := CampActivityProbe.new()
+	var player_probe := CampActivityProbe.new()
+	_camp_actor_probes["player"] = player_probe
 	_camp_actor_probes["wren"] = probe
 	_camp_actor_probes["aldric"] = second_probe
 	var director := CampPartyActivityDirector.new()
@@ -594,6 +617,11 @@ func _test_companions_walk_to_camp_stations() -> void:
 	_check(HexGrid.distance(second_companion.axial, Vector2i.ZERO) < second_initial_distance, "A second companion should move on the same camp movement cadence")
 	_check(probe.activity_count > 0, "A companion should start an Ara activity after reaching their station")
 	_check(second_probe.activity_count > 0, "A second companion should also start an Ara activity after reaching their station")
+	var morning_result := world.skip_camp_to_morning()
+	_check(bool(morning_result.ok), "The camp should enter its morning routine after sleep.")
+	_check(player_probe.last_activity == "wake", "The player actor should receive the morning wake animation without taking away movement control.")
+	world.advance_real_time(3.0)
+	_check(player_probe.last_activity == "dress", "The player actor should receive the dressing animation at the next morning stage.")
 	_check(probe.last_activity == "socialise", "The animation should match the companion's assigned camp routine")
 	_check(player.axial == Vector2i(-4, 0), "The player should remain under direct movement control")
 	var reassigned := world.camp_simulation.assign_activity("wren", "watch")
@@ -709,12 +737,18 @@ func _test_ara_camp_animation_mapping() -> void:
 	var study_hints := AraCharacterActor.camp_activity_animation_hints("study_map")
 	var horse_water_hints := AraCharacterActor.camp_activity_animation_hints("care_horse_water")
 	var horse_groom_hints := AraCharacterActor.camp_activity_animation_hints("care_horse_groom")
+	var dress_hints := AraCharacterActor.camp_activity_animation_hints("dress")
+	var fire_hints := AraCharacterActor.camp_activity_animation_hints("extinguish_fire")
+	var pack_hints := AraCharacterActor.camp_activity_animation_hints("pack_camp")
 	_check(social_hints.has("talk"), "Social camp duty should use Ara's available Talk animation")
 	_check(watch_hints.has("idle"), "Night watch should use Ara's available Idle animation")
 	_check(sleep_hints.has("sleep"), "Sleep should use Ara's sleep animation")
 	_check(study_hints.has("use_press"), "Map study should use Ara's seated idle animation")
 	_check(horse_water_hints.has("pick_up"), "Horse watering should use Ara pickup/carry animation")
 	_check(horse_groom_hints.has("use_press"), "Horse grooming should use Ara interaction animation")
+	_check(dress_hints.has("use_press"), "Morning dressing should use the available Ara interaction animation fallback.")
+	_check(fire_hints.has("pick_up"), "Extinguishing the fire should use an Ara ground-interaction animation.")
+	_check(pack_hints.has("carry_idle"), "Packing camp should use an Ara carrying animation fallback.")
 
 
 func _test_dwelling_layout_station_selection() -> void:

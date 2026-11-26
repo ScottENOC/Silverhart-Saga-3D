@@ -6,6 +6,7 @@ extends RefCounted
 signal camp_started(site: Dictionary)
 signal activity_assigned(character_id: String, activity: String)
 signal night_resolved(summary: Dictionary)
+signal morning_routine_completed(summary: Dictionary)
 signal animal_care_completed(animal_id: String, action: String, handler_id: String, care: Dictionary)
 
 const EXPLORATION_SECONDS_PER_REAL_SECOND := 5.0
@@ -14,6 +15,7 @@ const TENT_COMFORTABLE_CAPACITY := 3
 const TENT_MAX_CAPACITY := 5
 const PLAYER_OVERRIDE_SECONDS := 10.0
 const ROUTINE_STAGE_THRESHOLDS := [120.0, 360.0]
+const MORNING_STAGE_THRESHOLDS := [15.0, 35.0, 65.0, 110.0, 145.0]
 const WEATHER_CONTEXT_KEYS: Array[String] = [
 	"weather_type", "weather_label", "season", "month_index", "temperature_c",
 	"night_temperature_c", "wind_speed", "rain_intensity", "storm", "heavy_rain",
@@ -22,7 +24,8 @@ const WEATHER_CONTEXT_KEYS: Array[String] = [
 const ACTIVITY_IDS: Array[String] = [
 	"gather_wood", "set_up_tents", "fetch_water", "cook", "repair_gear",
 	"study_map", "train", "socialise", "watch", "sleep",
-	"care_horse_water", "care_horse_feed", "care_horse_groom", "care_horse_tether"
+	"care_horse_water", "care_horse_feed", "care_horse_groom", "care_horse_tether",
+	"wake", "dress", "breakfast", "extinguish_fire", "pack_camp", "depart"
 ]
 
 var phase: String = "inactive"
@@ -43,6 +46,8 @@ var conditions: Dictionary = {}
 var evening_activity_history: Dictionary = {}
 var elapsed_world_seconds: float = 0.0
 var routine_stage: int = 0
+var morning_elapsed_world_seconds: float = 0.0
+var morning_summary: Dictionary = {}
 var _preparations_completed: bool = false
 var companion_profiles: Dictionary = {}
 var _default_assignments: Dictionary = {}
@@ -113,6 +118,8 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	night_resources_consumed = false
 	companion_profiles = environment.get("companion_profiles", {}).duplicate(true)
 	routine_stage = 0
+	morning_elapsed_world_seconds = 0.0
+	morning_summary.clear()
 	_preparations_completed = false
 	sleeping_arrangements.clear()
 	evening_activity_history.clear()
@@ -691,6 +698,10 @@ func advance_real_time(real_delta: float) -> float:
 	if phase == "inactive" or phase == "resolved" or real_delta <= 0.0:
 		return 0.0
 	var world_delta := real_delta * EXPLORATION_SECONDS_PER_REAL_SECOND
+	if phase == "morning":
+		morning_elapsed_world_seconds += world_delta
+		_advance_morning_routine()
+		return 0.0
 	_advance_companion_fatigue(world_delta)
 	_advance_animal_care_tasks(world_delta)
 	for character_id in assignments.keys():
@@ -1212,7 +1223,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 			"shelter_type": "dwelling" if in_dwelling else ("tent" if in_tent else "open_air")
 		}
 	night_elapsed_hours = segment_end
-	phase = "interrupted" if sleep_interrupted else "resolved"
+	phase = "interrupted" if sleep_interrupted else "morning"
 	var summary := {
 		"hours": segment_hours,
 		"elapsed_hours": night_elapsed_hours,
@@ -1239,7 +1250,77 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS, allow_encounter: bool = t
 		night_encounter_result = threat_result.duplicate(true)
 	if sleep_interrupted:
 		night_resolved.emit(summary.duplicate(true))
-	return {"ok": true, "summary": summary}
+	else:
+		morning_elapsed_world_seconds = 0.0
+		routine_stage = 0
+		morning_summary = summary.duplicate(true)
+		_begin_morning_stage(0)
+	return {"ok": true, "summary": morning_summary.duplicate(true) if not sleep_interrupted else summary, "phase": phase}
+
+
+func _begin_morning_stage(stage: int) -> void:
+	var activity := "wake"
+	match stage:
+		1:
+			activity = "dress"
+		2:
+			activity = "breakfast"
+			var breakfast_count := mini(party_ids.size(), int(resources.get("rations", 0)))
+			resources["rations"] = maxi(0, int(resources.get("rations", 0)) - breakfast_count)
+			for index in range(party_ids.size()):
+				var character_id := party_ids[index]
+				var condition: Dictionary = conditions.get(character_id, {}).duplicate(true)
+				if index < breakfast_count:
+					condition["hunger"] = maxf(0.0, float(condition.get("hunger", 0.0)) - 25.0)
+					condition["breakfast_eaten"] = true
+				else:
+					condition["breakfast_eaten"] = false
+					condition["hunger"] = minf(100.0, float(condition.get("hunger", 0.0)) + 5.0)
+				conditions[character_id] = condition
+			morning_summary["breakfast_servings"] = breakfast_count
+			morning_summary["breakfast_shortfall"] = party_ids.size() - breakfast_count
+		3:
+			activity = "pack_camp"
+			var fire_handler := ""
+			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
+				var player_id := String(environment.get("player_character_id", party_ids[0] if not party_ids.is_empty() else ""))
+				for character_id in party_ids:
+					if character_id != player_id:
+						fire_handler = character_id
+						break
+				if fire_handler.is_empty() and not party_ids.is_empty():
+					fire_handler = party_ids[0]
+			for character_id in party_ids:
+				_set_assignment(character_id, "extinguish_fire" if character_id == fire_handler else "pack_camp")
+			return
+		4:
+			activity = "depart"
+			if bool(environment.get("fire_lit", false)) and not bool(lodging_profile.get("is_sheltered", false)):
+				environment["fire_extinguished"] = true
+				environment["fire_lit"] = false
+				environment["fire_buried"] = true
+				environment["fire_extinguishing_method"] = "covered_with_soil"
+			for character_id in party_ids:
+				_set_assignment(character_id, "depart")
+			return
+		5:
+			environment["camp_packed"] = true
+			phase = "resolved"
+			morning_summary["camp_packed"] = true
+			morning_summary["fire_extinguished"] = bool(environment.get("fire_extinguished", false))
+			morning_summary["resources_remaining"] = resources.duplicate(true)
+			morning_routine_completed.emit(morning_summary.duplicate(true))
+			return
+	for character_id in party_ids:
+		_set_assignment(character_id, activity)
+
+
+func _advance_morning_routine() -> void:
+	while phase == "morning" and routine_stage < MORNING_STAGE_THRESHOLDS.size():
+		if morning_elapsed_world_seconds < float(MORNING_STAGE_THRESHOLDS[routine_stage]):
+			break
+		routine_stage += 1
+		_begin_morning_stage(routine_stage)
 
 
 func continue_sleep() -> Dictionary:
@@ -1265,7 +1346,8 @@ func to_dict() -> Dictionary:
 		"sleeping_arrangements": sleeping_arrangements.duplicate(true),
 		"conditions": conditions.duplicate(true), "evening_activity_history": evening_activity_history.duplicate(true),
 		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true),
-		"routine_stage": routine_stage, "preparations_completed": _preparations_completed,
+		"routine_stage": routine_stage, "morning_elapsed_world_seconds": morning_elapsed_world_seconds,
+		"morning_summary": morning_summary.duplicate(true), "preparations_completed": _preparations_completed,
 		"companion_profiles": companion_profiles.duplicate(true),
 		"occupants": occupants.duplicate(true), "animal_care": animal_care.duplicate(true),
 		"animal_care_tasks": animal_care_tasks.duplicate(true),
@@ -1281,7 +1363,7 @@ func to_dict() -> Dictionary:
 
 func from_dict(data: Dictionary) -> bool:
 	var saved_phase := String(data.get("phase", "inactive"))
-	if not ["inactive", "evening", "night", "interrupted", "resolved"].has(saved_phase):
+	if not ["inactive", "evening", "night", "interrupted", "morning", "resolved"].has(saved_phase):
 		return false
 	var saved_party: Variant = data.get("party_ids", [])
 	var saved_conditions: Variant = data.get("conditions", {})
@@ -1377,7 +1459,9 @@ func from_dict(data: Dictionary) -> bool:
 	conditions = saved_conditions.duplicate(true)
 	evening_activity_history = data.get("evening_activity_history", {}).duplicate(true)
 	elapsed_world_seconds = maxf(0.0, float(data.get("elapsed_world_seconds", 0.0)))
-	routine_stage = clampi(int(data.get("routine_stage", 0)), 0, ROUTINE_STAGE_THRESHOLDS.size())
+	routine_stage = clampi(int(data.get("routine_stage", 0)), 0, MORNING_STAGE_THRESHOLDS.size())
+	morning_elapsed_world_seconds = maxf(0.0, float(data.get("morning_elapsed_world_seconds", 0.0)))
+	morning_summary = data.get("morning_summary", {}).duplicate(true)
 	_preparations_completed = bool(data.get("preparations_completed", false))
 	companion_profiles = saved_profiles.duplicate(true)
 	occupants = saved_occupants.duplicate(true)

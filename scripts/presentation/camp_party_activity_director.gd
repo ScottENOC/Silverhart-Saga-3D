@@ -46,7 +46,9 @@ const ACTIVITY_STATION_ROLES := {
 	"socialise": "common", "watch": "threshold", "sleep": "bedroom",
 	"gather_wood": "yard", "set_up_tents": "yard", "fetch_water": "yard", "train": "yard",
 	"care_horse_water": "yard", "care_horse_feed": "yard",
-	"care_horse_groom": "yard", "care_horse_tether": "yard"
+	"care_horse_groom": "yard", "care_horse_tether": "yard",
+	"wake": "bedroom", "dress": "bedroom", "breakfast": "table",
+	"extinguish_fire": "hearth", "pack_camp": "yard", "depart": "threshold"
 }
 
 var simulation: WorldSimulation
@@ -84,9 +86,12 @@ func begin_camp(site: Dictionary) -> void:
 	_layout_id = String(profile.get("layout_id", site.get("layout_id", "")))
 	_layout_station_offsets = (LAYOUT_STATION_OFFSETS.get(_layout_id, {}) as Dictionary).duplicate(true)
 	_build_companion_destinations()
+	if simulation.camp_simulation.phase == "morning":
+		var player_assignment: Dictionary = simulation.camp_simulation.assignments.get(simulation.player_character_id, {})
+		_play_actor_activity(simulation.player_character_id, String(player_assignment.get("activity", "wake")))
 	# Social exchanges remain active even if a tight or obstructed camp site has
 	# no free station for one of the companions.
-	_running = simulation.camp_simulation.phase == "evening"
+	_running = simulation.camp_simulation.phase in ["evening", "morning"]
 
 
 func stop() -> void:
@@ -108,6 +113,9 @@ func is_running() -> bool:
 
 func process_activity_movement(delta: float) -> void:
 	if not _running or simulation == null or delta <= 0.0:
+		return
+	if simulation.camp_simulation.phase == "resolved":
+		stop()
 		return
 	if simulation.is_in_combat or simulation.has_pending_reaction() or simulation.clock.paused:
 		return
@@ -221,16 +229,24 @@ func _adjacent_to_terrain(hex: Vector2i, terrain_id: String) -> bool:
 
 
 func _play_assigned_activity(character_id: String) -> void:
+	_play_actor_activity(character_id, String(_activity_by_character.get(character_id, "socialise")))
+
+
+func _play_actor_activity(character_id: String, activity: String) -> void:
 	if not _actor_lookup.is_valid():
 		return
 	var actor: Variant = _actor_lookup.call(character_id)
 	if actor == null or not is_instance_valid(actor) or not actor.has_method("play_camp_activity"):
 		return
-	actor.call("play_camp_activity", String(_activity_by_character.get(character_id, "socialise")))
+	actor.call("play_camp_activity", activity)
 
 
 func _on_activity_assigned(character_id: String, activity: String) -> void:
-	if not _running or character_id == simulation.player_character_id:
+	if not _running:
+		return
+	if character_id == simulation.player_character_id:
+		if simulation.camp_simulation.phase == "morning":
+			_play_actor_activity(character_id, activity)
 		return
 	if not _destination_by_character.has(character_id):
 		return
