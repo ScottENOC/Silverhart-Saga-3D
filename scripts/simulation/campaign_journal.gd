@@ -216,7 +216,15 @@ func adjust_faction_reputation(faction_id: String, standing_delta: float, knowle
 	faction_standings[faction_id] = next_value
 	faction_knowledge[faction_id] = next_knowledge
 	_emit_event("faction_reputation_changed", {"faction_id": faction_id, "previous": previous, "current": next_value, "delta": applied_delta, "knowledge": next_knowledge, "reason": reason})
-	return {"ok": true, "previous": previous, "current": next_value, "delta": applied_delta, "knowledge": next_knowledge}
+	var result := {"ok": true, "previous": previous, "current": next_value, "delta": applied_delta, "knowledge": next_knowledge}
+	if faction_id == "goblin_tribe":
+		result["orc_raiders_cascade"] = adjust_faction_reputation(
+			"orc_raiders",
+			standing_delta * 0.35,
+			knowledge_delta * 0.35,
+			"%s (goblin scout report)" % reason
+		)
+	return result
 
 
 func adjust_npc_reputation(npc_id: String, standing_delta: float, knowledge_delta: float, reason: String = "") -> Dictionary:
