@@ -127,7 +127,7 @@ func _load_settlement_layouts() -> void:
 		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
 		var layout: Dictionary = definition.get("layout", {})
 		for building in layout.get("buildings", []):
-			if not building is Dictionary:
+			if not building is Dictionary or not bool(building.get("blocks_movement", true)):
 				continue
 			var centre := _read_axial(building.get("center", Vector2i.ZERO)) + origin
 			var half_q := int(building.get("half_q", 0))
