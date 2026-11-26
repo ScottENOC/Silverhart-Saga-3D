@@ -7,6 +7,7 @@ const RELATIONSHIP_SCRIPT = preload("res://scripts/simulation/persistent_charact
 const DIALOGUE_SERVICE = preload("res://scripts/simulation/goblin_threat_dialogue_service.gd")
 const EVENT_ROUTER = preload("res://scripts/simulation/campaign_quest_event_router.gd")
 const QUEST_REGISTRY = preload("res://scripts/simulation/campaign_quest_definition_registry.gd")
+const FOLLOWUP_SCRIPT = preload("res://scripts/simulation/goblin_threat_followup_content.gd")
 
 const ALDRIC_ID := "ser_aldric_thorne"
 var _failures: int = 0
