@@ -258,6 +258,86 @@ func seraphine_chancellor_tunnel_response() -> Dictionary:
 	}
 
 
+
+## Resolve the Queen's campaign choices at the simulation boundary. The caller
+## supplies inventory facts that belong to the active world/character adapter;
+## all authored outcomes and persistent campaign consequences stay here.
+func resolve_seraphine_campaign_choice(
+	simulation: WorldSimulation,
+	choice_id: String,
+	context: Dictionary,
+	relationships: PersistentCharacterRelationshipState,
+	active_character_id: String
+) -> Dictionary:
+	if not choice_id.begins_with("seraphine_"):
+		return {"handled":false}
+	if choice_id == "seraphine_leave":
+		return {"handled":true,"close":true}
+
+	var response: Dictionary = {}
+	var refresh_dwelling_world := false
+	match choice_id:
+		"seraphine_topic_greenskins":
+			response = seraphine_topic_response("greenskins", context, relationships)
+		"seraphine_topic_ironbond":
+			response = seraphine_topic_response("ironbond", context, relationships)
+		"seraphine_topic_necromancy":
+			response = seraphine_topic_response("necromancy", context, relationships)
+		"seraphine_personal_burden":
+			response = seraphine_personal_response(relationships)
+		"seraphine_request_favour":
+			response = seraphine_manor_request_response()
+		"seraphine_manor_accept":
+			var grant := simulation.claim_dwelling("claim_silverhart_manor", "materials", "silverhart_palace", active_character_id)
+			if not bool(grant.get("ok", false)):
+				var reason := String(grant.get("reason", "requirements_not_met")).replace("_", " ")
+				return {
+					"handled":true,
+					"ok":false,
+					"dialogue":{
+						"speaker":"Queen Seraphine Corrin",
+						"text":"I cannot grant the townhouse just now: %s." % reason,
+						"choices":[{"id":"continue","label":"Understood","kind":"leave"}]
+					}
+				}
+			simulation.set_meta("silverhart_manor_granted", true)
+			refresh_dwelling_world = true
+			response = seraphine_manor_granted_response()
+		"seraphine_manor_followup":
+			response = {
+				"ok":true,
+				"speaker":"Queen Seraphine Corrin",
+				"text":"The grant remains yours. The townhouse is still in need of fortification; timber and stone will see it restored.",
+				"response_label":"I will see to it."
+			}
+		"seraphine_wizard_evidence":
+			response = seraphine_wizard_evidence_response()
+		"seraphine_report_chancellor_tunnel":
+			response = seraphine_chancellor_tunnel_response()
+			if bool(response.get("ok", false)):
+				simulation.set_meta("chancellor_tunnel_reported_to_queen", true)
+				simulation.campaign_journal.adjust_faction_standing("silverhart_kingdom", 15, "reported_chancellor_tunnel_to_queen")
+				simulation.campaign_journal.adjust_faction_standing("thieves_guild", -20, "reported_chancellor_tunnel_to_queen")
+		_:
+			return {"handled":false}
+
+	if not bool(response.get("ok", false)):
+		return {
+			"handled":true,
+			"ok":false,
+			"dialogue":{
+				"speaker":"Queen Seraphine Corrin",
+				"text":"That matter cannot be discussed just now.",
+				"choices":[{"id":"continue","label":"Understood","kind":"leave"}]
+			}
+		}
+	return {
+		"handled":true,
+		"ok":true,
+		"dialogue":response,
+		"refresh_dwelling_world":refresh_dwelling_world
+	}
+
 func _has_label(options: Array[Dictionary], target: String) -> bool:
 	for option in options:
 		if String(option.get("label", "")) == target:
