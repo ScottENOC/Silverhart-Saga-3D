@@ -150,7 +150,10 @@ jobs:
               str(source),
           ]
           for name in garment_names:
-              command.append(name + "*")
+              # The assembler accepts SOURCE.glb / MATERIAL pairs. Pass the
+              # Ara source for every selected material; a wildcard can match
+              # multiple primitives belonging to one garment (e.g. bikini cords).
+              command.extend([str(source), name + "*"])
           subprocess.run(command, check=True)
           PY
           test -s build/wren-native/Wren_Ara_Bikini_Fit.glb
