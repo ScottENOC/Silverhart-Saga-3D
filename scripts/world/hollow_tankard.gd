@@ -326,7 +326,7 @@ func _on_campaign_world_time_advanced(world_seconds: float) -> void:
 	if campaign_faction_simulation == null or simulation == null:
 		return
 	var player := simulation.get_character(simulation.player_character_id)
-	var cooked := simulation.campaign_dwellings.prepare_steward_meal(world_seconds, player)
+	var cooked := household_world_service.prepare_scheduled_meal(world_seconds, player) if household_world_service != null else {}
 	if bool(cooked.get("ok", false)) and resource_status_label != null:
 		var meal_name := "breakfast" if String(cooked.get("meal_slot", "")) == "breakfast" else "supper"
 		resource_status_label.text = "Halvard has prepared %s at Silverhart Manor." % meal_name.capitalize()
@@ -2545,11 +2545,7 @@ func _refresh_dwelling_world_presentation() -> void:
 	if simulation == null:
 		return
 	DWELLING_WORLD_PRESENTATION.present_all(self, simulation.campaign_dwellings, HEX_RADIUS)
-	var manor_profile := simulation.campaign_dwellings.camp_profile_for("silverhart_manor")
-	if bool(manor_profile.get("is_sheltered", false)):
-		var appointment := simulation.campaign_dwellings.appoint_halvard_as_steward()
-		if bool(appointment.get("ok", false)):
-			household_world_service.ensure_actor()
+	household_world_service.refresh_household()
 
 
 func _restore_farm_wolf_actor_presentations() -> void:
