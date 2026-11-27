@@ -1499,7 +1499,9 @@ func _on_campaign_conversation_choice_selected(choice: Dictionary, conversation_
 		return
 	var starting_revision := conversation_controller.session.revision
 	await _select_dialogue_choice(choice)
-	if not is_inside_tree() or conversation_controller == null:
+	if not is_instance_valid(self) or not is_inside_tree():
+		return
+	if not is_instance_valid(conversation_controller):
 		return
 	if (
 		conversation_controller.session.active
