@@ -14,14 +14,16 @@ const BARON_TRIBUTE = preload("res://scripts/simulation/baron_tribute_content.gd
 const DWARVEN_AMBASSADOR = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
 const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_content.gd")
 
-const QUEST_CONTENT_MODULES: Array[Script] = [
-	ABANDONED_HOUSE,
-	TOLL_TAKER,
-	REDDALE_INNKEEPER,
-	IRONBOND_MISSING_COURIER,
-	BARON_TRIBUTE,
-	DWARVEN_AMBASSADOR,
-	CORVANE_AMBASSADOR,
+# Keep quest IDs explicit here so duplicate registration can be prevented
+# without relying on implementation-specific Script reflection.
+const QUEST_CONTENT_MODULES: Array[Dictionary] = [
+	{"id": "abandoned_house_cleared", "script": ABANDONED_HOUSE},
+	{"id": "toll_ogre", "script": TOLL_TAKER},
+	{"id": "nella_stone", "script": REDDALE_INNKEEPER},
+	{"id": "ironbond_missing_courier", "script": IRONBOND_MISSING_COURIER},
+	{"id": "baron_tribute", "script": BARON_TRIBUTE},
+	{"id": "coin_for_the_deepholds", "script": DWARVEN_AMBASSADOR},
+	{"id": "eyes_on_the_border", "script": CORVANE_AMBASSADOR},
 ]
 
 
@@ -35,20 +37,26 @@ static func register_definitions(simulation: WorldSimulation) -> Dictionary:
 
 	var registered: Array[String] = []
 	var failed: Array[Dictionary] = []
-	for module in QUEST_CONTENT_MODULES:
-		if not module.has_method("register_definition"):
+	for module_entry in QUEST_CONTENT_MODULES:
+		var quest_id := String(module_entry.get("id", ""))
+		var module: Script = module_entry.get("script") as Script
+		if module == null or quest_id.is_empty():
+			failed.append({"module": quest_id, "reason": "invalid_registry_entry"})
+			continue
+		if simulation.campaign_journal.quest_definitions.has(quest_id):
+			registered.append(quest_id)
 			continue
 		var result: Variant = module.call("register_definition", simulation.campaign_journal)
 		if result is Dictionary and bool(result.get("ok", false)):
-			registered.append(module.resource_path)
+			registered.append(quest_id)
 		else:
 			failed.append({
-				"module": module.resource_path,
+				"quest_id": quest_id,
 				"result": result if result is Dictionary else {"reason": "invalid_registration_result"}
 			})
 
 	return {
 		"ok": failed.is_empty(),
-		"registered_modules": registered,
-		"failed_modules": failed
+		"registered_quest_ids": registered,
+		"failed_quests": failed
 	}
