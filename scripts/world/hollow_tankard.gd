@@ -1733,6 +1733,7 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		choices
 	)
 	return true
+
 func _handle_ilsa_choice(choice: Dictionary) -> bool:
 	var choice_id := String(choice.get("id", ""))
 	if not choice_id.begins_with("ilsa_"):
