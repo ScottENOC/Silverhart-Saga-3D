@@ -158,7 +158,7 @@ def main():
     max_total_displacement = 0.0
     max_attempted_displacement = 0.0
     total_contacts = 0
-    collision_reliable = bool(body and piercings)
+    collision_available = bool(body and piercings)
     collision_warning = (
         "Body collision shell is open/nonmanifold; using local oriented surface-normal contact "
         "instead of closed-volume ray parity. Validate normals and the external envelope visually."
@@ -260,7 +260,7 @@ def main():
         # garment vertex is constrained to its original normal line, allowing
         # substantial outward anatomical accommodation without tangential
         # vertex wandering. There is deliberately no absolute displacement cap.
-        if collision_reliable:
+        if collision_available:
             for _ in range(max(1, options.substeps)):
                 solve_frame(
                     particles, edge_constraints, contact_provider,
@@ -329,7 +329,7 @@ def main():
         min_face_normal_dot = min(face_normal_dots, default=1.0)
 
         candidate_penetrations = []
-        if collision_reliable:
+        if collision_available:
             for index, particle in enumerate(particles):
                 for collider_name, tree, two_sided in collider_trees:
                     _contact, signed = closest_contact(
@@ -342,7 +342,7 @@ def main():
                         })
 
         rejection_reasons = []
-        if not collision_reliable:
+        if not collision_available:
             rejection_reasons.append(collision_skip_reason)
         if candidate_penetrations:
             rejection_reasons.append(
@@ -421,7 +421,7 @@ def main():
                 "neighbour_relationships_preserved": True
             },
             "fit_quality": (
-                "skipped_unreliable_collision_geometry" if not collision_reliable
+                "skipped_unreliable_collision_geometry" if not collision_available
                 else "rejected_original_preserved" if not accepted_candidate
                 else "accepted_within_integrity_limits"
             ),
@@ -458,7 +458,7 @@ def main():
         "body_or_skin_deleted": False,
         "piercings_hidden_or_moved": False,
         "collision_method": "triangle BVH nearest point plus local oriented skin-normal signed distance; two-sided nearest-point contact for piercings",
-        "colliders": [name for name, _tree in collider_trees],
+        "colliders": [name for name, _tree, _two_sided in collider_trees],
         "collision_confidence": [
             {
                 "object": obj.name,
@@ -487,7 +487,7 @@ def main():
         "displacement_limit_is_hard_acceptance_gate": False,
         "exported_for_review": True,
         "fit_quality": (
-            "skipped_unreliable_collision_geometry" if not collision_reliable
+            "skipped_unreliable_collision_geometry" if not collision_available
             else "rejected_original_preserved" if any(not row["candidate_accepted"] for row in report_rows)
             else "accepted_within_integrity_limits"
         ),
