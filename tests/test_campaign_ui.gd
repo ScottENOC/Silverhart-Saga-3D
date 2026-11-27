@@ -6,6 +6,7 @@ func _initialize() -> void:
 	_test_combat_hud_presentation_and_actions()
 	_test_dialogue_panel_presentation_and_choice_signal()
 	_test_character_portrait_renderer()
+	await _test_ambient_dialogue_presenter()
 	print("Campaign UI and character portrait tests passed.")
 	quit()
 
@@ -103,3 +104,57 @@ func _test_character_portrait_renderer() -> void:
 	assert(not renderer.is_live(), "Portrait renderer can pause outside dialogue")
 	renderer.free()
 	source.free()
+
+
+func _test_ambient_dialogue_presenter() -> void:
+	assert(is_equal_approx(CampaignAmbientDialoguePresenter.duration_for_text("Hi."), 2.0))
+	assert(is_equal_approx(CampaignAmbientDialoguePresenter.duration_for_text("x".repeat(400)), 7.0))
+
+	var presenter := CampaignAmbientDialoguePresenter.new()
+	var actor := Node3D.new()
+	root.add_child(presenter)
+	root.add_child(actor)
+	assert(not bool(presenter.present_line(null, "Hello").get("ok", true)))
+	assert(not bool(presenter.present_line(actor, "   ").get("ok", true)))
+	assert(not bool(presenter.present_line(actor, "Hello", 0.0).get("ok", true)))
+
+	var result := presenter.present_line(actor, "The road is clear.", 0.15, 2.4)
+	assert(bool(result.get("ok", false)))
+	var bubble: Label3D = result.get("bubble") as Label3D
+	assert(bubble != null and is_instance_valid(bubble))
+	assert(bubble.get_parent() == actor, "Ambient speech must be attached to its speaker")
+	assert(bubble.is_in_group("campaign_ambient_dialogue_bubble"))
+	assert(bubble.billboard == BaseMaterial3D.BILLBOARD_ENABLED)
+	assert(is_equal_approx(bubble.position.y, 2.4))
+	var expiry := bubble.get_node_or_null("RealTimeExpiry") as Timer
+	assert(expiry != null)
+	assert(expiry.one_shot)
+	assert(expiry.ignore_time_scale, "Ambient text must expire independently of game time scale")
+	var previous_time_scale := Engine.time_scale
+	Engine.time_scale = 0.05
+	await create_timer(0.25, true, false, true).timeout
+	Engine.time_scale = previous_time_scale
+	await process_frame
+	assert(not is_instance_valid(bubble), "Ambient bubble expires in real time even when gameplay is slowed")
+
+	var second_actor := Node3D.new()
+	root.add_child(second_actor)
+	var exchange := await presenter.present_exchange(
+		[
+			{"speaker_id":"first","text":"The watch is quiet."},
+			{"speaker_id":"second","text":"Then let us keep it that way."}
+		],
+		{"first":actor,"second":second_actor},
+		0.08
+	)
+	assert(bool(exchange.get("ok", false)), "Multi-speaker banter remains a sequential ambient exchange")
+	assert(exchange.get("lines_presented", []).size() == 2)
+	var second_actor_has_bubble := false
+	for child in second_actor.get_children():
+		if child is Label3D and child.is_in_group("campaign_ambient_dialogue_bubble"):
+			second_actor_has_bubble = true
+	assert(second_actor_has_bubble)
+	second_actor.queue_free()
+	actor.queue_free()
+	presenter.queue_free()
+	await process_frame
