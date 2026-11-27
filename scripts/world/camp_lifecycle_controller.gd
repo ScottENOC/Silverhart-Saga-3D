@@ -51,6 +51,8 @@ func sync_sleep_button_state() -> void:
 			sleep_button.text = "Morning routine…"
 		"resolved":
 			sleep_button.text = "Pack camp"
+		"inactive":
+			sleep_button.text = ""
 
 func camp_established() -> void:
 	sync_sleep_button_state()
