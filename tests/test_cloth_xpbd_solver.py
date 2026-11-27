@@ -2,7 +2,7 @@ import unittest
 
 from tools.cloth.xpbd_solver import (
     Contact, DistanceConstraint, Particle, nonlinear_body_compliance,
-    solve_coupled_contact, solve_distance, solve_frame,
+    solve_coupled_contact, solve_distance, solve_frame, project_to_normal_lines,
 )
 
 
@@ -36,6 +36,15 @@ class XPBDSolverTests(unittest.TestCase):
         small = nonlinear_body_compliance(0.1, 10.0, 100.0)
         large = nonlinear_body_compliance(0.2, 10.0, 100.0)
         self.assertGreater(large / 0.2, small / 0.1)
+
+    def test_normal_line_projection_allows_large_outward_motion_without_tangential_drift(self):
+        particles = [Particle.at((0.0, 0.0, 0.0))]
+        anchors = [((0.0, 0.0, 0.0), (0.0, 0.0, 1.0))]
+        particles[0].position = (0.025, -0.01, 0.08)
+        project_to_normal_lines(particles, anchors)
+        self.assertAlmostEqual(particles[0].position[0], 0.0)
+        self.assertAlmostEqual(particles[0].position[1], 0.0)
+        self.assertAlmostEqual(particles[0].position[2], 0.08)
 
     def test_pinned_particle_is_not_moved_by_contact(self):
         particles = [Particle.at((0, 0, -0.2), inverse_mass=0.0)]
