@@ -242,10 +242,11 @@ def main():
                         "penetration_m": round(-signed, 7)
                     })
         total_contacts += len(final_penetrations)
+        displacement_warning = None
         if max_displacement > 1.0:
-            raise RuntimeError(
-                f"{garment.name} required implausible {max_displacement:.4f}m "
-                "vertex displacement; refusing to export"
+            displacement_warning = (
+                f"Extreme displacement ({max_displacement:.4f}m); exported for review, "
+                "not accepted as a valid fit."
             )
         report_rows.append({
             "object": garment.name,
@@ -260,6 +261,8 @@ def main():
             ),
             "structural_constraints": len(edge_constraints),
             "max_vertex_displacement_m": max_displacement,
+            "fit_quality": "warning" if displacement_warning else "unassessed",
+            "warnings": [displacement_warning] if displacement_warning else [],
             "mean_vertex_displacement_m": (
                 sum(displacements) / len(displacements) if displacements else 0.0
             ),
@@ -271,11 +274,7 @@ def main():
             ),
         })
 
-    if max_total_displacement <= 1.0e-7:
-        raise RuntimeError(
-            "The solver made no measurable garment correction; refusing to "
-            "label an unchanged mesh as a simulated fit"
-        )
+    no_measurable_correction = max_total_displacement <= 1.0e-7
 
     # Export the actual visible character only. Collision proxy meshes are
     # deliberately omitted; the accepted skin and piercing render meshes stay.
@@ -299,6 +298,10 @@ def main():
         "piercings_hidden_or_moved": False,
         "collision_method": "triangle BVH nearest point plus three-ray majority parity signed distance",
         "colliders": [name for name, _tree in collider_trees],
+        "collision_confidence": [
+            obj.get("collision_preparation_warnings", "[]")
+            for obj in body if obj.get("cloth_collision_role") == "rigid_contact_surface"
+        ],
         "solver": {
             "type": "XPBD",
             "substeps": options.substeps,
@@ -311,6 +314,16 @@ def main():
         "garments": report_rows,
         "max_vertex_displacement_m": max_total_displacement,
         "diagnostic_displacement_limit_m": 1.0,
+        "exported_for_review": True,
+        "fit_quality": (
+            "unchanged_no_correction" if no_measurable_correction
+            else "warning" if any(row["warnings"] for row in report_rows)
+            else "unassessed"
+        ),
+        "warnings": (
+            ["Solver made no measurable correction; unchanged garment exported for diagnosis."]
+            if no_measurable_correction else []
+        ),
         "remaining_penetration_count": total_contacts,
         "limitations": [
             "This is a static-pose garment relaxation, not animated runtime cloth.",
