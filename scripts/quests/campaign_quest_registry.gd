@@ -19,11 +19,11 @@ const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_
 const QUEST_CONTENT_MODULES: Array[Dictionary] = [
 	{"id": "abandoned_house_cleared", "script": ABANDONED_HOUSE},
 	{"id": "toll_ogre", "script": TOLL_TAKER},
-	{"id": "nella_stone", "script": REDDALE_INNKEEPER},
+	{"id": "a_stone_for_nella", "script": REDDALE_INNKEEPER},
 	{"id": "ironbond_missing_courier", "script": IRONBOND_MISSING_COURIER},
 	{"id": "baron_tribute", "script": BARON_TRIBUTE},
-	{"id": "coin_for_the_deepholds", "script": DWARVEN_AMBASSADOR},
-	{"id": "eyes_on_the_border", "script": CORVANE_AMBASSADOR},
+	{"id": "dwarven_toll", "script": DWARVEN_AMBASSADOR},
+	{"id": "corvane_watch", "script": CORVANE_AMBASSADOR},
 ]
 
 
