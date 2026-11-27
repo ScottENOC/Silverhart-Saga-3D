@@ -2,6 +2,8 @@ extends SceneTree
 
 const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
 const CAMPAIGN_RUNTIME_STORE := preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const ROWAN_RELATIONSHIP_STORE := preload("res://scripts/simulation/persistent_character_relationship_store.gd")
+const ROWAN_CAMP_DIALOGUE_SERVICE := preload("res://scripts/simulation/rowan_fletcher_camp_dialogue_service.gd")
 
 var _failures := 0
 var _exchange_count := 0
