@@ -45,6 +45,9 @@ func _test_service_journal_facade() -> void:
 	# The service must pass through journal validation rather than inventing
 	# objectives or silently accepting unknown quest state.
 	assert(bool(progress.get("ok", false)), "Known quest objectives should be updated through the service.")
+	var failed := service.fail(ABANDONED_HOUSE.QUEST_ID, "service regression test")
+	assert(bool(failed.get("ok", false)), "Quest failures should pass through the service facade.")
+	assert(String(service.state(ABANDONED_HOUSE.QUEST_ID).get("status", "")) == "failed")
 
 
 func _test_unconfigured_service_fails_safely() -> void:
