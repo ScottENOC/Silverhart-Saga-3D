@@ -55,6 +55,7 @@ const COMBAT_ENCOUNTER_CONTROLLER_SCRIPT = preload("res://scripts/presentation/c
 const CAMP_NIGHT_AMBUSH_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/camp_night_ambush_encounter.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
+const CAMPAIGN_SIMULATION_SNAPSHOT_RESTORER = preload("res://scripts/campaign/campaign_simulation_snapshot_restorer.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT = preload("res://scripts/simulation/ilsa_watch_captain_content.gd")
@@ -1284,40 +1285,12 @@ func _build_save_snapshot() -> Dictionary:
 	}
 
 func _apply_save_data(data: Dictionary) -> void:
-	simulation.reset_transient_combat_state()
-	var restored_states: Array[CharacterState] = []
-	var saved_diffs: Variant = data.get("character_diffs", {})
-	if saved_diffs is Dictionary:
-		for character_id_variant in saved_diffs.keys():
-			var character_id := String(character_id_variant)
-			var diff: Variant = saved_diffs[character_id_variant]
-			if not diff is Dictionary:
-				continue
-			var restored: CharacterState
-			if diff.has("__full_record"):
-				restored = CharacterState.from_dict(diff["__full_record"])
-			else:
-				var existing := simulation.get_character(character_id)
-				if existing == null:
-					push_warning("Save references unknown base character '%s'; skipped." % character_id)
-					continue
-				var merged := existing.to_dict()
-				merged.merge(diff, true)
-				restored = CharacterState.from_dict(merged)
-			restored.id = character_id
-			restored_states.append(restored)
-	if not simulation.restore_character_states(restored_states):
-		push_error("Saved character states could not be restored without invalid occupancy or mount links.")
+	var restore_result := CAMPAIGN_SIMULATION_SNAPSHOT_RESTORER.restore(simulation, data)
+	if not bool(restore_result.get("ok", false)):
+		push_error("Saved campaign simulation state could not be restored: %s" % String(restore_result.get("reason", "unknown error")))
 		return
-	var dynamic_records: Variant = data.get("dynamic_campaign_characters", {})
-	if dynamic_records is Dictionary:
-		for character_id_value in dynamic_records.keys():
-			var character_id := String(character_id_value)
-			if simulation.get_character(character_id) != null or not (dynamic_records[character_id_value] is Dictionary):
-				continue
-			var dynamic_state := CharacterState.from_dict(dynamic_records[character_id_value])
-			if dynamic_state != null:
-				simulation.register_character(dynamic_state)
+
+	# Actor appearance and dynamic actor creation remain presentation/world work.
 	var appearance_diffs: Variant = data.get("appearance_diffs", {})
 	if appearance_diffs is Dictionary:
 		for actor_id_variant in appearance_diffs.keys():
@@ -1333,67 +1306,11 @@ func _apply_save_data(data: Dictionary) -> void:
 	# Prefer the former for historical party ordering, then retain any members
 	# present only in the simulation snapshot. New saves write one canonical list.
 	var restored_party_ids: Array[String] = []
-	var legacy_location_party: Variant = data.get("party_member_ids", null)
-	var legacy_simulation_party: Variant = data.get("simulation_party_member_ids", null)
-	if legacy_location_party is Array:
-		for member_id in legacy_location_party:
-			var id := String(member_id)
-			if not restored_party_ids.has(id):
-				restored_party_ids.append(id)
-	if legacy_simulation_party is Array:
-		for member_id in legacy_simulation_party:
-			var id := String(member_id)
-			if not restored_party_ids.has(id):
-				restored_party_ids.append(id)
-	if restored_party_ids.is_empty():
-		restored_party_ids = ["player", "companion_wren_talbot"]
-	simulation.restore_party_members(restored_party_ids)
-	var clock_data: Variant = data.get("clock", {})
-	if clock_data is Dictionary:
-		simulation.clock.load_dict(clock_data)
-	var weather_data: Variant = data.get("world_weather", {})
-	if weather_data is Dictionary and not weather_data.is_empty():
-		if not simulation.weather_state.load_dict(weather_data):
-			push_warning("Saved world weather seed was invalid; a new weather sequence was generated.")
-	simulation.weather_state.update_to(simulation.clock.world_seconds)
-	var saved_camp: Variant = data.get("camp_simulation", {})
-	if saved_camp is Dictionary and not saved_camp.is_empty():
-		if not simulation.camp_simulation.from_dict(saved_camp):
-			push_warning("Saved camp state was invalid and has been reset.")
-			simulation.camp_simulation = CampSimulation.new()
-	var saved_dwellings: Variant = data.get("campaign_dwellings", {})
-	if saved_dwellings is Dictionary and not saved_dwellings.is_empty():
-		if not simulation.campaign_dwellings.from_dict(saved_dwellings):
-			push_warning("Saved player dwelling ownership was invalid and has been reset.")
-			simulation.campaign_dwellings = CampaignDwellingState.new()
-	var saved_bonds: Variant = data.get("companion_bonds", {})
-	if saved_bonds is Dictionary and not saved_bonds.is_empty():
-		if not simulation.companion_bonds.from_dict(saved_bonds):
-			push_warning("Saved companion-to-companion relationships were invalid and have been reset.")
-			simulation.companion_bonds = CompanionBondState.new()
-	var journal_data: Variant = data.get("campaign_journal", {})
-	if journal_data is Dictionary:
-		simulation.campaign_journal.load_dict(journal_data)
-	var persistent_relationship_data: Variant = data.get("persistent_character_relationships", {})
-	if persistent_relationship_data is Dictionary:
-		if not PERSISTENT_RELATIONSHIP_STORE.restore(simulation, persistent_relationship_data):
-			push_warning("Persistent NPC relationship state could not be fully synchronised with the campaign journal.")
-	var companion_runtime_data: Variant = data.get("companion_campaign_runtime", {})
-	if companion_runtime_data is Dictionary and not COMPANION_RUNTIME_STORE.restore(simulation, companion_runtime_data):
-		push_warning("Companion relationship and personal quest state could not be fully restored.")
-	# Dynamic Tessa is saved as a full character record. Recreate her presentation
-	# after the journal is restored, retaining her saved axial position.
+
+	# Dynamic Tessa is saved as a full character record. Recreate her presentation after journal restore.
 	if simulation.get_character("missing_child_tessa") != null:
 		_spawn_missing_child()
-	var multistory_data: Variant = data.get("multistory_locations", {})
-	if multistory_data is Dictionary and not simulation.restore_multistory_location_states(multistory_data):
-		push_warning("Some multi-story location state could not be restored; affected locations will use their validated defaults.")
-	var resource_data: Variant = data.get("wilderness_resources", {})
-	if resource_data is Dictionary:
-		simulation.wilderness_resources.load_dict(resource_data)
-	var building_data: Variant = data.get("buildings", {})
-	if building_data is Dictionary:
-		simulation.building_registry.load_dict(building_data)
+
 	var flags: Dictionary = data.get("world_flags", {})
 	ambient_security = int(flags.get("ambient_security", ambient_security))
 	shakedown_started = bool(flags.get("shakedown_started", false))
