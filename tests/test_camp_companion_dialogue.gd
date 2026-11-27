@@ -130,6 +130,7 @@ func _initialize() -> void:
 
 	_test_autonomous_director_exchange()
 	_test_morning_routine_exchange()
+	_test_rowan_guest_exchange()
 
 	if _failures > 0:
 		push_error("%d camp companion dialogue assertion(s) failed." % _failures)
@@ -191,6 +192,81 @@ func _test_morning_routine_exchange() -> void:
 	director.process_activity_movement(0.5)
 	_check(_exchange_count == 2, "Camp packing should trigger its own authored companion conversation.")
 	_check(String(_last_exchange.get("topic", "")) == "morning_pack_camp")
+	director.stop()
+	director.free()
+	_actor_probes.clear()
+
+
+func _test_rowan_guest_exchange() -> void:
+	var world := WorldSimulation.new()
+	for q in range(-6, 7):
+		for r in range(-6, 7):
+			var hex := Vector2i(q, r)
+			if HexGrid.distance(Vector2i.ZERO, hex) <= 6:
+				world.map_data.add_cell(hex, 0.0, true, "grass")
+	var player := CharacterState.new("player", "Player", Vector2i(-4, 0))
+	player.side = "player"
+	var reyna := CharacterState.new("companion_reyna_fletcher", "Reyna Fletcher", Vector2i(4, 0))
+	reyna.side = "player"
+	var rowan := CharacterState.new("rowan_fletcher", "Rowan Fletcher", Vector2i(4, -1))
+	rowan.side = "neutral"
+	world.register_character(player)
+	world.register_character(reyna)
+	world.register_character(rowan)
+	world.restore_party_members([player.id, reyna.id])
+	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
+	_check(bool(started.get("ok", false)), "The Rowan guest dialogue test should establish a camp.")
+	var guest := {
+		"occupant_id": "rowan_fletcher",
+		"kind": "guest",
+		"species": "humanoid",
+		"participates_in_party": false,
+		"can_sleep": true,
+		"can_work": false,
+		"staying_overnight": true,
+		"leaves_at_dawn": true,
+		"visit_key": "test-day:camp-rowan"
+	}
+	_check(bool(world.camp_simulation.register_camp_occupant(guest).get("ok", false)), "Rowan should register as a separate overnight guest.")
+	world.camp_simulation.assignments["rowan_fletcher"] = {"activity": "socialise", "source": "overnight_guest"}
+
+	var rowan_relationships := ROWAN_RELATIONSHIP_STORE.state_for(world)
+	var first_exchange := ROWAN_CAMP_DIALOGUE_SERVICE.build_exchange(
+		reyna.id, reyna.display_name, rowan_relationships, "test-day:camp-rowan"
+	)
+	_check(String(first_exchange.get("kind", "")) == "rowan_guest_banter", "Rowan should have authored dialogue with a companion during his guest visit.")
+	_check(String(first_exchange.get("first_id", "")) == reyna.id and String(first_exchange.get("second_id", "")) == rowan.id)
+	_check(String(first_exchange.lines[0].get("text", "")).contains("birds have gone quiet"))
+	_check(ROWAN_CAMP_DIALOGUE_SERVICE.record_exchange(rowan_relationships, first_exchange).size() > 0)
+	_check(int(rowan_relationships.snapshot("rowan_fletcher").get("familiarity", 0)) == 1, "A first companion conversation should gently increase Rowan's familiarity.")
+	_check(ROWAN_CAMP_DIALOGUE_SERVICE.build_exchange(
+		reyna.id, reyna.display_name, rowan_relationships, "test-day:camp-rowan"
+	).is_empty(), "The same companion should not repeat their conversation during one guest visit.")
+
+	var warm_relationships := PersistentCharacterRelationshipState.new()
+	warm_relationships.adjust_relationship("rowan_fletcher", {"friendship": 20}, "test earned friendship")
+	var warm_exchange := ROWAN_CAMP_DIALOGUE_SERVICE.build_exchange(
+		"companion_reyna_fletcher", "Reyna Fletcher", warm_relationships, "later-day:camp-rowan"
+	)
+	_check(String(warm_exchange.lines[0].get("text", "")).contains("I'm glad you didn't"), "Established friendship should unlock warmer Rowan banter.")
+	_check(String(warm_exchange.get("relationship_phase", "")) == "friendship")
+
+	var reyna_probe := DialogueActorProbe.new()
+	var rowan_probe := DialogueActorProbe.new()
+	_actor_probes[reyna.id] = reyna_probe
+	_actor_probes[rowan.id] = rowan_probe
+	_exchange_count = 0
+	_last_exchange.clear()
+	var director := CampPartyActivityDirector.new()
+	director.configure(world, Callable(self, "_actor_for_id"))
+	director.companion_exchange.connect(_on_companion_exchange)
+	director.begin_camp(world.camp_simulation.site)
+	director.process_activity_movement(22.0)
+	_check(_exchange_count == 1, "The camp director should autonomously surface Rowan's guest conversation.")
+	_check(String(_last_exchange.get("kind", "")) == "rowan_guest_banter")
+	_check(reyna_probe.last_activity == "socialise" and rowan_probe.last_activity == "socialise", "Both Rowan and his companion should use the existing socialise animation.")
+	director.process_activity_movement(22.0)
+	_check(_exchange_count == 1, "Rowan should not repeat the same companion conversation during one visit.")
 	director.stop()
 	director.free()
 	_actor_probes.clear()
