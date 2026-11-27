@@ -30,6 +30,7 @@ const CORVANE_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/corv
 const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
+const DWELLING_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_dwelling_dialogue_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 const DWELLING_WORLD_PRESENTATION = preload("res://scripts/presentation/campaign_dwelling_world_presentation.gd")
 const SKELETAL_GUARDIAN_ACTOR_SCRIPT = preload("res://scripts/presentation/skeletal_guardian_actor.gd")
@@ -1519,29 +1520,22 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		if simulation != null:
 			await camp_lifecycle_controller.pack_after_ambush()
 		return
-	if choice_id.begins_with("furniture_buy:"):
-		var item_id := choice_id.trim_prefix("furniture_buy:")
-		var purchase := simulation.buy_dwelling_furniture(item_id, 1, active_character_id)
-		var inspection := DWELLING_WORLD_SERVICE.furniture_shop_inspection(simulation.get_character(simulation.player_character_id))
-		if bool(purchase.get("ok", false)):
-			_show_dialogue(String(inspection.get("speaker", "Furniture Shop")), "%s purchased. The piece is now in your furniture inventory.\n\n%s" % [String(CampaignFurnitureCatalog.definition(item_id).get("name", item_id)), String(inspection.get("text", ""))], inspection.get("choices", []))
-		else:
-			var reason := String(purchase.get("reason", "purchase_failed")).replace("_", " ")
-			_show_dialogue(String(inspection.get("speaker", "Furniture Shop")), "The purchase could not be completed: %s.\n\n%s" % [reason, String(inspection.get("text", ""))], inspection.get("choices", []))
-		return
-	if choice_id.begins_with("dwelling_action:"):
-		var parts := choice_id.split(":")
-		if parts.size() == 4:
-			var result := simulation.claim_dwelling(String(parts[1]), String(parts[2]), String(parts[3]), active_character_id)
-			if bool(result.get("ok", false)):
+	if choice_id.begins_with("furniture_buy:") or choice_id.begins_with("dwelling_action:"):
+		var dwelling_result := DWELLING_DIALOGUE_SERVICE.resolve_dialogue_choice(
+			simulation,
+			choice,
+			active_character_id
+		)
+		if bool(dwelling_result.get("handled", false)):
+			if bool(dwelling_result.get("refresh_dwelling_world", false)):
 				_refresh_dwelling_world_presentation()
-				var dwelling_name := String(result.get("dwelling_id", "Property")).replace("_", " ")
-				var layout_id := String(result.get("layout_id", ""))
-				_show_dialogue("Property", "The work is complete. %s is now yours.\nLayout identity: %s." % [dwelling_name.capitalize(), layout_id], [{"id": "continue", "label": "Continue", "text": ""}])
-			else:
-				_show_dialogue("Property", "That work cannot be completed: %s." % String(result.get("reason", "requirements_not_met")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-		else:
-			_show_dialogue("Property", "That property action is invalid.", [{"id": "continue", "label": "Understood.", "text": ""}])
+			var dwelling_dialogue: Variant = dwelling_result.get("dialogue", {})
+			if dwelling_dialogue is Dictionary and not dwelling_dialogue.is_empty():
+				_show_dialogue(
+					String(dwelling_dialogue.get("speaker", "Property")),
+					String(dwelling_dialogue.get("text", "")),
+					dwelling_dialogue.get("choices", [])
+				)
 		return
 	if choice_id == "abandoned_house_investigate":
 		var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
