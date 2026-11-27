@@ -74,6 +74,21 @@ func _initialize() -> void:
 	var warm_exchange := SERVICE.build_exchange("companion_ser_aldric_thorne", "companion_nix_sharpear", 1, bonds)
 	_check(String(warm_exchange.lines[1].text) == "All right, you've earned a proper answer. Don't let it go to your head.", "Established bonds should unlock warmer responses")
 
+	var aldren_pair_banter := SERVICE.build_exchange(
+		"companion_dagna", "companion_brother_alden", 1, bonds,
+		"Dagna", "Brother Alden"
+	)
+	_check(String(aldren_pair_banter.get("kind", "")) == "pair_banter", "Authored evening pair dialogue should override generic profile lines.")
+	_check(String(aldren_pair_banter.lines[0].get("character_id", "")) == "companion_brother_alden", "Pair dialogue should retain authored speaker order when the input order is reversed.")
+	_check(String(aldren_pair_banter.lines[0].get("text", "")).contains("washing a cup"))
+	_check(String(aldren_pair_banter.lines[1].get("text", "")).contains("dishes"))
+	var fenn_mirabel_banter := SERVICE.build_exchange(
+		"companion_fenn_oakheart", "companion_mirabel_quill", 0, bonds,
+		"Fenn Oakheart", "Mirabel Quill"
+	)
+	_check(String(fenn_mirabel_banter.get("kind", "")) == "pair_banter")
+	_check(String(fenn_mirabel_banter.lines[1].get("text", "")).contains("land remembers"))
+
 	for first_id in SERVICE.supported_companion_ids():
 		for second_id in SERVICE.supported_companion_ids():
 			if first_id == second_id:
