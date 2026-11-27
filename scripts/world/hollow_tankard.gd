@@ -11,18 +11,12 @@ const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_re
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
+const QUEST_DIALOGUE_DISPATCHER = preload("res://scripts/quests/campaign_quest_dialogue_dispatcher.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
-const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
 const TOLL_TAKER_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_encounter.gd")
-const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
-const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
-const IRONBOND_MISSING_COURIER_CONTENT_SCRIPT = preload("res://scripts/simulation/ironbond_missing_courier_content.gd")
-const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
-const DWARVEN_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
-const CORVANE_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/corvane_ambassador_content.gd")
-const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
@@ -78,6 +72,7 @@ const ROOM_HALF_WIDTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_WIDTH
 const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 
 var simulation: WorldSimulation
+var campaign_quest_service: CampaignQuestService
 var world_cell_loader: Campaign2WorldCellLoader
 var multistory_runtime_by_location: Dictionary = {}
 var active_multistory_runtime: Campaign2MultiStoryLocationRuntime
@@ -165,7 +160,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
-	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
+	_configure_campaign_quest_service()
 	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
@@ -186,13 +181,6 @@ func _ready() -> void:
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
-	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
-	TOLL_TAKER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	CORVANE_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		var saved_multistory_location := String(pending_save_data.get("active_multistory_location_id", ""))
