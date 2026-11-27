@@ -17,13 +17,13 @@ const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_
 # Keep quest IDs explicit here so duplicate registration can be prevented
 # without relying on implementation-specific Script reflection.
 const QUEST_CONTENT_MODULES: Array[Dictionary] = [
-	{"id": "abandoned_house_cleared", "script": ABANDONED_HOUSE},
-	{"id": "toll_ogre", "script": TOLL_TAKER},
-	{"id": "a_stone_for_nella", "script": REDDALE_INNKEEPER},
-	{"id": "ironbond_missing_courier", "script": IRONBOND_MISSING_COURIER},
-	{"id": "baron_tribute", "script": BARON_TRIBUTE},
-	{"id": "dwarven_toll", "script": DWARVEN_AMBASSADOR},
-	{"id": "corvane_watch", "script": CORVANE_AMBASSADOR},
+	{"id": "abandoned_house_cleared", "register": Callable(ABANDONED_HOUSE, "register_definition")},
+	{"id": "toll_ogre", "register": Callable(TOLL_TAKER, "register_definition")},
+	{"id": "a_stone_for_nella", "register": Callable(REDDALE_INNKEEPER, "register_definition")},
+	{"id": "ironbond_missing_courier", "register": Callable(IRONBOND_MISSING_COURIER, "register_definition")},
+	{"id": "baron_tribute", "register": Callable(BARON_TRIBUTE, "register_definition")},
+	{"id": "dwarven_toll", "register": Callable(DWARVEN_AMBASSADOR, "register_definition")},
+	{"id": "corvane_watch", "register": Callable(CORVANE_AMBASSADOR, "register_definition")},
 ]
 
 
@@ -39,14 +39,14 @@ static func register_definitions(simulation: WorldSimulation) -> Dictionary:
 	var failed: Array[Dictionary] = []
 	for module_entry in QUEST_CONTENT_MODULES:
 		var quest_id := String(module_entry.get("id", ""))
-		var module: Script = module_entry.get("script") as Script
-		if module == null or quest_id.is_empty():
+		var register_callable: Callable = module_entry.get("register", Callable())
+		if not register_callable.is_valid() or quest_id.is_empty():
 			failed.append({"module": quest_id, "reason": "invalid_registry_entry"})
 			continue
 		if simulation.campaign_journal.quest_definitions.has(quest_id):
 			registered.append(quest_id)
 			continue
-		var result: Variant = module.call("register_definition", simulation.campaign_journal)
+		var result: Variant = register_callable.call(simulation.campaign_journal)
 		if result is Dictionary and bool(result.get("ok", false)):
 			registered.append(quest_id)
 		else:
