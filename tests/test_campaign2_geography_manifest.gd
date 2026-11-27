@@ -78,6 +78,12 @@ func _initialize() -> void:
 		"Exploration locations must remain unmarked until discovered")
 
 	var markers: Array = MAP_DATA.strategic_locations()
+	var location_legend := MAP_DATA.strategic_location_legend()
+	assert(not location_legend.is_empty(), "Strategic map legend must contain source-derived marker names")
+	for marker in markers:
+		assert(location_legend.contains(String(marker.get("name", ""))), "Strategic legend must include every marker: " + String(marker.get("id", "")))
+	for marker in markers:
+		assert(location_legend.count(String(marker.get("name", ""))) == 1, "Strategic legend must show each marker exactly once: " + String(marker.get("id", "")))
 	assert(markers.size() == 12, "All source-authored strategic markers must be represented")
 	var marker_cells: Dictionary = {}
 	var marker_ids: Dictionary = {}
