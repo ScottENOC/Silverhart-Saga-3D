@@ -1,0 +1,51 @@
+name: Posing validation
+
+on:
+  pull_request:
+    branches: [dev, physics, "feature/**", "feat/**"]
+    paths:
+      - "scripts/posing/**"
+      - "data/posing/**"
+      - "tests/posing_*.gd"
+      - "tests/test_posing_*.gd"
+      - "docs/posing/**"
+      - ".github/workflows/posing-validation.yml"
+  push:
+    branches: [dev, physics, "feature/**", "feat/**"]
+    paths:
+      - "scripts/posing/**"
+      - "data/posing/**"
+      - "tests/posing_*.gd"
+      - "tests/test_posing_*.gd"
+      - ".github/workflows/posing-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: posing-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  posing-tests:
+    name: Posing tests (Godot 4.7.2 headless)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check indentation
+        run: python tools/ci/check_gdscript_indentation.py scripts/posing/*.gd tests/posing_*.gd tests/test_posing_*.gd data/posing/*.json
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Run posing tests
+        run: |
+          set -euo pipefail
+          for test in test_posing_math test_posing_contact test_posing_nose_poke test_posing_arm_rig_builder test_posing_pose_applier; do
+            echo "::group::$test"
+            bash tools/ci/run_godot_checked.sh godot --headless --path . --script "res://tests/${test}.gd"
+            echo "::endgroup::"
+          done

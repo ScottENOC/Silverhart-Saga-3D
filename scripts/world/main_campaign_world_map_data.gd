@@ -166,6 +166,25 @@ static func generate_grid() -> Array:
 			grid[cell.y][cell.x]["poi"] = location.duplicate(true)
 	return grid
 
+## Display names for every source-authored strategic marker, kept in the same
+## order as the marker collision-resolution pass. The UI must not maintain a
+## second hand-written list that can drift from the geography manifest.
+static func strategic_location_legend() -> String:
+	var names := PackedStringArray()
+	for location in strategic_locations():
+		var location_name := String(location.get("name", "")).strip_edges()
+		if not location_name.is_empty():
+			names.append(location_name)
+	if names.is_empty():
+		return "No strategic locations recorded"
+	var rows := PackedStringArray()
+	for start in range(0, names.size(), 3):
+		var row := PackedStringArray()
+		for index in range(start, mini(start + 3, names.size())):
+			row.append(names[index])
+		rows.append("   •   ".join(row))
+	return "\n".join(rows)
+
 static func location_at(cell: Vector2i) -> Dictionary:
 	for location in strategic_locations():
 		if location["cell"] == cell:

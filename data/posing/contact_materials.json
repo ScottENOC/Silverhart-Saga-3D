@@ -1,0 +1,11 @@
+{
+  "_note": "Game-tuning placeholders, not measured. fingertip_pad and nose_tissue reuse the BodyPressureProfileLibrary defaults (hand/face groups). bearing=true means a rigid shell that spreads load: layers beneath it are not compressed.",
+  "pads": {
+    "fingertip_pad": {"thickness_m": 0.006, "stiffness_n_per_m": 3900, "max_compression_m": 0.004}
+  },
+  "layers": {
+    "nose_tissue": {"thickness_m": 0.0, "stiffness_n_per_m": 4700, "max_compression_m": 0.008, "bearing": false},
+    "gambeson_padded": {"thickness_m": 0.012, "stiffness_n_per_m": 900, "max_compression_m": 0.008, "bearing": false},
+    "helm_closed_steel": {"thickness_m": 0.025, "stiffness_n_per_m": 20000000, "max_compression_m": 0.0005, "bearing": true}
+  }
+}

@@ -53,7 +53,7 @@ func _build_panel() -> void:
 	layout.add_child(map_view)
 
 	var locations := Label.new()
-	locations.text = "K  Silverhart     V  Millbrook     V  Hollowmere (start)     T  Reddale\nV  Emberlode     F  Old Mac's Farmstead     S  Skarn-tooth Camp\nF  Northwatch / Ridgehold     K  Skarnak's Hold     K  Kragmoor     K  Sil'thandriel"
+	locations.text = MAP_DATA.strategic_location_legend()
 	locations.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	locations.add_theme_font_size_override("font_size", 11)
 	locations.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -1,0 +1,7 @@
+{
+  "_note": "Starting values for an adult arm, in degrees. Override per character. Not measured data.",
+  "elbow_flexion_min_deg": 0,
+  "elbow_flexion_max_deg": 150,
+  "shoulder_extension_max_deg": 60,
+  "wrist_deviation_max_deg": 80
+}
