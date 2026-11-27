@@ -14,25 +14,35 @@ func _initialize() -> void:
 
 
 func _start() -> void:
+	var watchdog := create_timer(45.0)
+	watchdog.timeout.connect(func() -> void:
+		push_error("GARRICK BAR WIPE: test watchdog expired")
+		quit(1)
+	)
+	print("GARRICK BAR WIPE TEST: begin")
 	var actor := Node3D.new()
 	actor.name = "GarrickTestActor"
 	root.add_child(actor)
 	var ara := ARA_ACTOR.new() as AraCharacterActor
 	ara.name = "CharacterModel"
 	actor.add_child(ara)
+	print("GARRICK BAR WIPE TEST: loading Garrick GLB")
 	if not ara.configure("res://art/characters/hollowmere/garrick_holt.glb"):
 		_check(false, "Garrick's authored Hollowmere model loads")
 		_finish()
 		return
 
+	print("GARRICK BAR WIPE TEST: GLB loaded")
 	await process_frame
 	var controller := WIPE_CONTROLLER.new() as GarrickBarWipeController
 	root.add_child(controller)
 	controller.configure(actor, Callable(self, "_is_interrupted"), Callable(self, "_return_to_station"))
+	print("GARRICK BAR WIPE TEST: controller configured")
 	for _frame in range(12):
 		await process_frame
 
 	var modifier := controller.modifier
+	print("GARRICK BAR WIPE TEST: initial frames complete status=%s" % (modifier.last_status if modifier != null else "no modifier"))
 	_check(modifier != null, "the controller attaches a late skeleton modifier")
 	if modifier != null:
 		_check(modifier.last_status == "bar wipe active", "Garrick can reach the bar surface with one arm (%s)" % modifier.last_status)
@@ -40,6 +50,8 @@ func _start() -> void:
 		_check(modifier.last_tip_error_m >= 0.0 and modifier.last_tip_error_m < 0.005, "the fingertip tracks the wipe target (%.4f m)" % modifier.last_tip_error_m)
 		var first_target := modifier.last_target_world
 		await create_timer(0.8).timeout
+		_check(modifier.last_status == "bar wipe active", "the wipe remains solvable through its sweep (%s)" % modifier.last_status)
+		_check(modifier.last_tip_error_m >= 0.0 and modifier.last_tip_error_m < 0.005, "the fingertip continues tracking the wipe target")
 		_check(modifier.last_target_world.distance_to(first_target) > 0.08, "the hand travels along the bar rather than holding a static pose")
 
 		_interrupted = true
