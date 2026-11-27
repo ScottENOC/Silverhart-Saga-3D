@@ -17,6 +17,40 @@ const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_
 const ALDENREACH_MESSAGE = preload("res://scripts/simulation/aldenreach_message_content.gd")
 
 
+static func greeting_for_actor(
+	simulation: WorldSimulation,
+	dialogue_id: String,
+	context: Dictionary = {}
+) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {}
+	var journal = simulation.campaign_journal
+	var player = simulation.get_character(simulation.player_character_id)
+	match dialogue_id:
+		"old_mac":
+			return FARM_WOLVES.greeting(journal, int(context.get("remaining_wolves", 0)))
+		"elder_marta", "marta_wynfield":
+			var delivery: Dictionary = ALDENREACH_MESSAGE.deliver_to_elder(journal)
+			var conversation: Dictionary = ELDER_MARTA.greeting(journal, player)
+			conversation["delivered_now"] = bool(delivery.get("delivered_now", false))
+			return conversation
+		"dray_coltayne":
+			return IRONBOND_COURIER.greeting(journal)
+		"petra_hollis":
+			return TOLL_TAKER_CONTENT.greeting(journal, TOLL_TAKER_ENCOUNTER.is_alive(simulation))
+		"reddale_innkeeper":
+			return NELLA.greeting(journal, player, bool(context.get("abandoned_house_journal_read", false)))
+		"reddale_baron":
+			return BARON_TRIBUTE.greeting(journal, player)
+		"dwarven_ambassador":
+			return DWARVEN_AMBASSADOR.greeting(journal, player)
+		"corvane_ambassador":
+			return CORVANE_AMBASSADOR.greeting(journal, player)
+		"aldenreach_ambassador":
+			return ALDENREACH_MESSAGE.greeting(journal)
+	return {}
+
+
 static func resolve_choice(simulation: WorldSimulation, choice: Dictionary) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
 		return {"handled": false, "reason": "missing_campaign_journal"}
