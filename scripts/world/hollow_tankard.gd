@@ -1915,7 +1915,7 @@ func _interact_with_character(character_id: String) -> void:
 	var target_state := simulation.get_character(character_id)
 	if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
 		return
-	if character_id == HALVARD_CHARACTER_ID:
+	if character_id == "steward_halvard_greer":
 		_show_halvard_household_dialogue()
 		return
 	if character_id == "rowan_fletcher":
@@ -2555,19 +2555,6 @@ func _ensure_halvard_actor() -> void:
 func _update_halvard_household_routine() -> void:
 	if household_world_service != null:
 		household_world_service.update_routine()
-
-ZERO)
-	var target_hex: Vector2i = HALVARD_MANOR_HEX + station_offset
-	simulation.ensure_exploration_region(target_hex)
-	if not simulation.map_data.is_walkable(target_hex) or (simulation.occupied_hexes.has(target_hex) and String(simulation.occupied_hexes[target_hex]) != HALVARD_CHARACTER_ID):
-		target_hex = _find_valid_spawn_hex(target_hex)
-	var halvard_state := simulation.get_character(HALVARD_CHARACTER_ID)
-	if halvard_state == null:
-		return
-	if target_hex != halvard_state.axial:
-		halvard_routine_busy = true
-		_move_halvard_to_station(target_hex)
-
 
 func _move_halvard_to_station(target_hex: Vector2i) -> void:
 	if household_world_service != null:
