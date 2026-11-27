@@ -232,6 +232,10 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          python -m pip install --user trimesh matplotlib
+          python tools/blender/diagnose_wren_external_surface.py \
+            --input build/wren-native/Wren.glb \
+            --output-dir build/wren-native/external-surface-diagnostic
           blender --background --python-exit-code 1 \
             --python tools/blender/prepare_wren_cloth_colliders.py -- \
             --input build/wren-native/Wren_Ara_Bikini_Fit.glb \
@@ -269,6 +273,7 @@ jobs:
           path: |
             build/wren-native/cloth-collision-report.json
             build/wren-native/Wren_Cloth_Collision_Setup.blend
+            build/wren-native/external-surface-diagnostic/
           if-no-files-found: ignore
           retention-days: 30
 
