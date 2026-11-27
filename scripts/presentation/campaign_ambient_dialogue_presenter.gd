@@ -20,6 +20,32 @@ static func duration_for_text(text: String) -> float:
 	)
 
 
+func present_exchange(
+	lines: Array[Dictionary],
+	actors_by_id: Dictionary,
+	duration_seconds: float = -1.0
+) -> Dictionary:
+	if not is_inside_tree():
+		return {"ok": false, "reason": "presenter_not_in_scene_tree"}
+	if lines.is_empty():
+		return {"ok": false, "reason": "empty_exchange"}
+	var tree := get_tree()
+	var presented_lines: Array[Dictionary] = []
+	for index in range(lines.size()):
+		var line: Dictionary = lines[index]
+		var speaker_id := String(line.get("speaker_id", "")).strip_edges()
+		var actor_value: Variant = actors_by_id.get(speaker_id, null)
+		if not actor_value is Node3D:
+			return {"ok": false, "reason": "missing_exchange_speaker", "speaker_id": speaker_id, "line_index": index}
+		var result := present_line(actor_value as Node3D, String(line.get("text", "")), duration_seconds)
+		if not bool(result.get("ok", false)):
+			return {"ok": false, "reason": "exchange_line_failed", "line_index": index, "details": result}
+		var line_duration := float(result.get("duration_seconds", 0.0))
+		presented_lines.append({"speaker_id": speaker_id, "duration_seconds": line_duration})
+		await tree.create_timer(line_duration, true, false, true).timeout
+	return {"ok": true, "lines_presented": presented_lines}
+
+
 func present_line(
 	speaker_actor: Node3D,
 	text: String,
