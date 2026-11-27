@@ -23,6 +23,12 @@ static func definition() -> Dictionary:
 		]
 	}
 
+static func register_definition(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	return journal.register_quest_definition(definition())
+
+
 static func greeting(journal: CampaignJournal, wolves_remaining: int) -> Dictionary:
 	var state := journal.quest_state(QUEST_ID)
 	var status := String(state.get("status", ""))
