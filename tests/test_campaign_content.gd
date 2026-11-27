@@ -490,10 +490,10 @@ func _test_campaign_ambassador_dialogue_service() -> void:
 		"baron_tribute_unrecognised_choice"
 	]
 	for choice_id in routed_prefixes:
-		var result := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": choice_id})
-		_check(bool(result.get("handled", false)), "The ambassador service must own the %s choice family" % choice_id)
-		_check(not bool(result.get("ok", true)), "Unknown choices in a recognized family must fail safely")
-		_check(result.get("dialogue", {}) is Dictionary, "Failures return presentation-neutral dialogue data")
+		var unknown_family_result := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": choice_id})
+		_check(bool(unknown_family_result.get("handled", false)), "The ambassador service must own the %s choice family" % choice_id)
+		_check(not bool(unknown_family_result.get("ok", true)), "Unknown choices in a recognized family must fail safely")
+		_check(unknown_family_result.get("dialogue", {}) is Dictionary, "Failures return presentation-neutral dialogue data")
 	var completed_choice_ids := [
 		"brokk_leave",
 		"toren_good_to_hear",
@@ -503,9 +503,9 @@ func _test_campaign_ambassador_dialogue_service() -> void:
 		"baron_tribute_leave"
 	]
 	for choice_id in completed_choice_ids:
-		var result := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": choice_id})
-		_check(bool(result.get("handled", false)) and bool(result.get("ok", false)), "The %s terminal choice must route and close normally" % choice_id)
-		_check(bool(result.get("close", false)), "The %s terminal choice must request conversation closure" % choice_id)
+		var terminal_result := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": choice_id})
+		_check(bool(terminal_result.get("handled", false)) and bool(terminal_result.get("ok", false)), "The %s terminal choice must route and close normally" % choice_id)
+		_check(bool(terminal_result.get("close", false)), "The %s terminal choice must request conversation closure" % choice_id)
 	var unknown := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": "unrelated_choice"})
 	_check(not bool(unknown.get("handled", true)), "Unrelated choices remain available to other domain services")
 	var missing_simulation := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(null, {"id": "brokk_pay_toll"})
