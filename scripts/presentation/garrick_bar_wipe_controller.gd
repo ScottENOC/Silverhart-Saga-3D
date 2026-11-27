@@ -16,13 +16,15 @@ var modifier: GarrickBarWipeModifier
 var _actor_root: Node3D
 var _ara_actor: AraCharacterActor
 var _interruption_source: Callable
+var _return_to_station_source: Callable
 var _was_interrupted: bool = false
 var _warned_missing_actor: bool = false
 
 
-func configure(actor_root: Node3D, interruption_source: Callable) -> void:
+func configure(actor_root: Node3D, interruption_source: Callable, return_to_station_source: Callable = Callable()) -> void:
 	_actor_root = actor_root
 	_interruption_source = interruption_source
+	_return_to_station_source = return_to_station_source
 	if _actor_root != null:
 		_actor_root.position = BAR_STATION_POSITION
 		_actor_root.rotation.y = BAR_STATION_FACING_Y
@@ -35,9 +37,13 @@ func _process(_delta: float) -> void:
 		if modifier == null:
 			return
 	var interrupted := _is_interrupted()
-	modifier.active = not interrupted
-	if _was_interrupted and not interrupted:
-		_return_to_bar_station()
+	if interrupted:
+		modifier.active = false
+	else:
+		if _was_interrupted and not _return_to_bar_station():
+			modifier.active = false
+			return
+		modifier.active = true
 	_was_interrupted = interrupted
 
 
@@ -68,13 +74,18 @@ func _is_interrupted() -> bool:
 	return _interruption_source.is_valid() and bool(_interruption_source.call())
 
 
-func _return_to_bar_station() -> void:
+func _return_to_bar_station() -> bool:
 	if _actor_root == null or not is_instance_valid(_actor_root):
-		return
+		return false
+	if _return_to_station_source.is_valid() and not bool(_return_to_station_source.call()):
+		return false
+	if _actor_root.has_method("stop_moving"):
+		_actor_root.call("stop_moving")
 	_actor_root.position = BAR_STATION_POSITION
 	_actor_root.rotation.y = BAR_STATION_FACING_Y
 	if _ara_actor != null and is_instance_valid(_ara_actor):
 		_ara_actor.play_idle()
+	return true
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
