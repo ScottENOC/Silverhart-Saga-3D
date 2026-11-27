@@ -21,7 +21,7 @@ const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_
 # Keep quest IDs explicit here so duplicate registration can be prevented
 # without relying on implementation-specific Script reflection.
 const QUEST_CONTENT_MODULES: Array[Dictionary] = [
-	{"id": "hollowmere_ironbond_shakedown", "register": Callable(CampaignQuestRegistry, "_register_hollowmere")},
+	{"id": "hollowmere_ironbond_shakedown", "register": Callable(HOLLOWMERE_CONTENT, "register_definition")},
 	{"id": "farm_wolves", "register": Callable(FARM_WOLVES, "register_definition")},
 	{"id": "elder_locket", "register": Callable(ELDER_MARTA, "register_definition")},
 	{"id": "aldenreach_message", "register": Callable(ALDENREACH_MESSAGE, "register_definition")},
@@ -33,14 +33,6 @@ const QUEST_CONTENT_MODULES: Array[Dictionary] = [
 	{"id": "dwarven_toll", "register": Callable(DWARVEN_AMBASSADOR, "register_definition")},
 	{"id": "corvane_watch", "register": Callable(CORVANE_AMBASSADOR, "register_definition")},
 ]
-
-
-static func _register_hollowmere(journal: CampaignJournal) -> Dictionary:
-	if journal == null:
-		return {"ok": false, "reason": "missing_journal"}
-	if journal.quest_definitions.has(HOLLOWMERE_CONTENT.QUEST_ID):
-		return {"ok": true, "already_registered": true}
-	return journal.register_quest_definition(HOLLOWMERE_CONTENT.shakedown_quest_definition())
 
 
 static func register_definitions(simulation: WorldSimulation) -> Dictionary:
