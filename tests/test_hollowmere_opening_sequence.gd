@@ -28,6 +28,7 @@ func _initialize() -> void:
 	_check(_events.has("ambient:companion_wren_talbot"), "The opening should begin with Wren's ambient line.")
 	_check(_events.has("ambient:dray_coltayne"), "The opening should present Dray's line as ambient dialogue.")
 	_check(_events.has("move_inside"), "The stage-direction beat should move the soldiers without presenting narrator text.")
+	_check(_events.find("move_inside") < _events.find("ambient:dray_coltayne"), "Soldiers should enter before the first Ironbond line is spoken.")
 	_check(not _events.has("ambient:narrator"), "Narrator stage direction must not become a floating speech bubble.")
 	_check(_events.has("interactive"), "The opening should finish in the interactive dialogue mode.")
 	_check(_started_count == 1, "The shakedown should be marked started exactly once.")
