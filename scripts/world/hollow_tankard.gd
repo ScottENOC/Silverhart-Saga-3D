@@ -139,7 +139,6 @@ var elder_locket_visual: Node3D
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var conversation_controller: CampaignConversationController
-var conversation_sequence: int = 0
 var combat_hud: CampaignCombatHud
 var combat_controller: CombatEncounterController
 var resource_status_label: Label
@@ -1433,12 +1432,12 @@ func _create_dialogue_panel(layer: CanvasLayer) -> void:
 	add_child(conversation_controller)
 	var configured := conversation_controller.configure(
 		dialogue_panel,
-		Callable(self, "_portrait_actor_for_speaker")
+		Callable(self, "_portrait_actor_for_speaker"),
+		Callable(self, "_select_dialogue_choice")
 	)
 	if not bool(configured.get("ok", false)):
 		push_error("Campaign conversation controller could not configure: %s" % configured)
 		return
-	conversation_controller.choice_selected.connect(_on_campaign_conversation_choice_selected)
 	conversation_controller.conversation_finished.connect(_on_campaign_conversation_finished)
 
 
@@ -1454,68 +1453,19 @@ func _show_conversation(
 	expression: String = "neutral",
 	initiation_source: String = "player"
 ) -> void:
-	if dialogue_panel == null or conversation_controller == null:
+	if conversation_controller == null:
 		return
-	var typed_choices: Array[Dictionary] = []
-	var has_available_choice := false
-	for choice_value in choices:
-		if not choice_value is Dictionary:
-			continue
-		var choice: Dictionary = choice_value.duplicate(true)
-		typed_choices.append(choice)
-		if bool(choice.get("available", true)):
-			has_available_choice = true
-	if typed_choices.is_empty() or not has_available_choice:
-		typed_choices.append({
-			"id": "conversation_end",
-			"label": "End conversation.",
-			"available": true,
-			"ends_conversation": true
-		})
-	var prompt_speaker := speaker.strip_edges()
-	if prompt_speaker.is_empty():
-		prompt_speaker = "Conversation"
-	var prompt_context := context.strip_edges()
-	var prompt_body := body.strip_edges()
-	if prompt_context.is_empty() and prompt_body.is_empty():
-		prompt_body = "What would you like to do?"
-	var prompt := {
-		# The local portrait resolver matches both display names and stable actor IDs.
-		"speaker_id": prompt_speaker,
-		"speaker": prompt_speaker,
-		"context": prompt_context,
-		"text": prompt_body,
-		"expression": expression,
-		"choices": typed_choices
-	}
-	dialogue_open = true
-	var result: Dictionary
-	if conversation_controller.session.active:
-		result = conversation_controller.update_prompt(prompt)
-	else:
-		conversation_sequence += 1
-		var conversation_id := "world_dialogue_%06d" % conversation_sequence
-		result = conversation_controller.start_conversation(conversation_id, prompt, initiation_source)
-	if not bool(result.get("ok", false)):
-		dialogue_open = false
+	var result := conversation_controller.present_prompt(
+		speaker,
+		context,
+		body,
+		choices,
+		expression,
+		initiation_source
+	)
+	dialogue_open = bool(result.get("ok", false))
+	if not dialogue_open:
 		push_warning("Campaign conversation could not be presented: %s" % result)
-
-
-func _on_campaign_conversation_choice_selected(choice: Dictionary, conversation_id: String) -> void:
-	if conversation_controller == null or not conversation_controller.session.active:
-		return
-	var starting_revision := conversation_controller.session.revision
-	await _select_dialogue_choice(choice)
-	if not is_instance_valid(self) or not is_inside_tree():
-		return
-	if not is_instance_valid(conversation_controller):
-		return
-	if (
-		conversation_controller.session.active
-		and conversation_controller.session.conversation_id == conversation_id
-		and conversation_controller.session.revision == starting_revision
-	):
-		conversation_controller.finish_conversation("choice_resolved")
 
 
 func _on_campaign_conversation_finished(_conversation_id: String, _reason: String) -> void:
