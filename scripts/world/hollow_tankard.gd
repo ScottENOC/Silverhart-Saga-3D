@@ -1466,13 +1466,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		_handle_tunnel_choice(choice_id)
 		return
 	if choice_id == "continue_camp_sleep":
-		if simulation != null and not simulation.is_in_combat:
-			var resumed := simulation.continue_camp_sleep()
-			if bool(resumed.get("ok", false)):
-				var summary: Dictionary = resumed.get("summary", {})
-				await camp_lifecycle_controller.continue_sleep_after_ambush()
-			else:
-				camp_status_label.text = "Could not resume sleep: %s" % String(resumed.get("reason", "unknown"))
+		if camp_lifecycle_controller != null:
+			await camp_lifecycle_controller.continue_sleep_after_ambush()
 		return
 	if choice_id == "pack_camp_after_ambush":
 		if simulation != null:
