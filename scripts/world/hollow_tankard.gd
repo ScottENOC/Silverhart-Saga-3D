@@ -7,6 +7,7 @@ const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const AMBIENT_DIALOGUE_PRESENTER_SCRIPT = preload("res://scripts/presentation/ambient_dialogue_presenter.gd")
+const HOLLOWMERE_OPENING_CONTEXT = preload("res://scripts/simulation/hollowmere_opening_context.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
@@ -2279,12 +2280,13 @@ func _run_opening_sequence() -> void:
 	for index in range(opening_lines.size()):
 		var line: Dictionary = opening_lines[index]
 		var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
-		if index == 0:
+		if speaker_id == "narrator":
 			await _move_shakedown_soldiers_inside()
-		_show_speech_bubble(speaker_id, String(line.get("text", "")))
+		else:
+			_show_speech_bubble(speaker_id, String(line.get("text", "")))
 		await get_tree().create_timer(2.25).timeout
 	if not shakedown_resolved:
-		_show_dialogue("Dray Coltayne", "%s\n\nWhat do you do?" % HollowmereCampaignContent.opening_context(), HollowmereCampaignContent.shakedown_choices())
+		_show_dialogue("Dray Coltayne", "%s\n\nWhat do you do?" % HOLLOWMERE_OPENING_CONTEXT.TEXT, HollowmereCampaignContent.shakedown_choices())
 
 
 func _move_shakedown_soldiers_outside() -> void:
