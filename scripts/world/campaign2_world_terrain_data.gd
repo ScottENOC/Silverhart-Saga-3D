@@ -224,6 +224,9 @@ func _terrain_for_hex_uncached(hex: Vector2i) -> String:
 		return String(regional_override.get("terrain", "grass"))
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
+	var regional_elevation: Variant = REGIONAL_FEATURES.elevation_override_at(hex)
+	if regional_elevation != null:
+		return float(regional_elevation)
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	var authored_terrain := ""
