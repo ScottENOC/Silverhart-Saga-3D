@@ -237,7 +237,7 @@ func _test_rowan_guest_exchange() -> void:
 		reyna.id, reyna.display_name, rowan_relationships, "test-day:camp-rowan"
 	)
 	_check(String(first_exchange.get("kind", "")) == "rowan_guest_banter", "Rowan should have authored dialogue with a companion during his guest visit.")
-	_check(String(first_exchange.get("first_id", "")) == reyna.id and String(first_exchange.get("second_id", "")) == rowan.id)
+	_check(String(first_exchange.get("first_id", "")) == rowan.id and String(first_exchange.get("second_id", "")) == reyna.id)
 	_check(String(first_exchange.lines[0].get("text", "")).contains("birds have gone quiet"))
 	_check(ROWAN_CAMP_DIALOGUE_SERVICE.record_exchange(rowan_relationships, first_exchange).size() > 0)
 	_check(int(rowan_relationships.snapshot("rowan_fletcher").get("familiarity", 0)) == 1, "A first companion conversation should gently increase Rowan's familiarity.")
@@ -253,7 +253,7 @@ func _test_rowan_guest_exchange() -> void:
 	_check(String(warm_exchange.lines[0].get("text", "")).contains("I'm glad you didn't"), "Established friendship should unlock warmer Rowan banter.")
 	_check(String(warm_exchange.get("relationship_phase", "")) == "friendship")
 
-	var reyna_probe := DialogueActorProbe.new()
+	# The direct service checks above already recorded the first visit. Give the director a\n	# fresh visit key so it can independently demonstrate autonomous presentation.\n	world.camp_simulation.occupants["rowan_fletcher"]["visit_key"] = "test-day:camp-rowan-director"\n	world.camp_simulation.phase = "evening"\n\n	var reyna_probe := DialogueActorProbe.new()
 	var rowan_probe := DialogueActorProbe.new()
 	_actor_probes[reyna.id] = reyna_probe
 	_actor_probes[rowan.id] = rowan_probe
