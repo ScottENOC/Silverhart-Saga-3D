@@ -256,6 +256,9 @@ jobs:
           assert report["body_or_skin_deleted"] is False
           assert report["simulation_run"] is False
           assert report["body_collider"]["faces"] >= 100
+          assert report["body_collider"]["collision_boundary_edge_count"] == 0, report
+          assert report["body_collider"]["collision_nonmanifold_edge_count"] == 0, report
+          assert report["body_collider"]["external_shell_policy"], report
           assert report["piercing_colliders"], "No real piercing collision meshes were prepared"
           print("WREN_CLOTH_COLLIDER_VALIDATION_OK", len(report["piercing_colliders"]))
           PY
@@ -310,6 +313,9 @@ jobs:
           assert report["max_vertex_displacement_m"] <= 1.0, report
           assert report["garments"], report
           assert all(row["vertices"] > 0 for row in report["garments"]), report
+          cords = [row for row in report["garments"] if row["garment_kind"] == "cord"]
+          assert cords, "No bikini string/cord garment objects were identified"
+          assert all(row["structural_constraints"] > 0 for row in cords), cords
           print("WREN_CLOTH_SIMULATION_VALIDATED", json.dumps({
               "garments": len(report["garments"]),
               "max_vertex_displacement_m": report["max_vertex_displacement_m"],
