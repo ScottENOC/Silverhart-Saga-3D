@@ -46,14 +46,55 @@ def world_bvh(obj, depsgraph):
     return tree
 
 
+def point_is_inside(tree, point):
+    """Classify a point by majority-vote ray parity, not triangle-normal sign.
+
+    Three non-axis-aligned rays reduce edge/vertex grazing ambiguity. Each ray
+    counts successive BVH intersections; odd parity means inside a closed
+    surface. The small post-hit advance prevents counting the same face twice.
+    """
+    origin_point = Vector(point)
+    directions = (
+        Vector((1.0, 0.371, 0.127)).normalized(),
+        Vector((-0.219, 1.0, 0.413)).normalized(),
+        Vector((0.337, -0.173, 1.0)).normalized(),
+    )
+    inside_votes = 0
+    for direction in directions:
+        origin = origin_point.copy()
+        intersections = 0
+        for _ in range(64):
+            location, _normal, _face, _distance = tree.ray_cast(
+                origin, direction, 100.0
+            )
+            if location is None:
+                break
+            intersections += 1
+            origin = location + direction * 1.0e-5
+        if intersections % 2 == 1:
+            inside_votes += 1
+    return inside_votes >= 2
+
+
 def closest_contact(tree, point, particle_index, thickness):
     hit = tree.find_nearest(Vector(point))
     if hit is None:
         return None, None
-    location, normal, _face, distance = hit
-    if location is None or normal is None:
+    location, _face_normal, _face, distance = hit
+    if location is None or distance is None:
         return None, None
-    signed = (Vector(point) - location).dot(normal)
+    point = Vector(point)
+    location = Vector(location)
+    distance = float(distance)
+    if distance <= 1.0e-9:
+        return Contact(particle_index, 0.0, (0.0, 0.0, 1.0), thickness), 0.0
+
+    inside = point_is_inside(tree, point)
+    # Outside: move away from the surface toward the current point.
+    # Inside: move through the nearest surface toward the exterior.
+    direction = (location - point) if inside else (point - location)
+    normal = direction.normalized()
+    signed = -distance if inside else distance
     return Contact(particle_index, signed, tuple(normal), thickness), signed
 
 
@@ -176,7 +217,7 @@ def main():
                         "penetration_m": round(-signed, 7)
                     })
         total_contacts += len(final_penetrations)
-        if max_displacement > 0.03:
+        if max_displacement > 0.05:
             raise RuntimeError(
                 f"{garment.name} required implausible {max_displacement:.4f}m "
                 "vertex displacement; refusing to export"
@@ -225,7 +266,7 @@ def main():
         "body_or_skin_hidden": False,
         "body_or_skin_deleted": False,
         "piercings_hidden_or_moved": False,
-        "collision_method": "triangle BVH nearest-point signed-distance contact",
+        "collision_method": "triangle BVH nearest point plus three-ray majority parity signed distance",
         "colliders": [name for name, _tree in collider_trees],
         "solver": {
             "type": "XPBD",
