@@ -316,8 +316,18 @@ jobs:
           assert all(row["structural_constraints"] > 0 for row in cords), cords
           assert report["exported_for_review"] is True, report
           assert report["fit_quality"] in (
-              "unassessed", "warning", "unchanged_no_correction"
+              "skipped_unreliable_collision_geometry",
+              "rejected_original_preserved",
+              "accepted_within_integrity_limits"
           ), report
+          assert report["displacement_limit_is_hard_acceptance_gate"] is True, report
+          assert report["max_vertex_displacement_m"] <= report["diagnostic_displacement_limit_m"], report
+          for garment in report["garments"]:
+              assert garment["candidate_accepted"] in (True, False), garment
+              assert garment["topology"]["unchanged"] is True, garment
+              assert garment["topology"]["neighbour_relationships_preserved"] is True, garment
+              if not garment["candidate_accepted"]:
+                  assert garment["max_vertex_displacement_m"] == 0.0, garment
           print("WREN_CLOTH_SIMULATION_EXPORTED_FOR_REVIEW", json.dumps({
               "garments": len(report["garments"]),
               "max_vertex_displacement_m": report["max_vertex_displacement_m"],
