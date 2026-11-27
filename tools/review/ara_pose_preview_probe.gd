@@ -112,13 +112,18 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 			continue
 		# The imported GLB's mesh skeleton path is relative to its original actor
 		# hierarchy. Re-rooting the model for export can leave that path unresolved.
+		var source_skin := mesh_instance.skin
 		mesh_instance.skeleton = mesh_instance.get_path_to(export_skeleton)
-		# MeshInstance3D.duplicate() preserves the Skin resource but does not
-		# register that Skin against the duplicated Skeleton3D. Godot requires
-		# explicit registration before bake_mesh_from_current_skeleton_pose().
-		export_skeleton.register_skin(mesh_instance.skin)
+		# Reassign Skin through MeshInstance3D's setter after changing the path.
+		# Calling Skeleton3D.register_skin() alone creates a Skeleton SkinReference,
+		# but does not populate this MeshInstance3D's internal skin_ref used by bake.
+		mesh_instance.skin = null
+		mesh_instance.skin = source_skin
 		if mesh_instance.get_node_or_null(mesh_instance.skeleton) != export_skeleton:
 			print("ARA_BAKE_SKIP invalid_skeleton_path mesh=%s path=%s" % [mesh_instance.name, mesh_instance.skeleton])
+			continue
+		if mesh_instance.get_skin_reference() == null:
+			print("ARA_BAKE_SKIP skin_reference_missing mesh=%s path=%s" % [mesh_instance.name, mesh_instance.skeleton])
 			continue
 		var source_mesh := mesh_instance.mesh
 		print("ARA_BAKE_START index=%d/%d name=%s surfaces=%d skeleton_path=%s" % [
