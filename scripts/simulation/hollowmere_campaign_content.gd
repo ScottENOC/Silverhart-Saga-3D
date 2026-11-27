@@ -5,14 +5,6 @@ extends RefCounted
 
 const QUEST_ID := "hollowmere_ironbond_shakedown"
 
-static func register_definition(journal: CampaignJournal) -> Dictionary:
-	if journal == null:
-		return {"ok": false, "reason": "missing_journal"}
-	if journal.quest_definitions.has(QUEST_ID):
-		return {"ok": true, "already_registered": true}
-	return journal.register_quest_definition(shakedown_quest_definition())
-
-
 static func shakedown_quest_definition() -> Dictionary:
     return {
         "id": QUEST_ID,
