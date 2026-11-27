@@ -29,6 +29,7 @@ func _test_camp_sleep_button_phase_mapping() -> void:
 	var expected := {
 		"evening": ["Sleep until morning", true, false],
 		"interrupted": ["Continue sleeping", true, false],
+		"night": ["Pack camp", true, false],
 		"morning": ["Morning routine…", true, true],
 		"resolved": ["Pack camp", true, false],
 		"inactive": ["", false, false]
