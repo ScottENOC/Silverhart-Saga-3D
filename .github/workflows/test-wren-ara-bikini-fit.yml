@@ -320,8 +320,12 @@ jobs:
               "rejected_original_preserved",
               "accepted_within_integrity_limits"
           ), report
-          assert report["displacement_limit_is_hard_acceptance_gate"] is True, report
-          assert report["max_vertex_displacement_m"] <= report["diagnostic_displacement_limit_m"], report
+          assert report["displacement_limit_is_hard_acceptance_gate"] is False, report
+          assert report["diagnostic_displacement_limit_m"] is None, report
+          assert report["solver"]["vertex_motion_constraint"].startswith("original garment vertex-normal line"), report
+          assert report["solver"]["maximum_edge_length_strain"] == 0.12, report
+          assert report["solver"]["minimum_face_normal_alignment"] == 0.15, report
+          assert all("minimum_face_normal_alignment" in row for row in report["garments"]), report
           for garment in report["garments"]:
               assert garment["candidate_accepted"] in (True, False), garment
               assert garment["topology"]["unchanged"] is True, garment
