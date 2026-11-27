@@ -38,6 +38,21 @@ func process(delta: float) -> void:
 	routine_accumulator = 0.0
 	update_routine()
 
+func refresh_household() -> void:
+	if simulation == null:
+		return
+	var manor_profile := simulation.campaign_dwellings.camp_profile_for("silverhart_manor")
+	if not bool(manor_profile.get("is_sheltered", false)):
+		return
+	var appointment := simulation.campaign_dwellings.appoint_halvard_as_steward()
+	if bool(appointment.get("ok", false)):
+		ensure_actor()
+
+func prepare_scheduled_meal(world_seconds: float, player: CharacterState) -> Dictionary:
+	if simulation == null or player == null:
+		return {"ok": false, "reason": "household_unavailable"}
+	return simulation.campaign_dwellings.prepare_steward_meal(world_seconds, player)
+
 func ensure_actor() -> void:
 	if simulation == null or actor_by_id.has(HALVARD_CHARACTER_ID):
 		return
