@@ -1,3 +1,4 @@
+class_name GarrickBarWipeModifier
 extends SkeletonModifier3D
 ## Procedural one-arm wipe over a fixed world-space surface path.
 ## Added after AraAnimationRetargeter: the base animation continues on every
