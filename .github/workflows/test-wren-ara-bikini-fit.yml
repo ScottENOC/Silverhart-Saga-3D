@@ -247,13 +247,10 @@ jobs:
           assert report["body_or_skin_deleted"] is False
           assert report["simulation_run"] is False
           assert report["body_collider"]["faces"] >= 100
-          # Imperfect collision shells are still exported for visual diagnosis.
-          # Their confidence and residual topology defects must remain visible.
-          assert report["body_collider"]["collision_boundary_edge_count"] >= 0, report
-          assert report["body_collider"]["collision_nonmanifold_edge_count"] >= 0, report
-          assert report["body_collider"]["collision_confidence"] in (
-              "closed_manifold", "open_or_nonmanifold_diagnostic_only"
-          ), report
+          # Garment fitting must not proceed on an open or non-manifold body proxy.
+          assert report["body_collider"]["collision_boundary_edge_count"] == 0, report
+          assert report["body_collider"]["collision_nonmanifold_edge_count"] == 0, report
+          assert report["body_collider"]["collision_confidence"] == "closed_manifold", report
           assert report["body_collider"]["boundary_loop_count"] >= 0, report
           assert report["body_collider"]["external_shell_policy"], report
           # A missing pelvis landmark is a warning, not a reason to lose the candidate.
