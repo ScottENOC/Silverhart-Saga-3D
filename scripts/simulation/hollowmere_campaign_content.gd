@@ -16,6 +16,10 @@ static func shakedown_quest_definition() -> Dictionary:
     }
 
 
+static func opening_context() -> String:
+    return "The tavern door bangs open. Three armed men in matching colours stride in, eyes on the bar."
+
+
 static func opening_lines() -> Array[Dictionary]:
     return [
         {"speaker_id": "narrator", "speaker": "Narrator", "text": "The tavern door bangs open. Three armed men in matching colours stride in, eyes on the bar."},
