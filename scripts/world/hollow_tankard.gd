@@ -1565,7 +1565,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
-		var start_result := simulation.campaign_journal.start_quest(quest_id)
+		var start_result := campaign_quest_service.start(quest_id)
 		if bool(start_result.get("ok", false)):
 			_show_companion_dialogue(String(choice.get("companion_id", "")))
 		else:
