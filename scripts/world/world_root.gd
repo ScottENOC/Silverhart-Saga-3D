@@ -3,13 +3,10 @@ extends Node3D
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
 const STARTING_LOCATION = preload("res://data/world/locations/hollowmere.gd")
 const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
-const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
-const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
-const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
-const ELDER_MARTA_CONTENT = preload("res://scripts/simulation/elder_marta_content.gd")
-const ALDENREACH_MESSAGE_CONTENT = preload("res://scripts/simulation/aldenreach_message_content.gd")
+const CAMPAIGN_COORDINATOR_SCRIPT = preload("res://scripts/campaign/campaign_coordinator.gd")
 
 var simulation: WorldSimulation
+var campaign_coordinator: CampaignCoordinator
 var settlement_presentation: Node3D
 var tavern: Node3D
 var loading_layer: CanvasLayer
@@ -53,18 +50,12 @@ func _ready() -> void:
 	loading_layer.visible = false
 
 func _initialize_campaign_simulation(profile: Dictionary) -> void:
-	# Campaign rules and initial state belong to the campaign composition
-	# root, not to whichever location happens to present the opening scene.
-	simulation.clock.set_world_seconds(11.0 * 3600.0)
-	simulation.campaign_journal.register_quest_definition(HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_quest_definition())
-	simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST.definition())
-	ELDER_MARTA_CONTENT.register_definition(simulation.campaign_journal)
-	ALDENREACH_MESSAGE_CONTENT.register_definition(simulation.campaign_journal)
-	COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
-	HOLLOWMERE_CAMPAIGN_CONTENT.initialize_social_standings(
-		simulation.campaign_journal,
-		String(profile.get("race", "human"))
-	)
+	campaign_coordinator = CAMPAIGN_COORDINATOR_SCRIPT.new()
+	campaign_coordinator.name = "CampaignCoordinator"
+	add_child(campaign_coordinator)
+	var result: Dictionary = campaign_coordinator.initialize(simulation, profile)
+	if not bool(result.get("ok", false)):
+		push_error("Campaign initialisation failed: %s" % result)
 
 func _create_loading_overlay() -> void:
 	loading_layer = CanvasLayer.new()
