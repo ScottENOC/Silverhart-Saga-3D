@@ -136,7 +136,8 @@ There are **62 single-floor location records**. Their interior door coordinates 
 ## Remaining implementation tasks
 
 1. **Register the remaining 56 single-floor exterior contracts.** For each location, identify the source-grounded exterior interaction hex and return hex, reference its correct floor-zero door ID, and add the contract to the location manifest. Do not guess approach coordinates from door orientation when the source map or building footprint does not establish them.
-2. **Resolve the Silverhart Palace rear door.**3. **Wire the Guild hidden vault door into the generic single-floor entry/secret-door interaction path.** Its secret-door record and hidden-room dependency exist; the generic interaction must support the single-floor location as well as multi-story stacks.
+2. **Resolve the Silverhart Palace rear door.** Determine whether the Queen's Chambers door connects to a separately registered room/site, an adjoining room on the same floor, or a deliberate non-traversable set piece. Add a destination only when supported by source spatial data.
+3. **Wire the Guild hidden vault door into the generic single-floor entry/secret-door interaction path.** Its secret-door record and hidden-room dependency exist; the generic interaction must support the single-floor location as well as multi-story stacks.
 
 
 Generic engine verification, in-engine visual review and manual walking of all 16 reciprocal multi-floor links remain QA, not outstanding map-port content.
