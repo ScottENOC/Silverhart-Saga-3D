@@ -76,6 +76,30 @@ def make_skin_only_collider(source, material_prefix):
     loose_vertices = [vertex for vertex in bm.verts if not vertex.link_edges]
     if loose_vertices:
         bmesh.ops.delete(bm, geom=loose_vertices, context="VERTS")
+    # A garment collider must be a closed, manifold external shell. Open
+    # boundary loops are capped on this collision-only copy; the rendered
+    # Wren mesh is never changed. This also prevents ray-parity queries from
+    # leaking through genuine mesh holes into interior geometry.
+    boundary_edges_before = [edge for edge in bm.edges if edge.is_boundary]
+    boundary_edge_count_before = len(boundary_edges_before)
+    capped_faces = []
+    if boundary_edges_before:
+        fill_result = bmesh.ops.holes_fill(
+            bm, edges=boundary_edges_before, sides=0
+        )
+        capped_faces = fill_result.get("faces", [])
+    if capped_faces:
+        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+    bm.normal_update()
+    boundary_edges_after = [edge for edge in bm.edges if edge.is_boundary]
+    nonmanifold_edges_after = [edge for edge in bm.edges if not edge.is_manifold]
+    if boundary_edges_after or nonmanifold_edges_after:
+        raise RuntimeError(
+            "External body collision shell is not closed/manifold after hole "
+            f"repair: boundary_edges={len(boundary_edges_after)}, "
+            f"nonmanifold_edges={len(nonmanifold_edges_after)}. "
+            "Refusing ambiguous ray-parity collision."
+        )
     bm.to_mesh(mesh)
     bm.free()
     mesh.update()
@@ -94,6 +118,11 @@ def make_skin_only_collider(source, material_prefix):
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
     )
+    collider["external_shell_policy"] = "skin-only; boundary loops capped; closed manifold required"
+    collider["source_boundary_edge_count"] = boundary_edge_count_before
+    collider["capped_boundary_face_count"] = len(capped_faces)
+    collider["collision_boundary_edge_count"] = len(boundary_edges_after)
+    collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
     add_collision_modifier(collider, 0.002)
     return collider
 
@@ -156,6 +185,11 @@ def main():
             "bounds_world": world_bounds(body_collider),
             "collision_thickness_m": 0.002,
             "source_materials": body_collider["source_materials"],
+            "external_shell_policy": body_collider["external_shell_policy"],
+            "source_boundary_edge_count": body_collider["source_boundary_edge_count"],
+            "capped_boundary_face_count": body_collider["capped_boundary_face_count"],
+            "collision_boundary_edge_count": body_collider["collision_boundary_edge_count"],
+            "collision_nonmanifold_edge_count": body_collider["collision_nonmanifold_edge_count"],
         },
         "piercing_colliders": piercing_rows,
         "contact_solver_order": [
@@ -165,7 +199,9 @@ def main():
         ],
         "notes": [
             "Piercing meshes remain ordinary visible render geometry.",
-            "Collision geometry is derived from the actual accepted Wren skin and piercing meshes.",
+            "The body collider is a separate skin-only copy; the rendered accepted Wren mesh is unchanged.",
+            "Every open boundary loop on the collision copy is capped; unresolved boundary/non-manifold edges fail the build.",
+            "The collider is built from accepted Wren, not Ara's temporary anatomy fitting reference.",
             "No garment vertices are displaced in this preparation stage.",
         ],
     }
