@@ -1,33 +1,45 @@
-# Campaign quest architecture
+# Campaign architecture
 
-## Responsibilities
+## Ownership
 
-Campaign quest code is split into four layers:
+The campaign is composed independently of any location scene.
 
-1. **Quest content modules** own authored quest definitions, dialogue, objective rules, choices and rewards. They should remain independently testable and should not depend on a world scene.
-2. **Encounter modules** own quest-specific combat setup, enemy simulation state and encounter resolution. They return results; they do not create scene presentation actors.
-3. **Campaign quest services** provide common journal operations and coordinate quest registration/lookup. This is the campaign-facing API used by world scenes and other systems.
-4. **World/presentation scenes** connect NPCs, actor visuals, proximity triggers, UI and save restoration to quest services. They should not contain quest rules or hard-code quest registration lists.
+- **WorldRoot** owns application/scene startup and constructs the shared simulation and campaign coordinator.
+- **CampaignCoordinator** is the campaign composition root. It configures campaign-wide services, registers campaign content and exposes campaign-facing operations.
+- **WorldSimulation** remains the authoritative owner of mutable world and campaign state.
+- **Campaign services** own focused workflows such as quest access, companion chapter progression, household routines and camp lifecycle.
+- **Location scenes** own only location-specific presentation and interaction surfaces. They must not register campaign quests, seed campaign rules or become the owner of campaign-wide workflows.
 
-## Current implementation
+## Existing services to reuse
 
-- `scripts/quests/campaign_quest_registry.gd` centralises registration of the existing standalone quest content modules and companion quest definitions.
-- `scripts/quests/campaign_quest_service.gd` provides a configured facade for quest state, start, objective progress, completion and failure.
-- Existing content and encounter modules remain in `scripts/simulation/` during this first migration slice. Their paths will be moved only when their callers and tests can be migrated together.
-- The registry uses explicit quest IDs and tolerates repeated registration.
+- `scripts/quests/campaign_quest_service.gd` — common journal operations and central quest registry.
+- `scripts/quests/campaign_quest_registry.gd` — explicit catalogue of quest definition modules.
+- `scripts/simulation/companion_campaign_dialogue_service.gd` — companion chapter dialogue and resolution.
+- `scripts/world/campaign_household_world_service.gd` — household actor and routine behaviour.
+- `scripts/world/rowan_fletcher_world_service.gd` — Rowan's camp interactions.
+- `scripts/world/camp_lifecycle_controller.gd` — camp lifecycle and presentation coordination.
+- `scripts/world/campaign_npc_interaction_service.gd` — shared NPC proximity and actor lookup.
 
-## Migration sequence
+Do not create competing replacements for these services. Extend or compose them behind the campaign coordinator where appropriate.
 
-1. Add and validate the central registry/service (this change).
-2. Replace per-quest preloads and registration calls in `HollowTankard` with the service after the concurrent household-routine change to that file is merged.
-3. Move dialogue-choice routing into quest content adapters/service dispatch so `HollowTankard` handles only presentation effects and world actions.
-4. Move quest content and encounter files into `scripts/quests/content/` and `scripts/quests/encounters/`, updating every preload and test in the same change.
-5. Integrate The Missing Watch through the same service and actor-presentation boundary.
+## Current migration
 
-## Rules for new quests
+1. `CampaignCoordinator` now owns initial campaign setup, including the opening clock, quest-service configuration, central quest registration and starting social standings.
+2. `CampaignQuestRegistry` now includes the opening Hollowmere shakedown, Farm Wolves, Elder Marta's locket and Aldenreach message definitions alongside its existing catalogue.
+3. `WorldRoot` delegates campaign initialisation to the coordinator rather than importing and registering individual quest content itself.
+4. The existing `HollowTankard` script is not the target for new campaign orchestration. Its remaining responsibilities must be extracted behind focused services before it can become a thin location adapter.
 
-- Do not add quest definitions, reward calculations or quest-stage rules to `HollowTankard`.
+## Next extraction slices
+
+- Move standalone quest dialogue routing and NPC greeting selection into campaign dialogue dispatchers, called by the coordinator/service layer rather than by a location-owned rules script.
+- Extract quest-specific encounter orchestration from location scripts; keep only actor creation and world presentation callbacks at the location boundary.
+- Move Wren/companion chapter interaction routing into the existing companion dialogue service.
+- Integrate The Missing Watch through the central registry and dialogue/encounter boundaries after its preload/validation failure is resolved.
+- Audit save/load restoration so the coordinator rehydrates services without moving authoritative state out of `WorldSimulation`.
+
+## Rules
+
+- Never add quest definitions, reward calculations, quest-stage rules or campaign-wide registration lists to a location scene.
 - Keep encounter simulation separate from actor presentation.
-- Make registration idempotent.
-- Persist quest state in the campaign journal and dynamic actor state through the existing save system.
-- Add focused headless tests for state transitions, rewards, failure/retreat and save restoration.
+- Keep registration idempotent and test it through the campaign registry, not by manually registering definitions in individual tests.
+- Persist campaign state in the existing journal/simulation/save system; coordinators and services should be reconstructible.
