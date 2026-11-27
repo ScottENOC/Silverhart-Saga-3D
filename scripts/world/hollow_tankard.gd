@@ -32,6 +32,7 @@ const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_d
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
 const DWELLING_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_dwelling_dialogue_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
+const ABANDONED_HOUSE_DIALOGUE_SERVICE = preload("res://scripts/simulation/abandoned_house_dialogue_service.gd")
 const DWELLING_WORLD_PRESENTATION = preload("res://scripts/presentation/campaign_dwelling_world_presentation.gd")
 const SKELETAL_GUARDIAN_ACTOR_SCRIPT = preload("res://scripts/presentation/skeletal_guardian_actor.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
@@ -1537,30 +1538,24 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 					dwelling_dialogue.get("choices", [])
 				)
 		return
-	if choice_id == "abandoned_house_investigate":
-		var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
-		var spawned := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
-		if bool(started.get("ok", false)) and bool(spawned.get("ok", false)):
-			_restore_abandoned_house_guardian_actors()
-			_show_dialogue("Abandoned House", "The journal lies in the centre of the room. Three skeletons turn towards you, their weapons scraping against the old floorboards.", [{"id": "abandoned_house_read_journal", "label": "Read the journal.", "text": ""}, {"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
-		else:
-			_show_dialogue("Abandoned House", "The house cannot be investigated right now.", [{"id": "continue", "label": "Continue", "text": ""}])
-		return
-	if choice_id == "abandoned_house_read_journal":
-		abandoned_house_journal_read = true
-		_show_dialogue("Abandoned House", "You take a moment to read the journal before confronting the guardians.", [{"id": "abandoned_house_enter", "label": "Face the guardians.", "text": ""}, {"id": "continue", "label": "Withdraw for now.", "text": ""}])
-		return
-	if choice_id == "abandoned_house_finalize":
-		ABANDONED_HOUSE_QUEST_SCRIPT.apply_defeat_consequences(simulation.campaign_journal, simulation)
-		var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
-		if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
-			_show_dialogue("Abandoned House", "The last of the necromancer's undead minions is gone. The house can now be restored.", [{"id": "continue", "label": "Continue", "text": ""}])
-		else:
-			_show_dialogue("Abandoned House", "The clearing is not yet resolved: %s." % String(clearing.get("reason", "remaining necromancer minions")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-		return
-	if choice_id == "abandoned_house_enter":
-		_begin_abandoned_house_encounter()
-		return
+	if choice_id.begins_with("abandoned_house_"):
+		var abandoned_house_result := ABANDONED_HOUSE_DIALOGUE_SERVICE.resolve_choice(simulation, choice)
+		if bool(abandoned_house_result.get("handled", false)):
+			var abandoned_action := String(abandoned_house_result.get("action", ""))
+			if abandoned_action == "restore_guardian_actors":
+				_restore_abandoned_house_guardian_actors()
+			elif abandoned_action == "begin_encounter":
+				_begin_abandoned_house_encounter()
+			if bool(abandoned_house_result.get("journal_read", false)):
+				abandoned_house_journal_read = true
+			var abandoned_dialogue: Variant = abandoned_house_result.get("dialogue", {})
+			if abandoned_dialogue is Dictionary and not abandoned_dialogue.is_empty():
+				_show_dialogue(
+					String(abandoned_dialogue.get("speaker", "Abandoned House")),
+					String(abandoned_dialogue.get("text", "")),
+					abandoned_dialogue.get("choices", [])
+				)
+			return
 	if _handle_seraphine_choice(choice):
 		return
 	if _handle_ilsa_choice(choice):

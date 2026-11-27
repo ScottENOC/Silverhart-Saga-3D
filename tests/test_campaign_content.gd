@@ -5,6 +5,7 @@ const AMBASSADOR_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_ambas
 const LOCAL_QUEST_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_local_quest_dialogue_service.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const DWELLING_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_dwelling_dialogue_service.gd")
+const ABANDONED_HOUSE_DIALOGUE_SERVICE = preload("res://scripts/simulation/abandoned_house_dialogue_service.gd")
 
 var _failures: int = 0
 
@@ -14,6 +15,7 @@ func _initialize() -> void:
 	_test_campaign_local_quest_dialogue_service()
 	_test_companion_dialogue_choice_routing()
 	_test_dwelling_dialogue_choice_routing()
+	_test_abandoned_house_dialogue_choice_routing()
 	_test_campaign_journal()
 	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
@@ -661,4 +663,42 @@ func _test_dwelling_dialogue_choice_routing() -> void:
 		"player"
 	)
 	_check(not bool(unrelated.get("handled", true)), "Unrelated choices remain available to other domain services")
+	simulation.free()
+
+
+func _test_abandoned_house_dialogue_choice_routing() -> void:
+	var simulation := WorldSimulation.new()
+	var investigation := ABANDONED_HOUSE_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "abandoned_house_investigate"}
+	)
+	_check(bool(investigation.get("handled", false)) and bool(investigation.get("ok", false)), "Abandoned-house investigation routes through the quest dialogue service")
+	_check(String(investigation.get("action", "")) == "restore_guardian_actors", "Successful abandoned-house investigation hands actor restoration to the world adapter")
+	_check(String(investigation.get("dialogue", {}).get("speaker", "")) == "Abandoned House", "Abandoned-house investigation retains its speaker")
+	_check(investigation.get("dialogue", {}).get("choices", []).size() == 3, "Abandoned-house investigation retains its three authored choices")
+
+	var read_journal := ABANDONED_HOUSE_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "abandoned_house_read_journal"}
+	)
+	_check(bool(read_journal.get("handled", false)) and bool(read_journal.get("journal_read", false)), "Reading the abandoned-house journal returns the journal state change")
+	_check(read_journal.get("dialogue", {}).get("choices", []).size() == 2, "Journal reading retains its follow-up choices")
+
+	var enter := ABANDONED_HOUSE_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "abandoned_house_enter"}
+	)
+	_check(String(enter.get("action", "")) == "begin_encounter", "Abandoned-house encounter start is handed to the world adapter")
+
+	var finalize := ABANDONED_HOUSE_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "abandoned_house_finalize"}
+	)
+	_check(bool(finalize.get("handled", false)) and not bool(finalize.get("ok", true)), "Abandoned-house clearing cannot complete while guardians remain")
+
+	var unrelated := ABANDONED_HOUSE_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "unrelated_campaign_choice"}
+	)
+	_check(not bool(unrelated.get("handled", true)), "Unrelated choices remain available to other campaign services")
 	simulation.free()
