@@ -26,7 +26,7 @@ const MORNING_PAIR_DIALOGUE := {
 			{"speaker_id": "fenn_oakheart", "text": "Only the signs of a night passing through. You spend so long reading old marks that you forget the living world leaves notes of its own."}
 		],
 		"pack_camp": [
-			{"speaker_id": "fenn_oakheart", "text": "Leave the ash scattered thinly. The rain will take what the fire has finished with."},
+			{"speaker_id": "fenn_oakheart", "text": "When the fire is cold, leave the ash scattered thinly. The rain will take what it has finished with."},
 			{"speaker_id": "mirabel_quill", "text": "I shall add that to my notes. Though I suspect you would prefer I learned it by doing."}
 		]
 	},
@@ -46,7 +46,7 @@ const MORNING_PAIR_DIALOGUE := {
 			{"speaker_id": "ser_aldric_thorne", "text": "Habit. Besides, a watch is only useful if the watcher can hand it over properly."}
 		],
 		"pack_camp": [
-			{"speaker_id": "ser_aldric_thorne", "text": "The fire is cold, the stores are accounted for, and everyone is present. A sound departure."},
+			{"speaker_id": "ser_aldric_thorne", "text": "The stores are accounted for, and everyone is present. A sound departure."},
 			{"speaker_id": "reyna_fletcher", "text": "Then let's not spoil it by standing here admiring our work. The track won't clear itself."}
 		]
 	},
