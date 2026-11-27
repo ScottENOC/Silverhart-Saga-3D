@@ -824,7 +824,7 @@ func _on_camp_companion_exchange(exchange: Dictionary) -> void:
 		if speaker_id.is_empty() or text.is_empty():
 			continue
 		_show_speech_bubble(speaker_id, text)
-		await get_tree().create_timer(_speech_bubble_duration(text)).timeout
+		await get_tree().create_timer(CampaignAmbientDialoguePresenter.duration_for_text(text)).timeout
 
 
 
@@ -2335,11 +2335,11 @@ func _move_shakedown_soldiers_inside() -> void:
 				return
 
 
-func _show_speech_bubble(character_id: String, text: String) -> void:
+func _show_speech_bubble(character_id: String, text: String) -> Dictionary:
 	var actor := actor_by_id.get(character_id) as Node3D
 	if actor == null or ambient_dialogue_presenter == null:
-		return
-	ambient_dialogue_presenter.present_line(actor, text)
+		return {"ok": false, "reason": "missing_speaker_actor"}
+	return ambient_dialogue_presenter.present_line(actor, text)
 
 
 func _ambient_role_for_id(character_id: String) -> String:
