@@ -1577,37 +1577,21 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "wren_arc_topic:parents_reflection":
 		_show_wren_arc_topic("parents_reflection")
 		return
-	if choice_id.begins_with("wren_arc_choice:"):
-		var wren_choice_id := choice_id.trim_prefix("wren_arc_choice:")
-		var wren_arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
-		var wren_relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
-		if wren_arc != null:
-			var applied := wren_arc.apply_dialogue_choice(wren_choice_id, wren_relationships)
-			if bool(applied.get("ok", false)):
-				_show_dialogue("Wren Talbot", wren_arc.dialogue_response_for(wren_choice_id), [{"id":"continue","label":"I understand.","text":""}])
-				return
-		_show_wren_dialogue()
-		return
-	if choice_id == "companion_chapter_start":
-		var chapter_id := String(choice.get("chapter_id", ""))
-		var start_result := COMPANION_DIALOGUE_SERVICE.start_chapter(simulation, chapter_id)
-		if bool(start_result.get("ok", false)):
-			_show_companion_dialogue(String(choice.get("companion_id", "")))
+	var companion_choice_result := COMPANION_DIALOGUE_SERVICE.resolve_dialogue_choice(simulation, choice)
+	if bool(companion_choice_result.get("handled", false)):
+		var companion_action := String(companion_choice_result.get("action", ""))
+		if companion_action == "show_companion_dialogue":
+			_show_companion_dialogue(String(companion_choice_result.get("companion_id", "")))
+		elif companion_action == "show_wren_dialogue":
+			_show_wren_dialogue()
 		else:
-			_show_dialogue("Campaign journal", "That chapter could not be started: %s." % String(start_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
-		return
-	if choice_id == "companion_chapter_resolve":
-		var resolution_result := COMPANION_DIALOGUE_SERVICE.resolve_chapter(simulation, String(choice.get("chapter_id", "")), String(choice.get("resolution_id", "")))
-		if bool(resolution_result.get("ok", false)):
-			var reward_text := String(resolution_result.get("line", "The decision is made."))
-			var xp_reward := int(resolution_result.get("xp_reward", 0))
-			var player_state := simulation.get_character("player")
-			if player_state != null and xp_reward > 0:
-				player_state.experience += xp_reward
-				reward_text += "\n\nChapter complete · %d XP gained." % xp_reward
-			_show_dialogue(String(choice.get("companion_name", "Companion")), reward_text, [{"id":"continue","label":"Continue","text":""}])
-		else:
-			_show_dialogue("Campaign journal", "That resolution could not be recorded: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+			var companion_dialogue: Variant = companion_choice_result.get("dialogue", {})
+			if companion_dialogue is Dictionary and not companion_dialogue.is_empty():
+				_show_dialogue(
+					String(companion_dialogue.get("speaker", "Companion")),
+					String(companion_dialogue.get("text", "")),
+					companion_dialogue.get("choices", [])
+				)
 		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
