@@ -124,6 +124,8 @@ func _test_campaign_conversation_controller() -> void:
 	var continuation_prompt: Dictionary = {}
 	controller.choice_selected.connect(func(choice: Dictionary, id: String) -> void:
 		selected.append({"choice": choice, "conversation_id": id})
+	)
+	controller.choice_resolver = func(choice: Dictionary) -> void:
 		if String(choice.get("id", "")) == "ask_help":
 			continuation_prompt = {
 				"speaker_id": "elder_marta",
@@ -134,7 +136,6 @@ func _test_campaign_conversation_controller() -> void:
 				]
 			}
 			controller.update_prompt(continuation_prompt)
-	)
 	controller.conversation_finished.connect(func(id: String, reason: String) -> void:
 		finished.append({"conversation_id": id, "reason": reason})
 	)
@@ -149,7 +150,14 @@ func _test_campaign_conversation_controller() -> void:
 			{"id": "leave", "label": "End conversation.", "ends_conversation": true}
 		]
 	}
-	var started := controller.start_conversation("elder_marta_greeting", player_prompt, "player")
+	var started := controller.present_prompt(
+		String(player_prompt["speaker"]),
+		String(player_prompt["context"]),
+		String(player_prompt["text"]),
+		player_prompt["choices"],
+		"neutral",
+		"player"
+	)
 	assert(bool(started.get("ok", false)))
 	assert(controller.session.active)
 	assert(panel.visible)
@@ -191,6 +199,15 @@ func _test_campaign_conversation_controller() -> void:
 	assert(bool(controller.cancel_conversation().get("ok", false)))
 	assert(not panel.visible)
 	assert(finished.size() == 2)
+
+	var fallback := controller.present_prompt("", "", "", [], "neutral", "player")
+	assert(bool(fallback.get("ok", false)), "Empty legacy prompts receive a safe end-conversation choice")
+	assert(panel.speaker_label.text == "Conversation")
+	assert(panel.body_label.text == "What would you like to do?")
+	assert(panel.choices_box.get_child_count() == 1)
+	(panel.choices_box.get_child(0) as Button).emit_signal("pressed")
+	assert(not controller.session.active)
+	assert(not panel.visible)
 
 	controller.queue_free()
 	panel.queue_free()
