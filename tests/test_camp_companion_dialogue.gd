@@ -88,10 +88,33 @@ func _initialize() -> void:
 	_check(not dagna_exchange.is_empty(), "Dagna should be able to participate in autonomous camp dialogue")
 	_check(String(dagna_exchange.lines[0].text).contains("old travelling blessing"), "Dagna's ambient dialogue should acknowledge her religious upbringing without naming a deity or doctrine")
 	_check(SERVICE.supported_companion_ids().has("dagna"), "Dagna should be included in the supported camp dialogue roster")
+
+	var breakfast_exchange := SERVICE.build_morning_routine_exchange(
+		"companion_dagna", "companion_brother_alden", 2, 0, bonds,
+		"Dagna", "Brother Alden"
+	)
+	_check(String(breakfast_exchange.get("kind", "")) == "morning_routine", "Authored pair dialogue should be available during breakfast.")
+	_check(String(breakfast_exchange.get("topic", "")) == "morning_breakfast")
+	_check((breakfast_exchange.get("lines", []) as Array).size() == 2)
+	_check(String(breakfast_exchange.lines[0].get("character_id", "")) == "companion_brother_alden", "Authored speaker order should remain stable even when the input pair is reversed.")
+	_check(String(breakfast_exchange.lines[1].get("text", "")).contains("shared table"))
+	var pack_exchange := SERVICE.build_morning_routine_exchange(
+		"companion_brother_alden", "companion_dagna", 3, 1, bonds,
+		"Brother Alden", "Dagna"
+	)
+	_check(String(pack_exchange.get("topic", "")) == "morning_pack_camp")
+	_check(SERVICE.build_morning_routine_exchange(
+		"companion_dagna", "companion_ser_aldric_thorne", 2, 0, bonds
+	).is_empty(), "Pairs without authored morning history should not receive invented shared dialogue.")
+	_check(SERVICE.build_morning_routine_exchange(
+		"companion_dagna", "companion_brother_alden", 1, 0, bonds
+	).is_empty(), "Morning exchanges should only run during breakfast and pack-up.")
+
 	_check(SERVICE.build_exchange("player", "companion_ser_aldric_thorne", 0, bonds).is_empty())
 	_check(SERVICE.build_exchange("companion_ser_aldric_thorne", "companion_ser_aldric_thorne", 0, bonds).is_empty())
 
 	_test_autonomous_director_exchange()
+	_test_morning_routine_exchange()
 
 	if _failures > 0:
 		push_error("%d camp companion dialogue assertion(s) failed." % _failures)
@@ -105,6 +128,57 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 	if not condition:
 		_failures += 1
 		push_error(message)
+
+
+
+func _test_morning_routine_exchange() -> void:
+	var world := WorldSimulation.new()
+	for q in range(-6, 7):
+		for r in range(-6, 7):
+			var hex := Vector2i(q, r)
+			if HexGrid.distance(Vector2i.ZERO, hex) <= 6:
+				world.map_data.add_cell(hex, 0.0, true, "grass")
+	var player := CharacterState.new("player", "Player", Vector2i(-4, 0))
+	player.side = "player"
+	var dagna := CharacterState.new("companion_dagna", "Dagna", Vector2i(4, 0))
+	dagna.side = "player"
+	var alden := CharacterState.new("companion_brother_alden", "Brother Alden", Vector2i(4, -1))
+	alden.side = "player"
+	world.register_character(player)
+	world.register_character(dagna)
+	world.register_character(alden)
+	world.restore_party_members([player.id, dagna.id, alden.id])
+	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
+	_check(bool(started.get("ok", false)), "The morning dialogue test should establish a camp.")
+	world.camp_simulation.phase = "morning"
+	world.camp_simulation.routine_stage = 2
+
+	var dagna_probe := DialogueActorProbe.new()
+	var alden_probe := DialogueActorProbe.new()
+	_actor_probes[dagna.id] = dagna_probe
+	_actor_probes[alden.id] = alden_probe
+	_exchange_count = 0
+	_last_exchange.clear()
+	var director := CampPartyActivityDirector.new()
+	director.configure(world, Callable(self, "_actor_for_id"))
+	director.companion_exchange.connect(_on_companion_exchange)
+	director.begin_camp(world.camp_simulation.site)
+	director.process_activity_movement(0.5)
+
+	_check(_exchange_count == 1, "Breakfast should trigger one authored companion conversation.")
+	_check(String(_last_exchange.get("kind", "")) == "morning_routine")
+	_check(String(_last_exchange.get("topic", "")) == "morning_breakfast")
+	_check(dagna_probe.last_activity == "socialise" and alden_probe.last_activity == "socialise", "Both breakfast speakers should use the existing socialise animation.")
+	director.process_activity_movement(0.5)
+	_check(_exchange_count == 1, "A morning stage should not repeat its conversation every frame.")
+
+	world.camp_simulation.routine_stage = 3
+	director.process_activity_movement(0.5)
+	_check(_exchange_count == 2, "Camp packing should trigger its own authored companion conversation.")
+	_check(String(_last_exchange.get("topic", "")) == "morning_pack_camp")
+	director.stop()
+	director.free()
+	_actor_probes.clear()
 
 
 func _test_autonomous_director_exchange() -> void:
