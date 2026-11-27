@@ -15,16 +15,8 @@ const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_que
 const QUEST_DIALOGUE_DISPATCHER = preload("res://scripts/quests/campaign_quest_dialogue_dispatcher.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
-const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
 const TOLL_TAKER_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_encounter.gd")
-const ELDER_MARTA_CONTENT_SCRIPT = preload("res://scripts/simulation/elder_marta_content.gd")
 const ELDER_LOCKET_PICKUP_SCRIPT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
-const NELLA_CONTENT_SCRIPT = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
-const IRONBOND_MISSING_COURIER_CONTENT_SCRIPT = preload("res://scripts/simulation/ironbond_missing_courier_content.gd")
-const BARON_TRIBUTE_CONTENT_SCRIPT = preload("res://scripts/simulation/baron_tribute_content.gd")
-const DWARVEN_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/dwarven_ambassador_content.gd")
-const CORVANE_AMBASSADOR_CONTENT_SCRIPT = preload("res://scripts/simulation/corvane_ambassador_content.gd")
-const ALDENREACH_MESSAGE_CONTENT_SCRIPT = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
@@ -1704,16 +1696,10 @@ func _handle_quest_dialogue_choice(choice: Dictionary) -> bool:
 			dialogue.get("choices", [])
 		)
 	elif bool(result.get("quest_completed", false)) and quest_id == "dwarven_toll":
-		var brokk_completed: Dictionary = DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id)
-		)
+		var brokk_completed: Dictionary = QUEST_DIALOGUE_DISPATCHER.greeting_for_actor(simulation, "dwarven_ambassador")
 		_show_dialogue(String(brokk_completed.get("speaker", speaker)), String(brokk_completed.get("text", "")), brokk_completed.get("choices", []))
 	elif bool(result.get("quest_completed", false)) and quest_id == "corvane_watch":
-		var toren_completed: Dictionary = CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id)
-		)
+		var toren_completed: Dictionary = QUEST_DIALOGUE_DISPATCHER.greeting_for_actor(simulation, "corvane_ambassador")
 		_show_dialogue(String(toren_completed.get("speaker", speaker)), String(toren_completed.get("text", "")), toren_completed.get("choices", []))
 	elif bool(result.get("handled", false)) or bool(result.get("quest_completed", false)):
 		_close_dialogue()
@@ -2689,7 +2675,7 @@ func _dynamic_campaign_character_records() -> Dictionary:
 func _restore_toll_ogre_actor() -> void:
 	if simulation == null:
 		return
-	var quest_state := simulation.campaign_journal.quest_state(TOLL_TAKER_CONTENT_SCRIPT.QUEST_ID)
+	var quest_state := campaign_quest_service.state("toll_ogre")
 	if String(quest_state.get("status", "")) == "active" and simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID) == null:
 		TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
 	if TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation):
