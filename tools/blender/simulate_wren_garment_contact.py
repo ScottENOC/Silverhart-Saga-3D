@@ -275,9 +275,27 @@ def main():
                 face_area_strains.append(abs(current_area / rest_area - 1.0))
         max_face_area_strain = max(face_area_strains, default=0.0)
 
+        candidate_penetrations = []
+        if collision_reliable:
+            for index, particle in enumerate(particles):
+                for collider_name, tree in collider_trees:
+                    _contact, signed = closest_contact(
+                        tree, particle.position, index, options.thickness
+                    )
+                    if signed is not None and signed < -0.00025:
+                        candidate_penetrations.append({
+                            "vertex": index, "collider": collider_name,
+                            "penetration_m": round(-signed, 7)
+                        })
+
         rejection_reasons = []
         if not collision_reliable:
             rejection_reasons.append(collision_skip_reason)
+        if candidate_penetrations:
+            rejection_reasons.append(
+                f"Candidate still has {len(candidate_penetrations)} residual penetrations; "
+                "the garment is restored rather than accepted as a bad fit."
+            )
         if attempted_max_displacement > options.max_displacement:
             rejection_reasons.append(
                 f"Candidate moved a vertex {attempted_max_displacement:.4f}m; "
@@ -337,6 +355,7 @@ def main():
             "attempted_max_vertex_displacement_m": attempted_max_displacement,
             "max_edge_length_strain": max_edge_strain,
             "max_panel_triangle_area_strain": max_face_area_strain,
+            "candidate_remaining_penetration_count": len(candidate_penetrations),
             "candidate_accepted": accepted_candidate,
             "rejection_reasons": rejection_reasons,
             "topology": {
