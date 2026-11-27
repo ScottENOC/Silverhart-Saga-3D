@@ -1864,10 +1864,6 @@ func _resolve_rowan_camp_choice(choice: Dictionary) -> void:
 	if rowan_world_service != null:
 		rowan_world_service.resolve_camp_choice(choice)
 
-func _return_rowan_after_night() -> void:
-	if rowan_world_service != null:
-		await rowan_world_service.return_after_night()
-
 func _close_dialogue() -> void:
 	dialogue_open = false
 	if dialogue_panel != null:
@@ -2541,18 +2537,6 @@ func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
 	_show_dialogue(String(inspection.get("speaker", "Property")), String(inspection.get("text", "")), inspection.get("choices", []))
 
 
-func _ensure_halvard_actor() -> void:
-	if household_world_service != null:
-		household_world_service.ensure_actor()
-
-func _update_halvard_household_routine() -> void:
-	if household_world_service != null:
-		household_world_service.update_routine()
-
-func _move_halvard_to_station(target_hex: Vector2i) -> void:
-	if household_world_service != null:
-		await household_world_service.move_to_station(target_hex)
-
 func _show_halvard_household_dialogue() -> void:
 	var line := household_world_service.dialogue_line() if household_world_service != null else "The manor is in good order. I shall see to the household while you are away."
 	_show_dialogue("Steward Halvard Greer", line, [{"id": "continue", "label": "Thank you, Halvard.", "text": ""}])
@@ -3092,10 +3076,6 @@ func _process(delta: float) -> void:
 		household_world_service.process(delta)
 	if rowan_world_service != null:
 		rowan_world_service.process(delta)
-	if camp_lifecycle_controller != null:
-		camp_lifecycle_controller.sync_sleep_button_state()
-
-func _sync_camp_sleep_button_state() -> void:
 	if camp_lifecycle_controller != null:
 		camp_lifecycle_controller.sync_sleep_button_state()
 
