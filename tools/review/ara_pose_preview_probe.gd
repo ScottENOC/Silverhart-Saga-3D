@@ -41,6 +41,13 @@ func _collect_skeletons(node: Node, output: Array[Skeleton3D]) -> void:
 	for child in node.get_children():
 		_collect_skeletons(child, output)
 
+func _remove_animation_mixers(node: Node) -> void:
+	for child in node.get_children():
+		if child is AnimationMixer:
+			child.free()
+		else:
+			_remove_animation_mixers(child)
+
 func _bake_mesh_instance(mesh_instance: MeshInstance3D) -> float:
 	var started_usec := Time.get_ticks_usec()
 	var source_mesh := mesh_instance.mesh
@@ -103,14 +110,24 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 		var mesh_instance := mesh_instances[mesh_index]
 		if mesh_instance.skin == null:
 			continue
-		print("ARA_BAKE_START index=%d/%d name=%s surfaces=%d" % [
+		# The imported GLB's mesh skeleton path is relative to its original actor
+		# hierarchy. Re-rooting the model for export can leave that path unresolved.
+		mesh_instance.skeleton = mesh_instance.get_path_to(export_skeleton)
+		if mesh_instance.get_node_or_null(mesh_instance.skeleton) != export_skeleton:
+			print("ARA_BAKE_SKIP invalid_skeleton_path mesh=%s path=%s" % [mesh_instance.name, mesh_instance.skeleton])
+			continue
+		var source_mesh := mesh_instance.mesh
+		print("ARA_BAKE_START index=%d/%d name=%s surfaces=%d skeleton_path=%s" % [
 			mesh_index + 1, mesh_instances.size(), mesh_instance.name,
-			mesh_instance.mesh.get_surface_count() if mesh_instance.mesh != null else 0
+			source_mesh.get_surface_count() if source_mesh != null else 0, mesh_instance.skeleton
 		])
 		var vertex_delta := _bake_mesh_instance(mesh_instance)
-		if mesh_instance.mesh is ArrayMesh and (mesh_instance.mesh as ArrayMesh).get_surface_count() > 0:
+		if mesh_instance.mesh != source_mesh and mesh_instance.mesh is ArrayMesh and (mesh_instance.mesh as ArrayMesh).get_surface_count() > 0:
 			baked_count += 1
 			maximum_delta = maxf(maximum_delta, vertex_delta)
+	if baked_count == 0:
+		return {"ok": false, "baked_meshes": 0, "max_vertex_delta": 0.0, "reason": "no skinned meshes could be baked"}
+	_remove_animation_mixers(export_root)
 	var skeletons: Array[Skeleton3D] = []
 	_collect_skeletons(export_root, skeletons)
 	for skeleton_node in skeletons:
@@ -119,7 +136,7 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 		"ok": baked_count > 0,
 		"baked_meshes": baked_count,
 		"max_vertex_delta": maximum_delta,
-		"reason": "no skinned meshes could be baked" if baked_count == 0 else ""
+		"reason": ""
 	}
 
 func _export_and_verify(actor_name: String, model_root: Node3D, source_skeleton: Skeleton3D) -> void:
@@ -151,6 +168,8 @@ func _export_and_verify(actor_name: String, model_root: Node3D, source_skeleton:
 	var document := GLTFDocument.new()
 	var state := GLTFState.new()
 	state.create_animations = false
+	# The pose is already baked into static mesh vertices; imported animation tracks
+	# are deliberately excluded from this one-shot preview asset.
 	var append_error := document.append_from_scene(export_root, state)
 	if append_error != OK:
 		_expect(false, "%s GLTF scene conversion (%s)" % [actor_name, error_string(append_error)])
