@@ -138,6 +138,8 @@ var elder_locket_collected: bool = false
 var elder_locket_visual: Node3D
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
+var conversation_controller: CampaignConversationController
+var conversation_sequence: int = 0
 var combat_hud: CampaignCombatHud
 var combat_controller: CombatEncounterController
 var resource_status_label: Label
@@ -1424,22 +1426,91 @@ func _apply_save_data(data: Dictionary) -> void:
 func _create_dialogue_panel(layer: CanvasLayer) -> void:
 	dialogue_panel = CampaignDialoguePanel.new()
 	dialogue_panel.name = "CampaignDialoguePanel"
-	dialogue_panel.choice_selected.connect(_select_dialogue_choice)
 	layer.add_child(dialogue_panel)
+
+	conversation_controller = CampaignConversationController.new()
+	conversation_controller.name = "CampaignConversationController"
+	add_child(conversation_controller)
+	var configured := conversation_controller.configure(
+		dialogue_panel,
+		Callable(self, "_portrait_actor_for_speaker")
+	)
+	if not bool(configured.get("ok", false)):
+		push_error("Campaign conversation controller could not configure: %s" % configured)
+		return
+	conversation_controller.choice_selected.connect(_on_campaign_conversation_choice_selected)
+	conversation_controller.conversation_finished.connect(_on_campaign_conversation_finished)
 
 
 func _show_dialogue(speaker: String, body: String, choices: Array, expression: String = "neutral") -> void:
-	if dialogue_panel == null:
+	_show_conversation(speaker, "", body, choices, expression, "player")
+
+
+func _show_conversation(
+	speaker: String,
+	context: String,
+	body: String,
+	choices: Array,
+	expression: String = "neutral",
+	initiation_source: String = "player"
+) -> void:
+	if dialogue_panel == null or conversation_controller == null:
 		return
-	# Dictionary.get() returns an untyped Array. Convert at the UI boundary
-	# rather than requiring every dialogue/quest caller to manufacture one.
 	var typed_choices: Array[Dictionary] = []
+	var has_available_choice := false
 	for choice_value in choices:
-		if choice_value is Dictionary:
-			typed_choices.append(choice_value)
+		if not choice_value is Dictionary:
+			continue
+		var choice: Dictionary = choice_value.duplicate(true)
+		typed_choices.append(choice)
+		if bool(choice.get("available", true)):
+			has_available_choice = true
+	if typed_choices.is_empty() or not has_available_choice:
+		typed_choices.append({
+			"id": "conversation_end",
+			"label": "End conversation.",
+			"available": true,
+			"ends_conversation": true
+		})
+	var speaker_id := speaker.strip_edges().to_lower().replace(" ", "_").replace("'", "")
+	var prompt := {
+		"speaker_id": speaker_id,
+		"speaker": speaker,
+		"context": context,
+		"text": body,
+		"expression": expression,
+		"choices": typed_choices
+	}
 	dialogue_open = true
-	var speaker_actor := _portrait_actor_for_speaker(speaker)
-	dialogue_panel.present(speaker, body, typed_choices, null, speaker_actor, expression)
+	var result: Dictionary
+	if conversation_controller.session.active:
+		result = conversation_controller.update_prompt(prompt)
+	else:
+		conversation_sequence += 1
+		var conversation_id := "world_dialogue_%06d" % conversation_sequence
+		result = conversation_controller.start_conversation(conversation_id, prompt, initiation_source)
+	if not bool(result.get("ok", false)):
+		dialogue_open = false
+		push_warning("Campaign conversation could not be presented: %s" % result)
+
+
+func _on_campaign_conversation_choice_selected(choice: Dictionary, conversation_id: String) -> void:
+	if conversation_controller == null or not conversation_controller.session.active:
+		return
+	var starting_revision := conversation_controller.session.revision
+	await _select_dialogue_choice(choice)
+	if not is_inside_tree() or conversation_controller == null:
+		return
+	if (
+		conversation_controller.session.active
+		and conversation_controller.session.conversation_id == conversation_id
+		and conversation_controller.session.revision == starting_revision
+	):
+		conversation_controller.finish_conversation("choice_resolved")
+
+
+func _on_campaign_conversation_finished(_conversation_id: String, _reason: String) -> void:
+	dialogue_open = false
 
 
 func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
@@ -1879,9 +1950,12 @@ func _resolve_rowan_camp_choice(choice: Dictionary) -> void:
 		rowan_world_service.resolve_camp_choice(choice)
 
 func _close_dialogue() -> void:
-	dialogue_open = false
-	if dialogue_panel != null:
-		dialogue_panel.dismiss()
+	if conversation_controller != null and conversation_controller.session.active:
+		conversation_controller.finish_conversation("closed")
+	else:
+		dialogue_open = false
+		if dialogue_panel != null:
+			dialogue_panel.dismiss()
 
 
 func _interact_with_nearest_npc() -> void:
@@ -2292,10 +2366,13 @@ func _start_hollowmere_shakedown_quest() -> void:
 
 
 func _show_hollowmere_opening_choice() -> void:
-	_show_dialogue(
+	_show_conversation(
 		"Dray Coltayne",
-		"%s\n\nWhat do you do?" % HOLLOWMERE_OPENING_CONTEXT.TEXT,
-		HollowmereCampaignContent.shakedown_choices()
+		HOLLOWMERE_OPENING_CONTEXT.TEXT,
+		"What do you do?",
+		HollowmereCampaignContent.shakedown_choices(),
+		"neutral",
+		"npc"
 	)
 
 
