@@ -159,10 +159,10 @@ func _on_panel_choice_selected(choice: Dictionary) -> void:
 
 
 func _on_session_choice_selected(choice: Dictionary, conversation_id: String) -> void:
+	var starting_revision := session.revision
 	choice_selected.emit(choice.duplicate(true), conversation_id)
 	if not choice_resolver.is_valid():
 		return
-	var starting_revision := session.revision
 	var ends_conversation := bool(choice.get("ends_conversation", false))
 	if ends_conversation and session.active and session.conversation_id == conversation_id:
 		session.finish("choice_selected")
