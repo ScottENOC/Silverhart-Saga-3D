@@ -38,12 +38,6 @@ func _run() -> void:
     details.name = "AppearanceDetails"
     stage.add_child(details)
     details.configure(character, {"piercings": ["nipple_left"], "tattoos": [], "tattoo_ink": "#28252D"})
-    # A top garment covers the nipple jewellery. Keep the piercing in the GLB
-    # and on the character when uncovered; suppress only the covered accessory
-    # in this clothed review scene.
-    if _has_surface_material(character, "Bikini top"):
-        _hide_covered_nipple_piercings(character)
-
     _collect_meshes(character)
     if mesh_instances.is_empty():
         push_error("Wren GLB contains no MeshInstance3D nodes")
@@ -106,27 +100,6 @@ func _run() -> void:
         mesh_instances.size(), int(report.get("max_blend_shape_count", 0))
     ])
     quit(0)
-
-
-func _has_surface_material(node: Node, material_name: String) -> bool:
-    if node is MeshInstance3D:
-        var mesh := (node as MeshInstance3D).mesh
-        if mesh != null:
-            for surface in range(mesh.get_surface_count()):
-                var material := mesh.surface_get_material(surface)
-                if material != null and material.resource_name == material_name:
-                    return true
-    for child in node.get_children():
-        if _has_surface_material(child, material_name):
-            return true
-    return false
-
-
-func _hide_covered_nipple_piercings(node: Node) -> void:
-    if node is GeometryInstance3D and String(node.name).begins_with("Piercing_SOCKET_Nipple"):
-        (node as GeometryInstance3D).visible = false
-    for child in node.get_children():
-        _hide_covered_nipple_piercings(child)
 
 
 func _collect_meshes(node: Node) -> void:
