@@ -289,26 +289,52 @@ def main():
                 edge_strains.append(abs(current / rest - 1.0))
         max_edge_strain = max(edge_strains, default=0.0)
 
-        def polygon_area(points, polygon):
+        def polygon_normal(points, polygon):
             vertices = list(polygon.vertices)
             if len(vertices) < 3:
-                return 0.0
+                return Vector((0.0, 0.0, 0.0))
             origin = Vector(points[vertices[0]])
-            area = 0.0
+            normal = Vector((0.0, 0.0, 0.0))
             for offset in range(1, len(vertices) - 1):
                 a = Vector(points[vertices[offset]]) - origin
                 b = Vector(points[vertices[offset + 1]]) - origin
-                area += a.cross(b).length * 0.5
-            return area
+                normal += a.cross(b)
+            return normal.normalized() if normal.length_squared > 1.0e-16 else normal
+
+        def polygon_area(points, polygon):
+            return polygon_normal(points, polygon).length * 0.5 * sum(
+                (Vector(points[polygon.vertices[i]]) - Vector(points[polygon.vertices[0]])).length
+                for i in range(1, len(polygon.vertices) - 1)
+            ) if len(polygon.vertices) >= 3 else 0.0
 
         candidate_world = [Vector(particle.position) for particle in particles]
         face_area_strains = []
+        face_normal_dots = []
         for polygon in garment.data.polygons:
-            rest_area = polygon_area(before, polygon)
-            current_area = polygon_area(candidate_world, polygon)
+            rest_normal = polygon_normal(before, polygon)
+            current_normal = polygon_normal(candidate_world, polygon)
+            rest_area = polygon.area
+            current_area = polygon.area
+            # Evaluate geometry in world space, including deformation.
+            rest_area = 0.0
+            current_area = 0.0
+            vertices = list(polygon.vertices)
+            if len(vertices) >= 3:
+                origin_before = Vector(before[vertices[0]])
+                origin_after = candidate_world[vertices[0]]
+                for offset in range(1, len(vertices) - 1):
+                    a0 = Vector(before[vertices[offset]]) - origin_before
+                    b0 = Vector(before[vertices[offset + 1]]) - origin_before
+                    a1 = candidate_world[vertices[offset]] - origin_after
+                    b1 = candidate_world[vertices[offset + 1]] - origin_after
+                    rest_area += a0.cross(b0).length * 0.5
+                    current_area += a1.cross(b1).length * 0.5
             if rest_area > 1.0e-10:
                 face_area_strains.append(abs(current_area / rest_area - 1.0))
+            if rest_normal.length_squared > 1.0e-12 and current_normal.length_squared > 1.0e-12:
+                face_normal_dots.append(rest_normal.dot(current_normal))
         max_face_area_strain = max(face_area_strains, default=0.0)
+        min_face_normal_dot = min(face_normal_dots, default=1.0)
 
         candidate_penetrations = []
         if collision_reliable:
@@ -338,6 +364,10 @@ def main():
         if max_face_area_strain > 0.30:
             rejection_reasons.append(
                 f"Candidate changed a panel triangle area by up to {max_face_area_strain:.1%}."
+            )
+        if min_face_normal_dot < 0.15:
+            rejection_reasons.append(
+                f"Candidate folded or inverted a panel (minimum face-normal alignment {min_face_normal_dot:.3f})."
             )
 
         accepted_candidate = not rejection_reasons
@@ -387,6 +417,7 @@ def main():
             "attempted_max_vertex_displacement_m": attempted_max_displacement,
             "max_edge_length_strain": max_edge_strain,
             "max_panel_triangle_area_strain": max_face_area_strain,
+            "minimum_face_normal_alignment": min_face_normal_dot,
             "candidate_remaining_penetration_count": len(candidate_penetrations),
             "candidate_accepted": accepted_candidate,
             "rejection_reasons": rejection_reasons,
@@ -451,6 +482,7 @@ def main():
             "fabric_thickness_m": options.thickness,
             "maximum_edge_length_strain": 0.12,
             "maximum_panel_triangle_area_strain": 0.30,
+            "minimum_face_normal_alignment": 0.15,
             "vertex_motion_constraint": "original garment vertex-normal line; no absolute displacement cap",
             "gravity": [0.0, 0.0, 0.0],
             "boundary_elasticity": "reinforced boundary-edge distance constraints plus per-panel diagonal constraints",
