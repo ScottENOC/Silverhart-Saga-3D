@@ -23,19 +23,24 @@ The following documents are the source of truth for the excluded work:
 - Preserve meaningful authored geography, broad biome/terrain regions, navigable routes, settlement footprints, landmarks, building placement, entrances, floor layouts and gameplay-significant physical objects.
 - Do not count random tree/rock placement, exact procedural road wiggles, or equivalent decorative substitutions as gaps when the same broad terrain or navigable route is represented.
 - A macro-map marker, data record, or passing geometry test is not proof that a site is correctly rendered or traversable. Distinguish data present, rendered, connected, and playable spatially.
-- Status labels: **Missing** = no target map implementation evidenced; **Partial** = some spatial layers exist but named map work remains; **Verify** = target code exists but source-to-target visual/traversal acceptance has not been established; **Adapted** = intentionally different 3D spatial implementation whose navigability and spatial intent still need acceptance.
+- Status labels describe missing spatial content only: **Missing**, **Partial**, **Ported**, or **Adapted**. Engine verification and visual QA are universal quality gates, not map-port backlog items.
 
 ## Executive finding
 
-Silverhart Saga 3D has a substantial authored-map foundation: strategic geography, named location anchors, settlement/site footprints, many authored building layouts, and a growing set of source-derived interior floor maps. The remaining map work is not simply "add more terrain". It is concentrated in:
+The 3D project has ported a substantial amount of the distinctive Campaign 2 world: its strategic geography, settlement footprints, named sites, fortifications, major routes and waterways, many source-authored interiors, and multi-level cave/dungeon structures.
 
-1. Kragmoor's exterior presentation and spatial identity.
-2. Completing and visually accepting several major settlement/fort/site footprints.
-3. A systematic exterior-to-interior entrance and return-point register.
-4. Verifying that important roads, streams, bridges, gates, stairs and strategic-to-local links are connected and traversable.
-5. Auditing source-authored physical objects for spatial coverage, while excluding replaceable decoration.
+The previous 4,732 / 16,566 comparison is **not a completion ratio**. The numerator counts a limited target-side JSON exterior-cell inventory; the denominator counts all source runtime terrain cells, including the broad base terrain pass. The target count also omits regional GDScript features. Dividing them produces a misleading 25%-style figure and must stop.
 
-The current geometry counts are not a completion percentage. The existing inventory reports 4,732 unique JSON-backed exterior cells and 1,543 walkable interior cells, while excluding regional GDScript features and some site systems. The source runtime extractor reports 16,566 unique terrain cells, including 11,324 cells touched by named feature builders after deduplication. These figures have different scopes and must not be divided to claim a percentage.
+The revised unit of work is a meaningful spatial feature, not a terrain cell. Generic ground fill, terrain noise and decorative vegetation/rock distribution are systems. They are not thousands of unported source objects.
+
+The actual remaining map-content work is concentrated in:
+1. Kragmoor's distinctive surface mountain/settlement footprint, approach and entrance.
+2. Exterior/interior entrance and return contracts for existing floor maps.
+3. The remaining source-named Silverhart palace rooms/floors.
+4. Reusable spatial prefabs for dynamic cottage/field construction where source features are not represented.
+5. Semantic reconciliation of meaningful physical map objects (doors, stairs, journals, evidence, ore, siege objects and signs).
+
+See [the feature-level port register](campaign2_feature_port_register.md) for the source-builder-by-source-builder reconciliation. Visual inspection, Godot execution and routine verification are not counted as outstanding map content.
 
 ## 1. Location-by-location map gaps
 
@@ -44,10 +49,10 @@ The current geometry counts are not a completion percentage. The existing invent
 | **Kragmoor / Deepholds** | **Partial — highest priority** | Exterior presentation is visibly inadequate in the reviewed capture (near-featureless pale surface). Compare and improve the mountain/settlement silhouette, approach, entrance, major built footprint and relationship to surrounding terrain. Six floor maps and stair layouts exist, but verify the spatial footprint of the source's 1,959-cell builder rather than assuming generic floors represent the whole mountain kingdom. |
 | **Silverhart** | **Partial** | Verify the full palace core and curtain wall/watchtowers, ring roads, merchant/noble street grids, embassies, Ironbond office, cathedral/plaza, commons/market, outlying and middle-ring houses, outer city wall, three-cell gate/watchtowers, Warrens shacks, Thieves' Guild and hidden-vault spatial layouts. Records exist for 40 buildings, 33 routes, 512 props and 38 authored NPC placements; those counts still need visual/traversal acceptance, not more inventory repetition. Several palace floor stacks are registered; remaining palace rooms/floors and other building interiors need a spatial completeness check. |
 | **Sil'thandriel / Sylvan Court** | **Partial** | Three-level tree/canopy floor maps and traversal structures exist. Verify the complete tree-base/canopy/court spatial layout, platforms, trunk/branches, rope bridge, archive/healer platforms and transitions between levels. |
-| **Skarnak's Hold** | **Partial** | Revalidate the relocated site: perimeter, gate, wall, warlord-hut clearing, seven surrounding huts, campfire, local anchor, approach road and strategic marker must agree at the new position. The move is on PR #397, not yet on `dev`; do not treat it as merged. |
-| **Skarn-tooth Camp** | **Verify** | Source-authored chief's hut, five surrounding huts, campfire and road endpoint are represented. Complete in-engine visual/scale/material acceptance and verify the camp footprint against the terrain. |
-| **Northwatch Fort** | **Verify** | Star fort, keep, gate, moat/waterway, siege engine, distant catapult, oil barrels, ladders and hearth are represented. Verify wall/gate geometry, water continuity, traversal and the fort's relationship to the road network. |
-| **Ridgehold Fort** | **Verify** | Fort walls, keep, downstream waterway and hearth are represented. Verify wall perimeter, gate/approach geometry, terrain joins and separation from opposing Skarnak's Hold positions. |
+| **Skarnak's Hold** | **Ported** | Warlord hut, seven surrounding huts, campfire, perimeter/gate terrain and road approach are represented at the source-derived anchor. No separate authored-geometry backlog is currently identified. |
+| **Skarn-tooth Camp** | **Ported** | Source-authored chief's hut, five surrounding huts, campfire and road endpoint are represented. Complete in-engine visual/scale/material acceptance and verify the camp footprint against the terrain. |
+| **Northwatch Fort** | **Ported** | Star fort, keep, gate, moat/waterway, siege engine, distant catapult, oil barrels, ladders and hearth are represented. Verify wall/gate geometry, water continuity, traversal and the fort's relationship to the road network. |
+| **Ridgehold Fort** | **Ported** | Fort walls, keep, downstream waterway and hearth are represented. Verify wall perimeter, gate/approach geometry, terrain joins and separation from opposing Skarnak's Hold positions. |
 | **Emberlode and Emberlode Mine** | **Partial** | Buildings, mine entrance/approaches, floor maps, stairs, ledger and ore-node anchors exist. Verify the settlement footprint and mine surface/underground spatial connections, including entrances and reciprocal stairs. |
 | **Reddale** | **Partial** | Six building footprints/interior floor maps, roads and the eastern spider-ruin site exist. Verify town layout, building entrances, the ruin's rocky-outcrop placement and all floor-to-exterior connections. |
 | **Hollowmere** | **Partial** | Authored village, stream, bridge, roads, building footprints and floor maps exist. Verify the source building extents/door approaches, guild-den location, stream continuity and usable bridge crossing. The Elder Locket and other object behaviours belong in campaign content; only their physical placement belongs here. |
@@ -56,11 +61,11 @@ The current geometry counts are not a completion percentage. The existing invent
 | **Abandoned House and northern crypt/barrow chain** | **Partial** | Floor maps and spatial evidence anchors exist. Verify each entrance, corridor, room footprint, wall aperture, return point and connection between the abandoned house, Vessel-Seeker's Crypt and Corvin Ashgrave's Barrow. |
 | **Lich Chapterhouse** | **Partial** | Single-floor stone footprint, entrance and fireplace placement exist. Verify approach, entrance orientation, interior footprint and transition back to the exterior. |
 | **Thieves' Cove** | **Partial** | Three-level cave network, entrances, reciprocal stairs and evidence-object anchors exist. Verify cave entrance positions, tunnel junction connectivity, floor topology and return routes. |
-| **Vampire Grave** | **Verify** | Disturbed grave, carcass, fang and journal positions are represented. Verify the physical site layout and approach; investigation and encounter logic are tracked elsewhere. |
-| **Old Mac's Wolf Den** | **Verify** | Source-derived anchor and cave-mouth/overhang/bone dressing exist. Verify the den entrance/approach spatially; wolf spawning and quest behaviour are out of scope here. |
-| **Unicorn Vale** | **Verify** | Vale centre, eight patrol waypoints and hoofprint markers are represented. Verify the valley footprint, waypoint geometry and route accessibility; live unicorn AI is out of scope. |
-| **Ashveil's Dragon Lair** | **Verify** | Rocky outcrop and cave-den dressing exist. Verify the outcrop/cave spatial shape and approach; dragon actor and encounter behaviour are out of scope. |
-| **Emberwood Grove** | **Verify** | Clearing, foliage perimeter, spring rim and herb-patch visuals exist. Verify the clearing boundary, spring placement and connections to surrounding terrain; gathering and quest consequences are out of scope. |
+| **Vampire Grave** | **Ported** | Disturbed grave, carcass, fang and journal positions are represented. Verify the physical site layout and approach; investigation and encounter logic are tracked elsewhere. |
+| **Old Mac's Wolf Den** | **Ported** | Source-derived anchor and cave-mouth/overhang/bone dressing exist. Verify the den entrance/approach spatially; wolf spawning and quest behaviour are out of scope here. |
+| **Unicorn Vale** | **Ported** | Vale centre, eight patrol waypoints and hoofprint markers are represented. Verify the valley footprint, waypoint geometry and route accessibility; live unicorn AI is out of scope. |
+| **Ashveil's Dragon Lair** | **Ported** | Rocky outcrop and cave-den dressing exist. Verify the outcrop/cave spatial shape and approach; dragon actor and encounter behaviour are out of scope. |
+| **Emberwood Grove** | **Ported** | Clearing, foliage perimeter, spring rim and herb-patch visuals exist. Verify the clearing boundary, spring placement and connections to surrounding terrain; gathering and quest consequences are out of scope. |
 | **Player cottage / field** | **Partial** | Plot marker/approach, field and fence geometry exist. Verify plot access, field/fence footprint, cottage placement and spatial room for future crop rows, livestock and upgrades. Construction/farming mechanics are tracked elsewhere. |
 
 ## 2. Cross-cutting map gaps
@@ -73,49 +78,34 @@ The current geometry counts are not a completion percentage. The existing invent
 6. **Strategic-to-local coordinate agreement.** Every strategic destination must resolve to the correct local site. For Skarnak's Hold specifically, strategic marker, local anchor, approach road and travel destination must agree after relocation.
 7. **Chunk boundaries and ownership.** Authored features that span streamed chunks must join without visible seams or duplicated/missing wall, fence, road, stream or prop segments. Decorative infill can remain procedural where the source does not prescribe exact placement.
 
-## 3. Source-builder cross-check — map responsibilities only
+## 3. Source-builder cross-check — feature-level register
 
-This is a checklist of source spatial builders, not a requirement to reproduce the old renderer or every incidental tile.
+The source runtime extractor resolves the original builders and their terrain writes, but a builder's cell count is not a list of tasks. The source-to-target feature mapping and actual remaining work are recorded in [Campaign 2 feature-level map port register](campaign2_feature_port_register.md).
 
-| Source builder / family | Target map evidence | Map gap status |
-|---|---|---|
-| `setupVillageScene`, `paintRoad`, `paintPath`, `paintStreamSegment` | Hollowmere data, strategic/local road data, regional hydrology and terrain streams | **Verify** route connectivity, bridge/water traversal and named approaches |
-| `buildFarmstead` | Farmhouse, pasture/fences, evidence anchors and farmhouse floor | **Partial** source-relative location, pasture footprint and den approach |
-| `buildGoblinCamp` | Skarn-tooth structures and camp terrain | **Verify** visual/scale/terrain acceptance |
-| `buildOrcStronghold` | Skarnak's Hold huts, clearing, wall/gate and approach | **Partial** relocated-site geometry and strategic/local coordinate agreement |
-| `buildDwarvenKingdom` / `revealSunkenDeepPassage` | Kragmoor floor registry, gated floor topology and mountain-site anchor | **Partial** exterior footprint, mountain/entrance presentation and full spatial relationship |
-| `buildElvenCapital` | Sil'thandriel multi-level location registry and terrain | **Partial** tree/canopy/court geometry and inter-level traversal |
-| `buildLichChapterhouse` | Chapterhouse floor map | **Verify** footprint, entrance and exterior connection |
-| `buildSideQuestContent` | Named physical quest-site anchors and spatial dressing | **Verify** each site footprint/approach; content logic excluded |
-| `buildPlayerCottagePlot`, `buildPlayerCottage`, `upgradePlayerCottage` | Plot marker/approach and dwelling spatial foundations | **Partial** plot/cottage placement and room for spatial upgrades |
-| `buyPlayerField`, `placeFieldFence`, `buyFieldLamb`, `plantAppleTree` | Field/fence geometry and farmstead spatial anchors | **Partial / Verify** field and crop-row spatial layout only |
-| `buildAbandonedHouse`, `buildNecromancerCrypt`, `buildLichBarrow` | House, crypt and barrow floor maps | **Verify** entrances, rooms, corridors and connected floor topology |
-| `buildMillbrook`, `buildEmberlode`, `buildReddale` | Settlement buildings, roads and interior floor layouts | **Partial** full spatial/entrance acceptance |
-| `buildDragonLair`, `buildVampireGrave`, `buildDruidGrove`, `spawnWildUnicorn` | Lair, grave, grove and vale spatial sites | **Verify** footprint, approach and map-owned physical markers |
-| `buildSilverhartPalace`, `fortifySilverhartManor` | City/settlement records and selected palace floor stacks | **Partial** remaining city districts, walls/gates and interior spatial layouts |
-| `buildThievesCoveCaves`, `searchSecretPassage`, `revealSingleTunnelEntrance`, `revealTunnelEntrances`, `openTunnelJunction` | Cave network, entrances, floors and tunnel-junction markers | **Partial** complete tunnel topology, entrances and floor connectivity |
-| `buildNorthwatchFort`, `buildRidgeholdFort` | Fort geometry, keeps, waterway and physical siege props | **Verify** perimeter, gate, wall, water and approach connectivity |
-| `buildHollowmereGuildDen` | Guild Den floor map | **Verify** room footprint and entrance/return geometry |
+That register treats `setupVillageScene` as a base-terrain system; groups roads and water by meaningful route; and tracks settlements, forts, capitals, interiors, caves, landmarks, construction features and physical map objects as named spatial features. It explicitly excludes random decoration and generic terrain fill from the backlog.
+
+
 
 ## 4. Inventory counts and cautions
 
-- Source runtime scene: 16,566 unique terrain cells; 11,324 cells touched by named feature builders after deduplication; 246 physical tile-object placements; 72 interior regions; 9 multi-storey building definitions; 8 unicorn patrol waypoints.
-- Target JSON-backed exterior inventory: 4,732 unique cells, plus regional GDScript features not included in that number; 1,543 walkable cells across registered floor maps in the existing geometry audit.
-- Target multi-story location registry contains 71 location records (after the tunnel-network additions merged in PR #408) (many are single-floor), while the source runtime inventory reports 72 interior regions. These are not directly equivalent: some source interiors are represented by settlement-layout metadata and some target records are 3D adaptations. Registration does not prove runtime entry/exit.
-- Target settlement-layout registry contains seven definitions on `dev`: Millbrook, Emberlode, Reddale, Old Mac's Farmstead, Silverhart, Skarn-tooth Camp and Skarnak's Hold. Hollowmere uses its separate location presenter; Kragmoor and Emberlode Mine use the multi-story registry.
-- No overall completion percentage should be published until every meaningful source spatial feature has a row in a source-to-target register with a clear matching rule.
+The existing source/target counts are diagnostic only:
+
+- Source runtime: 16,566 unique terrain cells, of which 5,242 are touched only by the broad `setupVillageScene` base pass; named feature-builder footprints overlap.
+- Target JSON-backed exterior inventory: 4,732 unique cells, excluding regional GDScript features and other map-owned systems.
+- Target interior registry: 71 location records / 89 floors; source runtime reports 72 interior regions. These are different data models and not directly comparable.
+- Source physical tile objects: 246 placements. Target JSON reports 520 prop records across 508 anchors, plus floor-local and feature-specific objects. Raw counts do not establish semantic parity.
+
+**Do not divide 4,732 by 16,566 or publish the result as map completion.** The counts have different scope and represent different things. The feature-level register is the backlog source of truth; no overall percentage is published until all meaningful source spatial features have explicit matching rules.
 
 ## 5. Definition of done
 
-A map gap is closed only when:
+A source spatial feature is considered ported when:
+1. Its source purpose and meaningful footprint are identified.
+2. The target has an equivalent spatial feature or a documented 3D adaptation.
+3. Its map-owned physical components (where applicable) are represented.
+4. Any known missing entrance, return point, stair, route or named connection is recorded as a concrete task.
 
-1. The source spatial feature and its gameplay purpose are identified.
-2. The target data/presenter and stable location/feature ID are recorded.
-3. The 3D spatial adaptation is documented where it differs from the source.
-4. Its footprint, entrances, route connectivity and chunk joins pass relevant tests.
-5. Important locations have an in-engine visual/traversal acceptance.
-
-NPC dialogue, quest branches, encounter AI, faction effects, schedules, resource depletion/growth and campaign persistence must be closed in their owning campaign/mechanics audits, not by marking a map row complete.
+Godot execution, visual inspection and routine validation remain important QA for every change, but they are not separate outstanding map-port tasks. NPC dialogue, quest branches, encounter AI, faction effects, schedules and campaign persistence remain in their owning campaign/mechanics audits.
 
 ## 6. Verification pass — 2026-11-26
 
@@ -172,18 +162,27 @@ The 25 geography IDs have a corresponding location/site row in section 1: Hollow
 
 ## 7. Revised priority order
 
-1. **Kragmoor exterior** — the strongest known visual deficiency and the largest mismatch between an implemented floor system and an inadequately presented surface site.
-2. **Entrance/return-point register** — produce a single spatial contract for every building, cave, mine and multi-floor site before wiring more interactions.
-3. **Silverhart spatial completion** — reconcile the large city footprint, districts, wall/gates, remaining building interiors and actual traversable routes.
-4. **Route and hydrology acceptance** — prove road, stream, bridge, moat and fort-waterway connectivity in the streamed 3D world, including chunk boundaries.
-5. **Remaining site visual/traversal acceptance** — Skarn-tooth, Skarnak's Hold, Northwatch, Ridgehold, Sil'thandriel, Emberlode Mine, Reddale, crypt/barrow chain, Thieves' Cove and wilderness sites.
-6. **Physical map-object reconciliation** — compare source tile-object placements to target map-owned anchors and presentation; retain meaningful doors, stairs, ladders, journals, ledgers, evidence, ore, altars, siege objects and signs, but allow decorative substitutions.
+1. **Kragmoor surface geography** — finish the actual exterior mountain/settlement silhouette, source landmarks, approach and entrance.
+2. **Exterior/interior spatial contracts** — close the finite set of missing entrance, destination-floor and return-anchor definitions for existing locations.
+3. **Silverhart interior remainder** — reconcile source-named palace rooms/floors against the existing 40-building, 33-route city implementation.
+4. **Dynamic cottage/field spatial prefabs** — add only missing buildable structures and player-placed field-object variants.
+5. **Meaningful physical-object crosswalk** — reconcile source doors, stairs, ladders, journals, ledgers, evidence, altars, ore, siege objects and signs.
 
-No source-builder or anchor inventory should be marked complete solely because a target JSON record exists. The definition-of-done gates in section 5 still apply.
-
-
+A concrete missing road, stream, bridge, gate or chunk-join feature can be added when identified. Generic "verify connectivity", "inspect in engine" and procedural decoration are not backlog items.
 
 ## 8. Small-to-large execution approach
+
+| Order | Task | Size | Why it is actual map work |
+|---|---|---|---|
+| 1 | Complete Kragmoor surface footprint, named landmarks, approach and entrance | L | Six underground floors exist; the distinctive surface kingdom footprint is still incomplete. |
+| 2 | Finish missing entrance/return contracts for existing single-floor locations | M | The spatial coordinate contract is missing for a finite set of existing interiors; this does not require inventing new rooms. |
+| 3 | Reconcile remaining Silverhart palace rooms/floors | M–L | The city footprint is substantially present; the remaining work is specific interior content, not rebuilding the city grid. |
+| 4 | Add missing cottage/field construction prefabs | M | Only source-authored dynamic spatial variants not already represented are in scope. |
+| 5 | Reconcile meaningful physical map objects | M | Compare semantic object types and placements, not raw prop counts or decorative clutter. |
+
+Routine Godot verification and visual QA are not listed as tasks here. They apply to every implementation and do not change the amount of source content ported.
+
+
 
 Work is ordered by the smallest independently verifiable spatial gap first. A task is only ticked off when its stated evidence exists; an in-engine visual check is explicitly marked as requiring user acceptance.
 
