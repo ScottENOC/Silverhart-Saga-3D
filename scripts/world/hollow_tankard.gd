@@ -1987,15 +1987,17 @@ func _interact_with_character(character_id: String) -> void:
 		_show_streamed_npc_dialogue(streamed_actor, target_state)
 		return
 	if character_id == "old_mac":
-		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
+		var farm_conversation: Dictionary = QUEST_DIALOGUE_DISPATCHER.greeting_for_actor(
+			simulation,
+			"old_mac",
+			{"remaining_wolves": _farm_wolves_remaining()}
+		)
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
 		return
 	if character_id in ["elder_marta", "marta_wynfield"]:
-		var message_delivery := ALDENREACH_MESSAGE_CONTENT_SCRIPT.deliver_to_elder(simulation.campaign_journal)
-		if bool(message_delivery.get("delivered_now", false)) and resource_status_label != null:
+		var marta_conversation: Dictionary = QUEST_DIALOGUE_DISPATCHER.greeting_for_actor(simulation, "elder_marta")
+		if bool(marta_conversation.get("delivered_now", false)) and resource_status_label != null:
 			resource_status_label.text = "Delivered Ambassador Cassia Wren's quiet word to Elder Marta."
-		var marta_player := simulation.get_character(simulation.player_character_id)
-		var marta_conversation := ELDER_MARTA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, marta_player)
 		if bool(marta_conversation.get("ok", false)):
 			_show_dialogue(String(marta_conversation.get("speaker", "Elder Marta Wynfield")), String(marta_conversation.get("text", "")), marta_conversation.get("choices", []))
 		return
@@ -2096,74 +2098,22 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if actor == null or target_state == null:
 		return
 	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
-	if dialogue_id == "dray_coltayne":
-		var courier_conversation := IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
-		if bool(courier_conversation.get("ok", false)):
-			_show_dialogue(String(courier_conversation.get("speaker", target_state.display_name)), String(courier_conversation.get("text", "")), courier_conversation.get("choices", []))
+	var conversation: Dictionary = QUEST_DIALOGUE_DISPATCHER.greeting_for_actor(
+		simulation,
+		dialogue_id,
+		{"abandoned_house_journal_read": abandoned_house_journal_read}
+	)
+	if conversation.is_empty():
 		return
-	if dialogue_id == "petra_hollis":
-		var petra_conversation := TOLL_TAKER_CONTENT_SCRIPT.greeting(simulation.campaign_journal, TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation))
-		if bool(petra_conversation.get("ok", false)):
-			_show_dialogue(String(petra_conversation.get("speaker", target_state.display_name)), String(petra_conversation.get("text", "")), petra_conversation.get("choices", []))
+	if bool(conversation.get("delivered_now", false)) and resource_status_label != null:
+		resource_status_label.text = "Delivered Ambassador Cassia Wren's quiet word to Elder Marta."
+	if conversation.has("ok") and not bool(conversation.get("ok", false)):
 		return
-	if dialogue_id == "reddale_innkeeper": 
-		var nella_conversation := NELLA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id), abandoned_house_journal_read)
-		if bool(nella_conversation.get("ok", false)):
-			_show_dialogue(String(nella_conversation.get("speaker", target_state.display_name)), String(nella_conversation.get("text", "")), nella_conversation.get("choices", []))
-		return
-	if dialogue_id == "reddale_baron":
-		var baron_conversation := BARON_TRIBUTE_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
-		if bool(baron_conversation.get("ok", false)):
-			_show_dialogue(String(baron_conversation.get("speaker", target_state.display_name)), String(baron_conversation.get("text", "")), baron_conversation.get("choices", []))
-		return
-	if dialogue_id == "dwarven_ambassador":
-		var brokk_conversation := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
-		if bool(brokk_conversation.get("ok", false)):
-			_show_dialogue(String(brokk_conversation.get("speaker", target_state.display_name)), String(brokk_conversation.get("text", "")), brokk_conversation.get("choices", []))
-		return
-	if dialogue_id == "corvane_ambassador":
-		var toren_conversation := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
-		if bool(toren_conversation.get("ok", false)):
-			_show_dialogue(String(toren_conversation.get("speaker", target_state.display_name)), String(toren_conversation.get("text", "")), toren_conversation.get("choices", []))
-		return
-	if dialogue_id == "reddale_captain":
-		var ilsa_relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
-		var ilsa_conversation := ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT.greeting(simulation.campaign_journal, ilsa_relationships)
-		if bool(ilsa_conversation.get("ok", false)):
-			_show_dialogue(String(ilsa_conversation.get("speaker", target_state.display_name)), String(ilsa_conversation.get("text", "")), ilsa_conversation.get("choices", []))
-		return
-	if dialogue_id == "aldenreach_ambassador":
-		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
-		_show_dialogue(String(cassia_conversation.get("speaker", target_state.display_name)), String(cassia_conversation.get("text", "")), cassia_conversation.get("choices", []))
-		return
-	if dialogue_id == "silverhart_queen":
-		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
-		var content := PERSISTENT_DIALOGUE_CONTENT.new()
-		var journal := simulation.campaign_journal
-		var context := {
-			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
-			"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
-			"goblin_standing": journal.faction_standing("goblin_tribe"),
-			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
-			"necromancer_standing": journal.faction_standing("necromancer_cult")
-		}
-		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
-		if bool(conversation.get("ok", false)):
-			var supported_choices: Array[Dictionary] = []
-			for choice_value in conversation.get("choices", []):
-				var choice: Dictionary = choice_value
-				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
-					supported_choices.append(choice)
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
-		else:
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
-		return
-	var title := String(actor.get_meta("title", ""))
-	var body := "They regard you with measured curiosity, but have little to say just now."
-	if not title.is_empty():
-		body = "%s acknowledges you. Their duties leave little time for conversation." % title
-	_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
-
+	_show_dialogue(
+		String(conversation.get("speaker", target_state.display_name)),
+		String(conversation.get("text", "")),
+		conversation.get("choices", [])
+	)
 
 func _player_has_item(item_id: String) -> bool:
 	var player := simulation.get_character(simulation.player_character_id)
