@@ -328,6 +328,21 @@ def main():
         max_face_area_strain = max(face_area_strains, default=0.0)
         min_face_normal_dot = min(face_normal_dots, default=1.0)
 
+        # Detect non-adjacent triangle intersections after deformation. Adjacent
+        # triangles share vertices by construction and are not counted as folds.
+        garment.data.calc_loop_triangles()
+        triangle_vertices = [tuple(triangle.vertices) for triangle in garment.data.loop_triangles]
+        self_intersection_count = 0
+        if triangle_vertices:
+            candidate_tree = BVHTree.FromPolygons(
+                candidate_world, triangle_vertices, all_triangles=True
+            )
+            for first, second in candidate_tree.overlap(candidate_tree):
+                if first >= second:
+                    continue
+                if set(triangle_vertices[first]).isdisjoint(triangle_vertices[second]):
+                    self_intersection_count += 1
+
         candidate_penetrations = []
         if collision_available:
             for index, particle in enumerate(particles):
@@ -360,6 +375,10 @@ def main():
         if min_face_normal_dot < 0.15:
             rejection_reasons.append(
                 f"Candidate folded or inverted a panel (minimum face-normal alignment {min_face_normal_dot:.3f})."
+            )
+        if self_intersection_count:
+            rejection_reasons.append(
+                f"Candidate contains {self_intersection_count} non-adjacent triangle self-intersections."
             )
 
         accepted_candidate = not rejection_reasons
@@ -410,6 +429,7 @@ def main():
             "max_edge_length_strain": max_edge_strain,
             "max_panel_triangle_area_strain": max_face_area_strain,
             "minimum_face_normal_alignment": min_face_normal_dot,
+            "self_intersection_pair_count": self_intersection_count,
             "candidate_remaining_penetration_count": len(candidate_penetrations),
             "candidate_accepted": accepted_candidate,
             "rejection_reasons": rejection_reasons,
@@ -475,6 +495,7 @@ def main():
             "maximum_edge_length_strain": 0.12,
             "maximum_panel_triangle_area_strain": 0.30,
             "minimum_face_normal_alignment": 0.15,
+            "self_intersections_allowed": 0,
             "vertex_motion_constraint": "original garment vertex-normal line; no absolute displacement cap",
             "gravity": [0.0, 0.0, 0.0],
             "boundary_elasticity": "reinforced boundary-edge distance constraints plus per-panel diagonal constraints",
