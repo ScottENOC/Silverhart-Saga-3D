@@ -54,7 +54,7 @@ func _test_goblin_objective_and_source_rewards() -> void:
 	assert(player.experience == 200)
 	assert(String(journal.quest_state(MISSING_WATCH.QUEST_ID).status) == "completed")
 	assert(is_equal_approx(journal.faction_standing(MISSING_WATCH.FACTION_ID), 15.0))
-	assert(is_equal_approx(journal.faction_knowledge(MISSING_WATCH.FACTION_ID), 20.0))
+	assert(is_equal_approx(float(journal.faction_knowledge.get(MISSING_WATCH.FACTION_ID, 0.0)), 20.0))
 
 	var repeated := MISSING_WATCH.resolve_choice(journal, player, "ilsa_missing_watch_turn_in", 0)
 	assert(not repeated.ok)
