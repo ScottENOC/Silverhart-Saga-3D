@@ -340,7 +340,17 @@ def main():
             for first, second in candidate_tree.overlap(candidate_tree):
                 if first >= second:
                     continue
-                if set(triangle_vertices[first]).isdisjoint(triangle_vertices[second]):
+                first_vertices = triangle_vertices[first]
+                second_vertices = triangle_vertices[second]
+                if not set(first_vertices).isdisjoint(second_vertices):
+                    continue
+                # Material-separated seams can have coincident boundary
+                # vertices with distinct indices; touching there is not a fold.
+                closest_pair = min(
+                    (candidate_world[a] - candidate_world[b]).length
+                    for a in first_vertices for b in second_vertices
+                )
+                if closest_pair > 1.0e-6:
                     self_intersection_count += 1
 
         candidate_penetrations = []
