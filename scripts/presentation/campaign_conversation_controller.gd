@@ -79,7 +79,8 @@ func _on_prompt_changed(prompt: Dictionary) -> void:
 	var choices: Array[Dictionary] = []
 	for choice_value in prompt.get("choices", []):
 		if choice_value is Dictionary:
-			choices.append((choice_value as Dictionary).duplicate(true))
+			var choice: Dictionary = choice_value
+			choices.append(choice.duplicate(true))
 
 	var portrait_texture: Texture2D
 	var speaker_actor: AraCharacterActor
