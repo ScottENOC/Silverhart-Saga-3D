@@ -39,6 +39,7 @@ func _run() -> void:
 	_assert_exterior_entry_round_trip("hollowmere_house", "house_entry_player", Vector2i(0, -9), Vector2i(0, -10), "hollowmere_house_south_door", "Hollowmere House")
 	_assert_exterior_entry_round_trip("hollowmere_store", "store_entry_player", Vector2i(9, 0), Vector2i(10, 0), "hollowmere_store_west_door", "Hollowmere Store")
 	_assert_exterior_entry_round_trip("mira_house", "mira_house_entry_player", Vector2i(9, 9), Vector2i(10, 9), "mira_house_west_door", "Mira's House")
+	_assert_exterior_entry_round_trip("oskar_house", "oskar_house_entry_player", Vector2i(-3, 9), Vector2i(-4, 9), "oskar_house_east_door", "Oskar's House")
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)

@@ -48,7 +48,7 @@ The manifest contains **nine location records with multiple floors**: the seven 
 
 ## Single-floor entries and interior doorways
 
-There are **62 single-floor location records**. Their interior door coordinates and IDs are listed in the full register below. A door object is evidence of a placed aperture, not proof that the exterior approach, interaction, return-to-world action or collision opening is implemented. PR #465 introduces a generic `exterior_entry` contract in the shared location registry/runtime and wires it to the F-key interaction path. Hollowmere Chapel was the first registered site. This update adds source-grounded contracts for the General Store, House, Store and Mira's house, bringing the total to five registered single-floor entries; the other 57 records still need individually source-grounded exterior threshold and return coordinates. Do not infer them from door orientation alone. The tavern remains intentionally excluded while its opening-sequence door is locked. The Guild tunnel network remains a specialised cross-location route.
+There are **62 single-floor location records**. Their interior door coordinates and IDs are listed in the full register below. A door object is evidence of a placed aperture, not proof that the exterior approach, interaction, return-to-world action or collision opening is implemented. PR #465 introduces a generic `exterior_entry` contract in the shared location registry/runtime and wires it to the F-key interaction path. Hollowmere Chapel was the first registered site. The Hollowmere General Store, House, Store, Mira's house and Oskar's house now also have source-grounded contracts, bringing the total to six registered single-floor entries; the other 56 records still need individually source-grounded exterior threshold and return coordinates. Do not infer them from door orientation alone. The tavern remains intentionally excluded while its opening-sequence door is locked. The Guild tunnel network remains a specialised cross-location route.
 
 - **Barrow of Corvin Ashgrave** and **Vessel-Seeker's Crypt** are single-floor multi-room layouts. Their several door objects are internal room/ossuary/ritual openings as well as the exterior entry; do not count each internal doorway as a separate world transition.
 - **Northwatch Keep** and **Ridgehold Keep** each have a keep entry door. Their exterior fort gates and approaches are owned by the regional fort/map presentation, not this interior-floor manifest.
@@ -67,7 +67,7 @@ There are **62 single-floor location records**. Their interior door coordinates 
 | `hollowmere_store` | (14, 0) | 0 | 0: hollowmere_store_west_door (10, 0) [door_open]; exterior threshold/return (9, 0) | — | — |
 | `hollowmere_tavern` | (0, 0) | 0 | 0: hollowmere_tavern_south_door (0, 4) [door_closed] | — | — |
 | `mira_house` | (12, 9) | 0 | 0: mira_house_west_door (10, 9) [door_open]; exterior threshold/return (9, 9) | — | — |
-| `oskar_house` | (-6, 9) | 0 | 0: oskar_house_east_door (-4, 9) [door_open] | — | — |
+| `oskar_house` | (-6, 9) | 0 | 0: oskar_house_east_door (-4, 9) [door_open]; exterior threshold/return (-3, 9), joining the general-store spur via (-2, 9) and (-1, 9) | — | — |
 | `hollowmere_guild_den` | (-12, -8) | 0 | 0: hollowmere_guild_den_door (-12, -6) [door_open] | — | — |
 | `kragmoor` | (908, -626) | 0, -1, -2, -3, -4, -5 | 0: gate_door (908, -605) [door_open] | 0: gate_stair_down (908, -610)<br>-1: gate_stair_up (908, -610)<br>-1: hall_stair_down (908, -626)<br>-2: hall_stair_up (908, -626)<br>-2: forge_stair_down (890, -627)<br>-3: forge_stair_up (890, -627)<br>-3: mine_stair_down (890, -617)<br>-4: mine_stair_up (890, -617)<br>-5: sunken_stair_up (890, -605) | 0→-1 @ (908, -610); -1→0 @ (908, -610); -1→-2 @ (908, -626); -2→-1 @ (908, -626); -2→-3 @ (890, -627); -3→-2 @ (890, -627); -3→-4 @ (890, -617); -4→-3 @ (890, -617); -4→-5 @ (890, -605) [quest: deepholds_infestation]; -5→-4 @ (890, -605) |
 | `emberlode_bunkhouse` | (-252, 28) | 0 | 0: emberlode_bunkhouse_north_door (-252, 26) [door_open] | — | — |
@@ -135,10 +135,10 @@ There are **62 single-floor location records**. Their interior door coordinates 
 
 ## Remaining implementation tasks
 
-1. **Register the remaining 57 single-floor exterior contracts.** For each location, identify the source-grounded exterior interaction hex and return hex, reference its correct floor-zero door ID, and add the contract to the location manifest. Do not guess approach coordinates from door orientation when the source map or building footprint does not establish them.
-2. **Register Oskar's house exterior contract.** The source paints its approach as a spur from (-3, 9) to the general-store path; preserve that authored route when adding the entry.
-3. **Resolve the Silverhart Palace rear door.** Determine whether the Queen's Chambers door connects to a separately registered room/site, an adjoining room on the same floor, or a deliberate non-traversable set piece. Add a destination only when supported by source spatial data.
-4. **Wire the Guild hidden vault door into the generic single-floor entry/secret-door interaction path.** Its secret-door record and hidden-room dependency exist; the generic interaction must support the single-floor location as well as multi-story stacks.
+1. **Register the remaining 56 single-floor exterior contracts.** For each location, identify the source-grounded exterior interaction hex and return hex, reference its correct floor-zero door ID, and add the contract to the location manifest. Do not guess approach coordinates from door orientation when the source map or building footprint does not establish them.
+2. **Resolve the Silverhart Palace rear door.** Determine whether the Queen's Chambers door connects to a separately registered room/site, an adjoining room on the same floor, or a deliberate non-traversable set piece. Add a destination only when supported by source spatial data.
+3. **Wire the Guild hidden vault door into the generic single-floor entry/secret-door interaction path.** Its secret-door record and hidden-room dependency exist; the generic interaction must support the single-floor location as well as multi-story stacks.
+
 
 Generic engine verification, in-engine visual review and manual walking of all 16 reciprocal multi-floor links remain QA, not outstanding map-port content.
 
