@@ -6,9 +6,11 @@ const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_t
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
+const HOLLOWMERE_OPENING_SEQUENCE_SCRIPT = preload("res://scripts/simulation/hollowmere_opening_sequence_controller.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const HOLLOWMERE_OPENING_CONTEXT = preload("res://scripts/simulation/hollowmere_opening_context.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
@@ -122,6 +124,8 @@ var roof_material: StandardMaterial3D
 var glass_material: StandardMaterial3D
 var bottle_green_material: StandardMaterial3D
 var ambient_chatter: AmbientChatter
+var ambient_dialogue_presenter: CampaignAmbientDialoguePresenter
+var hollowmere_opening_sequence: HollowmereOpeningSequenceController
 var ambient_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var household_world_service: CampaignHouseholdWorldService
 var ambient_accumulator: float = 0.0
@@ -164,6 +168,9 @@ func _save_manager_service() -> Node:
 func _ready() -> void:
 	_create_materials()
 	_create_lighting()
+	ambient_dialogue_presenter = CampaignAmbientDialoguePresenter.new()
+	ambient_dialogue_presenter.name = "CampaignAmbientDialoguePresenter"
+	add_child(ambient_dialogue_presenter)
 	spell_vfx = SPELL_VFX_SCRIPT.new() as Node3D
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
@@ -818,7 +825,7 @@ func _on_camp_companion_exchange(exchange: Dictionary) -> void:
 		if speaker_id.is_empty() or text.is_empty():
 			continue
 		_show_speech_bubble(speaker_id, text)
-		await get_tree().create_timer(_speech_bubble_duration(text)).timeout
+		await get_tree().create_timer(CampaignAmbientDialoguePresenter.duration_for_text(text)).timeout
 
 
 
@@ -937,7 +944,7 @@ func _create_hud() -> void:
 	var controls_dialog := AcceptDialog.new()
 	controls_dialog.name = "ControlsDialog"
 	controls_dialog.title = "Hollow Tankard — Controls"
-	controls_dialog.dialog_text = "MOVE\\nW / A / S / D / Q / E — move one hex\\nClick a walkable hex — plot a path\\n[ and ] — turn active character\\n\\nINTERACT\\nF — use nearby door/stairs or talk to nearest person\\nG — gather nearby resource\\nTab — switch active party member\\nC — character sheet\\nK — skill trees and skill points\\nI — inventory and equipment\\n\\nCOMBAT\\nSpace — attack\\nEnter — end turn\\n\\nWORLD\\nV — toggle roof"
+	controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — use nearby door/stairs or talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nK — skill trees and skill points\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
 	controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nF5 — quick save\nF9 — quick load\nV — toggle roof"
 	controls_dialog.min_size = Vector2i(420, 430)
 	layer.add_child(controls_dialog)
@@ -2261,27 +2268,39 @@ func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
 	if player_state == null or player_state.race in ["goblin", "orc"]:
 		return
-	campaign_quest_service.start(HollowmereCampaignContent.QUEST_ID)
-	await get_tree().create_timer(2.0).timeout
-	if not is_instance_valid(self):
-		return
-	_show_speech_bubble("companion_wren_talbot", "Well, here we are then. Try not to get us both killed, yeah?")
-	await get_tree().create_timer(6.0).timeout
-	if not is_instance_valid(self) or shakedown_started:
-		return
+	hollowmere_opening_sequence = HOLLOWMERE_OPENING_SEQUENCE_SCRIPT.new() as HollowmereOpeningSequenceController
+	hollowmere_opening_sequence.name = "HollowmereOpeningSequence"
+	hollowmere_opening_sequence.shakedown_started.connect(_on_opening_shakedown_started)
+	add_child(hollowmere_opening_sequence)
+	hollowmere_opening_sequence.begin(
+		String(player_state.race),
+		Callable(self, "_start_hollowmere_shakedown_quest"),
+		Callable(self, "_show_speech_bubble"),
+		Callable(self, "_move_shakedown_soldiers_inside"),
+		Callable(self, "_show_hollowmere_opening_choice"),
+		Callable(self, "_is_shakedown_resolved")
+	)
+
+
+func _on_opening_shakedown_started() -> void:
 	shakedown_started = true
-	var opening_lines := HollowmereCampaignContent.opening_lines()
-	for index in range(opening_lines.size()):
-		var line: Dictionary = opening_lines[index]
-		var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
-		if speaker_id == "narrator":
-			_show_world_narration(String(line.get("text", "")))
-			await _move_shakedown_soldiers_inside()
-		else:
-			_show_speech_bubble(speaker_id, String(line.get("text", "")))
-		await get_tree().create_timer(2.25).timeout
-	if not shakedown_resolved:
-		_show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
+
+
+func _start_hollowmere_shakedown_quest() -> void:
+	if campaign_quest_service != null:
+		campaign_quest_service.start(HollowmereCampaignContent.QUEST_ID)
+
+
+func _show_hollowmere_opening_choice() -> void:
+	_show_dialogue(
+		"Dray Coltayne",
+		"%s\n\nWhat do you do?" % HOLLOWMERE_OPENING_CONTEXT.TEXT,
+		HollowmereCampaignContent.shakedown_choices()
+	)
+
+
+func _is_shakedown_resolved() -> bool:
+	return shakedown_resolved
 
 
 func _move_shakedown_soldiers_outside() -> void:
@@ -2317,78 +2336,11 @@ func _move_shakedown_soldiers_inside() -> void:
 				return
 
 
-func _show_world_narration(text: String) -> void:
-	var bubble := Label3D.new()
-	bubble.name = "NarrationBubble"
-	bubble.text = _wrap_speech_bubble_text(text)
-	bubble.position = Vector3(0.0, 4.4, 0.0)
-	bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	bubble.font_size = 22
-	bubble.pixel_size = 0.008
-	bubble.outline_size = 6
-	bubble.modulate = Color(0.98, 0.96, 0.86)
-	add_child(bubble)
-	var timer := Timer.new()
-	timer.one_shot = true
-	timer.wait_time = _speech_bubble_duration(text)
-	add_child(timer)
-	timer.timeout.connect(func():
-		if is_instance_valid(bubble):
-			bubble.queue_free()
-		if is_instance_valid(timer):
-			timer.queue_free()
-	)
-	timer.start()
-
-
-func _show_speech_bubble(character_id: String, text: String) -> void:
+func _show_speech_bubble(character_id: String, text: String) -> Dictionary:
 	var actor := actor_by_id.get(character_id) as Node3D
-	if actor == null:
-		return
-	var bubble := Label3D.new()
-	bubble.name = "SpeechBubble"
-	bubble.text = text
-	bubble.position = Vector3(0.0, 3.0, 0.0)
-	bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	bubble.font_size = 22
-	bubble.pixel_size = 0.008
-	bubble.outline_size = 6
-	bubble.modulate = Color(1.0, 0.97, 0.86)
-	actor.add_child(bubble)
-	var timer := Timer.new()
-	timer.one_shot = true
-	timer.wait_time = 2.15
-	actor.add_child(timer)
-	timer.timeout.connect(func():
-		if is_instance_valid(bubble):
-			bubble.queue_free()
-		if is_instance_valid(timer):
-			timer.queue_free()
-	)
-	timer.start()
-
-
-
-func _wrap_speech_bubble_text(value: String, max_characters: int = 34) -> String:
-	var wrapped_lines := PackedStringArray()
-	var current_line := ""
-	for word_value in value.split(" ", false):
-		var word := String(word_value)
-		if current_line.is_empty():
-			current_line = word
-		elif current_line.length() + 1 + word.length() > max_characters:
-			wrapped_lines.append(current_line)
-			current_line = word
-		else:
-			current_line += " " + word
-	if not current_line.is_empty():
-		wrapped_lines.append(current_line)
-	return "\n".join(wrapped_lines)
-
-
-func _speech_bubble_duration(value: String) -> float:
-	var line_count := _wrap_speech_bubble_text(value).split("\n", false).size()
-	return clampf(1.8 + float(line_count) * 0.85 + float(value.length()) * 0.008, 2.5, 6.5)
+	if actor == null or ambient_dialogue_presenter == null:
+		return {"ok": false, "reason": "missing_speaker_actor"}
+	return ambient_dialogue_presenter.present_line(actor, text)
 
 
 func _ambient_role_for_id(character_id: String) -> String:
