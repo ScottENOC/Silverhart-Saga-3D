@@ -6,6 +6,11 @@ extends RefCounted
 ## place that knows which modules contribute definitions to a campaign.
 
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const HOLLOWMERE_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
+const FARM_WOLVES = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const ELDER_MARTA = preload("res://scripts/simulation/elder_marta_content.gd")
+const ALDENREACH_MESSAGE = preload("res://scripts/simulation/aldenreach_message_content.gd")
 const ABANDONED_HOUSE = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 const TOLL_TAKER = preload("res://scripts/simulation/toll_taker_quest_content.gd")
 const REDDALE_INNKEEPER = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
@@ -17,6 +22,10 @@ const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_
 # Keep quest IDs explicit here so duplicate registration can be prevented
 # without relying on implementation-specific Script reflection.
 const QUEST_CONTENT_MODULES: Array[Dictionary] = [
+	{"id": "hollowmere_ironbond_shakedown", "register": Callable(CampaignQuestRegistry, "_register_hollowmere")},
+	{"id": "farm_wolves", "register": Callable(FARM_WOLVES, "register_definition")},
+	{"id": "elder_locket", "register": Callable(ELDER_MARTA, "register_definition")},
+	{"id": "aldenreach_message", "register": Callable(ALDENREACH_MESSAGE, "register_definition")},
 	{"id": "abandoned_house_cleared", "register": Callable(ABANDONED_HOUSE, "register_definition")},
 	{"id": "toll_ogre", "register": Callable(TOLL_TAKER, "register_definition")},
 	{"id": "a_stone_for_nella", "register": Callable(REDDALE_INNKEEPER, "register_definition")},
@@ -27,13 +36,23 @@ const QUEST_CONTENT_MODULES: Array[Dictionary] = [
 ]
 
 
+static func _register_hollowmere(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	if journal.quest_definitions.has(HOLLOWMERE_CONTENT.QUEST_ID):
+		return {"ok": true, "already_registered": true}
+	return journal.register_quest_definition(HOLLOWMERE_CONTENT.shakedown_quest_definition())
+
+
 static func register_definitions(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
 		return {"ok": false, "reason": "missing_campaign_journal"}
 
-	# Companion chapters and prerequisite quests share the campaign journal,
-	# but retain their existing specialised runtime store.
+	# The two companion systems own different content: chapter/prerequisite
+	# chains and the original recruitment/first-contact quest definitions.
+	# Both must be registered centrally before any location presentation loads.
 	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
+	COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
 
 	var registered: Array[String] = []
 	var failed: Array[Dictionary] = []
