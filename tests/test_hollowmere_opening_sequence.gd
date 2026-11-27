@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CONTROLLER := preload("res://scripts/simulation/hollowmere_opening_sequence_controller.gd")
+const OPENING_CONTEXT := preload("res://scripts/simulation/hollowmere_opening_context.gd")
 
 var _events: Array[String] = []
 var _resolved := false
@@ -31,6 +32,7 @@ func _initialize() -> void:
 	_check(_events.find("move_inside") < _events.find("ambient:dray_coltayne"), "Soldiers should enter before the first Ironbond line is spoken.")
 	_check(not _events.has("ambient:narrator"), "Narrator stage direction must not become a floating speech bubble.")
 	_check(_events.has("interactive"), "The opening should finish in the interactive dialogue mode.")
+	_check(OPENING_CONTEXT.TEXT.begins_with("The tavern door bangs open"), "The tavern stage direction should be separate contextual text.")
 	_check(_started_count == 1, "The shakedown should be marked started exactly once.")
 	controller.queue_free()
 
