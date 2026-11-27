@@ -1704,17 +1704,17 @@ func _handle_quest_dialogue_choice(choice: Dictionary) -> bool:
 			dialogue.get("choices", [])
 		)
 	elif bool(result.get("quest_completed", false)) and quest_id == "dwarven_toll":
-		var completed: Dictionary = DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(
+		var brokk_completed: Dictionary = DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(
 			simulation.campaign_journal,
 			simulation.get_character(simulation.player_character_id)
 		)
-		_show_dialogue(String(completed.get("speaker", speaker)), String(completed.get("text", "")), completed.get("choices", []))
+		_show_dialogue(String(brokk_completed.get("speaker", speaker)), String(brokk_completed.get("text", "")), brokk_completed.get("choices", []))
 	elif bool(result.get("quest_completed", false)) and quest_id == "corvane_watch":
-		var completed: Dictionary = CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(
+		var toren_completed: Dictionary = CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(
 			simulation.campaign_journal,
 			simulation.get_character(simulation.player_character_id)
 		)
-		_show_dialogue(String(completed.get("speaker", speaker)), String(completed.get("text", "")), completed.get("choices", []))
+		_show_dialogue(String(toren_completed.get("speaker", speaker)), String(toren_completed.get("text", "")), toren_completed.get("choices", []))
 	elif bool(result.get("handled", false)) or bool(result.get("quest_completed", false)):
 		_close_dialogue()
 	return true
