@@ -291,7 +291,7 @@ def main():
     report = {
         "stage": "xpbd_static_pose_garment_contact_and_deformation",
         "simulation_run": True,
-        "garment_deformation_applied": True,
+        "garment_deformation_applied": not no_measurable_correction,
         "body_geometry_deformed": False,
         "body_or_skin_hidden": False,
         "body_or_skin_deleted": False,
@@ -314,6 +314,7 @@ def main():
         "garments": report_rows,
         "max_vertex_displacement_m": max_total_displacement,
         "diagnostic_displacement_limit_m": 1.0,
+        "displacement_limit_is_warning_only": True,
         "exported_for_review": True,
         "fit_quality": (
             "unchanged_no_correction" if no_measurable_correction
