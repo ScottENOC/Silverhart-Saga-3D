@@ -1856,13 +1856,6 @@ func _handle_ilsa_choice(choice: Dictionary) -> bool:
 	)
 	return true
 
-func _rowan_visit_key() -> String:
-	var site_hex: Variant = simulation.camp_simulation.site.get("hex", Vector2i.ZERO)
-	var camp_hex: Vector2i = site_hex if site_hex is Vector2i else Vector2i.ZERO
-	var world_day := int(floor(simulation.clock.world_seconds / 86400.0))
-	return "%d:%d:%d" % [world_day, camp_hex.x, camp_hex.y]
-
-
 func _show_rowan_camp_encounter() -> void:
 	if rowan_world_service != null:
 		rowan_world_service.show_camp_encounter()
