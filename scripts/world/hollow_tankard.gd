@@ -1302,11 +1302,6 @@ func _apply_save_data(data: Dictionary) -> void:
 			var merged_appearance := base.duplicate(true)
 			merged_appearance.merge(appearance_diffs[actor_id], true)
 			CampaignCharacterActorFactory.apply_npc_parameters(actor, merged_appearance)
-	# Older saves stored both a location-side roster and a simulation roster.
-	# Prefer the former for historical party ordering, then retain any members
-	# present only in the simulation snapshot. New saves write one canonical list.
-	var restored_party_ids: Array[String] = []
-
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation after journal restore.
 	if simulation.get_character("missing_child_tessa") != null:
 		_spawn_missing_child()
