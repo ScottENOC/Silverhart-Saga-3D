@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: test-wren-ara-bikini-fit
+  group: test-wren-ara-bikini-fit-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
