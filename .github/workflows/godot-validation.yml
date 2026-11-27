@@ -153,6 +153,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_persistent_character_relationship_state.gd
       - name: Run Rowan Fletcher recurring camp encounter tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_rowan_fletcher_encounters.gd
+      - name: Run campaign world service extraction tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_world_services.gd
       - name: Run persistent NPC dialogue content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_persistent_character_dialogue_content.gd
       - name: Run campaign faction state tests
