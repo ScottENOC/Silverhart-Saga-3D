@@ -43,7 +43,7 @@ func _test_campaign_coordinator_initialization() -> void:
 		"abandoned_house_cleared"
 	]:
 		assert(simulation.campaign_journal.quest_definitions.has(quest_id), "Coordinator should register %s." % quest_id)
-	assert(not simulation.campaign_journal.npc_reputation.is_empty(), "Coordinator should seed opening social standings.")
+	assert(not simulation.campaign_journal.npc_standings.is_empty(), "Coordinator should seed opening social standings.")
 	var repeated: Dictionary = coordinator.quest_service.register_definitions()
 	assert(bool(repeated.get("ok", false)), "Campaign registration should be safe to repeat.")
 	coordinator.free()
