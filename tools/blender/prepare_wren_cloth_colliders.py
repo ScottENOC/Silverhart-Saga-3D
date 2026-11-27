@@ -152,9 +152,35 @@ def make_skin_only_collider(source, material_prefix):
     mesh = source.data.copy()
     bm = bmesh.new()
     bm.from_mesh(mesh)
-    remove_faces = [face for face in bm.faces if face.material_index not in skin_indices]
-    if remove_faces:
-        bmesh.ops.delete(bm, geom=remove_faces, context="FACES")
+    # Do NOT delete non-skin material faces. Material boundaries are not
+    # geometric openings: filtering them was cutting holes through the body
+    # shell (including the pelvic envelope) and creating hundreds of boundary
+    # edges. The source object is already selected by its skin material; retain
+    # its complete connected surface, then discard only disconnected islands.
+    remaining = set(bm.faces)
+    face_components = []
+    while remaining:
+        seed = remaining.pop()
+        component = [seed]
+        stack = [seed]
+        while stack:
+            face = stack.pop()
+            for edge in face.edges:
+                for neighbour in edge.link_faces:
+                    if neighbour in remaining:
+                        remaining.remove(neighbour)
+                        component.append(neighbour)
+                        stack.append(neighbour)
+        face_components.append(component)
+    face_components.sort(key=len, reverse=True)
+    if not face_components:
+        bm.free()
+        bpy.data.meshes.remove(mesh)
+        raise RuntimeError("Body source contains no connected surface faces")
+    component_face_counts = [len(component) for component in face_components]
+    disconnected_faces = [face for component in face_components[1:] for face in component]
+    if disconnected_faces:
+        bmesh.ops.delete(bm, geom=disconnected_faces, context="FACES")
     loose = [edge for edge in bm.edges if not edge.link_faces]
     if loose:
         bmesh.ops.delete(bm, geom=loose, context="EDGES")
@@ -243,6 +269,8 @@ def make_skin_only_collider(source, material_prefix):
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
     )
+    collider["retained_connected_surface_face_count"] = component_face_counts[0]
+    collider["discarded_disconnected_surface_face_counts"] = component_face_counts[1:]
     collider["external_shell_policy"] = "skin-only; pelvic recesses softened; boundary loops capped where possible; unresolved topology defects are diagnostic-only"
     collider["pelvic_recess_smoothing_vertices"] = smoothed_pelvic_vertices
     collider["pelvis_landmark_z"] = pelvis_z
@@ -319,6 +347,8 @@ def main():
             "bounds_world": world_bounds(body_collider),
             "collision_thickness_m": 0.002,
             "source_materials": body_collider["source_materials"],
+            "retained_connected_surface_face_count": body_collider["retained_connected_surface_face_count"],
+            "discarded_disconnected_surface_face_counts": body_collider["discarded_disconnected_surface_face_counts"],
             "external_shell_policy": body_collider["external_shell_policy"],
             "pelvic_smoothing_applied": body_collider["pelvic_recess_smoothing_vertices"] >= 8,
             "pelvic_recess_smoothing_vertices": body_collider["pelvic_recess_smoothing_vertices"],
