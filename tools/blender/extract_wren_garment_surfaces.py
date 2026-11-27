@@ -34,6 +34,15 @@ def material_names(obj):
     ]
 
 
+def used_material_names(obj):
+    used = sorted({polygon.material_index for polygon in obj.data.polygons})
+    return [
+        obj.material_slots[index].material.name
+        for index in used
+        if index < len(obj.material_slots) and obj.material_slots[index].material is not None
+    ]
+
+
 def world_bounds(obj):
     points = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
     return {
@@ -49,8 +58,8 @@ def main():
     candidates = [
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH"
-        and any(name.lower().startswith("skin") for name in material_names(obj))
-        and any(GARMENT_RE.search(name) for name in material_names(obj))
+        and any(name.lower().startswith("skin") for name in used_material_names(obj))
+        and any(GARMENT_RE.search(name) for name in used_material_names(obj))
     ]
     if len(candidates) != 1:
         raise RuntimeError(
@@ -80,7 +89,7 @@ def main():
 
     garment_objects = []
     for obj in [item for item in bpy.context.scene.objects if item.type == "MESH"]:
-        names = material_names(obj)
+        names = used_material_names(obj)
         selected = [name for name in names if GARMENT_RE.search(name)]
         if not selected:
             continue
