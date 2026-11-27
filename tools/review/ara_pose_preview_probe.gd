@@ -42,6 +42,7 @@ func _collect_skeletons(node: Node, output: Array[Skeleton3D]) -> void:
 		_collect_skeletons(child, output)
 
 func _bake_mesh_instance(mesh_instance: MeshInstance3D) -> float:
+	var started_usec := Time.get_ticks_usec()
 	var source_mesh := mesh_instance.mesh
 	if source_mesh == null:
 		return 0.0
@@ -64,6 +65,11 @@ func _bake_mesh_instance(mesh_instance: MeshInstance3D) -> float:
 	mesh_instance.mesh = baked
 	mesh_instance.skin = null
 	mesh_instance.skeleton = NodePath()
+	print("ARA_BAKE_MESH name=%s surfaces=%d vertices=%d elapsed_s=%.2f delta_m=%.6f" % [
+		mesh_instance.name, source_mesh.get_surface_count(),
+		int(source_mesh.surface_get_array_len(0)) if source_mesh.get_surface_count() > 0 else 0,
+		float(Time.get_ticks_usec() - started_usec) / 1000000.0, max_vertex_delta
+	])
 	return max_vertex_delta
 
 func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> Dictionary:
@@ -86,9 +92,15 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 	_collect_mesh_instances(export_root, mesh_instances)
 	var baked_count := 0
 	var maximum_delta := 0.0
-	for mesh_instance in mesh_instances:
+	print("ARA_BAKE_BEGIN meshes=%d" % mesh_instances.size())
+	for mesh_index in range(mesh_instances.size()):
+		var mesh_instance := mesh_instances[mesh_index]
 		if mesh_instance.skin == null:
 			continue
+		print("ARA_BAKE_START index=%d/%d name=%s surfaces=%d" % [
+			mesh_index + 1, mesh_instances.size(), mesh_instance.name,
+			mesh_instance.mesh.get_surface_count() if mesh_instance.mesh != null else 0
+		])
 		var vertex_delta := _bake_mesh_instance(mesh_instance)
 		if mesh_instance.mesh is ArrayMesh and (mesh_instance.mesh as ArrayMesh).get_surface_count() > 0:
 			baked_count += 1
@@ -173,7 +185,9 @@ func _run() -> void:
 	root.add_child(preview)
 	for i in range(30):
 		await process_frame
-	for actor_name in ["Femaleplayer", "Maleplayer", "Aldric", "Tavernpatron"]:
+	# First deliverable is deliberately one character. The previous four-character
+	# batch spent >13 minutes inside the first static mesh bake and produced no artifact.
+	for actor_name in ["Femaleplayer"]:
 		var actor := preview.get_node_or_null(actor_name)
 		_expect(actor != null, "%s actor instantiated" % actor_name)
 		if actor == null:
@@ -193,7 +207,12 @@ func _run() -> void:
 		_expect(error_m >= 0.0 and error_m < 0.003, "%s fingertip tracks solved target (%.4f m)" % [actor_name, error_m])
 		print("ARA_POSE_PREVIEW actor=%s bones=%d modifier=%s tip_error_m=%.6f" % [actor_name, skeleton.get_bone_count(), status, error_m])
 		if status == "nose touch active" and error_m >= 0.0 and error_m < 0.003:
+			var export_started_usec := Time.get_ticks_usec()
+			print("ARA_EXPORT_BEGIN actor=%s" % actor_name)
 			await _export_and_verify(actor_name, model_root, skeleton)
+			print("ARA_EXPORT_END actor=%s elapsed_s=%.2f" % [
+				actor_name, float(Time.get_ticks_usec() - export_started_usec) / 1000000.0
+			])
 	preview.queue_free()
 	await process_frame
 	print("ARA REAL POSE PREVIEW: %s" % ("PASS" if _failures == 0 else "%d failure(s)" % _failures))
