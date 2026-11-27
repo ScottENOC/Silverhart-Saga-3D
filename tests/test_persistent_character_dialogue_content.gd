@@ -192,6 +192,18 @@ func _test_ilsa_watch_captain_reflections() -> void:
 	var locked := ILSA_WATCH_CAPTAIN_CONTENT.resolve_choice(journal, PersistentCharacterRelationshipState.new(), "ilsa_philosophy_command_uncertainty")
 	_check(not bool(locked.get("ok", true)), "A locked reflection cannot be forced through a stale choice")
 
+	var eyes_journal := CampaignJournal.new()
+	eyes_journal.register_quest_definition({"id": "eyes_on_border", "objectives": []})
+	eyes_journal.start_quest("eyes_on_border")
+	eyes_journal.complete_quest("eyes_on_border")
+	var eyes_relationships := PersistentCharacterRelationshipState.new()
+	var eyes_first := ILSA_WATCH_CAPTAIN_CONTENT.greeting(eyes_journal, eyes_relationships)
+	_check(int(eyes_first.relationship.get("familiarity", -1)) == 7, "Completing Eyes on the Border records Ilsa's source-authored familiarity event")
+	_check(int(eyes_first.relationship.get("trust", -1)) == 4, "Completing Eyes on the Border builds Ilsa's trust")
+	_check(int(eyes_first.relationship.get("friendship", -1)) == 2, "Completing Eyes on the Border builds Ilsa's friendship")
+	ILSA_WATCH_CAPTAIN_CONTENT.greeting(eyes_journal, eyes_relationships)
+	_check(int(eyes_relationships.snapshot("ilsa_rennick").get("trust", -1)) == 4, "Eyes on the Border relationship consequence is idempotent")
+
 
 func _has_choice(choices: Array, choice_id: String) -> bool:
 	for choice_value in choices:
