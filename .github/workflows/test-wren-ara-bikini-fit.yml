@@ -259,6 +259,7 @@ jobs:
           assert report["body_collider"]["collision_boundary_edge_count"] == 0, report
           assert report["body_collider"]["collision_nonmanifold_edge_count"] == 0, report
           assert report["body_collider"]["external_shell_policy"], report
+          assert report["body_collider"]["pelvic_recess_smoothing_vertices"] >= 8, report
           assert report["piercing_colliders"], "No real piercing collision meshes were prepared"
           print("WREN_CLOTH_COLLIDER_VALIDATION_OK", len(report["piercing_colliders"]))
           PY
