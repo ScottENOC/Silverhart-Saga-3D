@@ -48,6 +48,8 @@ func _run() -> void:
 	_assert_exterior_entry_round_trip("reddale_guardhouse", "reddale_guardhouse_entry_player", Vector2i(138, 24), Vector2i(137, 24), "reddale_guardhouse_door", "Reddale Guardhouse")
 	_assert_exterior_entry_round_trip("reddale_reeve_house", "reddale_reeve_entry_player", Vector2i(138, 21), Vector2i(138, 20), "reddale_reeve_house_door", "Reddale Reeve's House")
 	_assert_exterior_entry_round_trip("reddale_inn", "reddale_inn_entry_player", Vector2i(138, 27), Vector2i(138, 28), "reddale_inn_door", "Reddale Inn")
+	# The Wizard Tower apron and courtyard connection are explicitly painted by buildSilverhartPalace.
+	_assert_exterior_entry_round_trip("silverhart_palace_wizard_tower", "wizard_tower_entry_player", Vector2i(-7, -485), Vector2i(-7, -484), "wizard_tower_door", "Silverhart Wizard Tower")
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
