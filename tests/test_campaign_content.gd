@@ -554,4 +554,22 @@ func _test_campaign_local_quest_dialogue_service() -> void:
 		{"id": "toll_ogre_decline"}
 	)
 	_check(not bool(missing_simulation.get("handled", true)), "Missing campaign state does not claim a local quest choice")
+
+	var courier_accept := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "ironbond_courier_accept"}
+	)
+	_check(bool(courier_accept.get("handled", false)), "Courier acceptance remains handled by the quest service")
+	_check(bool(courier_accept.get("close", false)), "Courier acceptance retains its original close behaviour")
+	_check(String(courier_accept.get("status_message", "")).contains("Missing Courier"), "Courier acceptance retains its quest status message")
+
+	var toll_accept := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "toll_ogre_accept"},
+		true
+	)
+	_check(bool(toll_accept.get("handled", false)), "Toll-taker acceptance remains handled by the quest service")
+	_check(bool(toll_accept.get("spawn_ogre", false)), "Toll-taker acceptance explicitly requests its world actor spawn")
+	_check(String(toll_accept.get("status_message", "")).contains("Toll-Taker"), "Toll-taker acceptance retains its quest status message")
+	_check(String(toll_accept.get("dialogue", {}).get("speaker", "")) == "Petra Hollis", "Toll-taker acceptance retains Petra's follow-up dialogue")
 	simulation.free()
