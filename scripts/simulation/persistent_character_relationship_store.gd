@@ -12,7 +12,7 @@ static func state_for(simulation: WorldSimulation) -> PersistentCharacterRelatio
 	if simulation.has_meta(META_KEY):
 		var existing: Variant = simulation.get_meta(META_KEY)
 		if existing is PersistentCharacterRelationshipState:
-		return existing
+			return existing
 	var state := PersistentCharacterRelationshipState.new()
 	simulation.set_meta(META_KEY, state)
 	return state
