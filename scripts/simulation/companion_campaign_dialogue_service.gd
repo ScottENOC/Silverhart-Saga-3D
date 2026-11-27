@@ -95,3 +95,80 @@ static func resolve_chapter(simulation: WorldSimulation, chapter_id: String, res
 	var chain := RUNTIME_STORE.quest_chain_state_for(simulation)
 	var relationships := RUNTIME_STORE.relationship_state_for(simulation)
 	return chain.resolve(chapter_id, resolution_id, simulation.campaign_journal, relationships, simulation.clock.world_seconds)
+
+
+static func resolve_dialogue_choice(simulation: WorldSimulation, choice: Dictionary) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"handled": false, "ok": false, "reason": "missing_campaign"}
+	var choice_id := String(choice.get("id", ""))
+	if choice_id == "companion_chapter_start":
+		var chapter_id := String(choice.get("chapter_id", ""))
+		var start_result := start_chapter(simulation, chapter_id)
+		if not bool(start_result.get("ok", false)):
+			return _choice_failure(
+				"Campaign journal",
+				"That chapter could not be started: %s." % String(start_result.get("reason", "unknown reason")).replace("_", " ")
+			)
+		return {
+			"handled": true,
+			"ok": true,
+			"action": "show_companion_dialogue",
+			"companion_id": String(choice.get("companion_id", ""))
+		}
+	if choice_id == "companion_chapter_resolve":
+		var resolution_result := resolve_chapter(
+			simulation,
+			String(choice.get("chapter_id", "")),
+			String(choice.get("resolution_id", ""))
+		)
+		if not bool(resolution_result.get("ok", false)):
+			return _choice_failure(
+				"Campaign journal",
+				"That resolution could not be recorded: %s." % String(resolution_result.get("reason", "unknown reason")).replace("_", " ")
+			)
+		var reward_text := String(resolution_result.get("line", "The decision is made."))
+		var xp_reward := int(resolution_result.get("xp_reward", 0))
+		var player_state := simulation.get_character("player")
+		if player_state != null and xp_reward > 0:
+			player_state.experience += xp_reward
+			reward_text += "\n\nChapter complete · %d XP gained." % xp_reward
+		return {
+			"handled": true,
+			"ok": true,
+			"dialogue": {
+				"speaker": String(choice.get("companion_name", "Companion")),
+				"text": reward_text,
+				"choices": [{"id": "continue", "label": "Continue", "text": ""}]
+			}
+		}
+	if choice_id.begins_with("wren_arc_choice:"):
+		var wren_choice_id := choice_id.trim_prefix("wren_arc_choice:")
+		var wren_arc := RUNTIME_STORE.wren_arc_state_for(simulation)
+		var relationships := RUNTIME_STORE.relationship_state_for(simulation)
+		if wren_arc == null:
+			return {"handled": true, "ok": false, "action": "show_wren_dialogue"}
+		var applied := wren_arc.apply_dialogue_choice(wren_choice_id, relationships)
+		if bool(applied.get("ok", false)):
+			return {
+				"handled": true,
+				"ok": true,
+				"dialogue": {
+					"speaker": "Wren Talbot",
+					"text": wren_arc.dialogue_response_for(wren_choice_id),
+					"choices": [{"id": "continue", "label": "I understand.", "text": ""}]
+				}
+			}
+		return {"handled": true, "ok": false, "action": "show_wren_dialogue"}
+	return {"handled": false}
+
+
+static func _choice_failure(speaker: String, message: String) -> Dictionary:
+	return {
+		"handled": true,
+		"ok": false,
+		"dialogue": {
+			"speaker": speaker,
+			"text": message,
+			"choices": [{"id": "continue", "label": "Continue", "text": ""}]
+		}
+	}

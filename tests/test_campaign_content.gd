@@ -3,6 +3,7 @@ extends SceneTree
 const CONVERSATION_SESSION = preload("res://scripts/simulation/campaign_conversation_session.gd")
 const AMBASSADOR_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_ambassador_dialogue_service.gd")
 const LOCAL_QUEST_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_local_quest_dialogue_service.gd")
+const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 
 var _failures: int = 0
 
@@ -10,6 +11,7 @@ func _initialize() -> void:
 	_test_campaign_conversation_session()
 	_test_campaign_ambassador_dialogue_service()
 	_test_campaign_local_quest_dialogue_service()
+	_test_companion_dialogue_choice_routing()
 	_test_campaign_journal()
 	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
@@ -573,4 +575,41 @@ func _test_campaign_local_quest_dialogue_service() -> void:
 	_check(bool(toll_accept.get("spawn_ogre", false)), "Toll-taker acceptance explicitly requests its world actor spawn")
 	_check(String(toll_accept.get("status_message", "")).contains("Toll-Taker"), "Toll-taker acceptance retains its quest status message")
 	_check(String(toll_accept.get("dialogue", {}).get("speaker", "")) == "Petra Hollis", "Toll-taker acceptance retains Petra's follow-up dialogue")
+	simulation.free()
+
+
+func _test_companion_dialogue_choice_routing() -> void:
+	var simulation := WorldSimulation.new()
+	var wren_choice := COMPANION_DIALOGUE_SERVICE.resolve_dialogue_choice(
+		simulation,
+		{"id": "wren_arc_choice:people_do_not_give_up"}
+	)
+	_check(bool(wren_choice.get("handled", false)) and bool(wren_choice.get("ok", false)), "Wren character-arc choices route through the companion dialogue service")
+	_check(String(wren_choice.get("dialogue", {}).get("speaker", "")) == "Wren Talbot", "Wren character-arc choices retain Wren as speaker")
+	_check(not String(wren_choice.get("dialogue", {}).get("text", "")).is_empty(), "Wren character-arc choices return their authored response")
+
+	var repeated_wren_choice := COMPANION_DIALOGUE_SERVICE.resolve_dialogue_choice(
+		simulation,
+		{"id": "wren_arc_choice:people_do_not_give_up"}
+	)
+	_check(bool(repeated_wren_choice.get("handled", false)) and bool(repeated_wren_choice.get("ok", false)), "Repeated Wren choices remain safely idempotent")
+
+	var invalid_chapter_start := COMPANION_DIALOGUE_SERVICE.resolve_dialogue_choice(
+		simulation,
+		{"id": "companion_chapter_start", "chapter_id": "missing_chapter", "companion_id": "companion_aldric"}
+	)
+	_check(bool(invalid_chapter_start.get("handled", false)) and not bool(invalid_chapter_start.get("ok", true)), "Invalid companion chapter starts return a safe dialogue failure")
+	_check(invalid_chapter_start.get("dialogue", {}) is Dictionary, "Companion chapter start failures remain presentation-neutral")
+
+	var invalid_chapter_resolution := COMPANION_DIALOGUE_SERVICE.resolve_dialogue_choice(
+		simulation,
+		{"id": "companion_chapter_resolve", "chapter_id": "missing_chapter", "resolution_id": "missing_resolution"}
+	)
+	_check(bool(invalid_chapter_resolution.get("handled", false)) and not bool(invalid_chapter_resolution.get("ok", true)), "Invalid companion chapter resolutions return a safe dialogue failure")
+
+	var unrelated := COMPANION_DIALOGUE_SERVICE.resolve_dialogue_choice(
+		simulation,
+		{"id": "unrelated_campaign_choice"}
+	)
+	_check(not bool(unrelated.get("handled", true)), "Unrelated choices remain available to other campaign services")
 	simulation.free()
