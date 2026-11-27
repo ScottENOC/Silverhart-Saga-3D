@@ -10,6 +10,7 @@ const HOLLOWMERE_OPENING_SEQUENCE_SCRIPT = preload("res://scripts/simulation/hol
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const HOLLOWMERE_OPENING_CONTEXT = preload("res://scripts/simulation/hollowmere_opening_context.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
@@ -2293,7 +2294,7 @@ func _start_hollowmere_shakedown_quest() -> void:
 func _show_hollowmere_opening_choice() -> void:
 	_show_dialogue(
 		"Dray Coltayne",
-		"%s\n\nWhat do you do?" % HollowmereCampaignContent.opening_context(),
+		"%s\n\nWhat do you do?" % HOLLOWMERE_OPENING_CONTEXT.TEXT,
 		HollowmereCampaignContent.shakedown_choices()
 	)
 
