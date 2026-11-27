@@ -63,14 +63,16 @@ def apply_world_positions(obj, particles, original_world):
     for index, particle in enumerate(particles):
         delta_world = Vector(particle.position) - original_world[index]
         offsets.append(delta_world)
-        obj.data.vertices[index].co = inverse @ (original_world[index] + delta_world)
     # Apply the same solved offset to every shape key so morph deltas survive.
+    # With shape keys present, write the Basis and every key block exactly once.
     keys = obj.data.shape_keys
     if keys:
         for block in keys.key_blocks:
             for index, delta_world in enumerate(offsets):
-                base_world = obj.matrix_world @ Vector(obj.data.vertices[index].co)
                 block.data[index].co += inverse.to_3x3() @ delta_world
+    else:
+        for index, particle in enumerate(particles):
+            obj.data.vertices[index].co = inverse @ Vector(particle.position)
     obj.data.update()
 
 
