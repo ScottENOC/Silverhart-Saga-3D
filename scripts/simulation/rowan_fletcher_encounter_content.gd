@@ -117,7 +117,11 @@ static func resolve_choice(
 		"leaves_at_dawn": accepted
 	}
 	if accepted:
-		result["camp_occupant"] = GUEST_PROFILE.duplicate(true)
+		var camp_occupant := GUEST_PROFILE.duplicate(true)
+		# Preserve the encounter identity with the overnight guest so ambient
+		# dialogue cannot repeat if the camp is saved and restored.
+		camp_occupant["visit_key"] = clean_visit_key
+		result["camp_occupant"] = camp_occupant
 	return result
 
 
