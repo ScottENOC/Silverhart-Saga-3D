@@ -7,6 +7,62 @@ extends RefCounted
 const TOPICS: Array[String] = ["road", "work", "home", "danger"]
 
 
+## Authored two-person exchanges for the morning routine. Keys use canonical IDs,
+## and each exchange is deliberately short enough to play during a routine stage.
+const MORNING_PAIR_DIALOGUE := {
+	"brother_alden|dagna": {
+		"breakfast": [
+			{"speaker_id": "brother_alden", "text": "You were awake before the fire was properly stirred. Does the morning always find you so readily?"},
+			{"speaker_id": "dagna", "text": "Not always. But a shared table is worth rising for, even when the road has made a poor bed of the night."}
+		],
+		"pack_camp": [
+			{"speaker_id": "dagna", "text": "I used to think a good morning began with a prayer. Lately I think it begins with making sure nobody is left behind."},
+			{"speaker_id": "brother_alden", "text": "Those two things need not be opposed. Today, at least, we have managed both."}
+		]
+	},
+	"fenn_oakheart|mirabel_quill": {
+		"breakfast": [
+			{"speaker_id": "mirabel_quill", "text": "You have been watching the tree line instead of eating. Is there something in the undergrowth?"},
+			{"speaker_id": "fenn_oakheart", "text": "Only the signs of a night passing through. You spend so long reading old marks that you forget the living world leaves notes of its own."}
+		],
+		"pack_camp": [
+			{"speaker_id": "fenn_oakheart", "text": "Leave the ash scattered thinly. The rain will take what the fire has finished with."},
+			{"speaker_id": "mirabel_quill", "text": "I shall add that to my notes. Though I suspect you would prefer I learned it by doing."}
+		]
+	},
+	"nix_sharpear|snik_fangtooth": {
+		"breakfast": [
+			{"speaker_id": "nix_sharpear", "text": "You have been counting the rations. Planning to steal breakfast before anyone notices?"},
+			{"speaker_id": "snik_fangtooth", "text": "If I were stealing it, you would be counting the wrong pile. That's the first rule."}
+		],
+		"pack_camp": [
+			{"speaker_id": "snik_fangtooth", "text": "You pack slowly for someone who keeps saying we should leave quickly."},
+			{"speaker_id": "nix_sharpear", "text": "I pack carefully. There's a difference. You should try it before you lose another boot."}
+		]
+	},
+	"reyna_fletcher|ser_aldric_thorne": {
+		"breakfast": [
+			{"speaker_id": "reyna_fletcher", "text": "You took the first watch and still managed to be up before the rest of us."},
+			{"speaker_id": "ser_aldric_thorne", "text": "Habit. Besides, a watch is only useful if the watcher can hand it over properly."}
+		],
+		"pack_camp": [
+			{"speaker_id": "ser_aldric_thorne", "text": "The fire is cold, the stores are accounted for, and everyone is present. A sound departure."},
+			{"speaker_id": "reyna_fletcher", "text": "Then let's not spoil it by standing here admiring our work. The track won't clear itself."}
+		]
+	},
+	"ser_aldric_thorne|wren_talbot": {
+		"breakfast": [
+			{"speaker_id": "wren_talbot", "text": "You always look over the camp before you eat. Checking that everyone made it through the night?"},
+			{"speaker_id": "ser_aldric_thorne", "text": "Someone should. It is easier to enjoy breakfast when I know the count is right."}
+		],
+		"pack_camp": [
+			{"speaker_id": "wren_talbot", "text": "I can take the last bundle. You have carried enough since dawn."},
+			{"speaker_id": "ser_aldric_thorne", "text": "I appreciate the offer. I will take it if you let me return the favour when the road turns difficult."}
+		]
+	}
+}
+
+
 const CAMPAIGN_RESOLUTION_STANCES := {
 	"fenn_living_boundary": {
 		"preserve_marsh": "managed_stewardship",
@@ -244,6 +300,59 @@ static func build_exchange(
 			"second_to_first": second_bond
 		}
 	}
+
+
+## Build a small authored exchange for a specific pair during breakfast or camp
+## packing. Unknown pairs intentionally fall back to their ordinary evening
+## dialogue rather than receiving invented shared history.
+static func build_morning_routine_exchange(
+	first_id: String,
+	second_id: String,
+	routine_stage: int,
+	sequence: int,
+	bonds: CompanionBondState,
+	first_name: String = "",
+	second_name: String = ""
+) -> Dictionary:
+	if first_id.is_empty() or second_id.is_empty() or first_id == second_id:
+		return {}
+	var first_key := canonical_id(first_id)
+	var second_key := canonical_id(second_id)
+	var pair_key := first_key + "|" + second_key if first_key < second_key else second_key + "|" + first_key
+	var authored_pair: Dictionary = MORNING_PAIR_DIALOGUE.get(pair_key, {})
+	if authored_pair.is_empty():
+		return {}
+	var stage_key := "breakfast" if routine_stage == 2 else ("pack_camp" if routine_stage == 3 else "")
+	if stage_key.is_empty():
+		return {}
+	var authored_lines: Array = authored_pair.get(stage_key, [])
+	if authored_lines.size() != 2:
+		return {}
+	var lines: Array[Dictionary] = []
+	for line_value in authored_lines:
+		var authored_line: Dictionary = line_value
+		var speaker_key := String(authored_line.get("speaker_id", ""))
+		var speaker_id := first_id if speaker_key == first_key else second_id
+		var speaker_name := first_name if speaker_id == first_id else second_name
+		lines.append({
+			"character_id": speaker_id,
+			"speaker": speaker_name,
+			"text": String(authored_line.get("text", ""))
+		})
+	return {
+		"kind": "morning_routine",
+		"topic": "morning_" + stage_key,
+		"routine_stage": routine_stage,
+		"sequence": sequence,
+		"first_id": first_id,
+		"second_id": second_id,
+		"relationship_before": {
+			"first_to_second": bonds.snapshot(first_id, second_id) if bonds != null else {},
+			"second_to_first": bonds.snapshot(second_id, first_id) if bonds != null else {}
+		},
+		"lines": lines
+	}
+
 
 static func record_exchange(
 	bonds: CompanionBondState,
