@@ -16,9 +16,12 @@ static func shakedown_quest_definition() -> Dictionary:
     }
 
 
+static func opening_context() -> String:
+    return "The tavern door bangs open. Three armed men in matching colours stride in, eyes on the bar."
+
+
 static func opening_lines() -> Array[Dictionary]:
     return [
-        {"speaker_id": "narrator", "speaker": "Narrator", "text": "The tavern door bangs open. Three armed men in matching colours stride in, eyes on the bar."},
         {"speaker_id": "dray_coltayne", "speaker": "Dray Coltayne", "text": "Evening, Garrick. Ironbond Company's monthly due is past collecting. You know how this goes."},
         {"speaker_id": "garrick_holt", "speaker": "Garrick Holt", "text": "Business has been slow, Sergeant. Can it wait 'til the week's end?"},
         {"speaker_id": "dray_coltayne", "speaker": "Dray Coltayne", "text": "It can't. Pay up, or this place finds out what an 'accident' looks like."}
