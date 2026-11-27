@@ -9,8 +9,9 @@ const META_KEY := "persistent_character_relationships"
 static func state_for(simulation: WorldSimulation) -> PersistentCharacterRelationshipState:
 	if simulation == null:
 		return null
-	var existing: Variant = simulation.get_meta(META_KEY, null)
-	if existing is PersistentCharacterRelationshipState:
+	if simulation.has_meta(META_KEY):
+		var existing: Variant = simulation.get_meta(META_KEY)
+		if existing is PersistentCharacterRelationshipState:
 		return existing
 	var state := PersistentCharacterRelationshipState.new()
 	simulation.set_meta(META_KEY, state)
