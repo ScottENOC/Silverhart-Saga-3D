@@ -129,6 +129,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_dwarven_ambassador_content.gd
       - name: Run Corvane ambassador content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_corvane_ambassador_content.gd
+      - name: Run Reddale Missing Watch quest tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_missing_watch_quest.gd
       - name: Run Baron's Tribute content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_baron_tribute_content.gd
       - name: Run Toll-Taker quest content tests
