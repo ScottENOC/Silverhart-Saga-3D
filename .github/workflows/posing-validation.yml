@@ -26,12 +26,13 @@ permissions:
   contents: read
 concurrency:
   group: posing-validation-${{ github.ref }}
-  cancel-in-progress: true
+  # Keep an active mesh-bake/export run alive when another commit arrives.
+  cancel-in-progress: false
 jobs:
   posing-tests:
     name: Posing tests (Godot 4.7.2 headless)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - name: Check indentation
