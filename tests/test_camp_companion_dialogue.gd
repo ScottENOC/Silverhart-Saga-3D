@@ -253,7 +253,12 @@ func _test_rowan_guest_exchange() -> void:
 	_check(String(warm_exchange.lines[0].get("text", "")).contains("I'm glad you didn't"), "Established friendship should unlock warmer Rowan banter.")
 	_check(String(warm_exchange.get("relationship_phase", "")) == "friendship")
 
-	# The direct service checks above already recorded the first visit. Give the director a\n	# fresh visit key so it can independently demonstrate autonomous presentation.\n	world.camp_simulation.occupants["rowan_fletcher"]["visit_key"] = "test-day:camp-rowan-director"\n	world.camp_simulation.phase = "evening"\n\n	var reyna_probe := DialogueActorProbe.new()
+	# The direct service checks above already recorded the first visit. Give the director a
+	# fresh visit key so it can independently demonstrate autonomous presentation.
+	world.camp_simulation.occupants["rowan_fletcher"]["visit_key"] = "test-day:camp-rowan-director"
+	world.camp_simulation.phase = "evening"
+
+	var reyna_probe := DialogueActorProbe.new()
 	var rowan_probe := DialogueActorProbe.new()
 	_actor_probes[reyna.id] = reyna_probe
 	_actor_probes[rowan.id] = rowan_probe
