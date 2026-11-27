@@ -338,6 +338,7 @@ func resolve_seraphine_campaign_choice(
 		"refresh_dwelling_world":refresh_dwelling_world
 	}
 
+
 func _has_label(options: Array[Dictionary], target: String) -> bool:
 	for option in options:
 		if String(option.get("label", "")) == target:
