@@ -27,6 +27,28 @@ and a nonlinear hardening response. The collision provider is deliberately an
 adapter: it must query actual Blender/Godot collision geometry, not guessed
 spheres or hand-authored vertex offsets.
 
+## Fitting versus wearing
+
+Cross-character fitting is a separate magical-tailoring operation, not a
+simulation of the source material under impossible physical strain. A garment
+may scale, reshape, redistribute volume and reposition panels to fit a new
+body. Material presets guide the resulting rest shape and later motion, but do
+not forbid fitting transformations: plate armour can widen at the shoulders
+and narrow at the hips, then become a new articulated rest shape.
+
+Once fitted, the garment's rest shape is frozen for that wearer. Runtime
+simulation then governs movement, gravity, contact with the body and objects,
+and secondary motion. Fabric flexes; cords retain their tubular cross-section;
+rigid armour moves as articulated plates with constrained joints rather than
+stretching like fabric.
+
+The current Wren fitting pass is an offline static rest-shape candidate. Its
+body collider is a separate collision-only shell built from the accepted Wren
+skin. Open boundary loops are capped on that copy, and the build fails if the
+result remains open or non-manifold. The visible Wren mesh is never edited by
+this operation. The Ara adult-anatomy fitting reference is not used as Wren's
+collision source.
+
 ## Layers and material behaviour
 
 Each garment is a separate simulated layer with its own material parameters,
