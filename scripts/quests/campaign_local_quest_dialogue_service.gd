@@ -55,7 +55,7 @@ static func resolve_choice(
 		return {"handled": false}
 
 	var dialogue: Variant = result.get("dialogue", {})
-	var has_dialogue := dialogue is Dictionary and not dialogue.is_empty()
+	var has_dialogue: bool = dialogue is Dictionary and not dialogue.is_empty()
 	return {
 		"handled": bool(result.get("handled", true)),
 		"ok": true,
