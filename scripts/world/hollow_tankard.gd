@@ -208,6 +208,18 @@ func _ready() -> void:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
 
+
+func _configure_campaign_quest_service() -> void:
+	campaign_quest_service = CAMPAIGN_QUEST_SERVICE_SCRIPT.new() as CampaignQuestService
+	var configured: Dictionary = campaign_quest_service.configure(simulation)
+	if not bool(configured.get("ok", false)):
+		push_error("Campaign quest service could not be configured: %s" % configured)
+		return
+	var registration: Dictionary = campaign_quest_service.register_definitions()
+	if not bool(registration.get("ok", false)):
+		push_error("Campaign quest definitions could not be registered: %s" % registration)
+
+
 func _initialise_companion_relationship_context() -> void:
 	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
 	if relationships == null:
