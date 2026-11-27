@@ -1620,10 +1620,13 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("recruit:"):
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
+	var toll_ogre_alive := false
+	if choice_id.begins_with("toll_ogre_"):
+		toll_ogre_alive = TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation)
 	var local_quest_result := CAMPAIGN_LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
 		simulation,
 		choice,
-		TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation)
+		toll_ogre_alive
 	)
 	if bool(local_quest_result.get("handled", false)):
 		if bool(local_quest_result.get("spawn_ogre", false)):
