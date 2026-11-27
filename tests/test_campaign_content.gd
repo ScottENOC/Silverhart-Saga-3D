@@ -1,11 +1,13 @@
 extends SceneTree
 
 const CONVERSATION_SESSION = preload("res://scripts/simulation/campaign_conversation_session.gd")
+const AMBASSADOR_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_ambassador_dialogue_service.gd")
 
 var _failures: int = 0
 
 func _initialize() -> void:
 	_test_campaign_conversation_session()
+	_test_campaign_ambassador_dialogue_service()
 	_test_campaign_journal()
 	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
@@ -476,3 +478,24 @@ func _test_campaign_conversation_session() -> void:
 		choice["available"] = false
 	_check(String(session.start("unavailable", unavailable, "player").get("reason", "")) == "no_available_choices")
 	_check(String(session.choose("missing").get("reason", "")) == "conversation_not_active")
+
+func _test_campaign_ambassador_dialogue_service() -> void:
+	var simulation := WorldSimulation.new()
+	var routed_prefixes := [
+		"brokk_unrecognised_choice",
+		"toren_unrecognised_choice",
+		"cassia_unrecognised_choice",
+		"marta_unrecognised_choice",
+		"nella_unrecognised_choice",
+		"baron_tribute_unrecognised_choice"
+	]
+	for choice_id in routed_prefixes:
+		var result := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": choice_id})
+		_check(bool(result.get("handled", false)), "The ambassador service must own the %s choice family" % choice_id)
+		_check(not bool(result.get("ok", true)), "Unknown choices in a recognized family must fail safely")
+		_check(result.get("dialogue", {}) is Dictionary, "Failures return presentation-neutral dialogue data")
+	var unknown := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, {"id": "unrelated_choice"})
+	_check(not bool(unknown.get("handled", true)), "Unrelated choices remain available to other domain services")
+	var missing_simulation := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(null, {"id": "brokk_pay_toll"})
+	_check(bool(missing_simulation.get("handled", false)) and not bool(missing_simulation.get("ok", true)), "Missing campaign state returns a safe failure")
+	simulation.free()
