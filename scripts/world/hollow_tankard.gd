@@ -1472,9 +1472,9 @@ func _show_conversation(
 			"available": true,
 			"ends_conversation": true
 		})
-	var speaker_id := speaker.strip_edges().to_lower().replace(" ", "_").replace("'", "")
 	var prompt := {
-		"speaker_id": speaker_id,
+		# The local portrait resolver matches both display names and stable actor IDs.
+		"speaker_id": speaker,
 		"speaker": speaker,
 		"context": context,
 		"text": body,
