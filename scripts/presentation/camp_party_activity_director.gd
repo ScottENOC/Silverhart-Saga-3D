@@ -63,6 +63,7 @@ var _social_pause_remaining: Dictionary = {}
 var _step_accumulator: float = 0.0
 var _social_accumulator: float = 0.0
 var _exchange_index: int = 0
+var _morning_exchange_stages: Dictionary = {}
 var _running: bool = false
 
 
@@ -103,6 +104,7 @@ func stop() -> void:
 	_step_accumulator = 0.0
 	_social_accumulator = 0.0
 	_exchange_index = 0
+	_morning_exchange_stages.clear()
 	_layout_id = ""
 	_layout_station_offsets.clear()
 
@@ -269,7 +271,12 @@ func _on_activity_assigned(character_id: String, activity: String) -> void:
 ## independent of player interaction and does not require a dedicated social
 ## assignment: a worker can pause, exchange a few words, then resume their task.
 func _process_social_exchanges(delta: float) -> void:
-	if simulation == null or simulation.camp_simulation.phase != "evening":
+	if simulation == null:
+		return
+	if simulation.camp_simulation.phase == "morning":
+		_process_morning_routine_exchange()
+		return
+	if simulation.camp_simulation.phase != "evening":
 		return
 	_social_accumulator += delta
 	if _social_accumulator < 22.0:
@@ -352,13 +359,83 @@ func _process_social_exchanges(delta: float) -> void:
 		exchange,
 		event_key
 	)
+	_exchange_index += 1
+	_present_social_exchange(exchange)
+
+
+func _present_social_exchange(exchange: Dictionary) -> void:
+	var first_id := String(exchange.get("first_id", ""))
+	var second_id := String(exchange.get("second_id", ""))
+	if first_id.is_empty() or second_id.is_empty():
+		return
 	var conversation_duration := _exchange_display_duration(exchange)
 	_social_pause_remaining[first_id] = conversation_duration
 	_social_pause_remaining[second_id] = conversation_duration
 	_play_social_animation(first_id)
 	_play_social_animation(second_id)
-	_exchange_index += 1
 	companion_exchange.emit(exchange)
+
+
+
+## Morning conversations are tied to the breakfast and pack-up stages, so they
+## happen while the party is gathered rather than interrupting wake-up or dress.
+func _process_morning_routine_exchange() -> void:
+	var camp := simulation.camp_simulation
+	var stage := int(camp.routine_stage)
+	if stage not in [2, 3] or bool(_morning_exchange_stages.get(stage, false)):
+		return
+	var companions: Array[String] = []
+	for value in camp.party_ids:
+		var character_id := String(value)
+		if character_id == simulation.player_character_id:
+			continue
+		if not CAMP_DIALOGUE_SERVICE.supported_companion_ids().has(CAMP_DIALOGUE_SERVICE.canonical_id(character_id)):
+			continue
+		var state := simulation.get_character(character_id)
+		if state != null and state.alive and state.can_act():
+			companions.append(character_id)
+	if companions.size() < 2:
+		return
+	var pairs: Array[Array] = []
+	for first_index in range(companions.size()):
+		for second_index in range(first_index + 1, companions.size()):
+			pairs.append([companions[first_index], companions[second_index]])
+	if pairs.is_empty():
+		return
+	for offset in range(pairs.size()):
+		var pair_index := posmod(_exchange_index + offset, pairs.size())
+		var pair: Array = pairs[pair_index]
+		var first_id := String(pair[0])
+		var second_id := String(pair[1])
+		var first_state := simulation.get_character(first_id)
+		var second_state := simulation.get_character(second_id)
+		if first_state == null or second_state == null:
+			continue
+		var exchange := CAMP_DIALOGUE_SERVICE.build_morning_routine_exchange(
+			first_id,
+			second_id,
+			stage,
+			_exchange_index,
+			simulation.companion_bonds,
+			first_state.display_name,
+			second_state.display_name
+		)
+		if exchange.is_empty():
+			continue
+		var camp_hex: Variant = camp.site.get("hex", null)
+		var camp_identity := "camp"
+		if camp_hex is Vector2i:
+			camp_identity = "%d,%d" % [camp_hex.x, camp_hex.y]
+		var event_key := "camp_morning:%s:%d:%d:%s:%s" % [
+			camp_identity, int(simulation.clock.world_seconds), stage, first_id, second_id
+		]
+		CAMP_DIALOGUE_SERVICE.record_exchange(
+			simulation.companion_bonds, camp, exchange, event_key
+		)
+		_morning_exchange_stages[stage] = true
+		_exchange_index += 1
+		_present_social_exchange(exchange)
+		return
 
 
 func _play_social_animation(character_id: String) -> void:
