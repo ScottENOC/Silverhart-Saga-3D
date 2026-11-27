@@ -20,6 +20,8 @@ func _test_registry_registration() -> void:
 	assert(bool(result.get("ok", false)))
 	assert(simulation.campaign_journal.quest_definitions.has(ABANDONED_HOUSE.QUEST_ID))
 	assert(simulation.campaign_journal.quest_definitions.has(TOLL_TAKER.QUEST_ID))
+	assert(result.get("registered_quest_ids", []).size() == 7, "The central registry should register every campaign quest module.")
+	assert(result.get("failed_quests", []).is_empty())
 	var repeated := QUEST_REGISTRY.register_definitions(simulation)
 	assert(bool(repeated.get("ok", false)), "Registry should tolerate repeated registration.")
 
