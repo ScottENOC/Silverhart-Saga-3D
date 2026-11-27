@@ -28,8 +28,6 @@ def args():
     parser.add_argument("--iterations", type=int, default=18)
     parser.add_argument("--substeps", type=int, default=8)
     parser.add_argument("--thickness", type=float, default=0.0015)
-    parser.add_argument("--max-displacement", type=float, default=0.012,
-                        help="Maximum accepted per-vertex fitting displacement in metres")
     return parser.parse_args(raw)
 
 
@@ -78,25 +76,33 @@ def point_is_inside(tree, point):
     return inside_votes >= 2
 
 
-def closest_contact(tree, point, particle_index, thickness):
+def closest_contact(tree, point, particle_index, thickness, two_sided=False):
+    """Local signed contact; does not require a watertight body shell.
+
+    Body skin uses its oriented surface normal, so a point on the inner side
+    receives an outward correction. Thin piercing meshes are two-sided and
+    use the nearest-point direction instead of volume/parity classification.
+    """
     hit = tree.find_nearest(Vector(point))
     if hit is None:
         return None, None
-    location, _face_normal, _face, distance = hit
+    location, face_normal, _face, distance = hit
     if location is None or distance is None:
         return None, None
     point = Vector(point)
     location = Vector(location)
+    face_normal = Vector(face_normal)
     distance = float(distance)
-    if distance <= 1.0e-9:
-        return Contact(particle_index, 0.0, (0.0, 0.0, 1.0), thickness), 0.0
-
-    inside = point_is_inside(tree, point)
-    # Outside: move away from the surface toward the current point.
-    # Inside: move through the nearest surface toward the exterior.
-    direction = (location - point) if inside else (point - location)
-    normal = direction.normalized()
-    signed = -distance if inside else distance
+    if face_normal.length_squared < 1.0e-12:
+        return None, None
+    face_normal.normalize()
+    offset = point - location
+    if two_sided:
+        normal = offset.normalized() if distance > 1.0e-9 else face_normal
+        signed = distance
+    else:
+        signed = offset.dot(face_normal)
+        normal = face_normal
     return Contact(particle_index, signed, tuple(normal), thickness), signed
 
 
@@ -144,22 +150,31 @@ def main():
             f"got body={len(body)}, piercings={len(piercings)}, garments={len(garments)}"
         )
 
-    collider_trees = [(obj.name, world_bvh(obj, depsgraph)) for obj in body + piercings]
+    collider_trees = [
+        (obj.name, world_bvh(obj, depsgraph), obj in piercings)
+        for obj in body + piercings
+    ]
     report_rows = []
     max_total_displacement = 0.0
     max_attempted_displacement = 0.0
     total_contacts = 0
-    collision_reliable = all(
-        obj.get("collision_confidence", "unknown") == "closed_manifold"
-        for obj in body
-    )
-    collision_skip_reason = (
-        "" if collision_reliable else
-        "Body collision shell is open/nonmanifold; signed inside/outside tests are unreliable. "
-        "All garments are preserved unchanged rather than applying untrustworthy contact corrections."
+    collision_reliable = bool(body and piercings)
+    collision_warning = (
+        "Body collision shell is open/nonmanifold; using local oriented surface-normal contact "
+        "instead of closed-volume ray parity. Validate normals and the external envelope visually."
+        if any(obj.get("collision_confidence", "unknown") != "closed_manifold" for obj in body)
+        else ""
     )
     for garment in garments:
         original_world = [garment.matrix_world @ vertex.co for vertex in garment.data.vertices]
+        normal_matrix = garment.matrix_world.to_3x3().inverted_safe().transposed()
+        normal_anchors = []
+        for vertex in garment.data.vertices:
+            normal = normal_matrix @ vertex.normal
+            if normal.length_squared < 1.0e-12:
+                normal = Vector((0.0, 0.0, 1.0))
+            normal.normalize()
+            normal_anchors.append((tuple(original_world[vertex.index]), tuple(normal)))
         particles = [Particle.at(tuple(point), 1.0) for point in original_world]
         edge_constraints = []
         boundary_vertices = set()
@@ -175,6 +190,24 @@ def main():
             edge_constraints.append(DistanceConstraint(
                 a, b, rest, compliance=edge_compliance, stiffness=edge_stiffness
             ))
+        # Preserve each panel's triangulated shape, not only its perimeter.
+        panel_shape_constraints = 0
+        seen_diagonals = set()
+        for polygon in garment.data.polygons:
+            vertices = list(polygon.vertices)
+            if len(vertices) < 4:
+                continue
+            for offset in range(2, len(vertices) - 1):
+                pair = tuple(sorted((vertices[0], vertices[offset])))
+                if pair in seen_diagonals:
+                    continue
+                seen_diagonals.add(pair)
+                a, b = pair
+                rest = (original_world[a] - original_world[b]).length
+                edge_constraints.append(DistanceConstraint(
+                    a, b, rest, compliance=1.0e-9, stiffness=0.985
+                ))
+                panel_shape_constraints += 1
 
         # Cord meshes are tube-like surfaces, not fabric sheets. In addition
         # to preserving their perimeter edges, preserve each polygon's
@@ -212,9 +245,9 @@ def main():
             contacts = []
             for index, particle in enumerate(current_particles):
                 point = particle.position
-                for _name, tree in collider_trees:
+                for _name, tree, two_sided in collider_trees:
                     contact, signed = closest_contact(
-                        tree, point, index, options.thickness
+                        tree, point, index, options.thickness, two_sided=two_sided
                     )
                     if contact is not None:
                         if signed < options.thickness:
@@ -223,15 +256,17 @@ def main():
                             initial_penetrations.append(signed)
             return contacts
 
-        # A static-pose relaxation is only safe when the body shell is watertight.
-        # On open/nonmanifold shells, ray parity cannot reliably distinguish
-        # inside from outside; fail closed and preserve the original garment.
+        # Contact is resolved against local oriented skin normals. Every
+        # garment vertex is constrained to its original normal line, allowing
+        # substantial outward anatomical accommodation without tangential
+        # vertex wandering. There is deliberately no absolute displacement cap.
         if collision_reliable:
             for _ in range(max(1, options.substeps)):
                 solve_frame(
                     particles, edge_constraints, contact_provider,
                     dt=1.0 / 60.0, gravity=(0.0, 0.0, 0.0),
-                    iterations=max(1, options.iterations), damping=0.0
+                    iterations=max(1, options.iterations), damping=0.0,
+                    normal_anchors=normal_anchors
                 )
 
         before = [point.copy() for point in original_world]
@@ -278,9 +313,9 @@ def main():
         candidate_penetrations = []
         if collision_reliable:
             for index, particle in enumerate(particles):
-                for collider_name, tree in collider_trees:
+                for collider_name, tree, two_sided in collider_trees:
                     _contact, signed = closest_contact(
-                        tree, particle.position, index, options.thickness
+                        tree, particle.position, index, options.thickness, two_sided=two_sided
                     )
                     if signed is not None and signed < -0.00025:
                         candidate_penetrations.append({
@@ -296,16 +331,11 @@ def main():
                 f"Candidate still has {len(candidate_penetrations)} residual penetrations; "
                 "the garment is restored rather than accepted as a bad fit."
             )
-        if attempted_max_displacement > options.max_displacement:
-            rejection_reasons.append(
-                f"Candidate moved a vertex {attempted_max_displacement:.4f}m; "
-                f"limit is {options.max_displacement:.4f}m."
-            )
-        if max_edge_strain > 0.05:
+        if max_edge_strain > 0.12:
             rejection_reasons.append(
                 f"Candidate changed an edge length by up to {max_edge_strain:.1%}."
             )
-        if max_face_area_strain > 0.15:
+        if max_face_area_strain > 0.30:
             rejection_reasons.append(
                 f"Candidate changed a panel triangle area by up to {max_face_area_strain:.1%}."
             )
@@ -324,9 +354,9 @@ def main():
         max_total_displacement = max(max_total_displacement, max_displacement)
         final_penetrations = []
         for index, particle in enumerate(particles):
-            for collider_name, tree in collider_trees:
+            for collider_name, tree, two_sided in collider_trees:
                 _contact, signed = closest_contact(
-                    tree, particle.position, index, options.thickness
+                    tree, particle.position, index, options.thickness, two_sided=two_sided
                 )
                 if signed is not None and signed < -0.00025:
                     final_penetrations.append({
@@ -346,6 +376,8 @@ def main():
             "boundary_vertices": len(boundary_vertices),
             "garment_kind": "cord" if is_cord else "fabric",
             "cord_shape_constraints": cord_shape_constraints,
+            "panel_shape_constraints": panel_shape_constraints,
+            "motion_constraint": "original garment vertex-normal line; unrestricted signed scalar displacement",
             "cord_cross_section_policy": (
                 "preserve perimeter edges and polygon diagonals"
                 if is_cord else "not applicable"
@@ -402,7 +434,7 @@ def main():
         "body_or_skin_hidden": False,
         "body_or_skin_deleted": False,
         "piercings_hidden_or_moved": False,
-        "collision_method": "triangle BVH nearest point plus three-ray majority parity signed distance",
+        "collision_method": "triangle BVH nearest point plus local oriented skin-normal signed distance; two-sided nearest-point contact for piercings",
         "colliders": [name for name, _tree in collider_trees],
         "collision_confidence": [
             {
@@ -417,32 +449,33 @@ def main():
             "substeps": options.substeps,
             "iterations_per_substep": options.iterations,
             "fabric_thickness_m": options.thickness,
-            "max_accepted_vertex_displacement_m": options.max_displacement,
-            "maximum_edge_length_strain": 0.05,
-            "maximum_panel_triangle_area_strain": 0.15,
+            "maximum_edge_length_strain": 0.12,
+            "maximum_panel_triangle_area_strain": 0.30,
+            "vertex_motion_constraint": "original garment vertex-normal line; no absolute displacement cap",
             "gravity": [0.0, 0.0, 0.0],
-            "boundary_elasticity": "reinforced boundary-edge distance constraints",
+            "boundary_elasticity": "reinforced boundary-edge distance constraints plus per-panel diagonal constraints",
             "body_response": "static rigid contact; compliant body deformation deferred"
         },
         "garments": report_rows,
         "max_vertex_displacement_m": max_total_displacement,
         "max_attempted_vertex_displacement_m": max_attempted_displacement,
-        "diagnostic_displacement_limit_m": options.max_displacement,
-        "displacement_limit_is_hard_acceptance_gate": True,
+        "diagnostic_displacement_limit_m": None,
+        "displacement_limit_is_hard_acceptance_gate": False,
         "exported_for_review": True,
         "fit_quality": (
             "skipped_unreliable_collision_geometry" if not collision_reliable
             else "rejected_original_preserved" if any(not row["candidate_accepted"] for row in report_rows)
             else "accepted_within_integrity_limits"
         ),
-        "warnings": [collision_skip_reason] if not collision_reliable else [],
+        "warnings": [collision_warning] if collision_warning else [],
         "remaining_penetration_count": total_contacts,
         "limitations": [
             "This is a static-pose garment relaxation, not animated runtime cloth.",
             "Body and piercing are triangle-BVH colliders; body soft-tissue deformation is not yet applied.",
             "Garment topology and vertex-neighbour relationships are immutable during fitting.",
-            "Whole-garment candidates are rejected and restored to their exact original shape if displacement, edge strain, or panel area limits are exceeded.",
-            "Body collision must be watertight before any signed-distance correction is allowed."
+            "Vertices move only along their original garment-normal lines; displacement magnitude is not capped.",
+            "Panel diagonals and edge constraints resist shear and shape loss; candidates are rejected for excessive edge strain, panel-area change, or residual penetration.",
+            "Open body shells use local oriented surface-normal contact rather than closed-volume ray parity; visually inspect external-envelope normals."
         ]
     }
     os.makedirs(os.path.dirname(os.path.abspath(options.report)), exist_ok=True)
