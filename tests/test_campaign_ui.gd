@@ -169,7 +169,7 @@ func _test_campaign_conversation_controller() -> void:
 	assert(String(continuation_prompt.get("text", "")) == "A small kindness would mean a great deal.")
 	assert(panel.body_label.text.ends_with(continuation_prompt["text"]), "The shared session accepts a domain-produced continuation during choice dispatch")
 
-	var leave_button := panel.choices_box.get_child(1) as Button
+	var leave_button := panel.choices_box.get_child(0) as Button
 	leave_button.emit_signal("pressed")
 	assert(not controller.session.active)
 	assert(not panel.visible)
