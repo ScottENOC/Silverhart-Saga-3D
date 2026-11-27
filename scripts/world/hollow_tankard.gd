@@ -8,6 +8,7 @@ const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const AMBIENT_DIALOGUE_PRESENTER_SCRIPT = preload("res://scripts/presentation/ambient_dialogue_presenter.gd")
 const HOLLOWMERE_OPENING_CONTEXT = preload("res://scripts/simulation/hollowmere_opening_context.gd")
+const HOLLOWMERE_OPENING_SEQUENCE_SCRIPT = preload("res://scripts/simulation/hollowmere_opening_sequence_controller.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
@@ -135,6 +136,7 @@ var abandoned_house_journal_read: bool = false
 var elder_locket_collected: bool = false
 var elder_locket_visual: Node3D
 var ambient_dialogue_presenter: AmbientDialoguePresenter
+var hollowmere_opening_sequence: HollowmereOpeningSequenceController
 var dialogue_open: bool = false
 var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
@@ -2267,26 +2269,39 @@ func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
 	if player_state == null or player_state.race in ["goblin", "orc"]:
 		return
-	campaign_quest_service.start(HollowmereCampaignContent.QUEST_ID)
-	await get_tree().create_timer(2.0).timeout
-	if not is_instance_valid(self):
-		return
-	_show_speech_bubble("companion_wren_talbot", "Well, here we are then. Try not to get us both killed, yeah?")
-	await get_tree().create_timer(6.0).timeout
-	if not is_instance_valid(self) or shakedown_started:
-		return
+	hollowmere_opening_sequence = HOLLOWMERE_OPENING_SEQUENCE_SCRIPT.new() as HollowmereOpeningSequenceController
+	hollowmere_opening_sequence.name = "HollowmereOpeningSequence"
+	hollowmere_opening_sequence.shakedown_started.connect(_on_opening_shakedown_started)
+	add_child(hollowmere_opening_sequence)
+	hollowmere_opening_sequence.begin(
+		String(player_state.race),
+		Callable(self, "_start_hollowmere_shakedown_quest"),
+		Callable(self, "_show_speech_bubble"),
+		Callable(self, "_move_shakedown_soldiers_inside"),
+		Callable(self, "_show_hollowmere_opening_choice"),
+		Callable(self, "_is_shakedown_resolved")
+	)
+
+
+func _on_opening_shakedown_started() -> void:
 	shakedown_started = true
-	var opening_lines := HollowmereCampaignContent.opening_lines()
-	for index in range(opening_lines.size()):
-		var line: Dictionary = opening_lines[index]
-		var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
-		if speaker_id == "narrator":
-			await _move_shakedown_soldiers_inside()
-		else:
-			_show_speech_bubble(speaker_id, String(line.get("text", "")))
-		await get_tree().create_timer(2.25).timeout
-	if not shakedown_resolved:
-		_show_dialogue("Dray Coltayne", "%s\n\nWhat do you do?" % HOLLOWMERE_OPENING_CONTEXT.TEXT, HollowmereCampaignContent.shakedown_choices())
+
+
+func _start_hollowmere_shakedown_quest() -> void:
+	if campaign_quest_service != null:
+		campaign_quest_service.start(HollowmereCampaignContent.QUEST_ID)
+
+
+func _show_hollowmere_opening_choice() -> void:
+	_show_dialogue(
+		"Dray Coltayne",
+		"%s\\n\\nWhat do you do?" % HOLLOWMERE_OPENING_CONTEXT.TEXT,
+		HollowmereCampaignContent.shakedown_choices()
+	)
+
+
+func _is_shakedown_resolved() -> bool:
+	return shakedown_resolved
 
 
 func _move_shakedown_soldiers_outside() -> void:
