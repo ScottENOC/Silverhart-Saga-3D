@@ -1,5 +1,7 @@
 extends SceneTree
 
+const ILSA_WATCH_CAPTAIN_CONTENT = preload("res://scripts/simulation/ilsa_watch_captain_content.gd")
+
 var _failures: int = 0
 
 
@@ -7,6 +9,7 @@ func _initialize() -> void:
 	_test_dialogue_tree_memory()
 	_test_seraphine_personal_response_thresholds()
 	_test_wizard_vendetta_consequences()
+	_test_ilsa_watch_captain_reflections()
 	_test_seraphine_campaign_dialogue()
 	if _failures > 0:
 		push_error("%d persistent NPC dialogue assertion(s) failed." % _failures)
@@ -156,3 +159,42 @@ func _test_wizard_vendetta_consequences() -> void:
 	var noble := content.apply_wizard_vendetta_resolution(relationships, "noble", true)
 	_check(bool(noble.get("applied", false)))
 	_check(int(relationships.snapshot("court_wizard_thessaly").get("trust", -1)) == 0)
+
+
+func _test_ilsa_watch_captain_reflections() -> void:
+	var journal := CampaignJournal.new()
+	var relationships := PersistentCharacterRelationshipState.new()
+	var first := ILSA_WATCH_CAPTAIN_CONTENT.greeting(journal, relationships)
+	_check(bool(first.get("ok", false)), "Ilsa's streamed dialogue should build without quest prerequisites")
+	_check(String(first.get("text", "")).contains("Keep your nose clean in Reddale"))
+	_check(int(first.relationship.get("familiarity", -1)) == 5, "Opening Ilsa's dialogue records one audience event")
+	var repeated := ILSA_WATCH_CAPTAIN_CONTENT.greeting(journal, relationships)
+	_check(int(repeated.relationship.get("familiarity", -1)) == 5, "Repeated greetings do not farm familiarity")
+	_check(not _has_choice(first.choices, "ilsa_philosophy_law_and_truth"), "The Watch philosophy topic stays locked below familiarity eight")
+
+	relationships.set_relationship("ilsa_rennick", {"familiarity": 8, "trust": 20, "friendship": 10})
+	var familiar := ILSA_WATCH_CAPTAIN_CONTENT.greeting(journal, relationships)
+	_check(_has_choice(familiar.choices, "ilsa_philosophy_law_and_truth"), "The law-and-truth reflection unlocks at familiarity eight")
+	_check(not _has_choice(familiar.choices, "ilsa_philosophy_command_uncertainty"), "The command reflection remains locked below familiarity ten")
+	var law := ILSA_WATCH_CAPTAIN_CONTENT.resolve_choice(journal, relationships, "ilsa_philosophy_law_and_truth")
+	_check(bool(law.get("ok", false)))
+	_check(String(law.get("text", "")).contains("Law is useful when it makes people more willing"))
+	_check(int(law.relationship.get("trust", -1)) == 21)
+	_check(int(law.relationship.get("friendship", -1)) == 14)
+	var repeated_law := ILSA_WATCH_CAPTAIN_CONTENT.resolve_choice(journal, relationships, "ilsa_philosophy_law_and_truth")
+	_check(repeated_law.relationship == law.relationship, "Repeating the same reflection does not duplicate its relationship reward")
+
+	var familiar_again := ILSA_WATCH_CAPTAIN_CONTENT.greeting(journal, relationships)
+	_check(_has_choice(familiar_again.choices, "ilsa_philosophy_command_uncertainty"), "The command reflection unlocks at familiarity ten")
+	var command := ILSA_WATCH_CAPTAIN_CONTENT.resolve_choice(journal, relationships, "ilsa_philosophy_command_uncertainty")
+	_check(bool(command.get("ok", false)))
+	_check(String(command.get("text", "")).contains("Command is deciding with incomplete information"))
+	var locked := ILSA_WATCH_CAPTAIN_CONTENT.resolve_choice(journal, PersistentCharacterRelationshipState.new(), "ilsa_philosophy_command_uncertainty")
+	_check(not bool(locked.get("ok", true)), "A locked reflection cannot be forced through a stale choice")
+
+
+func _has_choice(choices: Array, choice_id: String) -> bool:
+	for choice_value in choices:
+		if String(choice_value.get("id", "")) == choice_id:
+			return true
+	return false

@@ -49,6 +49,7 @@ const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
+const ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT = preload("res://scripts/simulation/ilsa_watch_captain_content.gd")
 const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const CAMP_WORLD_PRESENTATION_SCRIPT = preload("res://scripts/presentation/camp_world_presentation.gd")
 const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/camp_party_activity_director.gd")
@@ -1550,6 +1551,8 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		return
 	if _handle_seraphine_choice(choice):
 		return
+	if _handle_ilsa_choice(choice):
+		return
 	if choice_id == "wren_arc_topic:why_stay":
 		_show_wren_arc_topic("why_stay")
 		return
@@ -1860,6 +1863,26 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	)
 	return true
 
+
+
+func _handle_ilsa_choice(choice: Dictionary) -> bool:
+	var choice_id := String(choice.get("id", ""))
+	if not choice_id.begins_with("ilsa_"):
+		return false
+	var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+	var response := ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT.resolve_choice(simulation.campaign_journal, relationships, choice_id)
+	if not bool(response.get("ok", false)):
+		_show_dialogue("Captain Ilsa Rennick", "That matter cannot be discussed just now.", [{"id": "ilsa_leave", "label": "Understood."}])
+		return true
+	if bool(response.get("close", false)):
+		_close_dialogue()
+		return true
+	_show_dialogue(
+		String(response.get("speaker", "Captain Ilsa Rennick")),
+		String(response.get("text", "")),
+		response.get("choices", [{"id": "ilsa_leave", "label": "Understood."}])
+	)
+	return true
 
 func _rowan_visit_key() -> String:
 	var site_hex: Variant = simulation.camp_simulation.site.get("hex", Vector2i.ZERO)
@@ -2177,6 +2200,12 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		var toren_conversation := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
 		if bool(toren_conversation.get("ok", false)):
 			_show_dialogue(String(toren_conversation.get("speaker", target_state.display_name)), String(toren_conversation.get("text", "")), toren_conversation.get("choices", []))
+		return
+	if dialogue_id == "reddale_captain":
+		var ilsa_relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+		var ilsa_conversation := ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT.greeting(simulation.campaign_journal, ilsa_relationships)
+		if bool(ilsa_conversation.get("ok", false)):
+			_show_dialogue(String(ilsa_conversation.get("speaker", target_state.display_name)), String(ilsa_conversation.get("text", "")), ilsa_conversation.get("choices", []))
 		return
 	if dialogue_id == "aldenreach_ambassador":
 		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
