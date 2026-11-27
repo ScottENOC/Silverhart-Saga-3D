@@ -4,6 +4,7 @@ const QUEST_SERVICE = preload("res://scripts/quests/campaign_quest_service.gd")
 const QUEST_REGISTRY = preload("res://scripts/quests/campaign_quest_registry.gd")
 const ABANDONED_HOUSE = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 const TOLL_TAKER = preload("res://scripts/simulation/toll_taker_quest_content.gd")
+const FARM_WOLVES = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
 
 func _initialize() -> void:
@@ -20,6 +21,7 @@ func _test_registry_registration() -> void:
 	assert(bool(result.get("ok", false)))
 	assert(simulation.campaign_journal.quest_definitions.has(ABANDONED_HOUSE.QUEST_ID))
 	assert(simulation.campaign_journal.quest_definitions.has(TOLL_TAKER.QUEST_ID))
+	assert(simulation.campaign_journal.quest_definitions.has(FARM_WOLVES.QUEST_ID), "Registry should include farm wolves content.")
 	var repeated := QUEST_REGISTRY.register_definitions(simulation)
 	assert(bool(repeated.get("ok", false)), "Registry should tolerate repeated registration.")
 
