@@ -147,6 +147,95 @@ func interact_with_stair(character_id: String) -> Dictionary:
 		return {"ok": false, "reason": "stair_occupied_or_unwalkable"}
 	return try_transition_at_stair(int(candidate.get("to_floor", 999999)), stair_hex)
 
+## Return the location's explicit exterior entry contract, including its resolved
+## interior door coordinate. Locations without one are not enterable through this adapter.
+func get_exterior_entry_contract() -> Dictionary:
+	var entry: Variant = definition.get("exterior_entry", {})
+	if not entry is Dictionary or entry.is_empty():
+		return {}
+	var door_id := String(entry.get("door_id", ""))
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != 0:
+			continue
+		for object_variant in floor_variant.get("tile_objects", []):
+			if object_variant is Dictionary and String(object_variant.get("id", "")) == door_id:
+				var contract: Dictionary = entry.duplicate(true)
+				var position: Dictionary = object_variant.get("position", {})
+				contract["door_position"] = Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+				contract["door_type"] = String(object_variant.get("type", ""))
+				contract["door_locked"] = bool(object_variant.get("locked", false))
+				return contract
+	return {}
+
+## Enter this single-floor location from its authored exterior threshold.
+## The host is responsible for making this runtime the active location first.
+func enter_from_exterior(character_id: String) -> Dictionary:
+	if simulation == null or location_state == null:
+		return {"ok": false, "reason": "runtime_not_ready"}
+	if location_state.current_floor != 0:
+		return {"ok": false, "reason": "not_on_surface_floor"}
+	var contract := get_exterior_entry_contract()
+	if contract.is_empty():
+		return {"ok": false, "reason": "no_exterior_entry_contract"}
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var exterior_data: Dictionary = contract.get("exterior_hex", {})
+	var exterior_hex := Vector2i(int(exterior_data.get("q", 0)), int(exterior_data.get("r", 0)))
+	if HexGrid.distance(character.axial, exterior_hex) > 1:
+		return {"ok": false, "reason": "not_near_exterior_threshold"}
+	if String(contract.get("door_type", "")) != "door_open" or bool(contract.get("door_locked", false)):
+		return {"ok": false, "reason": "entrance_closed"}
+	var interior_hex: Vector2i = contract.get("door_position", Vector2i.ZERO)
+	set_location_active(true)
+	if not simulation.relocate_character(character_id, interior_hex):
+		set_location_active(false)
+		return {"ok": false, "reason": "interior_door_unavailable"}
+	var actor := character_actor_nodes.get(character_id) as Node3D
+	if actor != null:
+		_set_actor_location(character_id, actor, 0)
+	return {
+		"ok": true,
+		"location_id": String(definition.get("id", "")),
+		"door_id": String(contract.get("door_id", "")),
+		"position": interior_hex,
+		"return_position": Vector2i(int(contract.get("return_hex", {}).get("q", 0)), int(contract.get("return_hex", {}).get("r", 0)))
+	}
+
+## Leave through the same authored door and restore the source-world map.
+func exit_to_exterior(character_id: String) -> Dictionary:
+	if simulation == null or location_state == null:
+		return {"ok": false, "reason": "runtime_not_ready"}
+	if location_state.current_floor != 0:
+		return {"ok": false, "reason": "not_on_surface_floor"}
+	var contract := get_exterior_entry_contract()
+	if contract.is_empty():
+		return {"ok": false, "reason": "no_exterior_entry_contract"}
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var interior_hex: Vector2i = contract.get("door_position", Vector2i.ZERO)
+	if HexGrid.distance(character.axial, interior_hex) > 1:
+		return {"ok": false, "reason": "not_near_entry_door"}
+	var return_data: Dictionary = contract.get("return_hex", {})
+	var return_hex := Vector2i(int(return_data.get("q", 0)), int(return_data.get("r", 0)))
+	var actor := character_actor_nodes.get(character_id) as Node3D
+	set_location_active(false)
+	if not simulation.relocate_character(character_id, return_hex):
+		set_location_active(true)
+		return {"ok": false, "reason": "exterior_return_unavailable"}
+	if actor != null and is_instance_valid(actor):
+		var anchor_data: Dictionary = definition.get("anchor", {})
+		var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+		actor.global_position = to_global(HexGrid.axial_to_world(return_hex - anchor, HEX_RADIUS, 0.1))
+		unregister_character_actor(character_id)
+	return {
+		"ok": true,
+		"location_id": String(definition.get("id", "")),
+		"door_id": String(contract.get("door_id", "")),
+		"position": return_hex
+	}
+
 ## Reveal a source-authored concealed door after the caller has completed its search/check.
 ## The character must be beside the door; discovery is stored in the location state.
 func reveal_secret_door(character_id: String, secret_id: String) -> Dictionary:
