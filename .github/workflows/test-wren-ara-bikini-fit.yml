@@ -232,7 +232,7 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          python -m pip install --user trimesh matplotlib networkx
+          python -m pip install --user trimesh matplotlib networkx scipy
           python tools/blender/diagnose_wren_external_surface.py \
             --input build/wren-native/Wren_Accepted_Baseline.glb \
             --output-dir build/wren-native/external-surface-diagnostic
