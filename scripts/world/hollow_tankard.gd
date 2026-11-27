@@ -1472,12 +1472,19 @@ func _show_conversation(
 			"available": true,
 			"ends_conversation": true
 		})
+	var prompt_speaker := speaker.strip_edges()
+	if prompt_speaker.is_empty():
+		prompt_speaker = "Conversation"
+	var prompt_context := context.strip_edges()
+	var prompt_body := body.strip_edges()
+	if prompt_context.is_empty() and prompt_body.is_empty():
+		prompt_body = "What would you like to do?"
 	var prompt := {
 		# The local portrait resolver matches both display names and stable actor IDs.
-		"speaker_id": speaker,
-		"speaker": speaker,
-		"context": context,
-		"text": body,
+		"speaker_id": prompt_speaker,
+		"speaker": prompt_speaker,
+		"context": prompt_context,
+		"text": prompt_body,
 		"expression": expression,
 		"choices": typed_choices
 	}
