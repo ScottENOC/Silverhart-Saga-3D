@@ -243,7 +243,7 @@ def make_skin_only_collider(source, material_prefix):
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
     )
-    collider["external_shell_policy"] = "skin-only; pelvic recesses softened; boundary loops capped; closed manifold required"
+    collider["external_shell_policy"] = "skin-only; pelvic recesses softened; boundary loops capped where possible; unresolved topology defects are diagnostic-only"
     collider["pelvic_recess_smoothing_vertices"] = smoothed_pelvic_vertices
     collider["pelvis_landmark_z"] = pelvis_z
     collider["source_boundary_edge_count"] = boundary_edge_count_before
@@ -357,9 +357,10 @@ def main():
     print("WREN_CLOTH_COLLIDERS_READY " + json.dumps({
         "body_faces": len(body_collider.data.polygons),
         "piercing_colliders": len(piercing_rows),
-        "boundary_edges": len(boundary_edges_after),
-        "nonmanifold_edges": len(nonmanifold_edges_after),
-        "warnings": preparation_warnings,
+        "boundary_edges": body_collider["collision_boundary_edge_count"],
+        "nonmanifold_edges": body_collider["collision_nonmanifold_edge_count"],
+        "collision_confidence": body_collider["collision_confidence"],
+        "warnings": json.loads(body_collider["collision_preparation_warnings"]),
         "piercings": [row["name"] for row in piercing_rows],
     }, sort_keys=True))
 
