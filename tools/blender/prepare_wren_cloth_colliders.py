@@ -252,6 +252,10 @@ def make_skin_only_collider(source, material_prefix):
     collider["boundary_cap_methods"] = str(cap_methods)
     collider["collision_boundary_edge_count"] = len(boundary_edges_after)
     collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
+    collider["collision_confidence"] = (
+        "closed_manifold" if not boundary_edges_after and not nonmanifold_edges_after
+        else "open_or_nonmanifold_diagnostic_only"
+    )
     collider["collision_preparation_warnings"] = json.dumps(preparation_warnings)
     add_collision_modifier(collider, 0.002)
     return collider
@@ -325,10 +329,7 @@ def main():
             "collision_boundary_edge_count": body_collider["collision_boundary_edge_count"],
             "collision_nonmanifold_edge_count": body_collider["collision_nonmanifold_edge_count"],
             "preparation_warnings": json.loads(body_collider["collision_preparation_warnings"]),
-            "collision_confidence": (
-                "closed_manifold" if not boundary_edges_after and not nonmanifold_edges_after
-                else "open_or_nonmanifold_diagnostic_only"
-            ),
+            "collision_confidence": body_collider["collision_confidence"],
         },
         "piercing_colliders": piercing_rows,
         "contact_solver_order": [
