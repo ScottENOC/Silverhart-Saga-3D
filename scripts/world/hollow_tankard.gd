@@ -1853,18 +1853,17 @@ func _interact_with_character(character_id: String) -> void:
 	if streamed_actor != null and not actor_by_id.has(character_id):
 		_show_streamed_npc_dialogue(streamed_actor, target_state)
 		return
-	if character_id == "old_mac":
-		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
-		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
-		return
-	if character_id in ["elder_marta", "marta_wynfield"]:
-		var message_delivery := ALDENREACH_MESSAGE_CONTENT_SCRIPT.deliver_to_elder(simulation.campaign_journal)
-		if bool(message_delivery.get("delivered_now", false)) and resource_status_label != null:
+	if character_id == "old_mac" or character_id in ["elder_marta", "marta_wynfield"]:
+		var dialogue_id := "old_mac" if character_id == "old_mac" else "elder_marta"
+		var quest_greeting: Dictionary = QUEST_DIALOGUE_DISPATCHER.greeting_for_actor(
+			simulation,
+			dialogue_id,
+			{"remaining_wolves": _farm_wolves_remaining()}
+		)
+		if bool(quest_greeting.get("delivered_now", false)) and resource_status_label != null:
 			resource_status_label.text = "Delivered Ambassador Cassia Wren's quiet word to Elder Marta."
-		var marta_player := simulation.get_character(simulation.player_character_id)
-		var marta_conversation := ELDER_MARTA_CONTENT_SCRIPT.greeting(simulation.campaign_journal, marta_player)
-		if bool(marta_conversation.get("ok", false)):
-			_show_dialogue(String(marta_conversation.get("speaker", "Elder Marta Wynfield")), String(marta_conversation.get("text", "")), marta_conversation.get("choices", []))
+		if not quest_greeting.is_empty():
+			_show_dialogue(String(quest_greeting.get("speaker", target_state.display_name)), String(quest_greeting.get("text", "")), quest_greeting.get("choices", []))
 		return
 	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
@@ -2481,7 +2480,7 @@ func _dynamic_campaign_character_records() -> Dictionary:
 func _restore_toll_ogre_actor() -> void:
 	if simulation == null:
 		return
-	var quest_state := simulation.campaign_journal.quest_state(TOLL_TAKER_CONTENT_SCRIPT.QUEST_ID)
+	var quest_state := campaign_quest_service.state("toll_ogre")
 	if String(quest_state.get("status", "")) == "active" and simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID) == null:
 		TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
 	if TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation):
