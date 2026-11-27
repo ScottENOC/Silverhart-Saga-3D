@@ -28,7 +28,7 @@ NPC-to-NPC banter is ambient. Any NPC-to-player exchange that expects a response
 | `scripts/quests/campaign_local_quest_dialogue_service.gd` | Routes Old Mac farm wolves, Dray missing courier and Petra toll-taker choices through their existing quest content modules; returns dialogue/status/world-action flags | Domain choice coordinator; actor spawning remains in the world adapter |
 | `scripts/simulation/companion_campaign_dialogue_service.gd` | Routes companion chapter start/resolution and Wren character-arc choices; packages returned dialogue and XP outcomes | Companion domain service; no UI or scene-node dependency |
 | `scripts/world/campaign_npc_interaction_service.gd` | Resolves nearby NPCs and their actors | Retain as world interaction lookup |
-| `scripts/world/hollow_tankard.gd` | Composes the world, resolves local actors, starts the shared opening sequence, supplies ambient/panel adapters and currently dispatches legacy campaign choice IDs | Adapter only; remaining dispatcher/routing is the next extraction target |
+| `scripts/world/hollow_tankard.gd` | Composes the world, resolves local actors, starts the shared opening sequence, supplies presentation adapters and handles remaining camp/abandoned-house/encounter handoffs | World adapter; domain choice resolution is delegated to the relevant services |
 
 ## Remaining architectural gaps
 
