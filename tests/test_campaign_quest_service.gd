@@ -34,12 +34,12 @@ func _test_service_journal_facade() -> void:
 	assert(String(service.state(ABANDONED_HOUSE.QUEST_ID).get("status", "")) == "active")
 	var progress := service.set_objective_progress(
 		ABANDONED_HOUSE.QUEST_ID,
-		"guardians_defeated",
+		"house_guardians_defeated",
 		1.0
 	)
 	# The service must pass through journal validation rather than inventing
 	# objectives or silently accepting unknown quest state.
-	assert(progress is Dictionary)
+	assert(bool(progress.get("ok", false)), "Known quest objectives should be updated through the service.")
 
 
 func _test_unconfigured_service_fails_safely() -> void:
