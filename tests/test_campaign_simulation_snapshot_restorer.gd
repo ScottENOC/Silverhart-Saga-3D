@@ -1,6 +1,7 @@
 extends SceneTree
 
 const RESTORER := preload("res://scripts/campaign/campaign_simulation_snapshot_restorer.gd")
+const PERSISTENT_RELATIONSHIP_STORE := preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 
 var failures := 0
 
@@ -60,9 +61,6 @@ func _run() -> void:
 	else:
 		print("Campaign simulation snapshot restorer tests passed.")
 		quit(0)
-
-
-const PERSISTENT_RELATIONSHIP_STORE := preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 
 
 func _check(condition: bool, message: String) -> void:
