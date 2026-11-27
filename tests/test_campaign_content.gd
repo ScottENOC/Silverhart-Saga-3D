@@ -522,6 +522,7 @@ func _test_campaign_local_quest_dialogue_service() -> void:
 	)
 	_check(bool(farm_decline.get("handled", false)), "Farm wolf choices route through the local quest service")
 	_check(String(farm_decline.get("dialogue", {}).get("speaker", "")) == "Old Mac", "Farm wolf responses retain Old Mac as speaker")
+	_check(not bool(farm_decline.get("close", false)), "Farm wolf responses retain the existing non-closing dialogue fallback")
 
 	var courier_decline := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
 		simulation,
