@@ -1909,12 +1909,15 @@ func _resolve_rowan_camp_choice(choice: Dictionary) -> void:
 		rowan_world_service.resolve_camp_choice(choice)
 
 func _close_dialogue() -> void:
-	if conversation_controller != null and conversation_controller.session.active:
-		conversation_controller.finish_conversation("closed")
-	else:
-		dialogue_open = false
-		if dialogue_panel != null:
-			dialogue_panel.dismiss()
+	if conversation_controller != null:
+		if conversation_controller.session.active:
+			conversation_controller.finish_conversation("closed")
+		else:
+			dialogue_open = false
+		return
+	dialogue_open = false
+	if dialogue_panel != null:
+		dialogue_panel.dismiss()
 
 
 func _interact_with_nearest_npc() -> void:
