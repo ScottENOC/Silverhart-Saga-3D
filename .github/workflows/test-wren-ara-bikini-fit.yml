@@ -105,11 +105,11 @@ jobs:
       - name: Apply a second-pass modesty and collision-clearance fit to the bikini bottom
         run: |
           set -euo pipefail
-          blender --background --python-exit-code 1 \\
-            --python tools/ara/second_pass_garment_fit.py -- \\
-            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb \\
-            --output build/wren-native/Wren_Ara_Bikini_Fitting_Reference_SecondPass.glb \\
-            --report build/wren-native/second-pass-fit-report.json \\
+          blender --background --python-exit-code 1 \
+            --python tools/ara/second_pass_garment_fit.py -- \
+            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb \
+            --output build/wren-native/Wren_Ara_Bikini_Fitting_Reference_SecondPass.glb \
+            --report build/wren-native/second-pass-fit-report.json \
             --clearance 0.012 --bridge-radius 0.035 --vertical-sample 0.010
           test -s build/wren-native/Wren_Ara_Bikini_Fitting_Reference_SecondPass.glb
           grep -q '"body_or_skin_hidden": false' build/wren-native/second-pass-fit-report.json
