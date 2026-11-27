@@ -17,6 +17,10 @@ static func entry_prompt(node_id: String) -> Dictionary:
 	}
 
 
+static func entrance_unavailable_prompt() -> Dictionary:
+	return _continue_prompt("Hidden Passage", "You cannot reach that entrance just now.")
+
+
 static func secret_search_prompt(secret_id: String) -> Dictionary:
 	if secret_id.strip_edges().is_empty():
 		return {}
