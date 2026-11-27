@@ -125,8 +125,14 @@ func _test_campaign_conversation_controller() -> void:
 	controller.choice_selected.connect(func(choice: Dictionary, id: String) -> void:
 		selected.append({"choice": choice, "conversation_id": id})
 		if String(choice.get("id", "")) == "ask_help":
-			continuation_prompt = player_prompt.duplicate(true)
-			continuation_prompt["text"] = "A small kindness would mean a great deal."
+			continuation_prompt = {
+				"speaker_id": "elder_marta",
+				"speaker": "Elder Marta Wynfield",
+				"text": "A small kindness would mean a great deal.",
+				"choices": [
+					{"id": "leave", "label": "End conversation.", "ends_conversation": true}
+				]
+			}
 			controller.update_prompt(continuation_prompt)
 	)
 	controller.conversation_finished.connect(func(id: String, reason: String) -> void:
