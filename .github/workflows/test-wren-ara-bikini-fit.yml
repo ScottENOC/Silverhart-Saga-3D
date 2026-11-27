@@ -87,27 +87,18 @@ jobs:
           test -s "$raw_glb"
           cp "$raw_glb" build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb
 
-      - name: Apply the same adult anatomy code to Ara's fitting reference
+      - name: Keep Ara's fitting reference anatomy-free
         run: |
           set -euo pipefail
-          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \
-            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \
-            --output build/wren-native/female-anatomy-subdivision-plan.json
-          test -s build/wren-native/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
-            --input build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \
-            --output build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb \
-            --report build/wren-native/female-anatomy-report.json \
-            --subdivision-plan build/wren-native/female-anatomy-subdivision-plan.json \
-            --adult --deformation-scale 1.65
-          test -s build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb
-          grep -q '"anatomy_profile": "adult_female_integrated_skin"' build/wren-native/female-anatomy-report.json
-          grep -q '"clothing_operations": "not run"' build/wren-native/female-anatomy-report.json
+          # Ara must fit the outfit to Wren's underlying body proportions, not
+          # to the later-added anatomical surface detail. The accepted Wren
+          # GLB already contains the final anatomy; the contact pass below
+          # adjusts the transferred garments against that finished character.
+          cp build/wren-native/Wren_Ara_Bikini_Fitting_Reference.glb \
+            build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Anatomy_Free.glb
+          test -s build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Anatomy_Free.glb
 
-      - name: Attach Ara-fitted bikini garments to the exact accepted Wren GLB
+      - name: Transfer anatomy-free Ara-fitted garments onto anatomy-complete accepted Wren
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -116,7 +107,7 @@ jobs:
           import subprocess
           from pathlib import Path
 
-          source = Path("build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Adult.glb")
+          source = Path("build/wren-native/Wren_Ara_Bikini_Fitting_Reference_Anatomy_Free.glb")
           raw = source.read_bytes()
           magic, version, total = __import__("struct").unpack_from("<4sII", raw)
           if magic != b"glTF" or version != 2 or total != len(raw):
@@ -294,7 +285,7 @@ jobs:
           print("WREN_SKINNED_GARMENT_EXTRACTION_OK", report["garment_object_count"])
           PY
 
-      - name: Run BVH-backed XPBD garment contact and deformation
+      - name: Adjust garments against Wren external-body and piercing collision surfaces
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
@@ -390,6 +381,9 @@ jobs:
           provenance = {
               "accepted_body": "art/characters/companions/wren.glb",
               "profile": "character-preview/wren-ara.json",
+              "garment_generation_body": "Ara Wren-profile body before anatomy sculpt",
+              "final_character_body": "accepted Wren GLB with integrated anatomy",
+              "fitting_order": ["Ara fits garments to anatomy-free Wren proportions", "transfer garments to accepted anatomy-complete Wren", "build skin-only external collision proxy and piercing colliders", "adjust garment surfaces with XPBD contact and structural constraints"],
               "ara_fitting_params": {
                   "outfit": "set_gold_bikini",
                   "garmentStyles": {
