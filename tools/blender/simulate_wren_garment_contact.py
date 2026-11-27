@@ -242,11 +242,15 @@ def main():
                         "penetration_m": round(-signed, 7)
                     })
         total_contacts += len(final_penetrations)
-        displacement_warning = None
+        garment_warnings = []
         if max_displacement > 1.0:
-            displacement_warning = (
+            garment_warnings.append(
                 f"Extreme displacement ({max_displacement:.4f}m); exported for review, "
                 "not accepted as a valid fit."
+            )
+        if final_penetrations:
+            garment_warnings.append(
+                f"{len(final_penetrations)} residual body/piercing penetrations remain."
             )
         report_rows.append({
             "object": garment.name,
@@ -261,8 +265,8 @@ def main():
             ),
             "structural_constraints": len(edge_constraints),
             "max_vertex_displacement_m": max_displacement,
-            "fit_quality": "warning" if displacement_warning else "unassessed",
-            "warnings": [displacement_warning] if displacement_warning else [],
+            "fit_quality": "warning" if garment_warnings else "unassessed",
+            "warnings": garment_warnings,
             "mean_vertex_displacement_m": (
                 sum(displacements) / len(displacements) if displacements else 0.0
             ),
@@ -299,7 +303,11 @@ def main():
         "collision_method": "triangle BVH nearest point plus three-ray majority parity signed distance",
         "colliders": [name for name, _tree in collider_trees],
         "collision_confidence": [
-            obj.get("collision_preparation_warnings", "[]")
+            {
+                "object": obj.name,
+                "status": obj.get("collision_confidence", "unknown"),
+                "warnings": json.loads(obj.get("collision_preparation_warnings", "[]")),
+            }
             for obj in body if obj.get("cloth_collision_role") == "rigid_contact_surface"
         ],
         "solver": {
