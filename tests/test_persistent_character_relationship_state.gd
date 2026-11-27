@@ -29,7 +29,7 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 
 func _test_authored_roster_and_initial_state() -> void:
 	var relationships := PersistentCharacterRelationshipState.new()
-	_check(relationships.roster().size() == 11, "All ten source-authored persistent NPCs are registered")
+	_check(relationships.roster().size() == 16, "All source-authored persistent NPCs are registered")
 	var seraphine := relationships.snapshot("seraphine_corrin")
 	_check(String(seraphine.get("name", "")) == "Queen Seraphine Corrin")
 	_check(String(seraphine.get("affinity_mode", "")) == "full")
@@ -46,6 +46,19 @@ func _test_authored_roster_and_initial_state() -> void:
 	_check(int(nessa.get("familiarity", -1)) == 4)
 	_check(int(nessa.get("trust", -1)) == 7)
 	_check(int(nessa.get("friendship", -1)) == 2)
+	var hollowmere_profiles := {
+		"garrick_holt":"Garrick Holt",
+		"mira_ashbrook":"Mira Ashbrook",
+		"oskar_vinn":"Oskar Vinn",
+		"elder_marta":"Elder Marta Wynfield",
+		"old_mac":"Old Mac"
+	}
+	for character_id in hollowmere_profiles:
+		var profile := relationships.profile_for(character_id)
+		var snapshot := relationships.snapshot(character_id)
+		_check(String(profile.get("name", "")) == String(hollowmere_profiles[character_id]), "%s has its authored profile" % character_id)
+		_check(String(snapshot.get("affinity_mode", "")) == "friendship", "%s must not gain unauthored romance axes" % character_id)
+		_check(int(snapshot.get("romantic_bond", -1)) == 0 and int(snapshot.get("attraction", -1)) == 0)
 
 
 func _test_approval_bridge_and_independent_axes() -> void:
