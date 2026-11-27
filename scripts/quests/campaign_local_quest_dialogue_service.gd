@@ -56,13 +56,14 @@ static func resolve_choice(
 
 	var dialogue: Variant = result.get("dialogue", {})
 	var has_dialogue: bool = dialogue is Dictionary and not dialogue.is_empty()
+	var close_when_empty := choice_id.begins_with("ironbond_courier_") or choice_id.begins_with("toll_ogre_")
 	return {
 		"handled": bool(result.get("handled", true)),
 		"ok": true,
 		"dialogue": dialogue if has_dialogue else {},
 		"status_message": status_message,
 		"spawn_ogre": spawn_ogre,
-		"close": bool(result.get("handled", false)) and not has_dialogue
+		"close": close_when_empty and bool(result.get("handled", false)) and not has_dialogue
 	}
 
 
