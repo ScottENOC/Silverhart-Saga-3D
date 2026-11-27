@@ -76,11 +76,23 @@ Rigid objects remain rigid unless explicitly configured as compliant.
 
 ## Current scope and non-goals
 
-The current PR has only prepared the accepted skin and baked piercing collision
-meshes. It has not simulated or deformed the bikini. This core is the reusable
-solver foundation; the next adapter work must extract the actual bikini-bottom
-and string primitives, preserve their skinning/morph contracts, query the real
-body/piercing surfaces, and validate the result in front/side/pelvis views.
+The PR now includes an offline static-pose adapter in
+`tools/blender/simulate_wren_garment_contact.py`. It loads the extracted Ara
+garment objects, builds triangle BVHs from the accepted Wren skin collider and
+the actual baked piercing meshes, and runs XPBD contact projection interleaved
+with mesh-edge stretch constraints. It exports a deformed garment GLB and a
+machine-readable report. The CI preview consumes that simulated GLB, not the
+pre-simulation assembly.
 
-No garment is accepted until contact, seam tension, multiple-pose behaviour,
-and preservation of the accepted body/rig/materials all pass review.
+The current adapter deliberately leaves the accepted rendered body, rig,
+materials and visible piercing meshes unchanged. It is a static-pose relaxation:
+it does not yet simulate animation/gravity, apply compliant soft-tissue
+deformation to the body, or identify semantic waistband/leg-opening seam loops.
+Boundary edges currently receive reinforced elastic constraints as a generic
+fallback. These limitations are recorded in the simulation report and are not
+claimed as completed features.
+
+No garment is accepted until the actual preview demonstrates improved contact
+without new folds, holes or shading artefacts, and the report shows tolerable
+residual penetration. Multiple-pose behaviour, body soft-tissue response,
+semantic seam tension and runtime cloth remain subsequent work.
