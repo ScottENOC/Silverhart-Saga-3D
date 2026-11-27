@@ -250,14 +250,27 @@ jobs:
           # Garment fitting must not proceed on an open or non-manifold body proxy.
           assert report["body_collider"]["collision_boundary_edge_count"] == 0, report
           assert report["body_collider"]["collision_nonmanifold_edge_count"] == 0, report
-          assert report["body_collider"]["collision_confidence"] == "closed_manifold", report
-          assert report["body_collider"]["boundary_loop_count"] >= 0, report
+          # Fail closed until an anatomical surface classifier has been validated.
+          assert report["body_collider"]["external_surface_verified"] is True, report
+          assert report["body_collider"]["internal_canal_exclusion_verified"] is True, report
+          assert report["body_collider"]["natural_openings_capped"] is False, report
           assert report["body_collider"]["external_shell_policy"], report
           # A missing pelvis landmark is a warning, not a reason to lose the candidate.
           assert report["body_collider"]["pelvic_recess_smoothing_vertices"] >= 0, report
           assert report["piercing_colliders"], "No real piercing collision meshes were prepared"
           print("WREN_CLOTH_COLLIDER_VALIDATION_OK", len(report["piercing_colliders"]))
           PY
+
+      - name: Upload unverified collider diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-collider-diagnostics-${{ github.run_number }}
+          path: |
+            build/wren-native/cloth-collision-report.json
+            build/wren-native/Wren_Cloth_Collision_Setup.blend
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Extract bikini material surfaces as separate skinned garment objects
         run: |
