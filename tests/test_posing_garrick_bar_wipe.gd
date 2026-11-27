@@ -5,6 +5,7 @@ const ARA_ACTOR := preload("res://scripts/presentation/ara_character_actor.gd")
 const WIPE_CONTROLLER := preload("res://scripts/presentation/garrick_bar_wipe_controller.gd")
 
 var _interrupted: bool = false
+var _return_to_station_count: int = 0
 var _failures: int = 0
 
 
@@ -27,7 +28,7 @@ func _start() -> void:
 	await process_frame
 	var controller := WIPE_CONTROLLER.new() as GarrickBarWipeController
 	root.add_child(controller)
-	controller.configure(actor, Callable(self, "_is_interrupted"))
+	controller.configure(actor, Callable(self, "_is_interrupted"), Callable(self, "_return_to_station"))
 	for _frame in range(12):
 		await process_frame
 
@@ -49,12 +50,18 @@ func _start() -> void:
 		await process_frame
 		await process_frame
 		_check(modifier.active, "the bar wipe resumes after the confrontation")
+		_check(_return_to_station_count == 1, "the innkeeper is returned to his authored bar station")
 
 	_finish()
 
 
 func _is_interrupted() -> bool:
 	return _interrupted
+
+
+func _return_to_station() -> bool:
+	_return_to_station_count += 1
+	return true
 
 
 func _check(condition: bool, message: String) -> void:
