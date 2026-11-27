@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate geometry-only pelvic cross-sections for Wren collider review.
 
-This is deliberately diagnostic, not an anatomical classifier. It never edits
-or exports a collision mesh and never claims that internal canal surfaces have
-been excluded.
+Diagnostic only: this does not classify anatomy or export a collider. Plane
+intersections are computed directly from source triangles so open/non-manifold
+skin meshes do not depend on trimesh's path assembly or optional spatial index.
 """
 import argparse
 import json
@@ -12,6 +12,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import numpy as np
 import trimesh
 
@@ -25,6 +26,35 @@ def load_body(path: Path):
             mesh.apply_transform(transform)
             return mesh
     raise RuntimeError("Could not find the accepted Wren body mesh in GLB")
+
+
+def intersect_x_plane(mesh, x_value, epsilon=1e-9):
+    """Return independent 2D (Z,Y) line segments intersecting x=x_value."""
+    triangles = mesh.vertices[mesh.faces]
+    distances = triangles[:, :, 0] - x_value
+    segments = []
+    for tri, dist in zip(triangles, distances):
+        # Ignore coplanar triangles: their area is not a section contour.
+        if np.all(np.abs(dist) <= epsilon):
+            continue
+        points = []
+        for a, b in ((0, 1), (1, 2), (2, 0)):
+            da, db = dist[a], dist[b]
+            if abs(da) <= epsilon:
+                p = tri[a]
+            elif abs(db) <= epsilon:
+                p = tri[b]
+            elif (da < 0.0) != (db < 0.0):
+                t = da / (da - db)
+                p = tri[a] + t * (tri[b] - tri[a])
+            else:
+                continue
+            q = np.array([p[2], p[1]], dtype=float)
+            if not any(np.linalg.norm(q - prior) <= epsilon * 10 for prior in points):
+                points.append(q)
+        if len(points) == 2 and np.linalg.norm(points[0] - points[1]) > epsilon:
+            segments.append([points[0], points[1]])
+    return np.asarray(segments, dtype=float).reshape((-1, 2, 2))
 
 
 def main():
@@ -50,22 +80,26 @@ def main():
             "euler_number": int(part.euler_number),
         })
 
-    # GLB coordinates are X lateral, Y vertical, +Z anterior.
-    # Plot section traces of the body mesh only; no skin render or garment.
     offsets = [0.0, -0.01, 0.01, -0.02, 0.02]
-    fig, axes = plt.subplots(1, len(offsets), figsize=(15, 7), sharey=True)
+    fig, axes = plt.subplots(1, len(offsets), figsize=(17, 7), sharey=True)
+    section_counts = []
     for ax, x in zip(axes, offsets):
-        section = mesh.section(plane_origin=[x, 0.0, 0.0],
-                               plane_normal=[1.0, 0.0, 0.0])
-        if section is not None:
-            for line in section.discrete:
-                points = np.asarray(line)
-                ax.plot(points[:, 2], points[:, 1], linewidth=0.65)
-        ax.set_title(f"X = {x * 1000:.0f} mm")
+        segments = intersect_x_plane(mesh, x)
+        section_counts.append({"x_m": x, "segment_count": int(len(segments))})
+        if len(segments):
+            ax.add_collection(LineCollection(segments, linewidths=0.65))
+        ax.set_title(f"X = {x * 1000:.0f} mm ({len(segments)} segments)")
         ax.set_xlim(-0.14, 0.22)
         ax.set_ylim(0.68, 1.12)
         ax.set_xlabel("Anterior (+Z) / posterior (-Z), metres")
         ax.grid(True, alpha=0.2)
+        ax.set_aspect("equal", adjustable="box")
+    if not any(row["segment_count"] for row in section_counts):
+        plt.close(fig)
+        raise RuntimeError(
+            "All pelvic cross-sections are empty; refusing to publish a blank diagnostic. "
+            f"Mesh bounds: {mesh.bounds.tolist()}"
+        )
     axes[0].set_ylabel("Height (Y), metres")
     fig.suptitle("Accepted Wren body: geometry-only pelvic cross-sections")
     fig.tight_layout()
@@ -73,8 +107,6 @@ def main():
     fig.savefig(image_path, dpi=180)
     plt.close(fig)
 
-    # Candidate inward-facing normal statistics are informational only. A
-    # radial normal test is not a valid general external-surface classifier.
     centres = mesh.triangles_center
     normals = mesh.face_normals
     pelvic = ((np.abs(centres[:, 0]) < 0.09) &
@@ -89,8 +121,10 @@ def main():
         "natural_openings_capped": False,
         "body_vertices": int(len(mesh.vertices)),
         "body_faces": int(len(mesh.faces)),
+        "mesh_bounds": mesh.bounds.tolist(),
         "connected_component_count": len(components),
         "components": rows,
+        "cross_sections": section_counts,
         "pelvic_region_definition": {
             "abs_x_less_than_m": 0.09,
             "y_range_m": [0.74, 0.98],
@@ -115,9 +149,8 @@ def main():
     (out / "wren-external-surface-diagnostic.json").write_text(
         json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print("WREN_EXTERNAL_SURFACE_DIAGNOSTIC_READY",
-          json.dumps({"components": len(components),
-                      "faces": len(mesh.faces),
-                      "image": str(image_path)}))
+          json.dumps({"components": len(components), "faces": len(mesh.faces),
+                      "sections": section_counts, "image": str(image_path)}))
 
 
 if __name__ == "__main__":
