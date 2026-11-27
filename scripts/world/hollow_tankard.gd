@@ -15,6 +15,7 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
 const CAMPAIGN_AMBASSADOR_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_ambassador_dialogue_service.gd")
+const CAMPAIGN_LOCAL_QUEST_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_local_quest_dialogue_service.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
@@ -1619,61 +1620,34 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("recruit:"):
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
-	if choice_id.begins_with("ironbond_courier_"):
-		var courier_result := IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.resolve_choice(simulation.campaign_journal, choice_id)
-		if not bool(courier_result.get("ok", false)):
-			_show_dialogue("Dray Coltayne", "That job cannot be recorded just now: %s." % String(courier_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if bool(courier_result.get("quest_started", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest added: The Missing Courier  ·  +10 Ironbond reputation"
-		var courier_dialogue: Variant = courier_result.get("dialogue", {})
-		if courier_dialogue is Dictionary and not courier_dialogue.is_empty():
-			_show_dialogue(String(courier_dialogue.get("speaker", "Dray Coltayne")), String(courier_dialogue.get("text", "")), courier_dialogue.get("choices", []))
-		elif bool(courier_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("toll_ogre_"):
-		var toll_player := simulation.get_character(simulation.player_character_id)
-		var toll_result := TOLL_TAKER_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			toll_player,
-			choice_id,
-			TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation)
-		)
-		if not bool(toll_result.get("ok", false)):
-			_show_dialogue("Petra Hollis", "That cannot be resolved just now: %s." % String(toll_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if choice_id == "toll_ogre_accept":
-			var ogre_result := TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
+	var local_quest_result := CAMPAIGN_LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		choice,
+		TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation)
+	)
+	if bool(local_quest_result.get("handled", false)):
+		if bool(local_quest_result.get("spawn_ogre", false)):
+			var ogre_result := TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(
+				simulation,
+				_find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX)
+			)
 			if not bool(ogre_result.get("ok", false)):
 				_show_dialogue("Petra Hollis", "I cannot send you after it until the road is clear enough to reach its camp.", [{"id": "continue", "label": "Understood.", "text": ""}])
 				return
 			_spawn_toll_ogre_actor()
-			if resource_status_label != null:
-				resource_status_label.text = "Quest added: The Toll-Taker. The ogre is beyond the abandoned house."
-		var toll_dialogue: Variant = toll_result.get("dialogue", {})
-		if toll_dialogue is Dictionary and not toll_dialogue.is_empty():
-			_show_dialogue(String(toll_dialogue.get("speaker", "Petra Hollis")), String(toll_dialogue.get("text", "")), toll_dialogue.get("choices", []))
-		elif bool(toll_result.get("handled", false)):
+		var local_status := String(local_quest_result.get("status_message", ""))
+		if not local_status.is_empty() and resource_status_label != null:
+			resource_status_label.text = local_status
+		var local_dialogue: Variant = local_quest_result.get("dialogue", {})
+		if local_dialogue is Dictionary and not local_dialogue.is_empty():
+			_show_dialogue(
+				String(local_dialogue.get("speaker", "Campaign")),
+				String(local_dialogue.get("text", "")),
+				local_dialogue.get("choices", [])
+			)
+		elif bool(local_quest_result.get("close", false)):
 			_close_dialogue()
 		return
-	if choice_id.begins_with("farm_wolves_"): 
-		var farm_result := FARM_WOLVES_QUEST_SCRIPT.resolve_dialogue_choice(
-			simulation.campaign_journal,
-			simulation.get_character("player"),
-			choice_id,
-			String(choice.get("text", "Take care on the road."))
-		)
-		if bool(farm_result.get("handled", false)):
-			var response: Dictionary = farm_result.get("dialogue", {})
-			_show_dialogue(
-				String(response.get("speaker", "Old Mac")),
-				String(response.get("text", "")),
-				response.get("choices", [])
-			)
-			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
-				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
-			return
 	var ambassador_result := CAMPAIGN_AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(simulation, choice)
 	if bool(ambassador_result.get("handled", false)):
 		var status_message := String(ambassador_result.get("status_message", ""))
