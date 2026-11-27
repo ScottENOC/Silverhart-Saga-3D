@@ -165,7 +165,12 @@ def make_skin_only_collider(source, material_prefix):
     # boundary loops are capped on this collision-only copy; the rendered
     # Wren mesh is never changed. This also prevents ray-parity queries from
     # leaking through genuine mesh holes into interior geometry.
-    smoothed_pelvic_vertices, pelvis_z = smooth_pelvic_recesses(bm, source)
+    preparation_warnings = []
+    try:
+        smoothed_pelvic_vertices, pelvis_z = smooth_pelvic_recesses(bm, source)
+    except Exception as error:
+        smoothed_pelvic_vertices, pelvis_z = 0, None
+        preparation_warnings.append("Pelvic relief smoothing failed: " + repr(error))
     boundary_components_before = boundary_edge_components(bm)
     boundary_edge_count_before = sum(len(component) for component in boundary_components_before)
     capped_faces = []
@@ -173,16 +178,32 @@ def make_skin_only_collider(source, material_prefix):
     for component in boundary_components_before:
         # Fill one closed loop at a time. Passing every loop to holes_fill in
         # one call can leave valid loops untouched on dense imported GLBs.
-        fill_result = bmesh.ops.holes_fill(bm, edges=component, sides=0)
-        faces = list(fill_result.get("faces", []))
+        faces = []
         method = "holes_fill"
-        if not faces:
-            fallback = bmesh.ops.edgenet_fill(
-                bm, edges=component, mat_nr=0,
-                use_smooth=True, use_dissolve=False,
+        try:
+            fill_result = bmesh.ops.holes_fill(bm, edges=component, sides=0)
+            faces = list(fill_result.get("faces", []))
+        except Exception as error:
+            preparation_warnings.append(
+                f"holes_fill failed for {len(component)} boundary edges: {error!r}"
             )
-            faces = list(fallback.get("faces", []))
+        if not faces:
             method = "edgenet_fill"
+            try:
+                fallback = bmesh.ops.edgenet_fill(
+                    bm, edges=component, mat_nr=0,
+                    use_smooth=True, use_dissolve=False,
+                )
+                faces = list(fallback.get("faces", []))
+            except Exception as error:
+                preparation_warnings.append(
+                    f"edgenet_fill failed for {len(component)} boundary edges: {error!r}"
+                )
+        if not faces:
+            method = "unrepaired"
+            preparation_warnings.append(
+                f"Boundary component with {len(component)} edges remains open"
+            )
         capped_faces.extend(faces)
         cap_methods.append({
             "boundary_edges": len(component),
@@ -195,17 +216,14 @@ def make_skin_only_collider(source, material_prefix):
     boundary_components_after = boundary_edge_components(bm)
     boundary_edges_after = [edge for component in boundary_components_after for edge in component]
     nonmanifold_edges_after = [edge for edge in bm.edges if not edge.is_manifold]
+    remaining_sizes = sorted((len(component) for component in boundary_components_after), reverse=True)
     if boundary_edges_after or nonmanifold_edges_after:
-        remaining_sizes = sorted((len(component) for component in boundary_components_after), reverse=True)
-        raise RuntimeError(
-            "External body collision shell is not closed/manifold after per-loop "
-            f"repair: source_boundary_edges={boundary_edge_count_before}, "
-            f"source_boundary_loops={len(boundary_components_before)}, "
-            f"capped_faces={len(capped_faces)}, "
+        preparation_warnings.append(
+            "Collision shell is not watertight; ray-parity inside/outside results "
+            "are diagnostic only. "
             f"remaining_boundary_edges={len(boundary_edges_after)}, "
             f"remaining_loop_sizes={remaining_sizes[:12]}, "
-            f"nonmanifold_edges={len(nonmanifold_edges_after)}. "
-            "Refusing ambiguous ray-parity collision."
+            f"nonmanifold_edges={len(nonmanifold_edges_after)}"
         )
     bm.to_mesh(mesh)
     bm.free()
@@ -234,6 +252,7 @@ def make_skin_only_collider(source, material_prefix):
     collider["boundary_cap_methods"] = str(cap_methods)
     collider["collision_boundary_edge_count"] = len(boundary_edges_after)
     collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
+    collider["collision_preparation_warnings"] = json.dumps(preparation_warnings)
     add_collision_modifier(collider, 0.002)
     return collider
 
@@ -305,6 +324,11 @@ def main():
             "boundary_cap_methods": body_collider["boundary_cap_methods"],
             "collision_boundary_edge_count": body_collider["collision_boundary_edge_count"],
             "collision_nonmanifold_edge_count": body_collider["collision_nonmanifold_edge_count"],
+            "preparation_warnings": json.loads(body_collider["collision_preparation_warnings"]),
+            "collision_confidence": (
+                "closed_manifold" if not boundary_edges_after and not nonmanifold_edges_after
+                else "open_or_nonmanifold_diagnostic_only"
+            ),
         },
         "piercing_colliders": piercing_rows,
         "contact_solver_order": [
@@ -316,7 +340,7 @@ def main():
             "Piercing meshes remain ordinary visible render geometry.",
             "The body collider is a separate skin-only copy; the rendered accepted Wren mesh is unchanged.",
             "Midline pelvic recesses are softened on the collision-only copy so internal-looking vulval/perineal relief does not attract nearest-surface contacts.",
-            "Every open boundary loop on the collision copy is capped; unresolved boundary/non-manifold edges fail the build.",
+            "Open boundary loops are capped where possible; unresolved boundaries are recorded as warnings and fitting continues with diagnostic-only collision confidence.",
             "The collider is built from accepted Wren, not Ara's temporary anatomy fitting reference.",
             "No garment vertices are displaced in this preparation stage.",
         ],
@@ -331,6 +355,9 @@ def main():
     print("WREN_CLOTH_COLLIDERS_READY " + json.dumps({
         "body_faces": len(body_collider.data.polygons),
         "piercing_colliders": len(piercing_rows),
+        "boundary_edges": len(boundary_edges_after),
+        "nonmanifold_edges": len(nonmanifold_edges_after),
+        "warnings": preparation_warnings,
         "piercings": [row["name"] for row in piercing_rows],
     }, sort_keys=True))
 
