@@ -1983,10 +1983,6 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		if bool(ilsa_conversation.get("ok", false)):
 			_show_dialogue(String(ilsa_conversation.get("speaker", target_state.display_name)), String(ilsa_conversation.get("text", "")), ilsa_conversation.get("choices", []))
 		return
-	if dialogue_id == "aldenreach_ambassador":
-		var cassia_conversation := ALDENREACH_MESSAGE_CONTENT_SCRIPT.greeting(simulation.campaign_journal)
-		_show_dialogue(String(cassia_conversation.get("speaker", target_state.display_name)), String(cassia_conversation.get("text", "")), cassia_conversation.get("choices", []))
-		return
 	if dialogue_id == "silverhart_queen":
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var content := PERSISTENT_DIALOGUE_CONTENT.new()
