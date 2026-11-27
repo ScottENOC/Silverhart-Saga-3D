@@ -124,9 +124,24 @@ def nonlinear_body_compliance(displacement: float, base_stiffness: float,
     return max(0.0, base_stiffness) * x + max(0.0, hardening) * x * x * x
 
 
+def project_to_normal_lines(particles: list[Particle],
+                           anchors: Sequence[tuple[Vec3, Vec3]]) -> None:
+    """Restrict each vertex to its original garment-normal line.
+
+    The scalar distance along the line is unrestricted: large anatomical
+    accommodation is valid, while tangential sliding/shear is not.
+    """
+    for particle, (origin, normal) in zip(particles, anchors):
+        direction = normalise(normal)
+        offset = sub(particle.position, origin)
+        signed_offset = dot(offset, direction)
+        particle.position = add(origin, mul(direction, signed_offset))
+
+
 def solve_frame(particles: list[Particle], constraints: Sequence[DistanceConstraint],
                 contact_provider, dt: float, gravity: Vec3 = (0.0, 0.0, -9.81),
-                iterations: int = 12, damping: float = 0.02) -> None:
+                iterations: int = 12, damping: float = 0.02,
+                normal_anchors: Sequence[tuple[Vec3, Vec3]] | None = None) -> None:
     """Advance one substep; contact is re-evaluated before springs each iteration.
 
     contact_provider(particles) must return current signed-distance contacts
@@ -149,5 +164,9 @@ def solve_frame(particles: list[Particle], constraints: Sequence[DistanceConstra
             solve_contact(particles, contact)
         for constraint in constraints:
             solve_distance(particles, constraint, dt, lambdas)
+        if normal_anchors is not None:
+            project_to_normal_lines(particles, normal_anchors)
     for contact in contact_provider(particles):
         solve_contact(particles, contact)
+    if normal_anchors is not None:
+        project_to_normal_lines(particles, normal_anchors)
