@@ -106,7 +106,7 @@ func configure(manifest: Dictionary) -> Dictionary:
 		var entry_variant: Variant = location.get("exterior_entry", {})
 		if not entry_variant is Dictionary:
 			validation_errors.append("%s: exterior_entry must be an object." % location_id)
-		elif not (entry_variant as Dictionary).is_empty():
+		elif entry_variant is Dictionary and not entry_variant.is_empty():
 			var entry: Dictionary = entry_variant
 			var entry_door_id := String(entry.get("door_id", "")).strip_edges()
 			var exterior_hex: Variant = entry.get("exterior_hex", {})
