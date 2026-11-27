@@ -6,6 +6,7 @@ func _initialize() -> void:
 	_test_combat_hud_presentation_and_actions()
 	_test_dialogue_panel_presentation_and_choice_signal()
 	_test_character_portrait_renderer()
+	_test_campaign_conversation_controller()
 	await _test_ambient_dialogue_presenter()
 	print("Campaign UI and character portrait tests passed.")
 	quit()
@@ -44,7 +45,6 @@ func _test_combat_hud_presentation_and_actions() -> void:
 	hud.present(false, false, false, "")
 	assert(not hud.visible)
 	hud.free()
-
 
 
 func _test_dialogue_panel_presentation_and_choice_signal() -> void:
@@ -104,6 +104,88 @@ func _test_character_portrait_renderer() -> void:
 	assert(not renderer.is_live(), "Portrait renderer can pause outside dialogue")
 	renderer.free()
 	source.free()
+
+
+func _test_campaign_conversation_controller() -> void:
+	var panel := CampaignDialoguePanel.new()
+	root.add_child(panel)
+	var controller := CampaignConversationController.new()
+	root.add_child(controller)
+	assert(bool(controller.configure(panel).get("ok", false)))
+
+	var portrait_image := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	portrait_image.fill(Color("#b69b67"))
+	var portrait_texture := ImageTexture.create_from_image(portrait_image)
+	controller.portrait_resolver = func(_speaker_id: String) -> Texture2D:
+		return portrait_texture
+
+	var selected: Array[Dictionary] = []
+	var finished: Array[Dictionary] = []
+	controller.choice_selected.connect(func(choice: Dictionary, id: String) -> void:
+		selected.append({"choice": choice, "conversation_id": id})
+	)
+	controller.conversation_finished.connect(func(id: String, reason: String) -> void:
+		finished.append({"conversation_id": id, "reason": reason})
+	)
+
+	var player_prompt := {
+		"speaker_id": "elder_marta",
+		"speaker": "Elder Marta Wynfield",
+		"context": "The old woman studies you over the rim of her spectacles.",
+		"text": "Welcome, traveller. What brings you to Hollowmere?",
+		"choices": [
+			{"id": "ask_help", "label": "Ask whether the village needs help."},
+			{"id": "leave", "label": "End conversation.", "ends_conversation": true}
+		]
+	}
+	var started := controller.start_conversation("elder_marta_greeting", player_prompt, "player")
+	assert(bool(started.get("ok", false)))
+	assert(controller.session.active)
+	assert(panel.visible)
+	assert(panel.speaker_label.text == "Elder Marta Wynfield")
+	assert(panel.body_label.text == player_prompt["context"] + "\n\n" + player_prompt["text"])
+	assert(panel.portrait_frame.visible)
+	assert(panel.portrait_texture_rect.texture == portrait_texture)
+	assert(panel.choices_box.get_child_count() == 2)
+
+	var ask_button := panel.choices_box.get_child(0) as Button
+	ask_button.emit_signal("pressed")
+	assert(selected.size() == 1)
+	assert(String(selected[0]["choice"].get("id", "")) == "ask_help")
+	assert(String(selected[0]["conversation_id"]) == "elder_marta_greeting")
+	assert(controller.session.active, "A domain-resolved choice keeps the conversation open")
+
+	var next_prompt := player_prompt.duplicate(true)
+	next_prompt["text"] = "A small kindness would mean a great deal."
+	assert(bool(controller.update_prompt(next_prompt).get("ok", false)))
+	assert(panel.body_label.text.ends_with(next_prompt["text"]))
+
+	var leave_button := panel.choices_box.get_child(1) as Button
+	leave_button.emit_signal("pressed")
+	assert(not controller.session.active)
+	assert(not panel.visible)
+	assert(finished.size() == 1)
+	assert(String(finished[0]["conversation_id"]) == "elder_marta_greeting")
+
+	var npc_prompt := {
+		"speaker_id": "garrick_holt",
+		"speaker": "Garrick Holt",
+		"text": "You look like you could use a word.",
+		"choices": [
+			{"id": "ask", "label": "What is it?"},
+			{"id": "not_now", "label": "Not now.", "ends_conversation": true}
+		]
+	}
+	assert(bool(controller.start_conversation("garrick_checks_on_player", npc_prompt, "npc").get("ok", false)))
+	assert(controller.session.initiation_source == "npc")
+	assert(panel.visible, "NPC-initiated conversation uses the same panel path")
+	assert(bool(controller.cancel_conversation().get("ok", false)))
+	assert(not panel.visible)
+	assert(finished.size() == 2)
+
+	controller.queue_free()
+	panel.queue_free()
+	await process_frame
 
 
 func _test_ambient_dialogue_presenter() -> void:
