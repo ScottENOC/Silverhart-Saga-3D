@@ -1636,7 +1636,7 @@ func _handle_quest_dialogue_choice(choice: Dictionary) -> bool:
 	var quest_id := String(dispatched.get("quest_id", ""))
 	var speaker := String(dispatched.get("speaker", "Campaign journal"))
 	var choice_id := String(choice.get("id", ""))
-	if not bool(result.get("ok", false)):
+	if result.has("ok") and not bool(result.get("ok", false)):
 		_show_dialogue(
 			speaker,
 			"That matter cannot be resolved just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "),
