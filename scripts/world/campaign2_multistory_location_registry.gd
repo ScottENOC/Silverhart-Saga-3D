@@ -103,6 +103,33 @@ func configure(manifest: Dictionary) -> Dictionary:
 						validation_errors.append("%s: hidden room references unknown secret door %s." % [location_id, hidden_by_secret])
 		if not floor_ids.has(0):
 			validation_errors.append("%s: surface floor 0 is required." % location_id)
+		var entry_variant: Variant = location.get("exterior_entry", {})
+		if not entry_variant is Dictionary:
+			validation_errors.append("%s: exterior_entry must be an object." % location_id)
+		elif not (entry_variant as Dictionary).is_empty():
+			var entry: Dictionary = entry_variant
+			var entry_door_id := String(entry.get("door_id", "")).strip_edges()
+			var exterior_hex: Variant = entry.get("exterior_hex", {})
+			var return_hex: Variant = entry.get("return_hex", {})
+			var entry_door: Dictionary = {}
+			for floor_variant in floors:
+				if not floor_variant is Dictionary or int(floor_variant.get("floor", 999999)) != 0:
+					continue
+				for object_variant in floor_variant.get("tile_objects", []):
+					if object_variant is Dictionary and String(object_variant.get("id", "")) == entry_door_id:
+						entry_door = object_variant
+						break
+			if entry_door_id.is_empty() or entry_door.is_empty() or String(entry_door.get("type", "")) not in ["door_open", "door_closed"]:
+				validation_errors.append("%s: exterior_entry must reference a floor-zero physical door." % location_id)
+			if not _is_axial(exterior_hex) or not _is_axial(return_hex):
+				validation_errors.append("%s: exterior_entry requires valid exterior and return hexes." % location_id)
+			elif not entry_door.is_empty() and _is_axial(entry_door.get("position", {})):
+				var door_position: Dictionary = entry_door.get("position", {})
+				var door_hex := Vector2i(int(door_position.get("q", 0)), int(door_position.get("r", 0)))
+				var outside_hex := Vector2i(int(exterior_hex.get("q", 0)), int(exterior_hex.get("r", 0)))
+				var return_position := Vector2i(int(return_hex.get("q", 0)), int(return_hex.get("r", 0)))
+				if HexGrid.distance(door_hex, outside_hex) != 1 or HexGrid.distance(outside_hex, return_position) > 1:
+					validation_errors.append("%s: exterior threshold must neighbour its door and return anchor." % location_id)
 		for transition_variant in location.get("transitions", []):
 			if not transition_variant is Dictionary:
 				validation_errors.append("%s: transition entry must be an object." % location_id)
@@ -129,6 +156,49 @@ func configure(manifest: Dictionary) -> Dictionary:
 		_locations.clear()
 		return {"ok": false, "errors": validation_errors.duplicate()}
 	return {"ok": true, "errors": []}
+
+## Return the authored exterior entry contract for a location.
+## The contract names the floor-zero door plus the outside interaction and return hexes.
+func get_exterior_entry_contract(location_id: String) -> Dictionary:
+	var location: Dictionary = _locations.get(location_id, {}) as Dictionary
+	var entry: Variant = location.get("exterior_entry", {})
+	if not entry is Dictionary:
+		return {}
+	var contract: Dictionary = entry.duplicate(true)
+	var floor_definition := get_floor_definition(location_id, 0)
+	var door_id := String(contract.get("door_id", ""))
+	for object_variant in floor_definition.get("tile_objects", []):
+		if object_variant is Dictionary and String(object_variant.get("id", "")) == door_id:
+			var position: Dictionary = object_variant.get("position", {})
+			contract["door_position"] = Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+			contract["door_type"] = String(object_variant.get("type", ""))
+			return contract
+	return {}
+
+## Resolve a nearby exterior entry. Equal-distance overlaps are rejected rather
+## than silently sending the player into an arbitrary building.
+func find_exterior_entry_near(position: Vector2i, max_distance: int = 1) -> Dictionary:
+	var best: Dictionary = {}
+	var best_distance := max_distance + 1
+	var ambiguous := false
+	for location_id in location_ids():
+		var contract := get_exterior_entry_contract(location_id)
+		if contract.is_empty():
+			continue
+		var exterior_data: Dictionary = contract.get("exterior_hex", {})
+		var exterior_hex := Vector2i(int(exterior_data.get("q", 0)), int(exterior_data.get("r", 0)))
+		var distance := HexGrid.distance(position, exterior_hex)
+		if distance > max_distance:
+			continue
+		if distance < best_distance:
+			best = {"location_id": location_id, "contract": contract, "distance": distance}
+			best_distance = distance
+			ambiguous = false
+		elif distance == best_distance:
+			ambiguous = true
+	if ambiguous:
+		return {}
+	return best
 
 func get_definition(location_id: String) -> Dictionary:
 	return (_locations.get(location_id, {}) as Dictionary).duplicate(true)
