@@ -246,11 +246,12 @@ def main():
             for index, particle in enumerate(current_particles):
                 point = particle.position
                 for _name, tree, two_sided in collider_trees:
+                    contact_thickness = 0.00075 if two_sided else options.thickness
                     contact, signed = closest_contact(
-                        tree, point, index, options.thickness, two_sided=two_sided
+                        tree, point, index, contact_thickness, two_sided=two_sided
                     )
                     if contact is not None:
-                        if signed < options.thickness:
+                        if signed < contact_thickness:
                             contacts.append(contact)
                         if signed < 0.0 and len(initial_penetrations) < 1:
                             initial_penetrations.append(signed)
@@ -357,13 +358,14 @@ def main():
         if collision_available:
             for index, particle in enumerate(particles):
                 for collider_name, tree, two_sided in collider_trees:
+                    contact_thickness = 0.00075 if two_sided else options.thickness
                     _contact, signed = closest_contact(
-                        tree, particle.position, index, options.thickness, two_sided=two_sided
+                        tree, particle.position, index, contact_thickness, two_sided=two_sided
                     )
-                    if signed is not None and signed < -0.00025:
+                    if signed is not None and signed < contact_thickness - 0.00025:
                         candidate_penetrations.append({
                             "vertex": index, "collider": collider_name,
-                            "penetration_m": round(-signed, 7)
+                            "penetration_m": round(contact_thickness - signed, 7)
                         })
 
         rejection_reasons = []
@@ -406,13 +408,14 @@ def main():
         final_penetrations = []
         for index, particle in enumerate(particles):
             for collider_name, tree, two_sided in collider_trees:
+                contact_thickness = 0.00075 if two_sided else options.thickness
                 _contact, signed = closest_contact(
-                    tree, particle.position, index, options.thickness, two_sided=two_sided
+                    tree, particle.position, index, contact_thickness, two_sided=two_sided
                 )
-                if signed is not None and signed < -0.00025:
+                if signed is not None and signed < contact_thickness - 0.00025:
                     final_penetrations.append({
                         "vertex": index, "collider": collider_name,
-                        "penetration_m": round(-signed, 7)
+                        "penetration_m": round(contact_thickness - signed, 7)
                     })
         total_contacts += len(final_penetrations)
         garment_warnings = list(rejection_reasons)
