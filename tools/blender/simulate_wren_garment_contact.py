@@ -28,6 +28,8 @@ def args():
     parser.add_argument("--iterations", type=int, default=18)
     parser.add_argument("--substeps", type=int, default=8)
     parser.add_argument("--thickness", type=float, default=0.0015)
+    parser.add_argument("--max-displacement", type=float, default=0.012,
+                        help="Maximum accepted per-vertex fitting displacement in metres")
     return parser.parse_args(raw)
 
 
@@ -145,7 +147,17 @@ def main():
     collider_trees = [(obj.name, world_bvh(obj, depsgraph)) for obj in body + piercings]
     report_rows = []
     max_total_displacement = 0.0
+    max_attempted_displacement = 0.0
     total_contacts = 0
+    collision_reliable = all(
+        obj.get("collision_confidence", "unknown") == "closed_manifold"
+        for obj in body
+    )
+    collision_skip_reason = (
+        "" if collision_reliable else
+        "Body collision shell is open/nonmanifold; signed inside/outside tests are unreliable. "
+        "All garments are preserved unchanged rather than applying untrustworthy contact corrections."
+    )
     for garment in garments:
         original_world = [garment.matrix_world @ vertex.co for vertex in garment.data.vertices]
         particles = [Particle.at(tuple(point), 1.0) for point in original_world]
@@ -211,23 +223,85 @@ def main():
                             initial_penetrations.append(signed)
             return contacts
 
-        # A static-pose relaxation: no arbitrary gravity direction is imposed.
-        # Contact is queried against actual triangles before and after each
-        # structural iteration, so the fabric cannot spring back through skin
-        # or the baked piercing geometry.
-        for _ in range(max(1, options.substeps)):
-            solve_frame(
-                particles, edge_constraints, contact_provider,
-                dt=1.0 / 60.0, gravity=(0.0, 0.0, 0.0),
-                iterations=max(1, options.iterations), damping=0.0
-            )
+        # A static-pose relaxation is only safe when the body shell is watertight.
+        # On open/nonmanifold shells, ray parity cannot reliably distinguish
+        # inside from outside; fail closed and preserve the original garment.
+        if collision_reliable:
+            for _ in range(max(1, options.substeps)):
+                solve_frame(
+                    particles, edge_constraints, contact_provider,
+                    dt=1.0 / 60.0, gravity=(0.0, 0.0, 0.0),
+                    iterations=max(1, options.iterations), damping=0.0
+                )
 
         before = [point.copy() for point in original_world]
-        apply_world_positions(garment, particles, original_world)
-        displacements = [
+        candidate_displacements = [
             (Vector(particle.position) - before[index]).length
             for index, particle in enumerate(particles)
         ]
+        attempted_max_displacement = max(candidate_displacements, default=0.0)
+        max_attempted_displacement = max(max_attempted_displacement, attempted_max_displacement)
+
+        # Validate that fitting has not stretched edges or collapsed panels.
+        # The original mesh topology is immutable: this solver may move vertices,
+        # but it must never split, merge, add, or remove garment neighbours.
+        edge_strains = []
+        for edge in garment.data.edges:
+            a, b = edge.vertices
+            rest = (before[a] - before[b]).length
+            current = (Vector(particles[a].position) - Vector(particles[b].position)).length
+            if rest > 1.0e-9:
+                edge_strains.append(abs(current / rest - 1.0))
+        max_edge_strain = max(edge_strains, default=0.0)
+
+        def polygon_area(points, polygon):
+            vertices = list(polygon.vertices)
+            if len(vertices) < 3:
+                return 0.0
+            origin = Vector(points[vertices[0]])
+            area = 0.0
+            for offset in range(1, len(vertices) - 1):
+                a = Vector(points[vertices[offset]]) - origin
+                b = Vector(points[vertices[offset + 1]]) - origin
+                area += a.cross(b).length * 0.5
+            return area
+
+        candidate_world = [Vector(particle.position) for particle in particles]
+        face_area_strains = []
+        for polygon in garment.data.polygons:
+            rest_area = polygon_area(before, polygon)
+            current_area = polygon_area(candidate_world, polygon)
+            if rest_area > 1.0e-10:
+                face_area_strains.append(abs(current_area / rest_area - 1.0))
+        max_face_area_strain = max(face_area_strains, default=0.0)
+
+        rejection_reasons = []
+        if not collision_reliable:
+            rejection_reasons.append(collision_skip_reason)
+        if attempted_max_displacement > options.max_displacement:
+            rejection_reasons.append(
+                f"Candidate moved a vertex {attempted_max_displacement:.4f}m; "
+                f"limit is {options.max_displacement:.4f}m."
+            )
+        if max_edge_strain > 0.05:
+            rejection_reasons.append(
+                f"Candidate changed an edge length by up to {max_edge_strain:.1%}."
+            )
+        if max_face_area_strain > 0.15:
+            rejection_reasons.append(
+                f"Candidate changed a panel triangle area by up to {max_face_area_strain:.1%}."
+            )
+
+        accepted_candidate = not rejection_reasons
+        if accepted_candidate:
+            apply_world_positions(garment, particles, original_world)
+            displacements = candidate_displacements
+        else:
+            # Reject the whole garment, not just isolated vertices. Partial
+            # rollback would itself tear seams and alter panel relationships.
+            particles = [Particle.at(tuple(point), 1.0) for point in original_world]
+            displacements = [0.0 for _ in particles]
+
         max_displacement = max(displacements, default=0.0)
         max_total_displacement = max(max_total_displacement, max_displacement)
         final_penetrations = []
@@ -242,12 +316,7 @@ def main():
                         "penetration_m": round(-signed, 7)
                     })
         total_contacts += len(final_penetrations)
-        garment_warnings = []
-        if max_displacement > 1.0:
-            garment_warnings.append(
-                f"Extreme displacement ({max_displacement:.4f}m); exported for review, "
-                "not accepted as a valid fit."
-            )
+        garment_warnings = list(rejection_reasons)
         if final_penetrations:
             garment_warnings.append(
                 f"{len(final_penetrations)} residual body/piercing penetrations remain."
@@ -265,7 +334,23 @@ def main():
             ),
             "structural_constraints": len(edge_constraints),
             "max_vertex_displacement_m": max_displacement,
-            "fit_quality": "warning" if garment_warnings else "unassessed",
+            "attempted_max_vertex_displacement_m": attempted_max_displacement,
+            "max_edge_length_strain": max_edge_strain,
+            "max_panel_triangle_area_strain": max_face_area_strain,
+            "candidate_accepted": accepted_candidate,
+            "rejection_reasons": rejection_reasons,
+            "topology": {
+                "vertices": len(garment.data.vertices),
+                "edges": len(garment.data.edges),
+                "faces": len(garment.data.polygons),
+                "unchanged": True,
+                "neighbour_relationships_preserved": True
+            },
+            "fit_quality": (
+                "skipped_unreliable_collision_geometry" if not collision_reliable
+                else "rejected_original_preserved" if not accepted_candidate
+                else "accepted_within_integrity_limits"
+            ),
             "warnings": garment_warnings,
             "mean_vertex_displacement_m": (
                 sum(displacements) / len(displacements) if displacements else 0.0
@@ -295,7 +380,7 @@ def main():
     report = {
         "stage": "xpbd_static_pose_garment_contact_and_deformation",
         "simulation_run": True,
-        "garment_deformation_applied": not no_measurable_correction,
+        "garment_deformation_applied": max_total_displacement > 1.0e-7,
         "body_geometry_deformed": False,
         "body_or_skin_hidden": False,
         "body_or_skin_deleted": False,
@@ -315,29 +400,32 @@ def main():
             "substeps": options.substeps,
             "iterations_per_substep": options.iterations,
             "fabric_thickness_m": options.thickness,
+            "max_accepted_vertex_displacement_m": options.max_displacement,
+            "maximum_edge_length_strain": 0.05,
+            "maximum_panel_triangle_area_strain": 0.15,
             "gravity": [0.0, 0.0, 0.0],
             "boundary_elasticity": "reinforced boundary-edge distance constraints",
             "body_response": "static rigid contact; compliant body deformation deferred"
         },
         "garments": report_rows,
         "max_vertex_displacement_m": max_total_displacement,
-        "diagnostic_displacement_limit_m": 1.0,
-        "displacement_limit_is_warning_only": True,
+        "max_attempted_vertex_displacement_m": max_attempted_displacement,
+        "diagnostic_displacement_limit_m": options.max_displacement,
+        "displacement_limit_is_hard_acceptance_gate": True,
         "exported_for_review": True,
         "fit_quality": (
-            "unchanged_no_correction" if no_measurable_correction
-            else "warning" if any(row["warnings"] for row in report_rows)
-            else "unassessed"
+            "skipped_unreliable_collision_geometry" if not collision_reliable
+            else "rejected_original_preserved" if any(not row["candidate_accepted"] for row in report_rows)
+            else "accepted_within_integrity_limits"
         ),
-        "warnings": (
-            ["Solver made no measurable correction; unchanged garment exported for diagnosis."]
-            if no_measurable_correction else []
-        ),
+        "warnings": [collision_skip_reason] if not collision_reliable else [],
         "remaining_penetration_count": total_contacts,
         "limitations": [
             "This is a static-pose garment relaxation, not animated runtime cloth.",
             "Body and piercing are triangle-BVH colliders; body soft-tissue deformation is not yet applied.",
-            "Boundary edges receive reinforced elastic constraints; garment-specific seam loops are not yet semantically tagged."
+            "Garment topology and vertex-neighbour relationships are immutable during fitting.",
+            "Whole-garment candidates are rejected and restored to their exact original shape if displacement, edge strain, or panel area limits are exceeded.",
+            "Body collision must be watertight before any signed-distance correction is allowed."
         ]
     }
     os.makedirs(os.path.dirname(os.path.abspath(options.report)), exist_ok=True)
