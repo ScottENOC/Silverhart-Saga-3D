@@ -110,6 +110,9 @@ static func _sync_story_events(journal: CampaignJournal, relationships: Persiste
 	var missing := _quest(journal, "reddale_missing_watch")
 	if String(missing.get("status", "")) == "completed":
 		relationships.record_event(CHARACTER_ID, "ilsa:missing_watch:resolved", {"familiarity": 2, "trust": 4, "friendship": 2})
+	var eyes := _quest(journal, "eyes_on_border")
+	if String(eyes.get("status", "")) == "completed":
+		relationships.record_event(CHARACTER_ID, "ilsa:eyes_on_border:resolved", {"familiarity": 2, "trust": 4, "friendship": 2})
 	var reyna := _quest(journal, "reyna_empty_blind")
 	if String(reyna.get("status", "")) == "completed":
 		var resolution := String(reyna.get("resolution", ""))
