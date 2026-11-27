@@ -4,12 +4,14 @@ const QUEST_SERVICE = preload("res://scripts/quests/campaign_quest_service.gd")
 const QUEST_REGISTRY = preload("res://scripts/quests/campaign_quest_registry.gd")
 const ABANDONED_HOUSE = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 const TOLL_TAKER = preload("res://scripts/simulation/toll_taker_quest_content.gd")
+const QUEST_DIALOGUE_DISPATCHER = preload("res://scripts/quests/campaign_quest_dialogue_dispatcher.gd")
 
 
 func _initialize() -> void:
 	_test_registry_registration()
 	_test_service_journal_facade()
 	_test_unconfigured_service_fails_safely()
+	_test_quest_dialogue_dispatcher()
 	print("Campaign quest service tests passed.")
 	quit(0)
 
@@ -40,6 +42,23 @@ func _test_service_journal_facade() -> void:
 	# The service must pass through journal validation rather than inventing
 	# objectives or silently accepting unknown quest state.
 	assert(bool(progress.get("ok", false)), "Known quest objectives should be updated through the service.")
+
+
+
+func _test_quest_dialogue_dispatcher() -> void:
+	var simulation := WorldSimulation.new()
+	var dispatched := QUEST_DIALOGUE_DISPATCHER.resolve_choice(
+		simulation,
+		{"id": "ironbond_courier_decline"}
+	)
+	assert(bool(dispatched.get("handled", false)), "Quest dialogue dispatcher should recognise authored quest choices.")
+	var result: Dictionary = dispatched.get("result", {})
+	assert(bool(result.get("ok", false)), "A valid decline choice should resolve through quest content.")
+	var dialogue: Dictionary = result.get("dialogue", {})
+	assert(String(dialogue.get("speaker", "")) == "Dray Coltayne")
+
+	var unrelated := QUEST_DIALOGUE_DISPATCHER.resolve_choice(simulation, {"id": "continue"})
+	assert(not bool(unrelated.get("handled", false)), "World-only choices should remain with the world scene.")
 
 
 func _test_unconfigured_service_fails_safely() -> void:
