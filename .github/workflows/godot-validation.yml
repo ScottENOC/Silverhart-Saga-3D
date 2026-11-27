@@ -119,6 +119,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_skill_tree_panel.gd
       - name: Run split campaign content tests
         run: godot --headless --path . --script res://tests/test_campaign_content.gd
+      - name: Run campaign quest service tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_quest_service.gd
       - name: Run Reddale innkeeper quest content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reddale_innkeeper_content.gd
       - name: Run Elder Marta locket quest content tests
