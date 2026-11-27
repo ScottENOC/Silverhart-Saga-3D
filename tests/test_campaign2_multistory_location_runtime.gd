@@ -2,6 +2,7 @@ extends SceneTree
 
 const SIMULATION = preload("res://scripts/simulation/world_simulation.gd")
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+const LOCATION_REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 
 var failures: int = 0
 
@@ -236,6 +237,9 @@ func _assert_exterior_entry_round_trip(
 		return
 	var contract: Dictionary = runtime.get_exterior_entry_contract()
 	_check(String(contract.get("door_id", "")) == expected_door_id, "%s must expose its source-authored door contract" % label)
+	var registry = LOCATION_REGISTRY.new()
+	var nearby: Dictionary = registry.find_exterior_entry_near(exterior_hex, 1)
+	_check(String(nearby.get("location_id", "")) == location_id, "%s exterior threshold must resolve to the correct location" % label)
 	var entry: Dictionary = runtime.enter_from_exterior(character_id)
 	_check(bool(entry.get("ok", false)), "%s threshold must allow entry" % label)
 	_check(player.axial == door_hex, "%s entry must place the player on its authored door hex" % label)
