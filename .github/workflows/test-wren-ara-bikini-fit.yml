@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/wren-ara.json >/dev/null
-          python -m py_compile tools/ara/assemble_modular_glb.py tools/ara/second_pass_garment_fit.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+          python -m py_compile tools/ara/assemble_modular_glb.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py tools/blender/prepare_wren_cloth_colliders.py
 
       - name: Install Blender and numerical dependencies
         run: |
@@ -232,6 +232,29 @@ jobs:
           }, indent=2))
           PY
 
+      - name: Prepare real body and piercing collision geometry for cloth fitting
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/prepare_wren_cloth_colliders.py -- \
+            --input build/wren-native/Wren_Ara_Bikini_Fit.glb \
+            --output-blend build/wren-native/Wren_Cloth_Collision_Setup.blend \
+            --report build/wren-native/cloth-collision-report.json
+          test -s build/wren-native/Wren_Cloth_Collision_Setup.blend
+          test -s build/wren-native/cloth-collision-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("build/wren-native/cloth-collision-report.json").read_text())
+          assert report["body_or_skin_hidden"] is False
+          assert report["body_or_skin_deleted"] is False
+          assert report["simulation_run"] is False
+          assert report["body_collider"]["faces"] >= 100
+          assert report["piercing_colliders"], "No real piercing collision meshes were prepared"
+          print("WREN_CLOTH_COLLIDER_VALIDATION_OK", len(report["piercing_colliders"]))
+          PY
+
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -305,12 +328,16 @@ jobs:
               "body_hair_rebuilt_for_final": False,
               "final_body_source": "unchanged accepted Wren GLB",
               "garment_source": "Ara native fitted complete gold-bikini outfit set, recoloured black",
+              "cloth_collision_setup": "tools/blender/prepare_wren_cloth_colliders.py",
+              "cloth_collision_report": "cloth-collision-report.json",
+              "cloth_simulation_run": False,
           }
           (root / "fit-provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
           with zipfile.ZipFile(root / "Wren_Ara_Bikini_Fit_Review.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               archive.write(root / "Wren_Ara_Bikini_Fit.glb", "Wren_Ara_Bikini_Fit.glb")
               archive.write(root / "fit-provenance.json", "fit-provenance.json")
               archive.write(root / "female-anatomy-report.json", "female-anatomy-report.json")
+              archive.write(root / "cloth-collision-report.json", "cloth-collision-report.json")
               archive.write(root / "accepted-baseline.sha256", "accepted-baseline.sha256")
               archive.write(root / "preview/render-report.json", "preview/render-report.json")
               for view in ("front", "side", "threequarter", "face", "pelvis"):
@@ -326,6 +353,8 @@ jobs:
             build/wren-native/Wren_Ara_Bikini_Fit_Review.zip
             build/wren-native/fit-provenance.json
             build/wren-native/female-anatomy-report.json
+            build/wren-native/cloth-collision-report.json
+            build/wren-native/Wren_Cloth_Collision_Setup.blend
             build/wren-native/preview/
           if-no-files-found: error
           retention-days: 30
