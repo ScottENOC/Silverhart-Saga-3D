@@ -127,6 +127,7 @@ func _test_hollowmere_campaign_content() -> void:
 
 	var opening := HollowmereCampaignContent.opening_lines()
 	_check(opening.size() == 3, "Opening dialogue should contain only the three character speech lines")
+	_check(HollowmereCampaignContent.opening_context().begins_with("The tavern door bangs open"), "Opening stage direction should be separate contextual text.")
 	_check(String(opening[0].get("speaker_id", "")) == "dray_coltayne")
 	_check(String(opening[1].get("speaker_id", "")) == "garrick_holt")
 
