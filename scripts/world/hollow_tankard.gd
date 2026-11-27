@@ -703,7 +703,7 @@ func _begin_dire_wolf_hunt_combat() -> void:
 	for value in simulation.get_party_member_ids():
 		party_ids.append(String(value))
 	var result := FARMSTEAD_DIRE_WOLF_SCRIPT.start(simulation, party_ids)
-	if not bool(result.get("ok", false)):
+	if result.has("ok") and not bool(result.get("ok", false)):
 		_show_dialogue("Reyna Fletcher", "We cannot face it just now: %s." % String(result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
