@@ -114,16 +114,42 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 		# hierarchy. Re-rooting the model for export can leave that path unresolved.
 		var source_skin := mesh_instance.skin
 		mesh_instance.skeleton = mesh_instance.get_path_to(export_skeleton)
-		# Reassign Skin through MeshInstance3D's setter after changing the path.
-		# Calling Skeleton3D.register_skin() alone creates a Skeleton SkinReference,
-		# but does not populate this MeshInstance3D's internal skin_ref used by bake.
-		mesh_instance.skin = null
-		mesh_instance.skin = source_skin
 		if mesh_instance.get_node_or_null(mesh_instance.skeleton) != export_skeleton:
 			print("ARA_BAKE_SKIP invalid_skeleton_path mesh=%s path=%s" % [mesh_instance.name, mesh_instance.skeleton])
 			continue
-		if mesh_instance.get_skin_reference() == null:
-			print("ARA_BAKE_SKIP skin_reference_missing mesh=%s path=%s" % [mesh_instance.name, mesh_instance.skeleton])
+		# A duplicated MeshInstance can retain a stale SkinReference whose object
+		# exists but whose RenderingServer skeleton RID has already been released.
+		# Give this export skeleton its own Skin resource and let the MeshInstance3D
+		# setter rebuild its internal SkinReference from the new resource.
+		var export_skin := source_skin.duplicate() as Skin
+		if export_skin == null:
+			print("ARA_BAKE_SKIP skin_duplicate_failed mesh=%s" % mesh_instance.name)
+			continue
+		mesh_instance.skin = export_skin
+		await process_frame
+		var skin_ref := mesh_instance.get_skin_reference()
+		var skeleton_rid := skin_ref.get_skeleton() if skin_ref != null else RID()
+		var rid_valid := skeleton_rid.is_valid()
+		var skin_matches := skin_ref != null and skin_ref.get_skin() == mesh_instance.skin
+		print("ARA_SKIN_BIND mesh=%s ref=%s rid_valid=%s skin_matches=%s path=%s" % [
+			mesh_instance.name, skin_ref != null, rid_valid, skin_matches, mesh_instance.skeleton
+		])
+		if not rid_valid:
+			# Explicit registration is a fallback only after recording the setter's
+			# result. Reassign once so MeshInstance3D resolves the registered Skin.
+			var registered_ref := export_skeleton.register_skin(export_skin)
+			print("ARA_SKIN_REGISTER mesh=%s ref=%s" % [mesh_instance.name, registered_ref != null])
+			mesh_instance.skin = export_skin
+			await process_frame
+			skin_ref = mesh_instance.get_skin_reference()
+			skeleton_rid = skin_ref.get_skeleton() if skin_ref != null else RID()
+			rid_valid = skeleton_rid.is_valid()
+			skin_matches = skin_ref != null and skin_ref.get_skin() == mesh_instance.skin
+			print("ARA_SKIN_BIND_RETRY mesh=%s ref=%s rid_valid=%s skin_matches=%s" % [
+				mesh_instance.name, skin_ref != null, rid_valid, skin_matches
+			])
+		if not rid_valid or not skin_matches:
+			print("ARA_BAKE_SKIP invalid_skin_binding mesh=%s" % mesh_instance.name)
 			continue
 		var source_mesh := mesh_instance.mesh
 		print("ARA_BAKE_START index=%d/%d name=%s surfaces=%d skeleton_path=%s" % [
