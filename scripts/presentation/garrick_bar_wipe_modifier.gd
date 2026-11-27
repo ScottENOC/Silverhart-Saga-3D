@@ -22,6 +22,7 @@ var selected_side: StringName = &""
 var _solver := ArmPoseSolver.new()
 var _elapsed_s: float = 0.0
 var _last_swivel_deg: float = 0.0
+var _arm_selection_attempted: bool = false
 var _warned_unreachable: bool = false
 
 
@@ -32,6 +33,7 @@ func configure(start_world: Vector3, end_world: Vector3, hand_world: Vector3 = V
 	wipe_period_s = maxf(0.5, period_s)
 	_elapsed_s = 0.0
 	selected_side = &""
+	_arm_selection_attempted = false
 	last_status = "waiting"
 	last_tip_error_m = -1.0
 
@@ -51,8 +53,9 @@ func _process_modification_with_delta(delta: float) -> void:
 	var target_local: Vector3 = skeleton_from_world * last_target_world
 	var hand_direction_local := (skeleton.global_transform.basis.inverse() * hand_direction_world).normalized()
 
-	if selected_side == &"":
-		_select_arm(skeleton, target_local, hand_direction_local)
+	if not _arm_selection_attempted:
+		_arm_selection_attempted = true
+		_select_arm(skeleton, hand_direction_local)
 	if selected_side == &"":
 		return
 
@@ -60,7 +63,7 @@ func _process_modification_with_delta(delta: float) -> void:
 	if rig == null:
 		last_status = "selected arm rig unavailable"
 		return
-	var pose: Dictionary = _solver.solve(rig, target_local, hand_direction_local, [], _last_swivel_deg)
+	var pose: Dictionary = _solver.solve(rig, target_local, hand_direction_local, [], _last_swivel_deg, 10.0)
 	if not bool(pose.get("valid", false)):
 		last_status = "wipe target unreachable: %s" % str(pose.get("reasons", []))
 		return
@@ -76,7 +79,7 @@ func _process_modification_with_delta(delta: float) -> void:
 	last_status = "bar wipe active"
 
 
-func _select_arm(skeleton: Skeleton3D, current_target: Vector3, hand_direction: Vector3) -> void:
+func _select_arm(skeleton: Skeleton3D, hand_direction: Vector3) -> void:
 	var skeleton_from_world := skeleton.global_transform.affine_inverse()
 	var start_local: Vector3 = skeleton_from_world * wipe_start_world
 	var end_local: Vector3 = skeleton_from_world * wipe_end_world
@@ -86,10 +89,10 @@ func _select_arm(skeleton: Skeleton3D, current_target: Vector3, hand_direction: 
 		var rig := ArmRigBuilder.from_skeleton(skeleton, candidate_side)
 		if rig == null:
 			continue
-		var first: Dictionary = _solver.solve(rig, start_local, hand_direction, [])
+		var first: Dictionary = _solver.solve(rig, start_local, hand_direction, [], 0.0, 10.0)
 		if not bool(first.get("valid", false)):
 			continue
-		var second: Dictionary = _solver.solve(rig, end_local, hand_direction, [], float(first.get("swivel_deg", 0.0)))
+		var second: Dictionary = _solver.solve(rig, end_local, hand_direction, [], float(first.get("swivel_deg", 0.0)), 10.0)
 		if not bool(second.get("valid", false)):
 			continue
 		var score := minf(float(first.get("min_clearance_m", -INF)), float(second.get("min_clearance_m", -INF)))
