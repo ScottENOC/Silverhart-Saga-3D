@@ -2613,6 +2613,11 @@
         "r": -482
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace towerRegion, towerBuilding, studyFloor and observatoryFloor",
+      "exterior_entry": {
+        "door_id": "wizard_tower_door",
+        "exterior_hex": { "q": -7, "r": -485 },
+        "return_hex": { "q": -7, "r": -485 }
+      },
       "floors": [
         {
           "floor": 0,
