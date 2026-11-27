@@ -35,6 +35,7 @@ const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_player_movement_controller.gd")
 const MULTISTORY_LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+const LOCATION_REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 const TUNNEL_NETWORK = preload("res://scripts/world/campaign2_tunnel_network.gd")
 const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_interaction_service.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
@@ -3166,7 +3167,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_F:
-			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door() and not _interact_with_chapel_locket():
+			if not _interact_with_multistory_tunnels() and not _interact_with_multistory_location_entries() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door() and not _interact_with_chapel_locket():
 				_interact_with_nearest_npc()
 			get_viewport().set_input_as_handled()
 			return
@@ -3519,6 +3520,44 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 	if action == "tunnel_return":
 		arrival_text = "You emerge through the concealed surface passage."
 	_show_dialogue("Tunnel Junction", arrival_text, [{"id": "continue", "label": "Continue", "text": ""}])
+
+## Generic single-floor entrance/return handling. Site coordinates and door IDs
+## come from the shared source-authored location registry, not this controller.
+func _interact_with_multistory_location_entries() -> bool:
+	var player_state := simulation.get_character(active_character_id)
+	if player_state == null:
+		return false
+	if is_instance_valid(active_multistory_runtime):
+		var exit_result: Dictionary = active_multistory_runtime.exit_to_exterior(active_character_id)
+		if bool(exit_result.get("ok", false)):
+			active_multistory_runtime = null
+			var actor := actor_by_id.get(active_character_id) as Node3D
+			if camera_rig != null:
+				camera_rig.follow_target = actor
+			if movement_controller != null:
+				movement_controller.clear_path()
+			return true
+	var registry := LOCATION_REGISTRY.new()
+	var nearby: Dictionary = registry.find_exterior_entry_near(player_state.axial, 1)
+	if nearby.is_empty():
+		return false
+	var location_id := String(nearby.get("location_id", ""))
+	var entered: Dictionary = enter_multistory_location(location_id)
+	if not bool(entered.get("ok", false)) or not is_instance_valid(active_multistory_runtime):
+		_show_dialogue("Entrance", "You cannot enter that place just now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return true
+	var result: Dictionary = active_multistory_runtime.enter_from_exterior(active_character_id)
+	if not bool(result.get("ok", false)):
+		active_multistory_runtime.set_location_active(false)
+		active_multistory_runtime = null
+		_show_dialogue("Entrance", "You cannot enter that place: %s." % String(result.get("reason", "entry_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		return true
+	var player_actor := actor_by_id.get(active_character_id) as Node3D
+	if camera_rig != null:
+		camera_rig.follow_target = player_actor
+	if movement_controller != null:
+		movement_controller.clear_path()
+	return true
 
 func _interact_with_tavern_stairs() -> bool:
 	var state := simulation.get_character(active_character_id)
