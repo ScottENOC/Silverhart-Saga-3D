@@ -236,9 +236,10 @@ jobs:
         run: |
           set -euo pipefail
           preview=build/wren-native-preview-project
-          mkdir -p "$preview/build/wren-native" "$preview/tools/review"
+          mkdir -p "$preview/build/wren-native" "$preview/tools/review" "$preview/scripts/presentation"
           cp build/wren-native/Wren_Ara_Bikini_Fit.glb "$preview/build/wren-native/Wren.glb"
           cp tools/review/wren_native_preview.gd "$preview/tools/review/wren_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
           cat > "$preview/project.godot" <<'EOF'
           ; Isolated preview project: no game scenes, scripts, or autoloads.
           config_version=5
