@@ -264,10 +264,10 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/extract_wren_garment_surfaces.py -- \\
-            --input-blend build/wren-native/Wren_Cloth_Collision_Setup.blend \\
-            --output-blend build/wren-native/Wren_Garment_Extraction.blend \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/extract_wren_garment_surfaces.py -- \
+            --input-blend build/wren-native/Wren_Cloth_Collision_Setup.blend \
+            --output-blend build/wren-native/Wren_Garment_Extraction.blend \
             --report build/wren-native/garment-extraction-report.json
           test -s build/wren-native/Wren_Garment_Extraction.blend
           python - <<'PY'
