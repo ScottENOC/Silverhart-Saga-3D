@@ -35,17 +35,15 @@ func begin(
 	if not is_inside_tree() or _resolved(is_shakedown_resolved):
 		return
 	shakedown_started.emit()
+	if move_soldiers_inside.is_valid():
+		await move_soldiers_inside.call()
 	for line_value in CONTENT.opening_lines():
 		if not is_inside_tree():
 			return
 		var line: Dictionary = line_value
 		var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
-		if speaker_id == "narrator":
-			if move_soldiers_inside.is_valid():
-				await move_soldiers_inside.call()
-		else:
-			if present_ambient.is_valid():
-				present_ambient.call(speaker_id, String(line.get("text", "")))
+		if present_ambient.is_valid():
+			present_ambient.call(speaker_id, String(line.get("text", "")))
 		await get_tree().create_timer(line_pause_seconds).timeout
 	if not is_inside_tree() or _resolved(is_shakedown_resolved):
 		return
