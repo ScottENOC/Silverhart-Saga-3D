@@ -57,6 +57,14 @@ func _test_quest_dialogue_dispatcher() -> void:
 	var dialogue: Dictionary = result.get("dialogue", {})
 	assert(String(dialogue.get("speaker", "")) == "Dray Coltayne")
 
+	var farm_choice := QUEST_DIALOGUE_DISPATCHER.resolve_choice(
+		simulation,
+		{"id": "farm_wolves_continue", "text": "I will keep watch."}
+	)
+	assert(bool(farm_choice.get("handled", false)), "Farm dialogue choices should be handled by the dispatcher.")
+	var farm_result: Dictionary = farm_choice.get("result", {})
+	assert(farm_result.has("dialogue"), "Farm quest content returns dialogue without an ok flag.")
+
 	var unrelated := QUEST_DIALOGUE_DISPATCHER.resolve_choice(simulation, {"id": "continue"})
 	assert(not bool(unrelated.get("handled", false)), "World-only choices should remain with the world scene.")
 
