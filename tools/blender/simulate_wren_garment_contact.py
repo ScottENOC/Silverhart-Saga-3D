@@ -301,20 +301,12 @@ def main():
                 normal += a.cross(b)
             return normal.normalized() if normal.length_squared > 1.0e-16 else normal
 
-        def polygon_area(points, polygon):
-            return polygon_normal(points, polygon).length * 0.5 * sum(
-                (Vector(points[polygon.vertices[i]]) - Vector(points[polygon.vertices[0]])).length
-                for i in range(1, len(polygon.vertices) - 1)
-            ) if len(polygon.vertices) >= 3 else 0.0
-
         candidate_world = [Vector(particle.position) for particle in particles]
         face_area_strains = []
         face_normal_dots = []
         for polygon in garment.data.polygons:
             rest_normal = polygon_normal(before, polygon)
             current_normal = polygon_normal(candidate_world, polygon)
-            rest_area = polygon.area
-            current_area = polygon.area
             # Evaluate geometry in world space, including deformation.
             rest_area = 0.0
             current_area = 0.0
