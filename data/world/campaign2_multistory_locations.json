@@ -13,8 +13,14 @@
       "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
       "exterior_entry": {
         "door_id": "hollowmere_chapel_east_door",
-        "exterior_hex": {"q": -10, "r": 0},
-        "return_hex": {"q": -10, "r": 0}
+        "exterior_hex": {
+          "q": -10,
+          "r": 0
+        },
+        "return_hex": {
+          "q": -10,
+          "r": 0
+        }
       },
       "floors": [
         {
@@ -435,7 +441,18 @@
       "source_notes": [
         "Oskar's house is centred at (-6,9), uses carveBuilding half-width 2 and half-height 2, and has an east entrance at (-4,9).",
         "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "oskar_house_east_door",
+        "exterior_hex": {
+          "q": -3,
+          "r": 9
+        },
+        "return_hex": {
+          "q": -3,
+          "r": 9
+        }
+      }
     },
     {
       "id": "hollowmere_guild_den",
