@@ -134,6 +134,20 @@ func _test_ambient_dialogue_presenter() -> void:
 	await process_frame
 	assert(not is_instance_valid(bubble), "Ambient bubble expires after its real-time timer")
 
+	var second_actor := Node3D.new()
+	root.add_child(second_actor)
+	var exchange := await presenter.present_exchange(
+		[
+			{"speaker_id":"first","text":"The watch is quiet."},
+			{"speaker_id":"second","text":"Then let us keep it that way."}
+		],
+		{"first":actor,"second":second_actor},
+		0.08
+	)
+	assert(bool(exchange.get("ok", false)), "Multi-speaker banter remains a sequential ambient exchange")
+	assert(exchange.get("lines_presented", []).size() == 2)
+	assert(second_actor.get_children().any(func(child: Node) -> bool: return child is Label3D and child.is_in_group("campaign_ambient_dialogue_bubble")))
+	second_actor.queue_free()
 	actor.queue_free()
 	presenter.queue_free()
 	await process_frame
