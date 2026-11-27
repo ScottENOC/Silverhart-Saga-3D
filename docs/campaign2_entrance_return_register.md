@@ -4,7 +4,7 @@
 **Target:** `ScottENOC/Silverhart-Saga-3D`, `dev` snapshot used for this register  
 **Scope:** spatial entrance coordinates, floor transitions, reciprocal return routes, hidden passage locations, and the physical doorway/stair representation. Quest requirements, discovery checks, dialogue and travel-menu UX are noted only where they determine whether a spatial connection can be used; their wider mechanics remain in the campaign/mechanics audits.
 
-This is a source-to-target register, not a claim that every entry has passed in-engine visual acceptance. Coordinates in the manifest are local axial `(q,r)`; door/stair positions are world axial positions as recorded by the floor manifest.
+This is a source-to-target register for spatial entry/return contracts. Coordinates in the manifest are local axial `(q,r)`; door/stair positions are world axial positions as recorded by the floor manifest. Engine visual acceptance is general QA and is not counted as missing map content.
 
 ## Snapshot totals
 
@@ -48,7 +48,7 @@ The manifest contains **nine location records with multiple floors**: the seven 
 
 ## Single-floor entries and interior doorways
 
-There are **62 single-floor location records**. Their interior door coordinates and IDs are listed in the full register below. A door object is evidence of a placed aperture, not proof that the exterior approach, interaction, return-to-world action or collision opening is implemented. `Campaign2LocationLoader.load_multistory_location()` loads an interior runtime but does not provide a general mapping from an exterior building threshold into that runtime or a return-to-exterior anchor. The Guild tunnel network is a specialised exception with its own entry/return methods; it does not solve ordinary house, shop, keep, cave or mine entry. This is the main remaining gap in item 5.
+There are **62 single-floor location records**. Their interior door coordinates and IDs are listed in the full register below. A door object is evidence of a placed aperture, not proof that the exterior approach, interaction, return-to-world action or collision opening is implemented. PR #465 introduces a generic `exterior_entry` contract in the shared location registry/runtime and wires it to the F-key interaction path. Hollowmere Chapel is the first registered site. The other 61 single-floor records still need individually source-grounded exterior threshold and return coordinates; do not infer them from door orientation alone. The Guild tunnel network remains a specialised cross-location route.
 
 - **Barrow of Corvin Ashgrave** and **Vessel-Seeker's Crypt** are single-floor multi-room layouts. Their several door objects are internal room/ossuary/ritual openings as well as the exterior entry; do not count each internal doorway as a separate world transition.
 - **Northwatch Keep** and **Ridgehold Keep** each have a keep entry door. Their exterior fort gates and approaches are owned by the regional fort/map presentation, not this interior-floor manifest.
@@ -61,7 +61,7 @@ There are **62 single-floor location records**. Their interior door coordinates 
 
 | Location ID | Anchor | Floors | Doors / passages (floor: ID, coordinate, type) | Explicit stairs (floor: ID, coordinate) | Directed transitions |
 |---|---|---|---|---|---|
-| `hollowmere_chapel` | (-14, 0) | 0 | 0: hollowmere_chapel_east_door (-11, 0) [door_open] | — | — |
+| `hollowmere_chapel` | (-14, 0) | 0 | 0: hollowmere_chapel_east_door (-11, 0) [door_open]; exterior threshold/return (-10, 0) | — | — |
 | `hollowmere_general_store` | (0, 18) | 0 | 0: hollowmere_general_store_north_door (0, 15) [door_open] | — | — |
 | `hollowmere_house` | (0, -12) | 0 | 0: hollowmere_house_south_door (0, -10) [door_open] | — | — |
 | `hollowmere_store` | (14, 0) | 0 | 0: hollowmere_store_west_door (10, 0) [door_open] | — | — |
@@ -133,15 +133,13 @@ There are **62 single-floor location records**. Their interior door coordinates 
 | `silverhart_outlying_house_2` | (48, -546) | 0 | 0: silverhart_outlying_house_2_south_door (48, -544) [door_open] | — | — |
 | `silverhart_outlying_house_3` | (-32, -476) | 0 | 0: silverhart_outlying_house_3_east_door (-30, -476) [door_open] | — | — |
 
-## Next verification tasks
+## Remaining implementation tasks
 
-1. **Complete ordinary single-floor exterior entry and return contracts.** The 62 single-floor locations have registered interior doors, but the generic loader has no exterior-threshold-to-interior entry/return adapter. For each applicable site, record the exterior approach/threshold, destination location ID, interior door cell, return anchor and door-state exception; implement and test the common runtime contract. Do not treat the Guild tunnel special case as general building support.
-2. **Manually verify all 16 reciprocal multi-floor links in-game.** Automated PR #415 checks reciprocity, shared shaft coordinates and generated stair presentation. Walk each shaft in both directions and confirm player axial position, floor elevation, floor visibility and actor/map restoration.
-3. **Reconcile the Silverhart Palace rear door.** Confirm whether the Queen's Chambers door connects to a separately registered room/site, an adjoining room on the same floor, or a deliberate non-traversable set piece.
-4. **Verify the Thieves' Guild hidden vault secret door.** The Guild is a single-floor location; confirm generic secret-door discovery, hidden-room reveal, save/restore and return behaviour rather than assuming multi-story support covers it.
-5. **Complete visual acceptance of the entrance register.** Review in-engine captures for representative houses, shops, keeps, mine/cave entrances and the three tunnel nodes. Record any door apertures or approach/return placements that do not match the spatial register.
+1. **Register the remaining 61 single-floor exterior contracts.** For each location, identify the source-grounded exterior interaction hex and return hex, reference its correct floor-zero door ID, and add the contract to the location manifest. Do not guess approach coordinates from door orientation when the source map or building footprint does not establish them.
+2. **Resolve the Silverhart Palace rear door.** Determine whether the Queen's Chambers door connects to a separately registered room/site, an adjoining room on the same floor, or a deliberate non-traversable set piece. Add a destination only when supported by source spatial data.
+3. **Wire the Guild hidden vault door into the generic single-floor entry/secret-door interaction path.** Its secret-door record and hidden-room dependency exist; the generic interaction must support the single-floor location as well as multi-story stacks.
 
-Automated reciprocal-stair, tunnel-topology and wall chunk-boundary coverage has been added in PRs #415 and #416. PR #419 adds the source-road traversability check alongside the Skarn-tooth Camp fix; it remains pending validation.
+Generic engine verification, in-engine visual review and manual walking of all 16 reciprocal multi-floor links remain QA, not outstanding map-port content.
 
 ## Evidence reviewed
 
@@ -157,4 +155,4 @@ This register intentionally records current evidence and unresolved spatial cont
 - PR #408 merged the three-node Thieves' Guild tunnel network. Palace and city secret passages are searchable from an adjacent hex, revealed passages transfer to their matching underground stub, and each junction offers the other two stubs. The wilderness cave retains its two-stage surface-to-cave-to-tunnel stair chain.
 - PR #415 merged reciprocal multi-floor transition and stair-presentation tests. PR #416 merged streamed wall chunk-boundary continuity tests.
 - The 71 location / 89 floor snapshot contains 62 single-floor locations and nine multi-floor location records. Seven are ordinary multi-floor stacks; the other two are the palace and city tunnel stubs.
-- This is not a claim of complete exterior/interior entry parity. The ordinary single-floor entry/return adapter remains unimplemented; only the specialised Guild tunnel route has explicit cross-location entry and return methods.
+- PR #465 adds the generic exterior-entry/return runtime contract and registers Hollowmere Chapel as the first implementation. The remaining 61 single-floor locations still need source-grounded contract records. The specialised Guild tunnel route remains separate.

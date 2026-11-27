@@ -11,6 +11,11 @@
         "r": 0
       },
       "source": "Hex-crpg/campaign2World.js:setupVillageScene; source-authored Hollowmere building footprint",
+      "exterior_entry": {
+        "door_id": "hollowmere_chapel_east_door",
+        "exterior_hex": {"q": -10, "r": 0},
+        "return_hex": {"q": -10, "r": 0}
+      },
       "floors": [
         {
           "floor": 0,
