@@ -59,7 +59,7 @@ def main():
     skin_faces = [tuple(poly.vertices) for poly in mesh.polygons if poly.material_index in skin_indices and len(poly.vertices) >= 3]
     if not skin_faces:
         raise RuntimeError("No skin polygons available for garment collision")
-    tree = BVHTree.FromPolygons(world_vertices, skin_faces, all_triangles=True)
+    tree = BVHTree.FromPolygons(world_vertices, skin_faces)
 
     bottom_polygons = [poly for poly in mesh.polygons if poly.material_index in bottom_indices]
     bottom_vertices = sorted({index for poly in bottom_polygons for index in poly.vertices})
