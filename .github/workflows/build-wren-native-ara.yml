@@ -31,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-wren-native-ara
+  group: build-wren-native-ara-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
