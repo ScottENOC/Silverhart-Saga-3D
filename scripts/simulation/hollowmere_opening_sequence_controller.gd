@@ -16,19 +16,22 @@ func begin(
 	present_ambient: Callable,
 	move_soldiers_inside: Callable,
 	present_interactive: Callable,
-	is_shakedown_resolved: Callable
+	is_shakedown_resolved: Callable,
+	initial_pause_seconds: float = 2.0,
+	arrival_pause_seconds: float = 6.0,
+	line_pause_seconds: float = 2.25
 ) -> void:
 	if _running or player_race in ["goblin", "orc"]:
 		return
 	_running = true
 	if start_quest.is_valid():
 		start_quest.call()
-	await get_tree().create_timer(2.0).timeout
+	await get_tree().create_timer(initial_pause_seconds).timeout
 	if not is_inside_tree():
 		return
 	if present_ambient.is_valid():
 		present_ambient.call("companion_wren_talbot", "Well, here we are then. Try not to get us both killed, yeah?")
-	await get_tree().create_timer(6.0).timeout
+	await get_tree().create_timer(arrival_pause_seconds).timeout
 	if not is_inside_tree() or _resolved(is_shakedown_resolved):
 		return
 	shakedown_started.emit()
@@ -43,7 +46,7 @@ func begin(
 		else:
 			if present_ambient.is_valid():
 				present_ambient.call(speaker_id, String(line.get("text", "")))
-		await get_tree().create_timer(2.25).timeout
+		await get_tree().create_timer(line_pause_seconds).timeout
 	if not is_inside_tree() or _resolved(is_shakedown_resolved):
 		return
 	if present_interactive.is_valid():
