@@ -11,6 +11,7 @@ const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_re
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
@@ -78,6 +79,7 @@ const ROOM_HALF_WIDTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_WIDTH
 const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 
 var simulation: WorldSimulation
+var campaign_quest_service: CampaignQuestService
 var world_cell_loader: Campaign2WorldCellLoader
 var multistory_runtime_by_location: Dictionary = {}
 var active_multistory_runtime: Campaign2MultiStoryLocationRuntime
@@ -167,7 +169,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
-	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
+	_configure_campaign_quest_service()
 	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
@@ -186,13 +188,6 @@ func _ready() -> void:
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
-	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
-	TOLL_TAKER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	CORVANE_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		var saved_multistory_location := String(pending_save_data.get("active_multistory_location_id", ""))
@@ -219,6 +214,18 @@ func _ready() -> void:
 		if save_manager != null:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
+
+
+func _configure_campaign_quest_service() -> void:
+	campaign_quest_service = CAMPAIGN_QUEST_SERVICE_SCRIPT.new() as CampaignQuestService
+	var configured: Dictionary = campaign_quest_service.configure(simulation)
+	if not bool(configured.get("ok", false)):
+		push_error("Campaign quest service could not be configured: %s" % configured)
+		return
+	var registration: Dictionary = campaign_quest_service.register_definitions()
+	if not bool(registration.get("ok", false)):
+		push_error("Campaign quest definitions could not be registered: %s" % registration)
+
 
 func _initialise_companion_relationship_context() -> void:
 	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
