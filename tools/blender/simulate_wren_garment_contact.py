@@ -151,12 +151,35 @@ def main():
         particles = [Particle.at(tuple(point), 1.0) for point in original_world]
         edge_constraints = []
         boundary_vertices = set()
+        material_labels = " ".join(
+            [garment.name] + list(garment.get("cloth_source_materials", []))
+        ).lower()
+        is_cord = any(token in material_labels for token in ("string", "cord", "strap"))
+        edge_compliance = 1.0e-10 if is_cord else 1.0e-8
+        edge_stiffness = 0.998 if is_cord else 0.96
         for edge in garment.data.edges:
             a, b = edge.vertices
             rest = (original_world[a] - original_world[b]).length
             edge_constraints.append(DistanceConstraint(
-                a, b, rest, compliance=1.0e-8, stiffness=0.92
+                a, b, rest, compliance=edge_compliance, stiffness=edge_stiffness
             ))
+
+        # Cord meshes are tube-like surfaces, not fabric sheets. In addition
+        # to preserving their perimeter edges, preserve each polygon's
+        # diagonals so quad cross-sections cannot shear flat during contact.
+        cord_shape_constraints = 0
+        if is_cord:
+            for polygon in garment.data.polygons:
+                vertices = list(polygon.vertices)
+                if len(vertices) < 4:
+                    continue
+                for offset in range(2, len(vertices) - 1):
+                    a, b = vertices[0], vertices[offset]
+                    rest = (original_world[a] - original_world[b]).length
+                    edge_constraints.append(DistanceConstraint(
+                        a, b, rest, compliance=1.0e-11, stiffness=0.999
+                    ))
+                    cord_shape_constraints += 1
         edge_use = {}
         for polygon in garment.data.polygons:
             for key in polygon.edge_keys:
@@ -167,7 +190,9 @@ def main():
                 boundary_vertices.update((a, b))
                 rest = (original_world[a] - original_world[b]).length
                 edge_constraints.append(DistanceConstraint(
-                    a, b, rest, compliance=2.0e-9, stiffness=0.995
+                    a, b, rest,
+                    compliance=1.0e-11 if is_cord else 2.0e-9,
+                    stiffness=0.999 if is_cord else 0.995
                 ))
 
         initial_penetrations = []
@@ -227,6 +252,12 @@ def main():
             "vertices": len(particles),
             "faces": len(garment.data.polygons),
             "boundary_vertices": len(boundary_vertices),
+            "garment_kind": "cord" if is_cord else "fabric",
+            "cord_shape_constraints": cord_shape_constraints,
+            "cord_cross_section_policy": (
+                "preserve perimeter edges and polygon diagonals"
+                if is_cord else "not applicable"
+            ),
             "structural_constraints": len(edge_constraints),
             "max_vertex_displacement_m": max_displacement,
             "mean_vertex_displacement_m": (
