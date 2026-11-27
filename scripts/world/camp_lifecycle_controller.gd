@@ -38,11 +38,13 @@ func sync_sleep_button_state() -> void:
 	if sleep_button == null or simulation == null:
 		return
 	var phase := simulation.camp_simulation.phase
-	sleep_button.visible = phase in ["evening", "interrupted", "morning", "resolved"]
+	sleep_button.visible = phase in ["evening", "night", "interrupted", "morning", "resolved"]
 	sleep_button.disabled = phase == "morning"
 	match phase:
 		"evening":
 			sleep_button.text = "Sleep until morning"
+		"night":
+			sleep_button.text = "Pack camp"
 		"interrupted":
 			sleep_button.text = "Continue sleeping"
 		"morning":
