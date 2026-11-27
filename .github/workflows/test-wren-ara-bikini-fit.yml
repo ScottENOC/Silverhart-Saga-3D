@@ -394,7 +394,7 @@ jobs:
                       }
                   }
               },
-              "adult_anatomy": "tools/blender/add_female_anatomy_surface.py --adult --deformation-scale 1.65",
+              "adult_anatomy": "already integrated in the accepted Wren GLB; Ara fitting reference intentionally remains anatomy-free",
               "body_or_skin_hidden": False,
               "body_or_skin_deleted": False,
               "body_rebuilt_for_final": False,
@@ -411,7 +411,6 @@ jobs:
           with zipfile.ZipFile(root / "Wren_Ara_Bikini_Fit_Review.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               archive.write(root / "Wren_Ara_Bikini_Fit.glb", "Wren_Ara_Bikini_Fit.glb")
               archive.write(root / "fit-provenance.json", "fit-provenance.json")
-              archive.write(root / "female-anatomy-report.json", "female-anatomy-report.json")
               archive.write(root / "cloth-collision-report.json", "cloth-collision-report.json")
               archive.write(root / "cloth-simulation-report.json", "cloth-simulation-report.json")
               archive.write(root / "Wren_Ara_Bikini_Fit_Simulated.glb", "Wren_Ara_Bikini_Fit_Simulated.glb")
@@ -427,9 +426,9 @@ jobs:
           name: wren-ara-bikini-fit-review-${{ github.run_number }}
           path: |
             build/wren-native/Wren_Ara_Bikini_Fit.glb
+            build/wren-native/Wren_Ara_Bikini_Fit_Simulated.glb
             build/wren-native/Wren_Ara_Bikini_Fit_Review.zip
             build/wren-native/fit-provenance.json
-            build/wren-native/female-anatomy-report.json
             build/wren-native/cloth-collision-report.json
             build/wren-native/Wren_Cloth_Collision_Setup.blend
             build/wren-native/preview/
