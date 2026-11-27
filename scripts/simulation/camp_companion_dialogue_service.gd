@@ -244,6 +244,63 @@ const PROFILES := {
 	}
 }
 
+
+## Pair-specific evening banter adds shared context without replacing the broader
+## character profiles. Topics not listed here continue to use the general lines.
+const EVENING_PAIR_DIALOGUE := {
+	"brother_alden|dagna": {
+		"work": [
+			{"speaker_id": "brother_alden", "text": "You make even washing a cup look like part of a careful ritual."},
+			{"speaker_id": "dagna", "text": "And you make every task sound like a lesson. Between us, perhaps the dishes will become very wise."}
+		],
+		"home": [
+			{"speaker_id": "dagna", "text": "Do you miss the monastery tonight, Alden?"},
+			{"speaker_id": "brother_alden", "text": "I miss the quiet sometimes. I find I value the company more than I expected."}
+		]
+	},
+	"fenn_oakheart|mirabel_quill": {
+		"road": [
+			{"speaker_id": "mirabel_quill", "text": "The old road bends east on the map, but the ground suggests it once continued north."},
+			{"speaker_id": "fenn_oakheart", "text": "Then trust the ground when we reach it. A map remembers what someone saw; the land remembers what happened."}
+		],
+		"work": [
+			{"speaker_id": "fenn_oakheart", "text": "You have been drying those pages by the edge of the fire. Keep them farther back."},
+			{"speaker_id": "mirabel_quill", "text": "I know. I am balancing the needs of scholarship against the needs of not setting my notes alight."}
+		]
+	},
+	"nix_sharpear|snik_fangtooth": {
+		"road": [
+			{"speaker_id": "nix_sharpear", "text": "You walk like you're trying to leave footprints in every patch of mud."},
+			{"speaker_id": "snik_fangtooth", "text": "And you walk like you're apologising to the ground. Nobody learns anything from footprints that small."}
+		],
+		"danger": [
+			{"speaker_id": "snik_fangtooth", "text": "If something comes through the dark, I'll shout first."},
+			{"speaker_id": "nix_sharpear", "text": "That's generous. I was hoping you'd shout and run in the opposite direction."}
+		]
+	},
+	"reyna_fletcher|ser_aldric_thorne": {
+		"work": [
+			{"speaker_id": "reyna_fletcher", "text": "You keep checking the straps after everyone else has finished. Expecting trouble?"},
+			{"speaker_id": "ser_aldric_thorne", "text": "Expecting nothing is how trouble gets invited. A second look costs little."}
+		],
+		"danger": [
+			{"speaker_id": "ser_aldric_thorne", "text": "You held the eastern side without being asked. That gave the others room to fall back."},
+			{"speaker_id": "reyna_fletcher", "text": "I saw the gap. You would have done the same. No need to make a ceremony of it."}
+		]
+	},
+	"ser_aldric_thorne|wren_talbot": {
+		"home": [
+			{"speaker_id": "wren_talbot", "text": "You speak of duty as if it is a place you can return to."},
+			{"speaker_id": "ser_aldric_thorne", "text": "Perhaps it is. Or perhaps it is the people who notice when you have been gone too long."}
+		],
+		"danger": [
+			{"speaker_id": "wren_talbot", "text": "You don't have to be the one standing between everyone else and danger every time."},
+			{"speaker_id": "ser_aldric_thorne", "text": "I know. I am learning that knowing it and acting on it are different matters."}
+		]
+	}
+}
+
+
 static func canonical_id(character_id: String) -> String:
 	var canonical := character_id.trim_prefix("companion_")
 	# The campaign spawn ID is shorter than the canonical content key.
@@ -277,6 +334,33 @@ static func build_exchange(
 	var second_profile: Dictionary = PROFILES[second_key]
 	var first_bond := bonds.snapshot(first_id, second_id) if bonds != null else {}
 	var second_bond := bonds.snapshot(second_id, first_id) if bonds != null else {}
+	var pair_key := first_key + "|" + second_key if first_key < second_key else second_key + "|" + first_key
+	var authored_pair: Dictionary = EVENING_PAIR_DIALOGUE.get(pair_key, {})
+	var authored_lines: Array = authored_pair.get(topic, [])
+	if authored_lines.size() == 2:
+		var pair_lines: Array[Dictionary] = []
+		for line_value in authored_lines:
+			var authored_line: Dictionary = line_value
+			var speaker_key := String(authored_line.get("speaker_id", ""))
+			var speaker_id := first_id if speaker_key == first_key else second_id
+			var speaker_name := first_name if speaker_id == first_id else second_name
+			pair_lines.append({
+				"character_id": speaker_id,
+				"speaker": speaker_name,
+				"text": String(authored_line.get("text", ""))
+			})
+		return {
+			"kind": "pair_banter",
+			"topic": topic,
+			"dwelling_layout_id": String(camp_context.get("layout_id", "")),
+			"first_id": first_id,
+			"second_id": second_id,
+			"lines": pair_lines,
+			"relationship_before": {
+				"first_to_second": first_bond,
+				"second_to_first": second_bond
+			}
+		}
 	var opener := String(first_profile.openers.get(topic, "We should talk about the road ahead."))
 	var reply := String(second_profile.openers.get(topic, "I had been thinking the same thing."))
 	var dwelling_observation := _dwelling_home_observation(String(camp_context.get("layout_id", ""))) if topic == "home" else ""
