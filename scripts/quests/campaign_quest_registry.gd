@@ -7,6 +7,7 @@ extends RefCounted
 
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const ABANDONED_HOUSE = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
+const FARM_WOLVES = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const TOLL_TAKER = preload("res://scripts/simulation/toll_taker_quest_content.gd")
 const REDDALE_INNKEEPER = preload("res://scripts/simulation/reddale_innkeeper_content.gd")
 const IRONBOND_MISSING_COURIER = preload("res://scripts/simulation/ironbond_missing_courier_content.gd")
@@ -18,6 +19,7 @@ const CORVANE_AMBASSADOR = preload("res://scripts/simulation/corvane_ambassador_
 # without relying on implementation-specific Script reflection.
 const QUEST_CONTENT_MODULES: Array[Dictionary] = [
 	{"id": "abandoned_house_cleared", "register": Callable(ABANDONED_HOUSE, "register_definition")},
+	{"id": "farm_wolves", "register": Callable(FARM_WOLVES, "register_definition")},
 	{"id": "toll_ogre", "register": Callable(TOLL_TAKER, "register_definition")},
 	{"id": "a_stone_for_nella", "register": Callable(REDDALE_INNKEEPER, "register_definition")},
 	{"id": "ironbond_missing_courier", "register": Callable(IRONBOND_MISSING_COURIER, "register_definition")},
