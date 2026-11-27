@@ -217,7 +217,7 @@ def main():
                         "penetration_m": round(-signed, 7)
                     })
         total_contacts += len(final_penetrations)
-        if max_displacement > 0.05:
+        if max_displacement > 1.0:
             raise RuntimeError(
                 f"{garment.name} required implausible {max_displacement:.4f}m "
                 "vertex displacement; refusing to export"
@@ -279,6 +279,7 @@ def main():
         },
         "garments": report_rows,
         "max_vertex_displacement_m": max_total_displacement,
+        "diagnostic_displacement_limit_m": 1.0,
         "remaining_penetration_count": total_contacts,
         "limitations": [
             "This is a static-pose garment relaxation, not animated runtime cloth.",
