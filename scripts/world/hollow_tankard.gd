@@ -1834,7 +1834,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
-	if choice_id == "continue":
+	if choice_id == "conversation_end" or choice_id == "continue":
 		_close_dialogue()
 		return
 	if choice_id == "fight":
