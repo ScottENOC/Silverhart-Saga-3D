@@ -12,6 +12,7 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
+const QUEST_DIALOGUE_DISPATCHER = preload("res://scripts/quests/campaign_quest_dialogue_dispatcher.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
@@ -1608,175 +1609,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("recruit:"):
 		_recruit_staged_companion(choice_id.trim_prefix("recruit:"))
 		return
-	if choice_id.begins_with("ironbond_courier_"):
-		var courier_result := IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.resolve_choice(simulation.campaign_journal, choice_id)
-		if not bool(courier_result.get("ok", false)):
-			_show_dialogue("Dray Coltayne", "That job cannot be recorded just now: %s." % String(courier_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if bool(courier_result.get("quest_started", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest added: The Missing Courier  ·  +10 Ironbond reputation"
-		var courier_dialogue: Variant = courier_result.get("dialogue", {})
-		if courier_dialogue is Dictionary and not courier_dialogue.is_empty():
-			_show_dialogue(String(courier_dialogue.get("speaker", "Dray Coltayne")), String(courier_dialogue.get("text", "")), courier_dialogue.get("choices", []))
-		elif bool(courier_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("toll_ogre_"):
-		var toll_player := simulation.get_character(simulation.player_character_id)
-		var toll_result := TOLL_TAKER_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			toll_player,
-			choice_id,
-			TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation)
-		)
-		if not bool(toll_result.get("ok", false)):
-			_show_dialogue("Petra Hollis", "That cannot be resolved just now: %s." % String(toll_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if choice_id == "toll_ogre_accept":
-			var ogre_result := TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
-			if not bool(ogre_result.get("ok", false)):
-				_show_dialogue("Petra Hollis", "I cannot send you after it until the road is clear enough to reach its camp.", [{"id": "continue", "label": "Understood.", "text": ""}])
-				return
-			_spawn_toll_ogre_actor()
-			if resource_status_label != null:
-				resource_status_label.text = "Quest added: The Toll-Taker. The ogre is beyond the abandoned house."
-		var toll_dialogue: Variant = toll_result.get("dialogue", {})
-		if toll_dialogue is Dictionary and not toll_dialogue.is_empty():
-			_show_dialogue(String(toll_dialogue.get("speaker", "Petra Hollis")), String(toll_dialogue.get("text", "")), toll_dialogue.get("choices", []))
-		elif bool(toll_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("farm_wolves_"): 
-		var farm_result := FARM_WOLVES_QUEST_SCRIPT.resolve_dialogue_choice(
-			simulation.campaign_journal,
-			simulation.get_character("player"),
-			choice_id,
-			String(choice.get("text", "Take care on the road."))
-		)
-		if bool(farm_result.get("handled", false)):
-			var response: Dictionary = farm_result.get("dialogue", {})
-			_show_dialogue(
-				String(response.get("speaker", "Old Mac")),
-				String(response.get("text", "")),
-				response.get("choices", [])
-			)
-			if bool(farm_result.get("quest_completed", false)) and resource_status_label != null:
-				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
-			return
-	if choice_id.begins_with("brokk_"):
-		var brokk_result := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id),
-			choice_id
-		)
-		if not bool(brokk_result.get("ok", false)):
-			_show_dialogue("Ambassador Brokk Stonehammer", "That could not be completed: %s." % String(brokk_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if choice_id == "brokk_accept_toll" and resource_status_label != null:
-			resource_status_label.text = "Quest added: Coin for the Deepholds."
-		if bool(brokk_result.get("quest_completed", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest complete: Coin for the Deepholds  ·  -15 gold  ·  +60 XP"
-		var brokk_dialogue: Variant = brokk_result.get("dialogue", {})
-		if brokk_dialogue is Dictionary and not brokk_dialogue.is_empty():
-			_show_dialogue(String(brokk_dialogue.get("speaker", "Ambassador Brokk Stonehammer")), String(brokk_dialogue.get("text", "")), brokk_dialogue.get("choices", []))
-		elif bool(brokk_result.get("quest_completed", false)):
-			var brokk_completed := DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
-			_show_dialogue(String(brokk_completed.get("speaker", "Ambassador Brokk Stonehammer")), String(brokk_completed.get("text", "")), brokk_completed.get("choices", []))
-		elif bool(brokk_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("toren_"):
-		var toren_result := CORVANE_AMBASSADOR_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id),
-			choice_id
-		)
-		if not bool(toren_result.get("ok", false)):
-			_show_dialogue("Ambassador Toren Aldwyn", "That could not be completed: %s." % String(toren_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if choice_id == "toren_accept_report" and resource_status_label != null:
-			resource_status_label.text = "Quest added: Eyes on the Border."
-		if bool(toren_result.get("quest_completed", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest complete: Eyes on the Border  ·  +15 gold  ·  +60 XP"
-		var toren_dialogue: Variant = toren_result.get("dialogue", {})
-		if toren_dialogue is Dictionary and not toren_dialogue.is_empty():
-			var toren_response: Dictionary = toren_dialogue
-			_show_dialogue(String(toren_response.get("speaker", "Ambassador Toren Aldwyn")), String(toren_response.get("text", "")), toren_response.get("choices", []))
-		elif bool(toren_result.get("quest_completed", false)):
-			var toren_completed := CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(simulation.campaign_journal, simulation.get_character(simulation.player_character_id))
-			_show_dialogue(String(toren_completed.get("speaker", "Ambassador Toren Aldwyn")), String(toren_completed.get("text", "")), toren_completed.get("choices", []))
-		elif bool(toren_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("cassia_"):
-		var cassia_result := ALDENREACH_MESSAGE_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id),
-			choice_id
-		)
-		if not bool(cassia_result.get("ok", false)):
-			_show_dialogue("Ambassador Cassia Wren", "That could not be completed: %s." % String(cassia_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if bool(cassia_result.get("quest_started", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest added: A Quiet Word."
-		if bool(cassia_result.get("quest_completed", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest complete: A Quiet Word  ·  +15 gold  ·  +60 XP"
-		var cassia_dialogue: Variant = cassia_result.get("dialogue", {})
-		if cassia_dialogue is Dictionary and not cassia_dialogue.is_empty():
-			_show_dialogue(String(cassia_dialogue.get("speaker", "Ambassador Cassia Wren")), String(cassia_dialogue.get("text", "")), cassia_dialogue.get("choices", []))
-		elif bool(cassia_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("marta_"):
-		var marta_result := ELDER_MARTA_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id),
-			choice_id
-		)
-		if not bool(marta_result.get("ok", false)):
-			_show_dialogue("Elder Marta Wynfield", "That could not be completed: %s." % String(marta_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if bool(marta_result.get("quest_completed", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest complete: A Missing Locket  ·  +20 gold  ·  +100 XP"
-		if marta_result.get("dialogue", {}) is Dictionary and not marta_result.get("dialogue", {}).is_empty():
-			var marta_response: Dictionary = marta_result.dialogue
-			_show_dialogue(String(marta_response.get("speaker", "Elder Marta Wynfield")), String(marta_response.get("text", "")), marta_response.get("choices", []))
-		elif bool(marta_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("nella_"):
-		var nella_result := NELLA_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id),
-			choice_id
-		)
-		if not bool(nella_result.get("ok", false)):
-			_show_dialogue("Nella Brook", "That could not be completed: %s." % String(nella_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if bool(nella_result.get("quest_completed", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest complete: A Stone for Nella  ·  +20 gold"
-		var nella_dialogue: Variant = nella_result.get("dialogue", {})
-		if nella_dialogue is Dictionary and not nella_dialogue.is_empty():
-			_show_dialogue(String(nella_dialogue.get("speaker", "Nella Brook")), String(nella_dialogue.get("text", "")), nella_dialogue.get("choices", []))
-		elif bool(nella_result.get("handled", false)):
-			_close_dialogue()
-		return
-	if choice_id.begins_with("baron_tribute_"):
-		var baron_result := BARON_TRIBUTE_CONTENT_SCRIPT.resolve_choice(
-			simulation.campaign_journal,
-			simulation.get_character(simulation.player_character_id),
-			choice_id
-		)
-		if not bool(baron_result.get("ok", false)):
-			_show_dialogue("Baron Corwin Aldervale", "That could not be completed: %s." % String(baron_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
-			return
-		if bool(baron_result.get("quest_completed", false)) and resource_status_label != null:
-			resource_status_label.text = "Quest complete: The Baron's Tribute  ·  +20 gold"
-		var baron_dialogue: Variant = baron_result.get("dialogue", {})
-		if baron_dialogue is Dictionary and not baron_dialogue.is_empty():
-			_show_dialogue(String(baron_dialogue.get("speaker", "Baron Corwin Aldervale")), String(baron_dialogue.get("text", "")), baron_dialogue.get("choices", []))
-		elif bool(baron_result.get("handled", false)):
-			_close_dialogue()
+	if _handle_quest_dialogue_choice(choice):
 		return
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
@@ -1800,6 +1633,92 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "spar":
 		response_text += "\n\nA full sparring encounter is not connected to the 3D combat interface yet."
 	_show_dialogue(dialogue_panel.speaker_text, response_text, [{"id": "continue", "label": "Continue", "text": ""}])
+
+
+func _handle_quest_dialogue_choice(choice: Dictionary) -> bool:
+	var dispatched: Dictionary = QUEST_DIALOGUE_DISPATCHER.resolve_choice(simulation, choice)
+	if not bool(dispatched.get("handled", false)):
+		return false
+
+	var result: Dictionary = dispatched.get("result", {})
+	var quest_id := String(dispatched.get("quest_id", ""))
+	var speaker := String(dispatched.get("speaker", "Campaign journal"))
+	var choice_id := String(choice.get("id", ""))
+	if not bool(result.get("ok", false)):
+		_show_dialogue(
+			speaker,
+			"That matter cannot be resolved just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "),
+			[{"id": "continue", "label": "Understood.", "text": ""}]
+		)
+		return true
+
+	match quest_id:
+		"ironbond_missing_courier":
+			if bool(result.get("quest_started", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest added: The Missing Courier  ·  +10 Ironbond reputation"
+		"toll_ogre":
+			if choice_id == "toll_ogre_accept":
+				var ogre_result: Dictionary = TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(
+					simulation,
+					_find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX)
+				)
+				if not bool(ogre_result.get("ok", false)):
+					_show_dialogue(speaker, "I cannot send you after it until the road is clear enough to reach its camp.", [{"id": "continue", "label": "Understood.", "text": ""}])
+					return true
+				_spawn_toll_ogre_actor()
+				if resource_status_label != null:
+					resource_status_label.text = "Quest added: The Toll-Taker. The ogre is beyond the abandoned house."
+		"farm_wolves":
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
+		"dwarven_toll":
+			if choice_id == "brokk_accept_toll" and resource_status_label != null:
+				resource_status_label.text = "Quest added: Coin for the Deepholds."
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: Coin for the Deepholds  ·  -15 gold  ·  +60 XP"
+		"corvane_watch":
+			if choice_id == "toren_accept_report" and resource_status_label != null:
+				resource_status_label.text = "Quest added: Eyes on the Border."
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: Eyes on the Border  ·  +15 gold  ·  +60 XP"
+		"aldenreach_message":
+			if bool(result.get("quest_started", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest added: A Quiet Word."
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: A Quiet Word  ·  +15 gold  ·  +60 XP"
+		"elder_locket":
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: A Missing Locket  ·  +20 gold  ·  +100 XP"
+		"a_stone_for_nella":
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: A Stone for Nella  ·  +20 gold"
+		"baron_tribute":
+			if bool(result.get("quest_completed", false)) and resource_status_label != null:
+				resource_status_label.text = "Quest complete: The Baron's Tribute  ·  +20 gold"
+
+	var dialogue: Variant = result.get("dialogue", {})
+	if dialogue is Dictionary and not dialogue.is_empty():
+		_show_dialogue(
+			String(dialogue.get("speaker", speaker)),
+			String(dialogue.get("text", "")),
+			dialogue.get("choices", [])
+		)
+	elif bool(result.get("quest_completed", false)) and quest_id == "dwarven_toll":
+		var completed: Dictionary = DWARVEN_AMBASSADOR_CONTENT_SCRIPT.greeting(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id)
+		)
+		_show_dialogue(String(completed.get("speaker", speaker)), String(completed.get("text", "")), completed.get("choices", []))
+	elif bool(result.get("quest_completed", false)) and quest_id == "corvane_watch":
+		var completed: Dictionary = CORVANE_AMBASSADOR_CONTENT_SCRIPT.greeting(
+			simulation.campaign_journal,
+			simulation.get_character(simulation.player_character_id)
+		)
+		_show_dialogue(String(completed.get("speaker", speaker)), String(completed.get("text", "")), completed.get("choices", []))
+	elif bool(result.get("handled", false)) or bool(result.get("quest_completed", false)):
+		_close_dialogue()
+	return true
+
 
 func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	var choice_id := String(choice.get("id", ""))
