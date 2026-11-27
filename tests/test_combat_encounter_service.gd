@@ -297,8 +297,9 @@ func _test_farm_wolf_retreat_is_domain_owned() -> void:
 	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
 	player.side = "player"
 	simulation.register_character(player)
-	for wolf_id in FARM_WOLVES_QUEST.WOLF_IDS:
-		simulation.register_character(CharacterState.new(wolf_id, "Wolf", Vector2i(1, 0)))
+	for wolf_index in range(FARM_WOLVES_QUEST.WOLF_IDS.size()):
+		var wolf_id: String = FARM_WOLVES_QUEST.WOLF_IDS[wolf_index]
+		simulation.register_character(CharacterState.new(wolf_id, "Wolf", Vector2i(wolf_index + 1, 0)))
 	var party_ids: Array[String] = ["player"]
 	var started: Dictionary = FARM_WOLVES_QUEST.start_encounter(simulation, party_ids)
 	_check(bool(started.get("ok", false)), "The farm wolf encounter should start before retreat resolution.")
