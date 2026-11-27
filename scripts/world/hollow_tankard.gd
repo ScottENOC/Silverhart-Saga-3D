@@ -1605,11 +1605,6 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	var choice_id := String(choice.get("id", ""))
 	if not choice_id.begins_with("seraphine_"):
 		return false
-	if choice_id == "seraphine_leave":
-		_close_dialogue()
-		return true
-	var content := PERSISTENT_DIALOGUE_CONTENT.new()
-	var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 	var journal := simulation.campaign_journal
 	var context := {
 		"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
@@ -1624,52 +1619,33 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
 		"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
 	}
-	var response: Dictionary = {}
-	match choice_id:
-		"seraphine_topic_greenskins":
-			response = content.seraphine_topic_response("greenskins", context, relationships)
-		"seraphine_topic_ironbond":
-			response = content.seraphine_topic_response("ironbond", context, relationships)
-		"seraphine_topic_necromancy":
-			response = content.seraphine_topic_response("necromancy", context, relationships)
-		"seraphine_personal_burden":
-			response = content.seraphine_personal_response(relationships)
-		"seraphine_request_favour":
-			response = content.seraphine_manor_request_response()
-		"seraphine_manor_accept":
-			var grant := simulation.claim_dwelling("claim_silverhart_manor", "materials", "silverhart_palace", active_character_id)
-			if not bool(grant.get("ok", false)):
-				_show_dialogue("Queen Seraphine Corrin", "I cannot grant the townhouse just now: %s." % String(grant.get("reason", "requirements_not_met")).replace("_", " "), [{"id":"continue","label":"Understood","kind":"leave"}])
-				return true
-			simulation.set_meta("silverhart_manor_granted", true)
-			_refresh_dwelling_world_presentation()
-			response = content.seraphine_manor_granted_response()
-		"seraphine_manor_followup":
-			response = {"ok": true, "speaker": "Queen Seraphine Corrin", "text": "The grant remains yours. The townhouse is still in need of fortification; timber and stone will see it restored.", "response_label": "I will see to it."}
-		"seraphine_wizard_evidence":
-			response = content.seraphine_wizard_evidence_response()
-		"seraphine_report_chancellor_tunnel":
-			response = content.seraphine_chancellor_tunnel_response()
-			if bool(response.get("ok", false)):
-				simulation.set_meta("chancellor_tunnel_reported_to_queen", true)
-				journal.adjust_faction_standing("silverhart_kingdom", 15, "reported_chancellor_tunnel_to_queen")
-				journal.adjust_faction_standing("thieves_guild", -20, "reported_chancellor_tunnel_to_queen")
-		_:
-			return false
-	if not bool(response.get("ok", false)):
-		_show_dialogue("Queen Seraphine Corrin", "That matter cannot be discussed just now.", [{"id":"continue","label":"Understood","kind":"leave"}])
+	var content := PERSISTENT_DIALOGUE_CONTENT.new()
+	var result: Dictionary = content.resolve_seraphine_campaign_choice(
+		simulation,
+		choice_id,
+		context,
+		PERSISTENT_RELATIONSHIP_STORE.state_for(simulation),
+		active_character_id
+	)
+	if not bool(result.get("handled", false)):
+		return false
+	if bool(result.get("close", false)):
+		_close_dialogue()
 		return true
-	var response_choices: Array = response.get("choices", [])
-	if response_choices.is_empty():
-		response_choices = [{"id":"continue","label":String(response.get("response_label", "Continue")),"kind":"leave"}]
+	if bool(result.get("refresh_dwelling_world", false)):
+		_refresh_dwelling_world_presentation()
+	var dialogue: Dictionary = result.get("dialogue", {})
+	if dialogue.is_empty():
+		return true
+	var choices: Array = dialogue.get("choices", [])
+	if choices.is_empty():
+		choices = [{"id":"continue","label":String(dialogue.get("response_label", "Continue")),"kind":"leave"}]
 	_show_dialogue(
-		String(response.get("speaker", "Queen Seraphine Corrin")),
-		String(response.get("text", "")),
-		response_choices
+		String(dialogue.get("speaker", "Queen Seraphine Corrin")),
+		String(dialogue.get("text", "")),
+		choices
 	)
 	return true
-
-
 
 func _handle_ilsa_choice(choice: Dictionary) -> bool:
 	var choice_id := String(choice.get("id", ""))

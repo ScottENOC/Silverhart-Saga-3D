@@ -135,6 +135,28 @@ func _test_seraphine_campaign_dialogue() -> void:
 	var vouched := content.seraphine_greeting({"player_is_greenskin":true,"goblin_vouched_by_marta":true}, PersistentCharacterRelationshipState.new())
 	_check(str(vouched.get("text", "")).contains("Elder Marta vouches"))
 
+	var simulation := WorldSimulation.new()
+	var reported := content.resolve_seraphine_campaign_choice(
+		simulation,
+		"seraphine_report_chancellor_tunnel",
+		{"chancellor_tunnel_discovered":true},
+		PersistentCharacterRelationshipState.new(),
+		"player"
+	)
+	_check(bool(reported.get("handled", false)) and bool(reported.get("ok", false)), "The Queen's tunnel report should resolve as a campaign choice.")
+	_check(bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false)), "Reporting the tunnel should persist its campaign flag.")
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("silverhart_kingdom"), 15.0), "Reporting the tunnel should improve royal standing.")
+	_check(is_equal_approx(simulation.campaign_journal.faction_standing("thieves_guild"), -20.0), "Reporting the tunnel should reduce thieves' guild standing.")
+	var leave := content.resolve_seraphine_campaign_choice(
+		simulation, "seraphine_leave", {}, PersistentCharacterRelationshipState.new(), "player"
+	)
+	_check(bool(leave.get("handled", false)) and bool(leave.get("close", false)), "Leaving the audience should return a presentation-neutral close action.")
+	var unrelated := content.resolve_seraphine_campaign_choice(
+		simulation, "not_seraphine", {}, PersistentCharacterRelationshipState.new(), "player"
+	)
+	_check(not bool(unrelated.get("handled", true)), "Unrelated dialogue choices should be left to their own handler.")
+	simulation.free()
+
 
 func _test_wizard_vendetta_consequences() -> void:
 	var relationships := PersistentCharacterRelationshipState.new()
