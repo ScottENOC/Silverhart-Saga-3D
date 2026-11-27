@@ -182,7 +182,7 @@ static func strategic_location_legend() -> String:
 		var row := PackedStringArray()
 		for index in range(start, mini(start + 3, names.size())):
 			row.append(names[index])
-		rows.append(row.join("   •   "))
+		rows.append("   •   ".join(row))
 	return "\n".join(rows)
 
 static func location_at(cell: Vector2i) -> Dictionary:
