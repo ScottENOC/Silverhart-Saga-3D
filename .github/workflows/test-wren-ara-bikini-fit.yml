@@ -315,6 +315,16 @@ jobs:
           assert cords, "No bikini string/cord garment objects were identified"
           assert all(row["structural_constraints"] > 0 for row in cords), cords
           assert report["exported_for_review"] is True, report
+          # A rejected briefs mesh is restored to its unfitted source and visibly
+          # clips through Wren. Never publish that as a successful fitting run.
+          briefs = [row for row in report["garments"] if "bottom" in row["object"].lower()]
+          assert briefs, "No bikini briefs panel was identified"
+          assert all(row["candidate_accepted"] for row in briefs), {
+              "message": "Bikini briefs fit was rejected; refusing to package an unfitted clipping garment.",
+              "briefs": briefs,
+          }
+          assert all(row["remaining_penetration_count"] == 0 for row in briefs), briefs
+          assert report["fit_quality"] == "accepted_within_integrity_limits", report
           assert report["fit_quality"] in (
               "skipped_unreliable_collision_geometry",
               "rejected_original_preserved",
