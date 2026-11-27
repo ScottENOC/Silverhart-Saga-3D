@@ -59,8 +59,12 @@ func _bake_mesh_instance(mesh_instance: MeshInstance3D) -> float:
 		var baked_arrays := baked.surface_get_arrays(surface)
 		var original_vertices: PackedVector3Array = original_arrays[Mesh.ARRAY_VERTEX]
 		var baked_vertices: PackedVector3Array = baked_arrays[Mesh.ARRAY_VERTEX]
-		if original_vertices.size() == baked_vertices.size():
-			for vertex_index in range(original_vertices.size()):
+		if original_vertices.size() == baked_vertices.size() and not original_vertices.is_empty():
+			# A bounded sample is enough to prove the exported geometry moved. Scanning
+			# every vertex in GDScript added avoidable work to an already expensive bake.
+			var sample_count := mini(128, original_vertices.size())
+			for sample_index in range(sample_count):
+				var vertex_index := int(float(sample_index) * float(original_vertices.size()) / float(sample_count))
 				max_vertex_delta = maxf(max_vertex_delta, original_vertices[vertex_index].distance_to(baked_vertices[vertex_index]))
 	mesh_instance.mesh = baked
 	mesh_instance.skin = null
@@ -86,8 +90,10 @@ func _bake_character_pose(export_root: Node3D, source_skeleton: Skeleton3D) -> D
 	for bone_index in range(pose_snapshot.size()):
 		export_skeleton.set_bone_global_pose(bone_index, pose_snapshot[bone_index])
 	export_skeleton.force_update_all_bone_transforms()
+	# A process frame is sufficient for Skeleton3D to evaluate in headless mode.
+	# Waiting for RenderingServer.frame_post_draw can stall indefinitely on CI.
 	await process_frame
-	await RenderingServer.frame_post_draw
+	print("ARA_BAKE_POSE_READY bones=%d" % export_skeleton.get_bone_count())
 	var mesh_instances: Array[MeshInstance3D] = []
 	_collect_mesh_instances(export_root, mesh_instances)
 	var baked_count := 0
@@ -129,7 +135,6 @@ func _export_and_verify(actor_name: String, model_root: Node3D, source_skeleton:
 	export_root.process_mode = Node.PROCESS_MODE_DISABLED
 	root.add_child(export_root)
 	await process_frame
-	await RenderingServer.frame_post_draw
 	var bake_result := await _bake_character_pose(export_root, source_skeleton)
 	_expect(bool(bake_result["ok"]), "%s skinned meshes baked (%s)" % [actor_name, str(bake_result.get("reason", ""))])
 	if not bool(bake_result["ok"]):
