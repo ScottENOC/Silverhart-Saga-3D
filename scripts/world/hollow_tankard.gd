@@ -582,7 +582,7 @@ func _spawn_farmstead_dire_wolf() -> void:
 
 
 func _reyna_objective_done(objective_id: String) -> bool:
-	var quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
+	var quest := campaign_quest_service.state("reyna_dire_wolf_hunt")
 	var objectives: Dictionary = quest.get("objectives", {})
 	if not objectives.has(objective_id):
 		return false
@@ -645,7 +645,7 @@ func _spawn_missing_child() -> void:
 func _check_reyna_story_proximity() -> void:
 	if simulation == null or dialogue_open or encounter_active or simulation.is_in_combat:
 		return
-	var quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
+	var quest := campaign_quest_service.state("reyna_dire_wolf_hunt")
 	if String(quest.get("status", "")) != "active":
 		return
 	if not _reyna_objective_done("trail_found"):
@@ -1865,7 +1865,7 @@ func _interact_with_character(character_id: String) -> void:
 		if not quest_greeting.is_empty():
 			_show_dialogue(String(quest_greeting.get("speaker", target_state.display_name)), String(quest_greeting.get("text", "")), quest_greeting.get("choices", []))
 		return
-	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+	var quest_state := campaign_quest_service.state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
 	var response_choice := String(decisions.get("response", ""))
 	var standing := simulation.campaign_journal.npc_standing(character_id)
@@ -2144,7 +2144,7 @@ func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
 	if player_state == null or player_state.race in ["goblin", "orc"]:
 		return
-	simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
+	campaign_quest_service.start(HollowmereCampaignContent.QUEST_ID)
 	await get_tree().create_timer(2.0).timeout
 	if not is_instance_valid(self):
 		return
@@ -2317,7 +2317,7 @@ func _update_ambient_chatter(delta: float) -> void:
 	var first_actor := actor_by_id.get(first_id) as Node3D
 	var second_actor := actor_by_id.get(second_id) as Node3D
 	var hour := int(fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0)
-	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+	var quest_state := campaign_quest_service.state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
 	var response_choice := String(decisions.get("response", ""))
 	var exchange := ambient_chatter.choose_exchange(
