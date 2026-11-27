@@ -107,12 +107,19 @@ func _initialize() -> void:
 	var tavern_source := FileAccess.get_file_as_string("res://scripts/world/hollow_tankard.gd")
 	for route in [
 		'if dialogue_id == "dwarven_ambassador":',
-		'if dialogue_id == "corvane_ambassador":',
-		'if choice_id.begins_with("brokk_"):',
-		'if choice_id.begins_with("toren_"):'
+		'if dialogue_id == "corvane_ambassador":'
 	]:
 		if not tavern_source.contains(route):
 			push_error("Missing live streamed ambassador interaction route: %s" % route)
+			quit(1)
+			return
+	var ambassador_service := FileAccess.get_file_as_string("res://scripts/quests/campaign_ambassador_dialogue_service.gd")
+	for route in [
+		'if choice_id.begins_with("brokk_"):',
+		'elif choice_id.begins_with("toren_"):'
+	]:
+		if not ambassador_service.contains(route):
+			push_error("Missing shared ambassador quest choice route: %s" % route)
 			quit(1)
 			return
 	print("Campaign 2 character definition registry tests passed.")
