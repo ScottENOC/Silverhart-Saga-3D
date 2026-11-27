@@ -426,8 +426,8 @@ func _process_morning_routine_exchange() -> void:
 		var camp_identity := "camp"
 		if camp_hex is Vector2i:
 			camp_identity = "%d,%d" % [camp_hex.x, camp_hex.y]
-		var event_key := "camp_morning:%s:%d:%s:%s" % [
-			camp_identity, stage, first_id, second_id
+		var event_key := "camp_morning:%s:%d:%d:%s:%s" % [
+			camp_identity, int(simulation.clock.world_seconds), stage, first_id, second_id
 		]
 		CAMP_DIALOGUE_SERVICE.record_exchange(
 			simulation.companion_bonds, camp, exchange, event_key
