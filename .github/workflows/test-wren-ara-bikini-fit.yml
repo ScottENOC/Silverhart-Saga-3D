@@ -43,7 +43,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
 
-      - name: Let Ara fit bikini top and briefs to Wren's accepted parameters
+      - name: Let Ara fit its complete bikini outfit to Wren's accepted parameters in black
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -56,12 +56,18 @@ jobs:
           profile.pop("character_details", None)
           params = profile["params"]
           # Keep every accepted body, face, hair, skin, and rig parameter intact.
-          # Only select the two Ara garments for this fitting export.
-          params["top"] = "bikini_top"
-          params["bottom"] = "briefs"
+          # Use Ara's documented complete bikini set (halter triangle top and
+          # string bottom), not separate bikini_top + ordinary briefs.
+          params["outfit"] = "set_gold_bikini"
+          params["top"] = "none"
+          params["bottom"] = "none"
           params["jacket"] = "none"
-          params["outfit"] = "none"
           params["underwear"] = False
+          params.setdefault("garmentStyles", {})["set_gold_bikini"] = {
+              "pattern": "solid",
+              "color": "#080808",
+              "color2": "#080808",
+          }
           Path("build/wren-native/ara-bikini-fit-profile.json").write_text(
               json.dumps(profile, indent=2) + "\n"
           )
@@ -139,10 +145,15 @@ jobs:
               for primitive in mesh.get("primitives", [])
               if primitive.get("material") is not None
           })
-          garment_names = [name for name in names if re.search(r"bikini|brief", name, re.I)]
-          print("Ara garment materials:", json.dumps(garment_names, indent=2))
-          if len(garment_names) < 2:
-              raise SystemExit(f"Expected Ara bikini top and briefs materials; found {garment_names}")
+          garment_names = [name for name in names if re.search(r"bikini", name, re.I)]
+          print("Ara complete-bikini materials:", json.dumps(garment_names, indent=2))
+          has_top = any(re.search(r"top", name, re.I) for name in garment_names)
+          has_string_bottom = any(re.search(r"bottom|string", name, re.I) for name in garment_names)
+          if len(garment_names) < 2 or not has_top or not has_string_bottom:
+              raise SystemExit(
+                  "Expected the complete Ara bikini set (top plus string bottom); "
+                  f"found {garment_names}"
+              )
           command = [
               "python", "tools/ara/assemble_modular_glb.py",
               "build/wren-native/Wren_Accepted_Baseline.glb",
@@ -277,12 +288,21 @@ jobs:
           provenance = {
               "accepted_body": "art/characters/companions/wren.glb",
               "profile": "character-preview/wren-ara.json",
-              "ara_fitting_params": {"top": "bikini_top", "bottom": "briefs"},
+              "ara_fitting_params": {
+                  "outfit": "set_gold_bikini",
+                  "garmentStyles": {
+                      "set_gold_bikini": {
+                          "pattern": "solid",
+                          "color": "#080808",
+                          "color2": "#080808"
+                      }
+                  }
+              },
               "adult_anatomy": "tools/blender/add_female_anatomy_surface.py --adult --deformation-scale 1.65",
               "body_rebuilt_for_final": False,
               "body_hair_rebuilt_for_final": False,
               "final_body_source": "unchanged accepted Wren GLB",
-              "garment_source": "Ara native fitted bikini top and briefs",
+              "garment_source": "Ara native fitted complete gold-bikini outfit set, recoloured black",
           }
           (root / "fit-provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
           with zipfile.ZipFile(root / "Wren_Ara_Bikini_Fit_Review.zip", "w", zipfile.ZIP_DEFLATED) as archive:
