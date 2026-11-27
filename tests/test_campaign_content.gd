@@ -1,8 +1,11 @@
 extends SceneTree
 
+const CONVERSATION_SESSION = preload("res://scripts/simulation/campaign_conversation_session.gd")
+
 var _failures: int = 0
 
 func _initialize() -> void:
+	_test_campaign_conversation_session()
 	_test_campaign_journal()
 	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
@@ -395,3 +398,81 @@ func _test_hollowmere_encounter() -> void:
 	_check(player.side == "player" and not player.combat_dormant, "The player should remain an active party character")
 	simulation.end_combat()
 	simulation.free()
+
+
+func _test_campaign_conversation_session() -> void:
+	var session := CONVERSATION_SESSION.new()
+	var prompt_changes: Array[Dictionary] = []
+	var selected_choices: Array[Dictionary] = []
+	var finished_events: Array[Dictionary] = []
+	session.prompt_changed.connect(func(prompt: Dictionary) -> void: prompt_changes.append(prompt))
+	session.choice_selected.connect(func(choice: Dictionary, id: String) -> void: selected_choices.append({"choice":choice,"id":id}))
+	session.finished.connect(func(id: String, reason: String) -> void: finished_events.append({"id":id,"reason":reason}))
+	var prompt := {
+		"speaker_id":"elder_marta",
+		"speaker":"Elder Marta Wynfield",
+		"context":"The old woman studies you over the rim of her spectacles.",
+		"text":"Welcome, traveller. What brings you to Hollowmere?",
+		"portrait_id":"elder_marta",
+		"choices":[
+			{"id":"ask_help","label":"Need any help around the village?"},
+			{"id":"leave","label":"Goodbye.","ends_conversation":true}
+		]
+	}
+	var started := session.start("elder_marta_greeting", prompt, "player")
+	_check(bool(started.get("ok", false)))
+	_check(session.active and session.initiation_source == "player")
+	_check(prompt_changes.size() == 1)
+	_check(int(session.snapshot().get("revision", 0)) == 1)
+
+	var disabled_prompt := prompt.duplicate(true)
+	disabled_prompt["choices"][0]["available"] = false
+	disabled_prompt["choices"][0]["unavailable_reason"] = "She is busy."
+	_check(bool(session.update_prompt(disabled_prompt).get("ok", false)))
+	_check(String(session.choose("ask_help").get("reason", "")) == "choice_unavailable")
+	var next_prompt := prompt.duplicate(true)
+	next_prompt["text"] = "A small kindness would mean a great deal."
+	_check(bool(session.update_prompt(next_prompt).get("ok", false)))
+	_check(int(session.snapshot().get("revision", 0)) == 3)
+	_check(bool(session.choose("ask_help").get("ok", false)))
+	_check(session.active, "A normal choice remains active for its domain resolver")
+	_check(selected_choices.size() == 1)
+	_check(String(selected_choices[0].get("id", "")) == "elder_marta_greeting")
+	_check(String(selected_choices[0].get("choice", {}).get("id", "")) == "ask_help")
+	_check(bool(session.choose("leave").get("ok", false)))
+	_check(not session.active)
+	_check(finished_events.size() == 1)
+	_check(String(finished_events[0].get("reason", "")) == "choice_selected")
+
+	var npc_started := session.start("garrick_checks_on_player", {
+		"speaker":"Garrick Holt",
+		"text":"You look like you could use a word.",
+		"choices":[{"id":"ask","label":"What is it?"},{"id":"end","label":"Not now.","ends_conversation":true}]
+	}, "npc")
+	_check(bool(npc_started.get("ok", false)))
+	_check(session.initiation_source == "npc")
+	_check(bool(session.choose("ask").get("ok", false)))
+	_check(bool(session.cancel().get("ok", false)))
+	_check(not session.active)
+	_check(prompt_changes.size() == 4)
+
+	_check(String(session.start("", prompt, "player").get("reason", "")) == "missing_conversation_id")
+	_check(String(session.start("invalid_source", prompt, "system").get("reason", "")) == "invalid_initiation_source")
+	var no_speaker := prompt.duplicate(true)
+	no_speaker["speaker"] = ""
+	_check(String(session.start("no_speaker", no_speaker, "player").get("reason", "")) == "missing_speaker")
+	var no_content := prompt.duplicate(true)
+	no_content["text"] = ""
+	no_content["context"] = ""
+	_check(String(session.start("no_content", no_content, "player").get("reason", "")) == "missing_dialogue_and_context")
+	var no_choices := prompt.duplicate(true)
+	no_choices["choices"] = []
+	_check(String(session.start("no_choices", no_choices, "player").get("reason", "")) == "missing_choices")
+	var duplicates := prompt.duplicate(true)
+	duplicates["choices"].append({"id":"leave","label":"Duplicate"})
+	_check(String(session.start("duplicates", duplicates, "player").get("reason", "")) == "invalid_or_duplicate_choice")
+	var unavailable := prompt.duplicate(true)
+	for choice in unavailable["choices"]:
+		choice["available"] = false
+	_check(String(session.start("unavailable", unavailable, "player").get("reason", "")) == "no_available_choices")
+	_check(String(session.choose("missing").get("reason", "")) == "conversation_not_active")
