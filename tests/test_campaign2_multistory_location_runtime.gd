@@ -44,6 +44,10 @@ func _run() -> void:
 	_assert_exterior_entry_round_trip("emberlode_foremans_hall", "emberlode_hall_entry_player", Vector2i(-252, 22), Vector2i(-253, 22), "emberlode_foremans_hall_east_door", "Emberlode Foreman's Hall")
 	_assert_exterior_entry_round_trip("emberlode_bunkhouse", "emberlode_bunkhouse_entry_player", Vector2i(-252, 25), Vector2i(-252, 26), "emberlode_bunkhouse_north_door", "Emberlode Bunkhouse")
 	_assert_exterior_entry_round_trip("emberlode_mine", "emberlode_mine_entry_player", Vector2i(-252, 19), Vector2i(-252, 18), "mine_front_door", "Emberlode Mine")
+	# Reddale's road-end approaches are painted explicitly by buildReddale.
+	_assert_exterior_entry_round_trip("reddale_guardhouse", "reddale_guardhouse_entry_player", Vector2i(138, 24), Vector2i(137, 24), "reddale_guardhouse_door", "Reddale Guardhouse")
+	_assert_exterior_entry_round_trip("reddale_reeve_house", "reddale_reeve_entry_player", Vector2i(138, 21), Vector2i(138, 20), "reddale_reeve_house_door", "Reddale Reeve's House")
+	_assert_exterior_entry_round_trip("reddale_inn", "reddale_inn_entry_player", Vector2i(138, 27), Vector2i(138, 28), "reddale_inn_door", "Reddale Inn")
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
