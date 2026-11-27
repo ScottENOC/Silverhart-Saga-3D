@@ -798,7 +798,31 @@ func _create_innkeeper_activity_controller() -> void:
 	innkeeper_activity_controller = INNKEEPER_ACTIVITY_CONTROLLER_SCRIPT.new() as GarrickBarWipeController
 	innkeeper_activity_controller.name = "HollowTankardInnkeeperActivityController"
 	add_child(innkeeper_activity_controller)
-	innkeeper_activity_controller.configure(innkeeper, Callable(self, "_is_garrick_bar_wipe_interrupted"))
+	innkeeper_activity_controller.configure(
+		innkeeper,
+		Callable(self, "_is_garrick_bar_wipe_interrupted"),
+		Callable(self, "_return_garrick_to_bar_hex")
+	)
+
+
+func _return_garrick_to_bar_hex() -> bool:
+	if simulation == null:
+		return false
+	var garrick := simulation.get_character("garrick_holt")
+	if garrick == null:
+		return false
+	var bar_hex := Vector2i(1, -2)
+	if garrick.axial == bar_hex:
+		return true
+	var path := simulation.find_path("garrick_holt", bar_hex)
+	if path.is_empty():
+		return false
+	for step in path:
+		if step == garrick.axial:
+			continue
+		if not simulation.try_move_character("garrick_holt", step):
+			return false
+	return garrick.axial == bar_hex
 
 
 func _is_garrick_bar_wipe_interrupted() -> bool:
