@@ -10,7 +10,7 @@ func _initialize() -> void:
 
 func _test_source_backed_quest_flow() -> void:
 	var journal := CampaignJournal.new()
-	assert(journal.register_quest_definition(FARM_QUEST.definition()).ok)
+	assert(FARM_QUEST.register_definition(journal).ok)
 	var initial := FARM_QUEST.greeting(journal, -1)
 	assert(String(initial.text).contains("cattle"))
 	assert(not String(initial.text).to_lower().contains("sheep"))
