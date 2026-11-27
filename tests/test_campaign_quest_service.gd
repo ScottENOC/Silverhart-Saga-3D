@@ -20,6 +20,8 @@ func _test_registry_registration() -> void:
 	assert(bool(result.get("ok", false)))
 	assert(simulation.campaign_journal.quest_definitions.has(ABANDONED_HOUSE.QUEST_ID))
 	assert(simulation.campaign_journal.quest_definitions.has(TOLL_TAKER.QUEST_ID))
+	assert(result.get("registered_quest_ids", []).size() == 7, "The central registry should register every campaign quest module.")
+	assert(result.get("failed_quests", []).is_empty())
 	var repeated := QUEST_REGISTRY.register_definitions(simulation)
 	assert(bool(repeated.get("ok", false)), "Registry should tolerate repeated registration.")
 
@@ -28,7 +30,10 @@ func _test_service_journal_facade() -> void:
 	var simulation := WorldSimulation.new()
 	var service := QUEST_SERVICE.new()
 	assert(service.configure(simulation).ok)
-	assert(service.register_definitions().ok)
+	var registration := service.register_definitions()
+	assert(bool(registration.get("ok", false)))
+	assert(registration.get("registered_quest_ids", []).size() == 7, "The service facade should expose the complete registry result.")
+	assert(registration.get("failed_quests", []).is_empty())
 	var started := service.start(ABANDONED_HOUSE.QUEST_ID)
 	assert(bool(started.get("ok", false)))
 	assert(String(service.state(ABANDONED_HOUSE.QUEST_ID).get("status", "")) == "active")
@@ -40,6 +45,9 @@ func _test_service_journal_facade() -> void:
 	# The service must pass through journal validation rather than inventing
 	# objectives or silently accepting unknown quest state.
 	assert(bool(progress.get("ok", false)), "Known quest objectives should be updated through the service.")
+	var failed := service.fail(ABANDONED_HOUSE.QUEST_ID, "service regression test")
+	assert(bool(failed.get("ok", false)), "Quest failures should pass through the service facade.")
+	assert(String(service.state(ABANDONED_HOUSE.QUEST_ID).get("status", "")) == "failed")
 
 
 func _test_unconfigured_service_fails_safely() -> void:

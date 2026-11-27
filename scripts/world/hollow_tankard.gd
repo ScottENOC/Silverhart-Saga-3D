@@ -11,6 +11,7 @@ const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_re
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const CAMPAIGN_QUEST_SERVICE_SCRIPT = preload("res://scripts/quests/campaign_quest_service.gd")
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const TOLL_TAKER_CONTENT_SCRIPT = preload("res://scripts/simulation/toll_taker_quest_content.gd")
@@ -85,6 +86,7 @@ var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var campaign_faction_simulation: CampaignFactionSimulation
+var campaign_quest_service: CampaignQuestService
 var initial_character_baselines: Dictionary = {}
 
 var autosave_accumulator: float = 0.0
@@ -165,7 +167,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
-	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
+	_register_campaign_quest_content()
 	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
@@ -186,13 +188,7 @@ func _ready() -> void:
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
 	var restored_from_save := not pending_save_data.is_empty()
-	ABANDONED_HOUSE_QUEST_SCRIPT.register_definition(simulation.campaign_journal)
-	TOLL_TAKER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	NELLA_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	IRONBOND_MISSING_COURIER_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	BARON_TRIBUTE_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	DWARVEN_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
-	CORVANE_AMBASSADOR_CONTENT_SCRIPT.register_definition(simulation.campaign_journal)
+
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		var saved_multistory_location := String(pending_save_data.get("active_multistory_location_id", ""))
@@ -219,6 +215,16 @@ func _ready() -> void:
 		if save_manager != null:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
+
+func _register_campaign_quest_content() -> void:
+	campaign_quest_service = CAMPAIGN_QUEST_SERVICE_SCRIPT.new() as CampaignQuestService
+	var configured: Dictionary = campaign_quest_service.configure(simulation)
+	if not bool(configured.get("ok", false)):
+		push_error("Campaign quest service could not configure: %s" % configured)
+		return
+	var registered: Dictionary = campaign_quest_service.register_definitions()
+	if not bool(registered.get("ok", false)):
+		push_error("Campaign quest definitions could not be registered: %s" % registered)
 
 func _initialise_companion_relationship_context() -> void:
 	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
@@ -582,7 +588,7 @@ func _spawn_farmstead_dire_wolf() -> void:
 
 
 func _reyna_objective_done(objective_id: String) -> bool:
-	var quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
+	var quest := campaign_quest_service.state("reyna_dire_wolf_hunt")
 	var objectives: Dictionary = quest.get("objectives", {})
 	if not objectives.has(objective_id):
 		return false
@@ -591,7 +597,7 @@ func _reyna_objective_done(objective_id: String) -> bool:
 
 
 func _set_reyna_objective(objective_id: String) -> void:
-	simulation.campaign_journal.set_objective_progress("reyna_dire_wolf_hunt", objective_id, 1.0)
+	campaign_quest_service.set_objective_progress("reyna_dire_wolf_hunt", objective_id, 1.0)
 
 
 func _ensure_reyna_clue_visual() -> void:
@@ -645,7 +651,7 @@ func _spawn_missing_child() -> void:
 func _check_reyna_story_proximity() -> void:
 	if simulation == null or dialogue_open or encounter_active or simulation.is_in_combat:
 		return
-	var quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
+	var quest := campaign_quest_service.state("reyna_dire_wolf_hunt")
 	if String(quest.get("status", "")) != "active":
 		return
 	if not _reyna_objective_done("trail_found"):
@@ -1565,7 +1571,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
-		var start_result := simulation.campaign_journal.start_quest(quest_id)
+		var start_result := campaign_quest_service.start(quest_id)
 		if bool(start_result.get("ok", false)):
 			_show_companion_dialogue(String(choice.get("companion_id", "")))
 		else:
@@ -1956,7 +1962,7 @@ func _interact_with_character(character_id: String) -> void:
 		if bool(marta_conversation.get("ok", false)):
 			_show_dialogue(String(marta_conversation.get("speaker", "Elder Marta Wynfield")), String(marta_conversation.get("text", "")), marta_conversation.get("choices", []))
 		return
-	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+	var quest_state := campaign_quest_service.state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
 	var response_choice := String(decisions.get("response", ""))
 	var standing := simulation.campaign_journal.npc_standing(character_id)
@@ -2254,7 +2260,7 @@ func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
 	if player_state == null or player_state.race in ["goblin", "orc"]:
 		return
-	simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
+	campaign_quest_service.start(HollowmereCampaignContent.QUEST_ID)
 	await get_tree().create_timer(2.0).timeout
 	if not is_instance_valid(self):
 		return
@@ -2427,7 +2433,7 @@ func _update_ambient_chatter(delta: float) -> void:
 	var first_actor := actor_by_id.get(first_id) as Node3D
 	var second_actor := actor_by_id.get(second_id) as Node3D
 	var hour := int(fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0)
-	var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+	var quest_state := campaign_quest_service.state(HollowmereCampaignContent.QUEST_ID)
 	var decisions: Dictionary = quest_state.get("decisions", {})
 	var response_choice := String(decisions.get("response", ""))
 	var exchange := ambient_chatter.choose_exchange(
@@ -2465,7 +2471,7 @@ func _begin_shakedown_combat() -> void:
 		additional_party_ids.append(String(party_id_value))
 	var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation, additional_party_ids)
 	if not bool(result.get("ok", false)):
-		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
+		campaign_quest_service.fail(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
 		_show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
@@ -2586,7 +2592,7 @@ func _dynamic_campaign_character_records() -> Dictionary:
 func _restore_toll_ogre_actor() -> void:
 	if simulation == null:
 		return
-	var quest_state := simulation.campaign_journal.quest_state(TOLL_TAKER_CONTENT_SCRIPT.QUEST_ID)
+	var quest_state := campaign_quest_service.state(TOLL_TAKER_CONTENT_SCRIPT.QUEST_ID)
 	if String(quest_state.get("status", "")) == "active" and simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID) == null:
 		TOLL_TAKER_ENCOUNTER_SCRIPT.ensure_ogre(simulation, _find_valid_spawn_hex(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_HEX))
 	if TOLL_TAKER_ENCOUNTER_SCRIPT.is_alive(simulation):
@@ -2740,7 +2746,7 @@ func _farm_wolves_remaining() -> int:
 func _check_farm_wolf_proximity() -> void:
 	if simulation == null or encounter_active:
 		return
-	var quest := simulation.campaign_journal.quest_state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
+	var quest := campaign_quest_service.state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
 	if String(quest.get("status", "")) != "active":
 		return
 	var player := simulation.get_character("player")
