@@ -31,6 +31,28 @@ func _run() -> void:
 		_check(bool(tree_exit.get("ok", false)) and tree_runtime.get_current_floor() == 0, "The same stair must return the player from the Lower Canopy to the regional surface")
 		_check(is_equal_approx(tree_actor.global_position.y, 0.1), "Returning outside must restore the player actor to surface height")
 
+	# A source-authored single-floor site must round-trip through its
+	# explicit exterior threshold and restore the regional map on exit.
+	var chapel_simulation = SIMULATION.new()
+	root.add_child(chapel_simulation)
+	var chapel_exterior_hex := Vector2i(-10, 0)
+	chapel_simulation.map_data.add_cell(chapel_exterior_hex, 0.0, true, "grass")
+	var chapel_player := CharacterState.new("chapel_entry_player", "Chapel Entry Player", chapel_exterior_hex)
+	chapel_simulation.register_character(chapel_player)
+	var chapel_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "hollowmere_chapel", chapel_simulation)
+	_check(bool(chapel_load.get("ok", false)), "Shared location loader must instantiate Hollowmere Chapel")
+	var chapel_runtime = chapel_load.get("runtime")
+	if chapel_runtime != null:
+		_check(chapel_runtime.get_exterior_entry_contract().get("door_id", "") == "hollowmere_chapel_east_door", "Chapel must expose its source-authored exterior entry contract")
+		var chapel_entry: Dictionary = chapel_runtime.enter_from_exterior("chapel_entry_player")
+		_check(bool(chapel_entry.get("ok", false)), "Player at the chapel threshold must enter through its authored east door")
+		_check(chapel_player.axial == Vector2i(-11, 0), "Chapel entry must place the player on the source-authored door hex")
+		_check(chapel_runtime.is_floor_visible(0), "Chapel interior floor must be active after entry")
+		var chapel_exit: Dictionary = chapel_runtime.exit_to_exterior("chapel_entry_player")
+		_check(bool(chapel_exit.get("ok", false)), "Player beside the chapel door must be able to return outside")
+		_check(chapel_player.axial == chapel_exterior_hex, "Chapel exit must restore the authored exterior return hex")
+		_check(chapel_simulation.map_data.is_walkable(chapel_exterior_hex), "Chapel exit must restore the regional exterior map")
+
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
 	var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
