@@ -33,6 +33,8 @@ const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_wo
 const DWELLING_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_dwelling_dialogue_service.gd")
 const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
 const ABANDONED_HOUSE_DIALOGUE_SERVICE = preload("res://scripts/simulation/abandoned_house_dialogue_service.gd")
+const REYNA_RESCUE_SERVICE = preload("res://scripts/quests/reyna_rescue_service.gd")
+const HOLLOWMERE_SHAKEDOWN_DIALOGUE_SERVICE = preload("res://scripts/quests/hollowmere_shakedown_dialogue_service.gd")
 const DWELLING_WORLD_PRESENTATION = preload("res://scripts/presentation/campaign_dwelling_world_presentation.gd")
 const SKELETAL_GUARDIAN_ACTOR_SCRIPT = preload("res://scripts/presentation/skeletal_guardian_actor.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
@@ -687,26 +689,44 @@ func _check_reyna_story_proximity() -> void:
 
 func _rescue_missing_child() -> void:
 	_close_dialogue()
+	var preparation := REYNA_RESCUE_SERVICE.prepare_rescue(simulation)
+	if not bool(preparation.get("ok", false)):
+		var message := "Tessa isn't here. We need to find the shelter."
+		if String(preparation.get("reason", "")) != "missing_child":
+			message = "We aren't ready to bring Tessa home yet. We need to find her trail and reach the shelter first."
+		_show_dialogue("Reyna Fletcher", message, [{"id": "continue", "label": "Continue", "text": ""}])
+		return
 	var child_state := simulation.get_character("missing_child_tessa")
 	if child_state == null:
-		_show_dialogue("Reyna Fletcher", "Tessa isn't here. We need to find the shelter.", [{"id":"continue","label":"Continue","text":""}])
 		return
 	_show_speech_bubble("companion_reyna_fletcher", "I'll draw it away from the door. Get Tessa to Old Mac — don't look back!")
-	var path := simulation.find_path("missing_child_tessa", HOLLOWMERE_PLACEMENTS.OLD_MAC_RESCUE_DESTINATION_HEX)
+	var destination: Vector2i = HOLLOWMERE_PLACEMENTS.OLD_MAC_RESCUE_DESTINATION_HEX
+	var path := simulation.find_path("missing_child_tessa", destination)
+	if path.is_empty() and child_state.axial != destination:
+		_show_dialogue("Reyna Fletcher", "The way back to Old Mac's farm is blocked. Tessa is still in the shelter; we need a safe route before we can bring her home.", [{"id": "continue", "label": "We'll find another way.", "text": ""}])
+		return
+	var movement_failed := false
 	if path.size() > 1:
 		for index in range(1, path.size()):
 			if not simulation.try_move_character_step("missing_child_tessa", path[index]):
+				movement_failed = true
 				break
 			await get_tree().create_timer(0.16).timeout
 			if not is_instance_valid(self):
 				return
+	if movement_failed:
+		_show_dialogue("Reyna Fletcher", "Something has blocked the route. Tessa is not safe at Old Mac's yet.", [{"id": "continue", "label": "We'll clear the way.", "text": ""}])
+		return
+	var completion := REYNA_RESCUE_SERVICE.complete_rescue(simulation, destination)
+	if not bool(completion.get("ok", false)):
+		_show_dialogue("Reyna Fletcher", "Tessa has not reached safety yet. We need to get her all the way back to Old Mac.", [{"id": "continue", "label": "Keep going.", "text": ""}])
+		return
 	var child_actor := actor_by_id.get("missing_child_tessa") as Node3D
 	if child_actor != null:
 		child_actor.global_position = _hex_world_position(child_state.axial)
-	_set_reyna_objective("child_rescued")
 	_show_speech_bubble("missing_child_tessa", "I thought it was going to get me. Thank you.")
 	_show_speech_bubble("companion_reyna_fletcher", "She's safe. Now we make sure that thing never comes back.")
-	_show_dialogue("Reyna Fletcher", "Tessa is back at Old Mac's farm. She heard the wolf trying to break into the shelter. It has been hunting more than livestock. We finish this now — the beast is still out there, near the fields.", [{"id":"continue","label":"Then let's end it","text":""}])
+	_show_dialogue("Reyna Fletcher", "Tessa is back at Old Mac's farm. She heard the wolf trying to break into the shelter. It has been hunting more than livestock. We finish this now — the beast is still out there, near the fields.", [{"id": "continue", "label": "Then let's end it", "text": ""}])
 
 func _begin_dire_wolf_hunt_combat() -> void:
 	_close_dialogue()
@@ -1642,19 +1662,25 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id == "reyna_rescue_child":
 		await _rescue_missing_child()
 		return
+	if choice_id == "fight" or choice.has("ironbond_delta"):
+		var shakedown_result := HOLLOWMERE_SHAKEDOWN_DIALOGUE_SERVICE.resolve_choice(simulation, choice)
+		if bool(shakedown_result.get("handled", false)):
+			if not bool(shakedown_result.get("ok", false)):
+				_show_dialogue("Hollowmere", "The choice could not be recorded: %s." % String(shakedown_result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+				return
+			shakedown_resolved = true
+			_record_wren_authored_event(String(shakedown_result.get("event_key", "")))
+			if String(shakedown_result.get("action", "")) == "begin_combat":
+				_begin_shakedown_combat()
+			else:
+				await _move_shakedown_soldiers_outside()
+				var response := String(shakedown_result.get("response", ""))
+				if response.is_empty():
+					response = "The soldiers take their due and leave the tavern."
+				_show_dialogue("Hollowmere", response, [{"id": "continue", "label": "Continue", "text": ""}])
+			return
 	if choice_id == "conversation_end" or choice_id == "continue":
 		_close_dialogue()
-		return
-	if choice_id == "fight":
-		_begin_shakedown_combat()
-		return
-	if choice.has("ironbond_delta"):
-		_resolve_shakedown(choice_id)
-		await _move_shakedown_soldiers_outside()
-		var response := String(choice.get("response", ""))
-		if response.is_empty():
-			response = "You stand with Garrick. The encounter is ready to begin once combat targeting and enemy AI are connected."
-		_show_dialogue("Hollowmere", response, [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 
 	var response_text := String(choice.get("text", ""))
@@ -2131,15 +2157,6 @@ func _recruit_staged_companion(character_id: String) -> void:
 	_show_dialogue(state.display_name, "%s joins your party. Their existing skills and equipment are preserved; future skill points are yours to allocate." % state.display_name, [{"id":"continue","label":"Continue","text":""}])
 
 
-func _resolve_shakedown(choice_id: String) -> void:
-	if shakedown_resolved:
-		return
-	var result := HollowmereCampaignContent.resolve_shakedown(simulation.campaign_journal, choice_id)
-	if not bool(result.get("ok", false)):
-		return
-	shakedown_resolved = true
-	_record_wren_authored_event("hollowmere_shakedown:" + choice_id)
-
 func _record_wren_authored_event(event_key: String) -> void:
 	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
 	if relationships == null:
@@ -2303,12 +2320,6 @@ func _run_ambient_exchange(first_id: String, second_id: String, exchange: Dictio
 
 func _begin_shakedown_combat() -> void:
 	_close_dialogue()
-	var branch_result := HollowmereCampaignContent.apply_shakedown_choice(simulation.campaign_journal, "fight")
-	if not bool(branch_result.get("ok", false)):
-		_show_dialogue("Hollowmere", "The choice could not be recorded: " + String(branch_result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
-		return
-	shakedown_resolved = true
-	_record_wren_authored_event("hollowmere_shakedown:fight")
 	var additional_party_ids: Array[String] = []
 	for party_id_value in simulation.get_party_member_ids():
 		additional_party_ids.append(String(party_id_value))
