@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/wren-ara.json >/dev/null
-          python -m py_compile tools/ara/assemble_modular_glb.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
+          python -m py_compile tools/ara/assemble_modular_glb.py tools/ara/second_pass_garment_fit.py tools/blender/add_female_anatomy_surface.py tools/blender/plan_female_anatomy_subdivision.py
 
       - name: Install Blender and numerical dependencies
         run: |
