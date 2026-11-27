@@ -320,6 +320,7 @@ def main():
             "collision_thickness_m": 0.002,
             "source_materials": body_collider["source_materials"],
             "external_shell_policy": body_collider["external_shell_policy"],
+            "pelvic_smoothing_applied": body_collider["pelvic_recess_smoothing_vertices"] >= 8,
             "pelvic_recess_smoothing_vertices": body_collider["pelvic_recess_smoothing_vertices"],
             "pelvis_landmark_z": body_collider["pelvis_landmark_z"],
             "source_boundary_edge_count": body_collider["source_boundary_edge_count"],
