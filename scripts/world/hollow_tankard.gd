@@ -1404,12 +1404,11 @@ func _apply_save_data(data: Dictionary) -> void:
 		if is_instance_valid(defeated_wolf_actor):
 			defeated_wolf_actor.queue_free()
 		actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
-	if simulation.camp_simulation.phase in ["evening", "night", "resolved"]:
+	if simulation.camp_simulation.phase in ["evening", "night", "interrupted", "morning", "resolved"]:
 		camp_presentation.present_camp(simulation.camp_simulation.site, simulation.camp_simulation.sleeping_arrangements, simulation.camp_simulation.environment)
 		if simulation.camp_simulation.phase == "evening":
 			camp_activity_director.begin_camp(simulation.camp_simulation.site)
-		camp_sleep_button.visible = true
-		camp_sleep_button.text = "Sleep until morning" if simulation.camp_simulation.phase == "evening" else "Pack camp"
+		_sync_camp_sleep_button_state()
 	if camera_rig != null:
 		camera_rig.follow_target = actor_by_id.get(active_character_id, actor_by_id.get("player")) as Node3D
 		var camera_data: Dictionary = data.get("camera", {})
@@ -3307,6 +3306,23 @@ func _process(delta: float) -> void:
 		if rowan_return_accumulator >= 1.0:
 			rowan_return_accumulator = 0.0
 			_return_rowan_after_night()
+	_sync_camp_sleep_button_state()
+
+func _sync_camp_sleep_button_state() -> void:
+	if camp_sleep_button == null or simulation == null:
+		return
+	var phase := simulation.camp_simulation.phase
+	camp_sleep_button.visible = phase in ["evening", "interrupted", "morning", "resolved"]
+	camp_sleep_button.disabled = phase == "morning"
+	match phase:
+		"evening":
+			camp_sleep_button.text = "Sleep until morning"
+		"interrupted":
+			camp_sleep_button.text = "Continue sleeping"
+		"morning":
+			camp_sleep_button.text = "Morning routine…"
+		"resolved":
+			camp_sleep_button.text = "Pack camp"
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")

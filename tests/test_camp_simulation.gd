@@ -193,6 +193,13 @@ func _test_overnight_guest_sleep_and_dawn_departure() -> void:
 	interrupted.phase = "interrupted"
 	interrupted.night_planned_hours = 8.0
 	interrupted.night_elapsed_hours = 3.0
+	var interrupted_save := interrupted.to_dict()
+	var restored_interrupted := CampSimulation.new()
+	_check(restored_interrupted.from_dict(interrupted_save), "An overnight guest and interrupted night should survive save/load together.")
+	_check(restored_interrupted.occupants.has("rowan_fletcher"), "Rowan should remain registered as a guest after loading an interrupted night.")
+	var resumed := restored_interrupted.continue_sleep()
+	_check(bool(resumed.get("ok", false)), "A loaded interrupted night should resume without losing its overnight guest.")
+	_check(not restored_interrupted.occupants.has("rowan_fletcher"), "A resumed night should release Rowan when dawn arrives.")
 	var ended := interrupted.finish_interrupted_night()
 	_check((ended.get("guests_departed_at_dawn", []) as Array).has("rowan_fletcher"), "A guest should also leave when the player ends an interrupted night at dawn")
 	_check(not interrupted.occupants.has("rowan_fletcher"), "Ending an interrupted night should release the guest from camp")
