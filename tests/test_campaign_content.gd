@@ -2,12 +2,14 @@ extends SceneTree
 
 const CONVERSATION_SESSION = preload("res://scripts/simulation/campaign_conversation_session.gd")
 const AMBASSADOR_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_ambassador_dialogue_service.gd")
+const LOCAL_QUEST_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_local_quest_dialogue_service.gd")
 
 var _failures: int = 0
 
 func _initialize() -> void:
 	_test_campaign_conversation_session()
 	_test_campaign_ambassador_dialogue_service()
+	_test_campaign_local_quest_dialogue_service()
 	_test_campaign_journal()
 	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
@@ -510,4 +512,65 @@ func _test_campaign_ambassador_dialogue_service() -> void:
 	_check(not bool(unknown.get("handled", true)), "Unrelated choices remain available to other domain services")
 	var missing_simulation := AMBASSADOR_DIALOGUE_SERVICE.resolve_choice(null, {"id": "brokk_pay_toll"})
 	_check(bool(missing_simulation.get("handled", false)) and not bool(missing_simulation.get("ok", true)), "Missing campaign state returns a safe failure")
+	simulation.free()
+
+func _test_campaign_local_quest_dialogue_service() -> void:
+	var simulation := WorldSimulation.new()
+	var farm_decline := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "farm_wolves_decline", "text": "Not today."}
+	)
+	_check(bool(farm_decline.get("handled", false)), "Farm wolf choices route through the local quest service")
+	_check(String(farm_decline.get("dialogue", {}).get("speaker", "")) == "Old Mac", "Farm wolf responses retain Old Mac as speaker")
+	_check(not bool(farm_decline.get("close", false)), "Farm wolf responses retain the existing non-closing dialogue fallback")
+
+	var courier_decline := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "ironbond_courier_decline"}
+	)
+	_check(bool(courier_decline.get("handled", false)), "Missing courier choices route through the local quest service")
+	_check(String(courier_decline.get("dialogue", {}).get("speaker", "")) == "Dray Coltayne", "Courier responses retain Dray as speaker")
+
+	var toll_decline := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "toll_ogre_decline"},
+		true
+	)
+	_check(bool(toll_decline.get("handled", false)) and bool(toll_decline.get("close", false)), "Toll taker decline preserves its close behaviour")
+
+	var unknown_farm := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "farm_wolves_unknown"}
+	)
+	_check(not bool(unknown_farm.get("handled", true)), "Unknown farm choices remain unclaimed by the local quest service")
+
+	var unknown_courier := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "ironbond_courier_unknown"}
+	)
+	_check(bool(unknown_courier.get("handled", false)) and not bool(unknown_courier.get("ok", true)), "Unknown courier choices return a safe dialogue failure")
+
+	var missing_simulation := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		null,
+		{"id": "toll_ogre_decline"}
+	)
+	_check(not bool(missing_simulation.get("handled", true)), "Missing campaign state does not claim a local quest choice")
+
+	var courier_accept := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "ironbond_courier_accept"}
+	)
+	_check(bool(courier_accept.get("handled", false)), "Courier acceptance remains handled by the quest service")
+	_check(bool(courier_accept.get("close", false)), "Courier acceptance retains its original close behaviour")
+	_check(String(courier_accept.get("status_message", "")).contains("Missing Courier"), "Courier acceptance retains its quest status message")
+
+	var toll_accept := LOCAL_QUEST_DIALOGUE_SERVICE.resolve_choice(
+		simulation,
+		{"id": "toll_ogre_accept"},
+		true
+	)
+	_check(bool(toll_accept.get("handled", false)), "Toll-taker acceptance remains handled by the quest service")
+	_check(bool(toll_accept.get("spawn_ogre", false)), "Toll-taker acceptance explicitly requests its world actor spawn")
+	_check(String(toll_accept.get("status_message", "")).contains("Toll-Taker"), "Toll-taker acceptance retains its quest status message")
+	_check(String(toll_accept.get("dialogue", {}).get("speaker", "")) == "Petra Hollis", "Toll-taker acceptance retains Petra's follow-up dialogue")
 	simulation.free()
