@@ -1474,6 +1474,11 @@
         "r": 24
       },
       "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "exterior_entry": {
+        "door_id": "reddale_guardhouse_door",
+        "exterior_hex": {"q": 138, "r": 24},
+        "return_hex": {"q": 138, "r": 24}
+      },
       "floors": [
         {
           "floor": 0,
@@ -1604,6 +1609,11 @@
         "r": 30
       },
       "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "exterior_entry": {
+        "door_id": "reddale_inn_door",
+        "exterior_hex": {"q": 138, "r": 27},
+        "return_hex": {"q": 138, "r": 27}
+      },
       "floors": [
         {
           "floor": 0,
@@ -1734,6 +1744,11 @@
         "r": 18
       },
       "source": "Hex-crpg/campaign2World.js:buildReddale; Reddale waypoint (138,24) and source building offsets",
+      "exterior_entry": {
+        "door_id": "reddale_reeve_house_door",
+        "exterior_hex": {"q": 138, "r": 21},
+        "return_hex": {"q": 138, "r": 21}
+      },
       "floors": [
         {
           "floor": 0,
