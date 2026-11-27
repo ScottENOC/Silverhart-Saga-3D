@@ -34,10 +34,8 @@ func _run() -> void:
     character.name = "Wren"
     stage.add_child(character)
 
-    var details := AraCharacterDetails.new()
-    details.name = "AppearanceDetails"
-    stage.add_child(details)
-    details.configure(character, {"piercings": ["nipple_left"], "tattoos": [], "tattoo_ink": "#28252D"})
+    # The accepted Wren GLB already contains its baked piercing meshes.
+    # Do not add a second procedural copy in the fitting preview.
     _collect_meshes(character)
     if mesh_instances.is_empty():
         push_error("Wren GLB contains no MeshInstance3D nodes")
