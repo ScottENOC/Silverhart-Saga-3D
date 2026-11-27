@@ -425,6 +425,34 @@ static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i)
 			rz = -rx - ry
 		target[_hex_key(Vector2i(rx, rz))] = true
 
+## Source-anchored mountain relief for Kragmoor's 25-hex massif.
+## The gate hall and its southern approach remain at the valley datum; the
+## surrounding mountain rises into a broad, irregular highland rather than a
+## uniformly noisy plateau. All inputs are global axial coordinates, so
+## independently streamed chunks calculate identical heights.
+static func elevation_override_at(hex: Vector2i) -> Variant:
+	if _is_kragmoor_gate_floor(hex) or hex == KRAGMOOR_GATE_DOOR or is_kragmoor_approach_path(hex):
+		return 0.0
+	var distance := _axial_distance(hex, KRAGMOOR_CENTRE)
+	if distance > KRAGMOOR_MASSIF_RADIUS:
+		return null
+	var remaining := 1.0 - float(distance) / float(KRAGMOOR_MASSIF_RADIUS)
+	var massif_lift := pow(remaining, 1.35) * 25.0
+	var dq := float(hex.x - KRAGMOOR_CENTRE.x)
+	var dr := float(hex.y - KRAGMOOR_CENTRE.y)
+	# Two intersecting ridge directions give the massif a broken mountain
+	# silhouette without introducing chunk-local random displacement.
+	var ridge_a := absf(sin((dq * 0.31) + (dr * 0.17)))
+	var ridge_b := absf(sin((dq * -0.13) + (dr * 0.37)))
+	var ridge_lift := (ridge_a * 0.65 + ridge_b * 0.35) * 3.2 * remaining
+	var broad_q := floori(float(hex.x) / 5.0)
+	var broad_r := floori(float(hex.y) / 5.0)
+	var detail := _source_pseudo_random(float(broad_q) * 1.7 + 31.0, float(broad_r) * 2.3 + 17.0)
+	var roughness := (detail - 0.5) * 1.8 * remaining
+	return 1.2 + massif_lift + ridge_lift + roughness
+
+
+
 static func feature_id_at(hex: Vector2i) -> String:
 	if hex == PLAYER_COTTAGE_PLOT:
 		return "player_cottage_plot"
