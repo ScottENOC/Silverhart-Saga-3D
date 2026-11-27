@@ -152,11 +152,11 @@ def make_skin_only_collider(source, material_prefix):
     mesh = source.data.copy()
     bm = bmesh.new()
     bm.from_mesh(mesh)
-    # Do NOT delete non-skin material faces. Material boundaries are not
-    # geometric openings: filtering them was cutting holes through the body
-    # shell (including the pelvic envelope) and creating hundreds of boundary
-    # edges. The source object is already selected by its skin material; retain
-    # its complete connected surface, then discard only disconnected islands.
+    # Keep the source topology intact for diagnosis. Connected-component size,
+    # manifoldness and watertightness do not identify anatomical external surfaces:
+    # internal canal walls may be connected to the outer shell. Never discard
+    # components, smooth the pelvis, or cap boundary loops until a separate
+    # anatomical classification has been validated against this exact mesh.
     remaining = set(bm.faces)
     face_components = []
     while remaining:
@@ -178,79 +178,22 @@ def make_skin_only_collider(source, material_prefix):
         bpy.data.meshes.remove(mesh)
         raise RuntimeError("Body source contains no connected surface faces")
     component_face_counts = [len(component) for component in face_components]
-    disconnected_faces = [face for component in face_components[1:] for face in component]
-    if disconnected_faces:
-        bmesh.ops.delete(bm, geom=disconnected_faces, context="FACES")
-    loose = [edge for edge in bm.edges if not edge.link_faces]
-    if loose:
-        bmesh.ops.delete(bm, geom=loose, context="EDGES")
-    loose_vertices = [vertex for vertex in bm.verts if not vertex.link_edges]
-    if loose_vertices:
-        bmesh.ops.delete(bm, geom=loose_vertices, context="VERTS")
-    # A garment collider must be a closed, manifold external shell. Open
-    # boundary loops are capped on this collision-only copy; the rendered
-    # Wren mesh is never changed. This also prevents ray-parity queries from
-    # leaking through genuine mesh holes into interior geometry.
-    preparation_warnings = []
-    try:
-        smoothed_pelvic_vertices, pelvis_z = smooth_pelvic_recesses(bm, source)
-    except Exception as error:
-        smoothed_pelvic_vertices, pelvis_z = 0, None
-        preparation_warnings.append("Pelvic relief smoothing failed: " + repr(error))
+    retained_face_count = sum(component_face_counts)
+    preparation_warnings = [
+        "External-only surface classification has not been proven.",
+        "Internal canal exclusion has not been proven; collider is diagnostic only.",
+        "No boundary loops were capped and no pelvic geometry was smoothed.",
+    ]
     boundary_components_before = boundary_edge_components(bm)
     boundary_edge_count_before = sum(len(component) for component in boundary_components_before)
-    capped_faces = []
-    cap_methods = []
-    for component in boundary_components_before:
-        # Fill one closed loop at a time. Passing every loop to holes_fill in
-        # one call can leave valid loops untouched on dense imported GLBs.
-        faces = []
-        method = "holes_fill"
-        try:
-            fill_result = bmesh.ops.holes_fill(bm, edges=component, sides=0)
-            faces = list(fill_result.get("faces", []))
-        except Exception as error:
-            preparation_warnings.append(
-                f"holes_fill failed for {len(component)} boundary edges: {error!r}"
-            )
-        if not faces:
-            method = "edgenet_fill"
-            try:
-                fallback = bmesh.ops.edgenet_fill(
-                    bm, edges=component, mat_nr=0,
-                    use_smooth=True, use_dissolve=False,
-                )
-                faces = list(fallback.get("faces", []))
-            except Exception as error:
-                preparation_warnings.append(
-                    f"edgenet_fill failed for {len(component)} boundary edges: {error!r}"
-                )
-        if not faces:
-            method = "unrepaired"
-            preparation_warnings.append(
-                f"Boundary component with {len(component)} edges remains open"
-            )
-        capped_faces.extend(faces)
-        cap_methods.append({
-            "boundary_edges": len(component),
-            "created_faces": len(faces),
-            "method": method,
-        })
-    if capped_faces:
-        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
-    bm.normal_update()
-    boundary_components_after = boundary_edge_components(bm)
+    boundary_components_after = boundary_components_before
     boundary_edges_after = [edge for component in boundary_components_after for edge in component]
     nonmanifold_edges_after = [edge for edge in bm.edges if not edge.is_manifold]
-    remaining_sizes = sorted((len(component) for component in boundary_components_after), reverse=True)
-    if boundary_edges_after or nonmanifold_edges_after:
-        preparation_warnings.append(
-            "Collision shell is not watertight; ray-parity inside/outside results "
-            "are diagnostic only. "
-            f"remaining_boundary_edges={len(boundary_edges_after)}, "
-            f"remaining_loop_sizes={remaining_sizes[:12]}, "
-            f"nonmanifold_edges={len(nonmanifold_edges_after)}"
-        )
+    capped_faces = []
+    cap_methods = []
+    smoothed_pelvic_vertices = 0
+    pelvis_z = None
+    bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
     mesh.update()
@@ -269,9 +212,13 @@ def make_skin_only_collider(source, material_prefix):
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
     )
-    collider["retained_connected_surface_face_count"] = component_face_counts[0]
-    collider["discarded_disconnected_surface_face_counts"] = component_face_counts[1:]
-    collider["external_shell_policy"] = "skin-only; pelvic recesses softened; boundary loops capped where possible; unresolved topology defects are diagnostic-only"
+    collider["retained_connected_surface_face_count"] = retained_face_count
+    collider["connected_component_face_counts"] = component_face_counts
+    collider["discarded_disconnected_surface_face_counts"] = []
+    collider["external_shell_policy"] = "unaltered source skin topology; diagnostic-only; external-only classification and internal-canal exclusion unverified"
+    collider["external_surface_verified"] = False
+    collider["internal_canal_exclusion_verified"] = False
+    collider["natural_openings_capped"] = False
     collider["pelvic_recess_smoothing_vertices"] = smoothed_pelvic_vertices
     collider["pelvis_landmark_z"] = pelvis_z
     collider["source_boundary_edge_count"] = boundary_edge_count_before
@@ -280,10 +227,7 @@ def make_skin_only_collider(source, material_prefix):
     collider["boundary_cap_methods"] = str(cap_methods)
     collider["collision_boundary_edge_count"] = len(boundary_edges_after)
     collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
-    collider["collision_confidence"] = (
-        "closed_manifold" if not boundary_edges_after and not nonmanifold_edges_after
-        else "open_or_nonmanifold_diagnostic_only"
-    )
+    collider["collision_confidence"] = "unverified_external_surface_diagnostic_only"
     collider["collision_preparation_warnings"] = json.dumps(preparation_warnings)
     add_collision_modifier(collider, 0.002)
     return collider
@@ -348,7 +292,11 @@ def main():
             "collision_thickness_m": 0.002,
             "source_materials": list(body_collider["source_materials"]),
             "retained_connected_surface_face_count": body_collider["retained_connected_surface_face_count"],
+            "connected_component_face_counts": list(body_collider["connected_component_face_counts"]),
             "discarded_disconnected_surface_face_counts": list(body_collider["discarded_disconnected_surface_face_counts"]),
+            "external_surface_verified": body_collider["external_surface_verified"],
+            "internal_canal_exclusion_verified": body_collider["internal_canal_exclusion_verified"],
+            "natural_openings_capped": body_collider["natural_openings_capped"],
             "external_shell_policy": body_collider["external_shell_policy"],
             "pelvic_smoothing_applied": body_collider["pelvic_recess_smoothing_vertices"] >= 8,
             "pelvic_recess_smoothing_vertices": body_collider["pelvic_recess_smoothing_vertices"],
@@ -371,8 +319,8 @@ def main():
         "notes": [
             "Piercing meshes remain ordinary visible render geometry.",
             "The body collider is a separate skin-only copy; the rendered accepted Wren mesh is unchanged.",
-            "Midline pelvic recesses are softened on the collision-only copy so internal-looking vulval/perineal relief does not attract nearest-surface contacts.",
-            "Open boundary loops are capped where possible; unresolved boundaries are recorded as warnings and fitting continues with diagnostic-only collision confidence.",
+            "The diagnostic collider retains all source skin components without smoothing or capping.",
+            "External-only classification and internal-canal exclusion are explicitly unverified; cloth fitting must not proceed.",
             "The collider is built from accepted Wren, not Ara's temporary anatomy fitting reference.",
             "No garment vertices are displaced in this preparation stage.",
         ],
