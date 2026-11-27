@@ -23,6 +23,7 @@ func _test_registry_registration() -> void:
 	assert(bool(result.get("ok", false)))
 	assert(simulation.campaign_journal.quest_definitions.has(ABANDONED_HOUSE.QUEST_ID))
 	assert(simulation.campaign_journal.quest_definitions.has(TOLL_TAKER.QUEST_ID))
+	assert(simulation.campaign_journal.quest_definitions.has("reyna_dire_wolf_hunt"), "The central registry must include companion recruitment quest definitions.")
 	assert(result.get("registered_quest_ids", []).size() == 11, "The central registry should register every campaign quest module.")
 	assert(result.get("failed_quests", []).is_empty())
 	var repeated := QUEST_REGISTRY.register_definitions(simulation)
@@ -43,6 +44,7 @@ func _test_campaign_coordinator_initialization() -> void:
 		"abandoned_house_cleared"
 	]:
 		assert(simulation.campaign_journal.quest_definitions.has(quest_id), "Coordinator should register %s." % quest_id)
+	assert(simulation.campaign_journal.quest_definitions.has("reyna_dire_wolf_hunt"), "Coordinator should register companion recruitment quests before location setup.")
 	assert(not simulation.campaign_journal.npc_standings.is_empty(), "Coordinator should seed opening social standings.")
 	var repeated: Dictionary = coordinator.quest_service.register_definitions()
 	assert(bool(repeated.get("ok", false)), "Campaign registration should be safe to repeat.")
