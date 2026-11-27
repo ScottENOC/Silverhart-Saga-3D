@@ -31,27 +31,13 @@ func _run() -> void:
 		_check(bool(tree_exit.get("ok", false)) and tree_runtime.get_current_floor() == 0, "The same stair must return the player from the Lower Canopy to the regional surface")
 		_check(is_equal_approx(tree_actor.global_position.y, 0.1), "Returning outside must restore the player actor to surface height")
 
-	# A source-authored single-floor site must round-trip through its
-	# explicit exterior threshold and restore the regional map on exit.
-	var chapel_simulation = SIMULATION.new()
-	root.add_child(chapel_simulation)
-	var chapel_exterior_hex := Vector2i(-10, 0)
-	chapel_simulation.map_data.add_cell(chapel_exterior_hex, 0.0, true, "grass")
-	var chapel_player := CharacterState.new("chapel_entry_player", "Chapel Entry Player", chapel_exterior_hex)
-	chapel_simulation.register_character(chapel_player)
-	var chapel_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "hollowmere_chapel", chapel_simulation)
-	_check(bool(chapel_load.get("ok", false)), "Shared location loader must instantiate Hollowmere Chapel")
-	var chapel_runtime = chapel_load.get("runtime")
-	if chapel_runtime != null:
-		_check(chapel_runtime.get_exterior_entry_contract().get("door_id", "") == "hollowmere_chapel_east_door", "Chapel must expose its source-authored exterior entry contract")
-		var chapel_entry: Dictionary = chapel_runtime.enter_from_exterior("chapel_entry_player")
-		_check(bool(chapel_entry.get("ok", false)), "Player at the chapel threshold must enter through its authored east door")
-		_check(chapel_player.axial == Vector2i(-11, 0), "Chapel entry must place the player on the source-authored door hex")
-		_check(chapel_runtime.is_floor_visible(0), "Chapel interior floor must be active after entry")
-		var chapel_exit: Dictionary = chapel_runtime.exit_to_exterior("chapel_entry_player")
-		_check(bool(chapel_exit.get("ok", false)), "Player beside the chapel door must be able to return outside")
-		_check(chapel_player.axial == chapel_exterior_hex, "Chapel exit must restore the authored exterior return hex")
-		_check(chapel_simulation.map_data.is_walkable(chapel_exterior_hex), "Chapel exit must restore the regional exterior map")
+	# Every registered Hollowmere entry uses the same runtime round-trip.
+	# Exterior positions are taken from the original setupVillageScene paintPath calls.
+	_assert_exterior_entry_round_trip("hollowmere_chapel", "chapel_entry_player", Vector2i(-10, 0), Vector2i(-11, 0), "hollowmere_chapel_east_door", "Chapel")
+	_assert_exterior_entry_round_trip("hollowmere_general_store", "general_store_entry_player", Vector2i(1, 14), Vector2i(0, 15), "hollowmere_general_store_north_door", "General Store")
+	_assert_exterior_entry_round_trip("hollowmere_house", "house_entry_player", Vector2i(0, -9), Vector2i(0, -10), "hollowmere_house_south_door", "Hollowmere House")
+	_assert_exterior_entry_round_trip("hollowmere_store", "store_entry_player", Vector2i(9, 0), Vector2i(10, 0), "hollowmere_store_west_door", "Hollowmere Store")
+	_assert_exterior_entry_round_trip("mira_house", "mira_house_entry_player", Vector2i(9, 9), Vector2i(10, 9), "mira_house_west_door", "Mira's House")
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
@@ -229,6 +215,36 @@ func _run() -> void:
 		return
 	print("Kragmoor floor presentation, quest-gated traversal and campaign persistence validated.")
 	quit(0)
+
+func _assert_exterior_entry_round_trip(
+	location_id: String,
+	character_id: String,
+	exterior_hex: Vector2i,
+	door_hex: Vector2i,
+	expected_door_id: String,
+	label: String
+) -> void:
+	var simulation = SIMULATION.new()
+	root.add_child(simulation)
+	simulation.map_data.add_cell(exterior_hex, 0.0, true, "grass")
+	var player := CharacterState.new(character_id, "%s Test Player" % label, exterior_hex)
+	simulation.register_character(player)
+	var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, location_id, simulation)
+	_check(bool(loaded.get("ok", false)), "%s must load through the shared location loader" % label)
+	var runtime = loaded.get("runtime")
+	if runtime == null:
+		return
+	var contract: Dictionary = runtime.get_exterior_entry_contract()
+	_check(String(contract.get("door_id", "")) == expected_door_id, "%s must expose its source-authored door contract" % label)
+	var entry: Dictionary = runtime.enter_from_exterior(character_id)
+	_check(bool(entry.get("ok", false)), "%s threshold must allow entry" % label)
+	_check(player.axial == door_hex, "%s entry must place the player on its authored door hex" % label)
+	_check(runtime.is_floor_visible(0), "%s interior floor must be active after entry" % label)
+	var exit_result: Dictionary = runtime.exit_to_exterior(character_id)
+	_check(bool(exit_result.get("ok", false)), "%s must allow return through the same door" % label)
+	_check(player.axial == exterior_hex, "%s exit must restore its authored exterior return hex" % label)
+	_check(simulation.map_data.is_walkable(exterior_hex), "%s exit must restore the regional map" % label)
+
 
 func _check(condition: bool, message: String) -> void:
 	if condition:
