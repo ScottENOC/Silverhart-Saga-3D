@@ -260,6 +260,29 @@ jobs:
           print("WREN_CLOTH_COLLIDER_VALIDATION_OK", len(report["piercing_colliders"]))
           PY
 
+      - name: Extract bikini material surfaces as separate skinned garment objects
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \\
+            --python tools/blender/extract_wren_garment_surfaces.py -- \\
+            --input-blend build/wren-native/Wren_Cloth_Collision_Setup.blend \\
+            --output-blend build/wren-native/Wren_Garment_Extraction.blend \\
+            --report build/wren-native/garment-extraction-report.json
+          test -s build/wren-native/Wren_Garment_Extraction.blend
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("build/wren-native/garment-extraction-report.json").read_text())
+          assert report["garment_object_count"] >= 2, report
+          assert report["source_shape_key_count"] >= 34, report
+          assert all(row["armature_modifiers"] for row in report["garments"]), report
+          assert all(row["shape_key_count"] == report["source_shape_key_count"] for row in report["garments"]), report
+          assert report["body_geometry_deformed"] is False
+          assert report["piercings_hidden_or_moved"] is False
+          print("WREN_SKINNED_GARMENT_EXTRACTION_OK", report["garment_object_count"])
+          PY
+
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
