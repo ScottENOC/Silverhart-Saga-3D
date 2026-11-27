@@ -5,6 +5,8 @@ signal companion_exchange(exchange: Dictionary)
 
 const CAMP_DIALOGUE_SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
 const CAMPAIGN_RUNTIME_STORE := preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
+const ROWAN_CAMP_DIALOGUE_SERVICE := preload("res://scripts/simulation/rowan_fletcher_camp_dialogue_service.gd")
+const ROWAN_RELATIONSHIP_STORE := preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 ## Drives visible companion movement for the in-world camp.
 ## Character movement remains authoritative in WorldSimulation; HollowTankard's
 ## existing character_moved signal supplies the normal locomotion animation.
@@ -63,6 +65,7 @@ var _social_pause_remaining: Dictionary = {}
 var _step_accumulator: float = 0.0
 var _social_accumulator: float = 0.0
 var _exchange_index: int = 0
+var _rowan_exchange_index: int = 0
 var _morning_exchange_stages: Dictionary = {}
 var _running: bool = false
 
@@ -104,6 +107,7 @@ func stop() -> void:
 	_step_accumulator = 0.0
 	_social_accumulator = 0.0
 	_exchange_index = 0
+	_rowan_exchange_index = 0
 	_morning_exchange_stages.clear()
 	_layout_id = ""
 	_layout_station_offsets.clear()
@@ -292,6 +296,8 @@ func _process_social_exchanges(delta: float) -> void:
 		var state := simulation.get_character(character_id)
 		if state != null and state.alive and state.can_act():
 			companions.append(character_id)
+	if _process_rowan_guest_exchange(companions):
+		return
 	if companions.size() < 2:
 		return
 	var pairs: Array[Array] = []
@@ -361,6 +367,47 @@ func _process_social_exchanges(delta: float) -> void:
 	)
 	_exchange_index += 1
 	_present_social_exchange(exchange)
+
+
+## Rowan is not a party member: include him only while his saved overnight guest
+## record is present. Each companion gets at most one exchange per visit.
+func _process_rowan_guest_exchange(companions: Array[String]) -> bool:
+	if simulation == null or companions.is_empty():
+		return false
+	var camp := simulation.camp_simulation
+	var guest := camp.occupant_for("rowan_fletcher")
+	if guest.is_empty() or String(guest.get("kind", "")) != "guest":
+		return false
+	var visit_key := String(guest.get("visit_key", ""))
+	if visit_key.is_empty():
+		return false
+	var rowan_state := simulation.get_character("rowan_fletcher")
+	if rowan_state == null or not rowan_state.alive or not rowan_state.can_act():
+		return false
+	var relationships := ROWAN_RELATIONSHIP_STORE.state_for(simulation)
+	if relationships == null:
+		return false
+	for offset in range(companions.size()):
+		var partner_index := posmod(_rowan_exchange_index + offset, companions.size())
+		var partner_id := companions[partner_index]
+		var partner_state := simulation.get_character(partner_id)
+		if partner_state == null:
+			continue
+		var exchange := ROWAN_CAMP_DIALOGUE_SERVICE.build_exchange(
+			partner_id,
+			partner_state.display_name,
+			relationships,
+			visit_key
+		)
+		if exchange.is_empty():
+			continue
+		var recorded := ROWAN_CAMP_DIALOGUE_SERVICE.record_exchange(relationships, exchange)
+		if recorded.is_empty():
+			continue
+		_rowan_exchange_index = partner_index + 1
+		_present_social_exchange(exchange)
+		return true
+	return false
 
 
 func _present_social_exchange(exchange: Dictionary) -> void:

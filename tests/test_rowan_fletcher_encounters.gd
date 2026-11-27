@@ -49,6 +49,7 @@ func _test_overnight_guest_and_progression() -> void:
 	_check(String(guest.get("occupant_id", "")) == "rowan_fletcher" and String(guest.get("kind", "")) == "guest", "Rowan should be represented as a temporary camp guest.")
 	_check(not bool(guest.get("participates_in_party", true)) and not bool(guest.get("can_work", true)), "Rowan must not become a party member or camp worker.")
 	_check(bool(guest.get("leaves_at_dawn", false)), "Rowan should leave at dawn rather than become a permanent camp resident.")
+	_check(String(guest.get("visit_key", "")) == "day1:camp1", "The overnight guest should retain the unique visit key used to prevent repeated ambient dialogue.")
 	_check(int(accepted.relationship.get("friendship", 0)) == 2, "A warm welcome should begin building friendship.")
 	var repeated := RowanFletcherEncounterContent.build_encounter(relationships, _context("day1:camp1"))
 	_check(not bool(repeated.get("available", true)) and String(repeated.get("reason", "")) == "visit_already_resolved", "The same camp visit should not repeat after resolution.")
