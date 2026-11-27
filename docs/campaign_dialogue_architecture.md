@@ -11,59 +11,61 @@ There is no third presentation mode. In particular, world-origin floating narrat
 
 NPC-to-NPC banter is ambient. Any NPC-to-player exchange that expects a response is interactive. Player initiation and NPC initiation are different entry points into the same interactive conversation runtime, not separate dialogue systems.
 
-## Existing implementation found on `dev`
+## Current implementation on `dev`
 
 | Component | Current responsibility | Architectural status |
 |---|---|---|
-| `scripts/ui/campaign_dialogue_panel.gd` | Renders speaker, body, optional actor portrait and choice buttons; emits `choice_selected` | Retain as the interactive presentation component |
-| `scripts/simulation/hollowmere_campaign_content.gd` | Authored Hollowmere opening lines, choices, NPC greetings and ambient exchange data | Retain content separation; migrate content incrementally |
+| `scripts/presentation/campaign_ambient_dialogue_presenter.gd` | Actor-attached speech, wrapping, duration and real-time expiry; supports sequential multi-speaker exchanges | Canonical ambient presenter |
+| `scripts/simulation/campaign_conversation_session.gd` | Validates prompts and owns one active conversation's lifecycle, initiation metadata and choice selection | Canonical interactive session |
+| `scripts/presentation/campaign_conversation_controller.gd` | Adapts the shared session to the existing panel, resolves portraits and forwards choices | Canonical interactive controller |
+| `scripts/ui/campaign_dialogue_panel.gd` | Renders speaker, context/body, optional actor portrait and choice buttons; emits selected choice data | Retain as the interactive presentation component |
+| `scripts/simulation/hollowmere_opening_sequence_controller.gd` | Coordinates the timed Hollowmere opening beat through injected world/presentation callbacks | Reusable sequence controller |
+| `scripts/simulation/hollowmere_campaign_content.gd` | Authored Hollowmere opening lines, choices, NPC greetings and ambient exchange data | Retain content separation; migrate incrementally |
 | `scripts/simulation/camp_companion_dialogue_service.gd` | Builds ambient companion exchanges | Retain as an ambient content/service precedent |
-| `scripts/simulation/companion_campaign_dialogue_service.gd` | Packages companion chapter prompts and routes chapter operations | Reuse where applicable; it is not a general conversation runtime |
+| `scripts/simulation/companion_campaign_dialogue_service.gd` | Packages companion chapter prompts and routes chapter operations | Domain-specific dialogue service, not a second runtime |
 | `scripts/simulation/persistent_character_dialogue_content.gd` | Builds state-aware persistent-character dialogue | Retain as content, not presentation/runtime |
 | `scripts/world/campaign_npc_interaction_service.gd` | Resolves nearby NPCs and their actors | Retain as world interaction lookup |
-| `scripts/world/hollow_tankard.gd` | Owns panel construction, portrait lookup, choice dispatch, NPC routing, opening sequence and floating text construction | Must be reduced to world composition/adapters |
+| `scripts/world/hollow_tankard.gd` | Composes the world, resolves local actors, starts the shared opening sequence, supplies ambient/panel adapters and currently dispatches legacy campaign choice IDs | Adapter only; remaining dispatcher/routing is the next extraction target |
 
-## Confirmed architectural gaps
+## Remaining architectural gaps
 
-- There is no general interactive conversation session/runtime in the dialogue-named scripts. The panel only renders a supplied prompt and forwards a selected dictionary.
-- `HollowTankard._select_dialogue_choice()` is a large scene-owned dispatcher for unrelated campaign systems and dialogue branches.
-- `HollowTankard._interact_with_character()` owns character-specific conversation routing.
-- `HollowTankard._run_opening_sequence()` owns the opening sequence and calls presentation helpers directly.
-- `HollowTankard._show_speech_bubble()` creates actor-attached ambient text and a timer in the scene script.
-- `HollowTankard._show_world_narration()` creates a separate world-origin floating text presentation. This violates the two-mode contract.
-- The opening narrator line is actually stage/context text (the tavern door opening and armed men entering), not spoken dialogue. It should become context in the interactive panel, not be attributed to a fictitious speaker.
-- NPC interaction and opening dialogue both call the same panel helper, but that alone does not make their conversation flow a shared runtime.
+- `HollowTankard._select_dialogue_choice()` remains a large scene-owned dispatcher for unrelated campaign systems and dialogue branches. The shared controller now owns the conversation lifecycle, but domain choice resolution has not yet been fully extracted.
+- `HollowTankard._interact_with_character()` still selects the relevant domain dialogue service for local NPCs. It should ultimately become a thin world-interaction adapter that asks those services for prompts.
+- The opening sequence is extracted. The scene supplies callbacks for quest start, actor speech, soldier movement, resolved-state checks and the final interactive handoff; it no longer owns the timing loop.
+- `HollowTankard._show_speech_bubble()` now delegates to the shared ambient presenter. It does not create labels or timers itself.
+- The world-origin narration helper has been removed. The tavern entrance/stage direction is supplied as context in Dray's interactive prompt, while character lines remain ambient.
+- The shared controller accepts both `player` and `npc` initiation sources. The Hollowmere opening uses the NPC-initiated path; ordinary player Talk interactions use the player-initiated path.
 
 ## Target responsibilities
 
 ### Authored content
-Dedicated simulation/content resources provide dialogue nodes, speaker IDs, body/context, portrait/expression hints, choices, conditions and typed effects. They do not create UI or mutate scene nodes.
+Dedicated simulation/content resources provide dialogue prompts, speaker IDs, body/context, portrait/expression hints, choices, conditions and typed effects. They do not create UI or mutate scene nodes.
 
 ### Interactive conversation runtime
-A shared runtime owns the active conversation session and its progression: current speaker/node, response selection, speaker changes, completion/cancellation, and dispatch of typed campaign effects through services. It must accept both player-initiated and NPC-initiated starts.
+The shared session owns the active conversation lifecycle and validates prompt/choice data. The controller renders each prompt and forwards selected choices to the owning domain service. Domain consequences remain outside the session, controller and panel.
 
 ### Ambient dialogue service/presenter
-A shared presenter owns actor-attached text creation, wrapping, duration calculation and real-time expiry. The simulation/content side chooses eligible ambient exchanges and speakers; scene adapters only provide actor resolution/presentation roots.
+The shared presenter owns actor-attached text creation, wrapping, duration calculation and real-time expiry. The simulation/content side chooses eligible ambient exchanges and speakers; scene adapters only provide actor resolution/presentation roots.
 
 ### Presentation
-`CampaignDialoguePanel` remains the interactive panel. It should receive presentation state from the shared runtime/controller and emit choice selections; it must not own campaign rules.
+`CampaignDialoguePanel` remains the interactive panel. It receives state through `CampaignConversationController` and emits choice selections; it must not own campaign rules.
 
 ### World/scene adapters
 Scene-specific scripts may resolve local actors, provide the scene tree/presentation root, and connect shared service signals. They must not own dialogue content, branching, conversation orchestration, choice routing or UI construction.
 
-## Migration sequence
+## Migration status
 
-1. Add and test the shared ambient presenter; route all ambient text through it and remove the world-origin narration helper.
-2. Extract the opening sequence into a reusable campaign sequence/controller. Keep its stage/context text in the interactive panel and its character speech in ambient mode.
-3. Introduce the shared interactive conversation session/runtime around the existing panel. Preserve the current panel and existing content APIs while moving response routing out of `HollowTankard`.
-4. Route player interactions and NPC-initiated prompts through the same runtime; initiation source is metadata, not a second engine.
-5. Migrate existing scene-specific choice handlers into domain services/effect handlers in small, tested groups. Do not make a large one-shot rewrite.
-6. Add regression tests asserting that every dialogue presentation is ambient or interactive, that ambient text is actor-attached and expires in real time, and that both interactive initiation paths use the same runtime.
+1. **Shared ambient presenter — implemented.** Actor-attached text and real-time expiry are centralized; sequential exchanges are supported.
+2. **Hollowmere opening sequence — implemented.** Timing is in a simulation controller; stage context is interactive and character speech is ambient.
+3. **Shared interactive session/controller — implemented.** Existing panel retained; prompt presentation, session lifecycle, portraits and choice selection use one shared path.
+4. **Player/NPC initiation — shared path implemented.** Both sources use the same session/controller. More NPC-initiated campaign events can adopt the same entry point as they are ported.
+5. **Choice/domain extraction — outstanding.** Move the legacy choice dispatcher into domain-specific services in small, tested groups. Do not turn the controller into a campaign rules engine.
+6. **Cross-project presentation audit — ongoing.** Keep regression coverage for actor-attached real-time ambient speech, interactive context/portrait/choices, both initiation sources, and removal of any third presentation mode.
 
 ## Scope guardrails
 
 - Do not create a second normal dialogue engine.
 - Do not put dialogue content, rules, orchestration, response dispatch or presentation construction in `hollow_tankard.gd` or another scene-specific script.
-- Do not move domain consequences into the UI panel.
+- Do not move domain consequences into the UI panel or conversation controller.
 - Do not treat every existing scene-specific branch as a generic effect without preserving its domain service and tests.
 - Keep each extraction independently testable and validate against the current `dev` head before merging.
