@@ -31,7 +31,7 @@ func _test_roster_and_encounter_gates() -> void:
 	_check(String(profile.get("name", "")) == "Rowan Fletcher", "Rowan should be registered as a persistent NPC.")
 	_check(String(profile.get("gender", "")) == "male", "Rowan should be authored as male.")
 	_check(String(profile.get("affinity_mode", "")) == "full", "Rowan should support independent attraction and romantic-bond meters.")
-	_check(relationships.roster().size() == 11, "The persistent NPC roster should include Rowan.")
+	_check(relationships.roster().size() == 16, "The persistent NPC roster should include Rowan and the five newly registered Hollowmere regulars.")
 	_check(RowanFletcherEncounterContent.relationship_phase(relationships.snapshot("rowan_fletcher")) == "new_acquaintance", "Rowan should begin as a new acquaintance.")
 	var absent := RowanFletcherEncounterContent.build_encounter(relationships, {"camp_active": false, "rowan_nearby": true, "visit_key": "day1:camp1"})
 	_check(bool(absent.get("ok", false)) and not bool(absent.get("available", true)), "Rowan should not appear without an active camp.")
