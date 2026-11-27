@@ -3258,7 +3258,7 @@ func _interact_with_multistory_tunnels() -> bool:
 		):
 			var entered: Dictionary = enter_multistory_location(String(surface_entry.get("location_id", "")))
 			if not bool(entered.get("ok", false)):
-				var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT._continue_prompt("Hidden Passage", "You cannot reach that entrance just now.")
+				var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.entrance_unavailable_prompt()
 			_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 				return true
 	if not is_instance_valid(active_multistory_runtime):
