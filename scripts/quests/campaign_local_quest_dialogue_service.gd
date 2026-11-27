@@ -25,7 +25,7 @@ static func resolve_choice(
 	if choice_id.begins_with("farm_wolves_"):
 		result = FARM_WOLVES_CONTENT.resolve_dialogue_choice(
 			simulation.campaign_journal,
-			player,
+			simulation.get_character("player"),
 			choice_id,
 			String(choice.get("text", "Take care on the road."))
 		)
@@ -36,7 +36,7 @@ static func resolve_choice(
 	elif choice_id.begins_with("ironbond_courier_"):
 		result = MISSING_COURIER_CONTENT.resolve_choice(simulation.campaign_journal, choice_id)
 		if not bool(result.get("ok", false)):
-			return _failure("Dray Coltayne", String(result.get("reason", "unknown error")))
+			return _failure("Dray Coltayne", "That job cannot be recorded just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "))
 		if bool(result.get("quest_started", false)):
 			status_message = "Quest added: The Missing Courier  ·  +10 Ironbond reputation"
 	elif choice_id.begins_with("toll_ogre_"):
@@ -47,7 +47,7 @@ static func resolve_choice(
 			ogre_alive
 		)
 		if not bool(result.get("ok", false)):
-			return _failure("Petra Hollis", String(result.get("reason", "unknown error")))
+			return _failure("Petra Hollis", "That cannot be resolved just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "))
 		spawn_ogre = choice_id == "toll_ogre_accept"
 		if spawn_ogre:
 			status_message = "Quest added: The Toll-Taker. The ogre is beyond the abandoned house."
@@ -55,23 +55,24 @@ static func resolve_choice(
 		return {"handled": false}
 
 	var dialogue: Variant = result.get("dialogue", {})
+	var has_dialogue := dialogue is Dictionary and not dialogue.is_empty()
 	return {
 		"handled": bool(result.get("handled", true)),
 		"ok": true,
-		"dialogue": dialogue if dialogue is Dictionary else {},
+		"dialogue": dialogue if has_dialogue else {},
 		"status_message": status_message,
 		"spawn_ogre": spawn_ogre,
-		"close": bool(result.get("handled", false)) and (not dialogue is Dictionary or dialogue.is_empty())
+		"close": bool(result.get("handled", false)) and not has_dialogue
 	}
 
 
-static func _failure(speaker: String, reason: String) -> Dictionary:
+static func _failure(speaker: String, message: String) -> Dictionary:
 	return {
 		"handled": true,
 		"ok": false,
 		"dialogue": {
 			"speaker": speaker,
-			"text": "That cannot be resolved just now: %s." % reason.replace("_", " "),
+			"text": message,
 			"choices": [{"id": "continue", "label": "Understood.", "text": ""}]
 		}
 	}
