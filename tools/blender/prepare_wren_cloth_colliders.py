@@ -53,6 +53,71 @@ def add_collision_modifier(obj, outer_thickness):
     return modifier
 
 
+def pelvis_landmark_from_leg_roots(source):
+    """Return the hip-joint height from paired upper-leg roots."""
+    armature = next(
+        (modifier.object for modifier in source.modifiers
+         if modifier.type == "ARMATURE" and modifier.object is not None),
+        None,
+    )
+    if armature is None:
+        raise RuntimeError("Cannot build anatomical collision proxy without Wren's armature")
+    aliases = {
+        "left": {"leftupleg", "leftupperleg", "upleg_l", "upperleg_l",
+                 "thigh_l", "leftthigh", "lthigh", "thigh.l"},
+        "right": {"rightupleg", "rightupperleg", "upleg_r", "upperleg_r",
+                  "thigh_r", "rightthigh", "rthigh", "thigh.r"},
+    }
+    found = {}
+    for side, names in aliases.items():
+        bone = next(
+            (item for item in armature.data.bones
+             if item.name.lower().replace(" ", "").replace("-", "_") in names),
+            None,
+        )
+        if bone is not None:
+            found[side] = armature.matrix_world @ bone.head_local
+    if len(found) != 2:
+        raise RuntimeError(
+            "Cannot locate paired femur roots for external pelvis collision proxy; "
+            f"found {sorted(found)}"
+        )
+    return 0.5 * (found["left"].z + found["right"].z)
+
+
+def smooth_pelvic_recesses(bm, source):
+    """Soften only the collision copy's midline genital/perineal relief.
+
+    This removes small recessed folds from nearest-surface contact queries.
+    The rendered skin and its anatomical detail remain completely untouched.
+    """
+    bounds = world_bounds(source)
+    height = bounds["max"][2] - bounds["min"][2]
+    if height <= 0.0:
+        raise RuntimeError("Invalid Wren skin bounds for pelvic collision proxy")
+    scale = height / 1.687
+    hipline_z = pelvis_landmark_from_leg_roots(source)
+    selected = []
+    for vertex in bm.verts:
+        point = source.matrix_world @ vertex.co
+        if abs(point.x) <= 0.045 * scale and abs(point.z - hipline_z) <= 0.075 * scale:
+            selected.append(vertex)
+    if len(selected) < 8:
+        raise RuntimeError(
+            "Pelvic collision smoothing selected too few vertices; refusing an "
+            "unverified genital/perineal contact surface"
+        )
+    # The proxy keeps the broad body envelope but not fine central recesses
+    # that could attract garment vertices into the vulval/perineal region.
+    for _ in range(5):
+        bmesh.ops.smooth_vert(
+            bm, verts=selected, factor=0.22,
+            use_axis_x=True, use_axis_y=True, use_axis_z=True,
+        )
+    bm.normal_update()
+    return len(selected), hipline_z
+
+
 def make_skin_only_collider(source, material_prefix):
     material_slots = list(source.material_slots)
     skin_indices = {
@@ -80,6 +145,7 @@ def make_skin_only_collider(source, material_prefix):
     # boundary loops are capped on this collision-only copy; the rendered
     # Wren mesh is never changed. This also prevents ray-parity queries from
     # leaking through genuine mesh holes into interior geometry.
+    smoothed_pelvic_vertices, pelvis_z = smooth_pelvic_recesses(bm, source)
     boundary_edges_before = [edge for edge in bm.edges if edge.is_boundary]
     boundary_edge_count_before = len(boundary_edges_before)
     capped_faces = []
@@ -118,7 +184,9 @@ def make_skin_only_collider(source, material_prefix):
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
     )
-    collider["external_shell_policy"] = "skin-only; boundary loops capped; closed manifold required"
+    collider["external_shell_policy"] = "skin-only; pelvic recesses softened; boundary loops capped; closed manifold required"
+    collider["pelvic_recess_smoothing_vertices"] = smoothed_pelvic_vertices
+    collider["pelvis_landmark_z"] = pelvis_z
     collider["source_boundary_edge_count"] = boundary_edge_count_before
     collider["capped_boundary_face_count"] = len(capped_faces)
     collider["collision_boundary_edge_count"] = len(boundary_edges_after)
@@ -186,6 +254,8 @@ def main():
             "collision_thickness_m": 0.002,
             "source_materials": body_collider["source_materials"],
             "external_shell_policy": body_collider["external_shell_policy"],
+            "pelvic_recess_smoothing_vertices": body_collider["pelvic_recess_smoothing_vertices"],
+            "pelvis_landmark_z": body_collider["pelvis_landmark_z"],
             "source_boundary_edge_count": body_collider["source_boundary_edge_count"],
             "capped_boundary_face_count": body_collider["capped_boundary_face_count"],
             "collision_boundary_edge_count": body_collider["collision_boundary_edge_count"],
@@ -200,6 +270,7 @@ def main():
         "notes": [
             "Piercing meshes remain ordinary visible render geometry.",
             "The body collider is a separate skin-only copy; the rendered accepted Wren mesh is unchanged.",
+            "Midline pelvic recesses are softened on the collision-only copy so internal-looking vulval/perineal relief does not attract nearest-surface contacts.",
             "Every open boundary loop on the collision copy is capped; unresolved boundary/non-manifold edges fail the build.",
             "The collider is built from accepted Wren, not Ara's temporary anatomy fitting reference.",
             "No garment vertices are displaced in this preparation stage.",
