@@ -11,7 +11,7 @@ Campaign quest code is split into four layers:
 
 ## Current implementation
 
-- `scripts/quests/campaign_quest_registry.gd` centralises registration of the existing standalone quest content modules and companion quest definitions.
+- `scripts/quests/campaign_quest_registry.gd` centralises registration of the existing standalone quest content modules and companion quest definitions, including Wolves at the Farm.
 - `scripts/quests/campaign_quest_service.gd` provides a configured facade for quest state, start, objective progress, completion and failure.
 - `campaign_quest_dialogue_dispatcher.gd` resolves standalone quest choices and NPC greetings independently of the world scene.
 - Existing content and encounter modules remain in `scripts/simulation/` during this first migration slice. Their paths will be moved only when their callers and tests can be migrated together.
@@ -20,8 +20,8 @@ Campaign quest code is split into four layers:
 ## Migration sequence
 
 1. Add and validate the central registry/service (this change).
-2. [Complete] Replace direct quest-definition registration in `HollowTankard` with the campaign registry/service.
-3. [In progress] Move remaining quest and companion dialogue-choice resolution into quest content adapters/dispatch so `HollowTankard` handles only presentation effects and world actions.
+2. [Implemented in PR #458] Replace direct quest-definition registration in `HollowTankard` with the campaign registry/service.
+3. [In progress] Move remaining quest and companion dialogue-choice resolution into quest content adapters/dispatch so `HollowTankard` handles only presentation effects and world actions. PR #458 extracts the standalone quest dialogue/greeting routes; abandoned-house encounter presentation and Wren/companion chapter routing remain.
 4. Move quest content and encounter files into `scripts/quests/content/` and `scripts/quests/encounters/`, updating every preload and test in the same change.
 5. Integrate The Missing Watch through the same service and actor-presentation boundary.
 
