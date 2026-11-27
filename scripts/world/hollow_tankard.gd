@@ -2630,7 +2630,7 @@ func _farm_wolves_remaining() -> int:
 func _check_farm_wolf_proximity() -> void:
 	if simulation == null or encounter_active:
 		return
-	var quest := simulation.campaign_journal.quest_state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
+	var quest := campaign_quest_service.state("farm_wolves")
 	if String(quest.get("status", "")) != "active":
 		return
 	var player := simulation.get_character("player")
