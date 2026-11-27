@@ -42,7 +42,7 @@ static func resolve_choice(simulation: WorldSimulation, choice: Dictionary) -> D
 			TOLL_TAKER_ENCOUNTER.is_alive(simulation)
 		)
 	elif choice_id.begins_with("farm_wolves_"):
-		quest_id = "wolves_at_the_farm"
+		quest_id = "farm_wolves"
 		fallback_speaker = "Old Mac"
 		result = FARM_WOLVES.resolve_dialogue_choice(
 			journal,
@@ -65,7 +65,7 @@ static func resolve_choice(simulation: WorldSimulation, choice: Dictionary) -> D
 		fallback_speaker = "Ambassador Cassia Wren"
 		result = ALDENREACH_MESSAGE.resolve_choice(journal, player, choice_id)
 	elif choice_id.begins_with("marta_"):
-		quest_id = "elder_marta_locket"
+		quest_id = "elder_locket"
 		fallback_speaker = "Elder Marta Wynfield"
 		result = ELDER_MARTA.resolve_choice(journal, player, choice_id)
 	elif choice_id.begins_with("nella_"):
