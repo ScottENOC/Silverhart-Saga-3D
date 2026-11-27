@@ -147,7 +147,6 @@ jobs:
               "python", "tools/ara/assemble_modular_glb.py",
               "build/wren-native/Wren_Accepted_Baseline.glb",
               "build/wren-native/Wren_Ara_Bikini_Fit.glb",
-              str(source),
           ]
           for name in garment_names:
               # The assembler accepts SOURCE.glb / MATERIAL pairs. Pass the
