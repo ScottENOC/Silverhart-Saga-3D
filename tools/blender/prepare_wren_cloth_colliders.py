@@ -118,6 +118,26 @@ def smooth_pelvic_recesses(bm, source):
     return len(selected), hipline_z
 
 
+def boundary_edge_components(bm):
+    """Return connected boundary-edge loops/components for independent capping."""
+    remaining = {edge for edge in bm.edges if edge.is_boundary}
+    components = []
+    while remaining:
+        start = remaining.pop()
+        component = [start]
+        stack = [start]
+        while stack:
+            edge = stack.pop()
+            for vertex in edge.verts:
+                for linked in vertex.link_edges:
+                    if linked in remaining and linked.is_boundary:
+                        remaining.remove(linked)
+                        component.append(linked)
+                        stack.append(linked)
+        components.append(component)
+    return components
+
+
 def make_skin_only_collider(source, material_prefix):
     material_slots = list(source.material_slots)
     skin_indices = {
@@ -146,23 +166,44 @@ def make_skin_only_collider(source, material_prefix):
     # Wren mesh is never changed. This also prevents ray-parity queries from
     # leaking through genuine mesh holes into interior geometry.
     smoothed_pelvic_vertices, pelvis_z = smooth_pelvic_recesses(bm, source)
-    boundary_edges_before = [edge for edge in bm.edges if edge.is_boundary]
-    boundary_edge_count_before = len(boundary_edges_before)
+    boundary_components_before = boundary_edge_components(bm)
+    boundary_edge_count_before = sum(len(component) for component in boundary_components_before)
     capped_faces = []
-    if boundary_edges_before:
-        fill_result = bmesh.ops.holes_fill(
-            bm, edges=boundary_edges_before, sides=0
-        )
-        capped_faces = fill_result.get("faces", [])
+    cap_methods = []
+    for component in boundary_components_before:
+        # Fill one closed loop at a time. Passing every loop to holes_fill in
+        # one call can leave valid loops untouched on dense imported GLBs.
+        fill_result = bmesh.ops.holes_fill(bm, edges=component, sides=0)
+        faces = list(fill_result.get("faces", []))
+        method = "holes_fill"
+        if not faces:
+            fallback = bmesh.ops.edgenet_fill(
+                bm, edges=component, mat_nr=0,
+                use_smooth=True, use_dissolve=False,
+            )
+            faces = list(fallback.get("faces", []))
+            method = "edgenet_fill"
+        capped_faces.extend(faces)
+        cap_methods.append({
+            "boundary_edges": len(component),
+            "created_faces": len(faces),
+            "method": method,
+        })
     if capped_faces:
         bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
     bm.normal_update()
-    boundary_edges_after = [edge for edge in bm.edges if edge.is_boundary]
+    boundary_components_after = boundary_edge_components(bm)
+    boundary_edges_after = [edge for component in boundary_components_after for edge in component]
     nonmanifold_edges_after = [edge for edge in bm.edges if not edge.is_manifold]
     if boundary_edges_after or nonmanifold_edges_after:
+        remaining_sizes = sorted((len(component) for component in boundary_components_after), reverse=True)
         raise RuntimeError(
-            "External body collision shell is not closed/manifold after hole "
-            f"repair: boundary_edges={len(boundary_edges_after)}, "
+            "External body collision shell is not closed/manifold after per-loop "
+            f"repair: source_boundary_edges={boundary_edge_count_before}, "
+            f"source_boundary_loops={len(boundary_components_before)}, "
+            f"capped_faces={len(capped_faces)}, "
+            f"remaining_boundary_edges={len(boundary_edges_after)}, "
+            f"remaining_loop_sizes={remaining_sizes[:12]}, "
             f"nonmanifold_edges={len(nonmanifold_edges_after)}. "
             "Refusing ambiguous ray-parity collision."
         )
@@ -189,6 +230,8 @@ def make_skin_only_collider(source, material_prefix):
     collider["pelvis_landmark_z"] = pelvis_z
     collider["source_boundary_edge_count"] = boundary_edge_count_before
     collider["capped_boundary_face_count"] = len(capped_faces)
+    collider["boundary_loop_count"] = len(boundary_components_before)
+    collider["boundary_cap_methods"] = str(cap_methods)
     collider["collision_boundary_edge_count"] = len(boundary_edges_after)
     collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
     add_collision_modifier(collider, 0.002)
@@ -258,6 +301,8 @@ def main():
             "pelvis_landmark_z": body_collider["pelvis_landmark_z"],
             "source_boundary_edge_count": body_collider["source_boundary_edge_count"],
             "capped_boundary_face_count": body_collider["capped_boundary_face_count"],
+            "boundary_loop_count": body_collider["boundary_loop_count"],
+            "boundary_cap_methods": body_collider["boundary_cap_methods"],
             "collision_boundary_edge_count": body_collider["collision_boundary_edge_count"],
             "collision_nonmanifold_edge_count": body_collider["collision_nonmanifold_edge_count"],
         },
