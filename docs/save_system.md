@@ -39,6 +39,16 @@ remain in the shipped game data. CharacterState diffs are merged over those defi
 when loading. The player's appearance is regenerated from the saved profile by the
 existing Ara character pipeline; generated meshes are not embedded in the save.
 
+
+## Restoration ownership
+
+Save storage and campaign-state restoration are deliberately separate responsibilities:
+- `SaveManager` validates slots, writes/reads versioned envelopes, manages backups and rotates autosaves.
+- `CampaignSimulationSnapshotRestorer` applies the plain-data campaign snapshot to the authoritative `WorldSimulation` (characters, party, clock, journal, relationships, camp, dwellings, buildings, resources and multi-story state).
+- The world adapter retains presentation and scene work: actor recreation and appearance, world flags, camera state, UI refresh and camp/world presentation synchronisation.
+
+This boundary keeps save-file mechanics out of campaign rules and prevents the world scene from becoming the owner of simulation persistence semantics.
+
 ## Current limitations / next integration work
 
 This is the first playable persistence pass, not yet a complete campaign persistence
