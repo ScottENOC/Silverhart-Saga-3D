@@ -185,8 +185,9 @@ func _test_farm_wolf_resolution_is_domain_owned() -> void:
 	var player := CharacterState.new("player", "Player", Vector2i.ZERO)
 	player.side = "player"
 	simulation.register_character(player)
-	for wolf_id in FARM_WOLVES_QUEST.WOLF_IDS:
-		var wolf := CharacterState.new(wolf_id, "Wolf", Vector2i(1, 0))
+	for wolf_index in range(FARM_WOLVES_QUEST.WOLF_IDS.size()):
+		var wolf_id: String = FARM_WOLVES_QUEST.WOLF_IDS[wolf_index]
+		var wolf := CharacterState.new(wolf_id, "Wolf", Vector2i(wolf_index + 1, 0))
 		wolf.side = "enemy"
 		simulation.register_character(wolf)
 	var party_ids: Array[String] = ["player"]
