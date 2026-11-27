@@ -325,6 +325,9 @@ jobs:
           assert report["solver"]["vertex_motion_constraint"].startswith("original garment vertex-normal line"), report
           assert report["solver"]["maximum_edge_length_strain"] == 0.12, report
           assert report["solver"]["minimum_face_normal_alignment"] == 0.15, report
+          assert report["solver"]["self_intersections_allowed"] == 0, report
+          assert all("self_intersection_pair_count" in row for row in report["garments"]), report
+          assert all(row["self_intersection_pair_count"] == 0 or not row["candidate_accepted"] for row in report["garments"]), report
           assert all("minimum_face_normal_alignment" in row for row in report["garments"]), report
           for garment in report["garments"]:
               assert garment["candidate_accepted"] in (True, False), garment
