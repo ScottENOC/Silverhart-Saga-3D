@@ -809,7 +809,7 @@ func _return_garrick_to_bar_hex() -> bool:
 	if simulation == null:
 		return false
 	var garrick := simulation.get_character("garrick_holt")
-	if garrick == null:
+	if garrick == null or not garrick.can_act():
 		return false
 	var bar_hex := Vector2i(1, -2)
 	if garrick.axial == bar_hex:
