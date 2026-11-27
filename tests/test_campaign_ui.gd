@@ -130,9 +130,12 @@ func _test_ambient_dialogue_presenter() -> void:
 	assert(expiry != null)
 	assert(expiry.one_shot)
 	assert(expiry.ignore_time_scale, "Ambient text must expire independently of game time scale")
-	await create_timer(0.25).timeout
+	var previous_time_scale := Engine.time_scale
+	Engine.time_scale = 0.05
+	await create_timer(0.25, true, false, true).timeout
+	Engine.time_scale = previous_time_scale
 	await process_frame
-	assert(not is_instance_valid(bubble), "Ambient bubble expires after its real-time timer")
+	assert(not is_instance_valid(bubble), "Ambient bubble expires in real time even when gameplay is slowed")
 
 	var second_actor := Node3D.new()
 	root.add_child(second_actor)
