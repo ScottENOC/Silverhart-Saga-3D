@@ -363,8 +363,6 @@ def main():
             ),
         })
 
-    no_measurable_correction = max_total_displacement <= 1.0e-7
-
     # Export the actual visible character only. Collision proxy meshes are
     # deliberately omitted; the accepted skin and piercing render meshes stay.
     bpy.ops.object.select_all(action="DESELECT")
