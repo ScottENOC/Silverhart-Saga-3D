@@ -45,6 +45,7 @@ const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_play
 const MULTISTORY_LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
 const LOCATION_REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 const TUNNEL_NETWORK = preload("res://scripts/world/campaign2_tunnel_network.gd")
+const TUNNEL_INTERACTION_CONTENT = preload("res://scripts/simulation/campaign2_tunnel_interaction_content.gd")
 const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_interaction_service.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
@@ -3169,23 +3170,20 @@ func _interact_with_multistory_tunnels() -> bool:
 		):
 			var entered: Dictionary = enter_multistory_location(String(surface_entry.get("location_id", "")))
 			if not bool(entered.get("ok", false)):
-				_show_dialogue("Hidden Passage", "You cannot reach that entrance just now.", [{"id": "continue", "label": "Continue", "text": ""}])
+				var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.entrance_unavailable_prompt()
+				_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 				return true
 	if not is_instance_valid(active_multistory_runtime):
 		return false
 	var entry_node := active_multistory_runtime.get_tunnel_entry_node(active_character_id)
 	if not entry_node.is_empty():
-		_show_dialogue("Hidden Passage", "A concealed stair descends into the Guild's old tunnel network.", [
-			{"id": "tunnel_enter:" + entry_node, "label": "Descend into the tunnels.", "text": ""},
-			{"id": "continue", "label": "Leave it for now.", "text": ""}
-		])
+		var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.entry_prompt(entry_node)
+		_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 		return true
 	var nearby_secret_id := active_multistory_runtime.get_nearby_undiscovered_secret_passage_id(active_character_id)
 	if not nearby_secret_id.is_empty():
-		_show_dialogue("Hidden Passage", "A section of wall looks slightly out of place. You could examine it more closely.", [
-			{"id": "tunnel_search:" + nearby_secret_id, "label": "Search the wall.", "text": ""},
-			{"id": "continue", "label": "Leave it for now.", "text": ""}
-		])
+		var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.secret_search_prompt(nearby_secret_id)
+		_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 		return true
 	var junction_node := active_multistory_runtime.get_tunnel_junction_node(active_character_id)
 	if junction_node.is_empty():
@@ -3200,25 +3198,17 @@ func _interact_with_multistory_tunnels() -> bool:
 			_show_dialogue("Passage", "You cannot use those stairs: %s." % String(stair_result.get("reason", "travel_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
 			return true
 		return false
-	var choices: Array[Dictionary] = []
-	for destination in active_multistory_runtime.get_tunnel_junction_destinations(active_character_id):
-		choices.append({
-			"id": "tunnel_travel:" + String(destination.get("id", "")),
-			"label": "Go to %s." % String(destination.get("label", "the other passage")),
-			"text": ""
-		})
 	var current_node: Dictionary = TUNNEL_NETWORK.get_node(junction_node)
 	var surface_location_id := String(current_node.get("surface_location_id", ""))
 	var surface_secret_id := String(current_node.get("surface_secret_id", ""))
 	var surface_state := simulation.multistory_location_states.get(surface_location_id) as Campaign2MultiStoryLocationState
-	if surface_state != null and surface_state.is_secret_discovered(surface_secret_id):
-		choices.append({
-			"id": "tunnel_return:" + junction_node,
-			"label": "Return to the surface passage.",
-			"text": ""
-		})
-	choices.append({"id": "continue", "label": "Stay at the junction.", "text": ""})
-	_show_dialogue("Tunnel Junction", "Old brick, worn smooth by years of foot traffic. Passages lead off in more than one direction.", choices)
+	var can_return := surface_state != null and surface_state.is_secret_discovered(surface_secret_id)
+	var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.junction_prompt(
+		active_multistory_runtime.get_tunnel_junction_destinations(active_character_id),
+		can_return,
+		junction_node
+	)
+	_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 	return true
 
 
@@ -3227,15 +3217,10 @@ func _handle_tunnel_search(choice_id: String) -> void:
 		return
 	var secret_id := choice_id.trim_prefix("tunnel_search:")
 	var result: Dictionary = active_multistory_runtime.search_secret_passage(active_character_id, secret_id, ambient_rng.randf())
-	if not bool(result.get("ok", false)):
-		_show_dialogue("Hidden Passage", "You cannot search that section of wall right now.", [{"id": "continue", "label": "Continue", "text": ""}])
-		return
-	if not bool(result.get("found", false)):
-		_show_dialogue("Hidden Passage", "Just old stone and plaster here, as far as you can tell. It might be worth another look.", [{"id": "continue", "label": "Continue", "text": ""}])
-		return
-	if String(result.get("node_id", "")) == "palace":
+	var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.search_result(result)
+	if bool(prompt.get("set_chancellor_tunnel_discovered", false)):
 		simulation.set_meta("chancellor_tunnel_discovered", true)
-	_show_dialogue("Hidden Passage", "A section of wall gives way at your touch — a hidden passage, dug some time ago and never sealed.", [{"id": "continue", "label": "Continue", "text": ""}])
+	_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 
 
 func _handle_tunnel_choice(choice_id: String) -> void:
@@ -3249,7 +3234,8 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 	if action == "tunnel_return":
 		target_location_id = String(destination.get("surface_location_id", ""))
 	if target_location_id.is_empty():
-		_show_dialogue("Tunnel Junction", "That passage cannot be found.", [{"id": "continue", "label": "Continue", "text": ""}])
+		var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.missing_passage_prompt()
+		_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 		return
 	# Release the source map before the destination runtime captures its
 	# previous cells; this prevents overlapping axial floors from restoring
@@ -3258,7 +3244,8 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 	var target_runtime := _get_or_load_multistory_runtime(target_location_id)
 	if target_runtime == null:
 		source_runtime.set_location_active(true)
-		_show_dialogue("Tunnel Junction", "The destination could not be loaded.", [{"id": "continue", "label": "Continue", "text": ""}])
+		var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.destination_load_failed_prompt()
+		_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 		return
 	var result: Dictionary = {}
 	match action:
@@ -3271,7 +3258,8 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 	if not bool(result.get("ok", false)):
 		source_runtime.set_location_active(true)
 		active_multistory_runtime = source_runtime
-		_show_dialogue("Tunnel Junction", "The passage cannot be used: %s." % String(result.get("reason", "travel_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.travel_failed_prompt(String(result.get("reason", "travel_failed")))
+		_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 		return
 	active_multistory_runtime = target_runtime
 	var actor := actor_by_id.get(active_character_id) as Node3D
@@ -3281,10 +3269,11 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 		camera_rig.follow_target = actor
 	if movement_controller != null:
 		movement_controller.clear_path()
-	var arrival_text := "You arrive at %s." % String(destination.get("label", "the passage"))
-	if action == "tunnel_return":
-		arrival_text = "You emerge through the concealed surface passage."
-	_show_dialogue("Tunnel Junction", arrival_text, [{"id": "continue", "label": "Continue", "text": ""}])
+	var prompt: Dictionary = TUNNEL_INTERACTION_CONTENT.arrival_prompt(
+		action,
+		String(destination.get("label", "the passage"))
+	)
+	_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 
 ## Generic single-floor entrance/return handling. Site coordinates and door IDs
 ## come from the shared source-authored location registry, not this controller.
