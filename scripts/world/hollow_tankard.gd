@@ -2090,6 +2090,39 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		{"abandoned_house_journal_read": abandoned_house_journal_read}
 	)
 	if conversation.is_empty():
+		if dialogue_id == "reddale_captain":
+			var ilsa_relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+			var ilsa_conversation := ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT.greeting(simulation.campaign_journal, ilsa_relationships)
+			if bool(ilsa_conversation.get("ok", false)):
+				_show_dialogue(String(ilsa_conversation.get("speaker", target_state.display_name)), String(ilsa_conversation.get("text", "")), ilsa_conversation.get("choices", []))
+			return
+		if dialogue_id == "silverhart_queen":
+			var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+			var content := PERSISTENT_DIALOGUE_CONTENT.new()
+			var journal := simulation.campaign_journal
+			var queen_context := {
+				"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+				"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
+				"goblin_standing": journal.faction_standing("goblin_tribe"),
+				"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+				"necromancer_standing": journal.faction_standing("necromancer_cult")
+			}
+			var queen_conversation: Dictionary = content.seraphine_greeting(queen_context, relationships)
+			if bool(queen_conversation.get("ok", false)):
+				var supported_choices: Array[Dictionary] = []
+				for choice_value in queen_conversation.get("choices", []):
+					var queen_choice: Dictionary = choice_value
+					if String(queen_choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_request_favour", "seraphine_manor_followup", "seraphine_leave"]:
+						supported_choices.append(queen_choice)
+				_show_dialogue(String(queen_conversation.get("speaker", target_state.display_name)), String(queen_conversation.get("text", "")), supported_choices)
+			else:
+				_show_dialogue(String(queen_conversation.get("speaker", target_state.display_name)), String(queen_conversation.get("text", "The Queen has no audience for you.")), queen_conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
+			return
+		var title := String(actor.get_meta("title", ""))
+		var body := "They regard you with measured curiosity, but have little to say just now."
+		if not title.is_empty():
+			body = "%s acknowledges you. Their duties leave little time for conversation." % title
+		_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
 		return
 	if bool(conversation.get("delivered_now", false)) and resource_status_label != null:
 		resource_status_label.text = "Delivered Ambassador Cassia Wren's quiet word to Elder Marta."
