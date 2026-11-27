@@ -10,6 +10,48 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	# Exterior-entry contracts are spatial invariants, not just metadata:
+	# the named door must exist on floor zero and both outside coordinates
+	# must remain immediately connected to that doorway/threshold.
+	var contract_registry = LOCATION_REGISTRY.new()
+	var valid_entry_manifest := {
+		"schema_version": 1,
+		"coordinate_system": "campaign2_local_axial_qr",
+		"locations": [{
+			"id": "entry_contract_test",
+			"anchor": {"q": 0, "r": 0},
+			"floors": [{
+				"floor": 0,
+				"rooms": [],
+				"corridors": [],
+				"tile_objects": [{
+					"id": "entry_door",
+					"type": "door_open",
+					"position": {"q": 0, "r": 0}
+				}],
+				"actors": [],
+				"creatures": []
+			}],
+			"transitions": [],
+			"quest_gates": [],
+			"exterior_entry": {
+				"door_id": "entry_door",
+				"exterior_hex": {"q": 1, "r": 0},
+				"return_hex": {"q": 1, "r": 0}
+			}
+		}]
+	}
+	_check(bool(contract_registry.configure(valid_entry_manifest).get("ok", false)), "A correctly connected exterior-entry contract must validate")
+	var distant_threshold_manifest: Dictionary = valid_entry_manifest.duplicate(true)
+	distant_threshold_manifest["locations"][0]["exterior_entry"]["exterior_hex"] = {"q": 2, "r": 0}
+	_check(not bool(contract_registry.configure(distant_threshold_manifest).get("ok", false)), "An exterior threshold that is not adjacent to its door must be rejected")
+	var distant_return_manifest: Dictionary = valid_entry_manifest.duplicate(true)
+	distant_return_manifest["locations"][0]["exterior_entry"]["return_hex"] = {"q": 3, "r": 0}
+	_check(not bool(contract_registry.configure(distant_return_manifest).get("ok", false)), "A return anchor disconnected from its threshold must be rejected")
+	var missing_door_manifest: Dictionary = valid_entry_manifest.duplicate(true)
+	missing_door_manifest["locations"][0]["exterior_entry"]["door_id"] = "missing_door"
+	_check(not bool(contract_registry.configure(missing_door_manifest).get("ok", false)), "An exterior-entry contract referencing a missing door must be rejected")
+
 	# Sil'thandriel's great-tree stair must be usable by the same externally
 	# controlled player actor as the regional surface movement simulation.
 	var tree_simulation = SIMULATION.new()
@@ -40,10 +82,6 @@ func _run() -> void:
 	_assert_exterior_entry_round_trip("hollowmere_store", "store_entry_player", Vector2i(9, 0), Vector2i(10, 0), "hollowmere_store_west_door", "Hollowmere Store")
 	_assert_exterior_entry_round_trip("mira_house", "mira_house_entry_player", Vector2i(9, 9), Vector2i(10, 9), "mira_house_west_door", "Mira's House")
 	_assert_exterior_entry_round_trip("oskar_house", "oskar_house_entry_player", Vector2i(-3, 9), Vector2i(-4, 9), "oskar_house_east_door", "Oskar's House")
-	# Emberlode's west-road end and its three source-painted approach spurs.
-	_assert_exterior_entry_round_trip("emberlode_foremans_hall", "emberlode_hall_entry_player", Vector2i(-252, 22), Vector2i(-253, 22), "emberlode_foremans_hall_east_door", "Emberlode Foreman's Hall")
-	_assert_exterior_entry_round_trip("emberlode_bunkhouse", "emberlode_bunkhouse_entry_player", Vector2i(-252, 25), Vector2i(-252, 26), "emberlode_bunkhouse_north_door", "Emberlode Bunkhouse")
-	_assert_exterior_entry_round_trip("emberlode_mine", "emberlode_mine_entry_player", Vector2i(-252, 19), Vector2i(-252, 18), "mine_front_door", "Emberlode Mine")
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)

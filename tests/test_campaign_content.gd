@@ -6,6 +6,8 @@ const LOCAL_QUEST_DIALOGUE_SERVICE = preload("res://scripts/quests/campaign_loca
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const DWELLING_DIALOGUE_SERVICE = preload("res://scripts/simulation/campaign_dwelling_dialogue_service.gd")
 const ABANDONED_HOUSE_DIALOGUE_SERVICE = preload("res://scripts/simulation/abandoned_house_dialogue_service.gd")
+const REYNA_RESCUE_SERVICE = preload("res://scripts/quests/reyna_rescue_service.gd")
+const HOLLOWMERE_SHAKEDOWN_DIALOGUE_SERVICE = preload("res://scripts/quests/hollowmere_shakedown_dialogue_service.gd")
 
 var _failures: int = 0
 
@@ -16,6 +18,8 @@ func _initialize() -> void:
 	_test_companion_dialogue_choice_routing()
 	_test_dwelling_dialogue_choice_routing()
 	_test_abandoned_house_dialogue_choice_routing()
+	_test_reyna_rescue_service()
+	_test_hollowmere_shakedown_dialogue_service()
 	_test_campaign_journal()
 	_test_ironbond_missing_courier_content()
 	_test_hollowmere_campaign_content()
@@ -39,6 +43,55 @@ func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
 		if String(choice.get("id", "")).begins_with("recruit:"):
 			return true
 	return false
+func _test_reyna_rescue_service() -> void:
+	var simulation := WorldSimulation.new()
+	CompanionCampaignContent.register_quest_definitions(simulation.campaign_journal)
+	var inactive := REYNA_RESCUE_SERVICE.prepare_rescue(simulation)
+	_check(not bool(inactive.get("ok", false)), "Tessa cannot be rescued before Reyna's quest is active")
+	_check(bool(simulation.campaign_journal.start_quest("reyna_dire_wolf_hunt").get("ok", false)))
+	var trail_missing := REYNA_RESCUE_SERVICE.prepare_rescue(simulation)
+	_check(not bool(trail_missing.get("ok", false)), "Tessa cannot be rescued before her trail is found")
+	_check(bool(simulation.campaign_journal.set_objective_progress("reyna_dire_wolf_hunt", "trail_found", 1.0).get("ok", false)))
+	var child_missing := REYNA_RESCUE_SERVICE.prepare_rescue(simulation)
+	_check(String(child_missing.get("reason", "")) == "missing_child", "Rescue preparation requires Tessa to exist in the world simulation")
+	var destination := Vector2i(8, 13)
+	var child := CharacterState.new("missing_child_tessa", "Tessa", Vector2i(0, 0))
+	simulation.register_character(child)
+	var prepared := REYNA_RESCUE_SERVICE.prepare_rescue(simulation)
+	_check(bool(prepared.get("ok", false)), "Rescue can begin when the quest trail and Tessa are both present")
+	var premature := REYNA_RESCUE_SERVICE.complete_rescue(simulation, destination)
+	_check(not bool(premature.get("ok", false)), "The rescue objective must not complete before Tessa reaches safety")
+	child.axial = destination
+	var completed := REYNA_RESCUE_SERVICE.complete_rescue(simulation, destination)
+	_check(bool(completed.get("ok", false)), "The rescue objective completes once Tessa reaches the safe destination")
+	_check(bool(simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt").get("objectives", {}).get("child_rescued", {}).get("completed", false)), "The campaign journal records Tessa's rescue")
+	simulation.free()
+
+
+func _test_hollowmere_shakedown_dialogue_service() -> void:
+	var stay_simulation := WorldSimulation.new()
+	var definition := HollowmereCampaignContent.shakedown_quest_definition()
+	stay_simulation.campaign_journal.register_quest_definition(definition)
+	_check(bool(stay_simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID).get("ok", false)))
+	var stay := HOLLOWMERE_SHAKEDOWN_DIALOGUE_SERVICE.resolve_choice(stay_simulation, {"id": "stay_out"})
+	_check(bool(stay.get("handled", false)) and bool(stay.get("ok", false)), "The stay-out branch resolves through the shakedown service")
+	_check(String(stay.get("action", "")) == "move_soldiers_outside", "Non-combat shakedown outcomes hand soldier movement to the world adapter")
+	_check(String(stay.get("event_key", "")) == "hollowmere_shakedown:stay_out", "Shakedown outcomes return the authored companion event key")
+	_check(String(stay_simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID).get("status", "")) == "completed", "Non-combat shakedown choices complete the quest")
+	stay_simulation.free()
+
+	var fight_simulation := WorldSimulation.new()
+	fight_simulation.campaign_journal.register_quest_definition(definition)
+	_check(bool(fight_simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID).get("ok", false)))
+	var fight := HOLLOWMERE_SHAKEDOWN_DIALOGUE_SERVICE.resolve_choice(fight_simulation, {"id": "fight"})
+	_check(bool(fight.get("handled", false)) and bool(fight.get("ok", false)), "The fight branch records its authored consequences")
+	_check(String(fight.get("action", "")) == "begin_combat", "The fight branch hands encounter startup to the world adapter")
+	_check(String(fight_simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID).get("status", "")) == "active", "The fight branch remains active until combat resolves")
+	var invalid := HOLLOWMERE_SHAKEDOWN_DIALOGUE_SERVICE.resolve_choice(fight_simulation, {"id": "not_a_shakedown_choice"})
+	_check(not bool(invalid.get("handled", true)), "Unrelated choices fall through to their owning dialogue service")
+	fight_simulation.free()
+
+
 func _test_campaign_journal() -> void:
 	var journal := CampaignJournal.new()
 	var intro_definition := {

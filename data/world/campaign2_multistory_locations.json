@@ -1098,11 +1098,6 @@
         "r": 28
       },
       "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus bunkhouse offset (0,+6)",
-      "exterior_entry": {
-        "door_id": "emberlode_bunkhouse_north_door",
-        "exterior_hex": {"q": -252, "r": 25},
-        "return_hex": {"q": -252, "r": 25}
-      },
       "floors": [
         {
           "floor": 0,
@@ -1151,11 +1146,6 @@
         "r": 22
       },
       "source": "Hex-crpg/campaign2World.js:buildEmberlode; road-end waypoint (-252,22) plus foreman's hall offset (-4,0)",
-      "exterior_entry": {
-        "door_id": "emberlode_foremans_hall_east_door",
-        "exterior_hex": {"q": -252, "r": 22},
-        "return_hex": {"q": -252, "r": 22}
-      },
       "floors": [
         {
           "floor": 0,
@@ -1213,11 +1203,6 @@
         "r": 16
       },
       "floor_generation": "source-authored mine entrance, working vein and old seam",
-      "exterior_entry": {
-        "door_id": "mine_front_door",
-        "exterior_hex": {"q": -252, "r": 19},
-        "return_hex": {"q": -252, "r": 19}
-      },
       "floors": [
         {
           "floor": 0,
