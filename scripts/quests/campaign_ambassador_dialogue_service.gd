@@ -77,7 +77,7 @@ static func resolve_choice(simulation: WorldSimulation, choice: Dictionary) -> D
 		return {
 			"handled": true,
 			"ok": false,
-			"status_message": status_message,
+			"status_message": "",
 			"dialogue": {
 				"speaker": speaker,
 				"text": "That could not be completed: %s." % reason,
