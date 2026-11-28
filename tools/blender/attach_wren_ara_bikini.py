@@ -13,7 +13,6 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
 
 
 def arguments():
@@ -171,10 +170,15 @@ def main():
         raise RuntimeError("Garment fitting surface does not match the accepted Wren GLB")
     piercing_objects = sorted(
         o.name for o in body_objects
-        if o.type == "MESH" and o.name.lower().startswith("piercing")
+        if o.type == "MESH" and (
+            o.name.lower().startswith("piercing")
+            or any(slot.material and "piercing" in slot.material.name.lower() for slot in o.material_slots)
+        )
     )
     if not piercing_objects:
         raise RuntimeError("Accepted Wren GLB contains no preserved piercing objects")
+    if sorted(generation.get("includedPiercingObjects", [])) != piercing_objects:
+        raise RuntimeError("The fitted surface piercing list does not match the preserved GLB piercing meshes")
     bpy.ops.object.select_all(action="DESELECT")
     for obj in body_objects + [garment]:
         obj.select_set(True)
