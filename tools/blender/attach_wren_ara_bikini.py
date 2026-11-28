@@ -14,6 +14,7 @@ from pathlib import Path
 
 import bpy
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 
 def arguments():
@@ -158,6 +159,65 @@ def main():
     for poly in mesh.polygons:
         poly.use_smooth = True
 
+    # Ara's default 3 mm lift fits the morph-generated base body. Wren's
+    # accepted GLB also contains the repository's later anatomy sculpt, so
+    # project only garment vertices that still sit inside that actual skin.
+    # This is a garment-only surface correction; the accepted body is read-only.
+    skin_meshes = [
+        obj for obj in body_meshes
+        if any(slot.material and slot.material.name.lower().startswith("skin") for slot in obj.material_slots)
+    ]
+    if not skin_meshes:
+        material_names = sorted({
+            slot.material.name for obj in body_meshes for slot in obj.material_slots if slot.material
+        })
+        raise RuntimeError("Could not identify accepted Wren skin meshes; materials=" + repr(material_names))
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    collider_vertices, collider_polygons = [], []
+    for skin_obj in skin_meshes:
+        evaluated = skin_obj.evaluated_get(depsgraph)
+        evaluated_mesh = evaluated.to_mesh()
+        offset = len(collider_vertices)
+        collider_vertices.extend(evaluated.matrix_world @ vertex.co for vertex in evaluated_mesh.vertices)
+        collider_polygons.extend(
+            [offset + index for index in polygon.vertices]
+            for polygon in evaluated_mesh.polygons
+        )
+        evaluated.to_mesh_clear()
+    if not collider_vertices or not collider_polygons:
+        raise RuntimeError("Accepted Wren skin collider has no surface geometry")
+    skin_bvh = BVHTree.FromPolygons(collider_vertices, collider_polygons, all_triangles=False)
+    if skin_bvh is None:
+        raise RuntimeError("Could not build accepted Wren skin BVH")
+    skin_centre = sum(collider_vertices, Vector()) / len(collider_vertices)
+    inverse_garment = garment.matrix_world.inverted_safe()
+    corrected_vertices, total_correction, max_correction = 0, 0.0, 0.0
+    clearance = 0.003
+    max_allowed_correction = 0.03
+    for vertex in garment.data.vertices:
+        world_point = garment.matrix_world @ vertex.co
+        nearest = skin_bvh.find_nearest(world_point)
+        if nearest is None or nearest[0] is None or nearest[1] is None:
+            continue
+        location, normal, _face_index, _distance = nearest
+        normal = Vector(normal).normalized()
+        if normal.dot(Vector(location) - skin_centre) < 0.0:
+            normal.negate()
+        signed_gap = (world_point - Vector(location)).dot(normal)
+        correction = max(0.0, clearance - signed_gap)
+        if correction > max_allowed_correction:
+            raise RuntimeError(
+                "Garment-to-skin correction exceeds 30 mm at vertex %d (%.1f mm); "
+                "refusing a likely coordinate or collider mismatch"
+                % (vertex.index, correction * 1000.0)
+            )
+        if correction > 0.0:
+            vertex.co += inverse_garment.to_3x3() @ (normal * correction)
+            corrected_vertices += 1
+            total_correction += correction
+            max_correction = max(max_correction, correction)
+    garment.data.update()
+
     bpy.ops.object.select_all(action="DESELECT")
     for obj in body_objects + [garment]:
         obj.select_set(True)
@@ -181,6 +241,11 @@ def main():
         "garment_vertex_count": len(vertices),
         "garment_face_count": len(faces),
         "garment_materials": sorted(mats),
+        "skin_collider_meshes": [obj.name for obj in skin_meshes],
+        "garment_vertices_corrected_to_accepted_skin": corrected_vertices,
+        "garment_surface_correction_mean_mm": (total_correction / corrected_vertices * 1000.0) if corrected_vertices else 0.0,
+        "garment_surface_correction_max_mm": max_correction * 1000.0,
+        "accepted_skin_clearance_mm": clearance * 1000.0,
         "body_meshes_modified": False,
         "body_meshes_hidden_or_deleted": False,
         "original_armature_preserved": True,
