@@ -81,7 +81,10 @@ def blender_material(spec, folder):
         tex.image = image
         mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     if spec["opacity"] < 1:
-        mat.surface_render_method = "DITHERED"
+        if hasattr(mat, "surface_render_method"):
+            mat.surface_render_method = "DITHERED"
+        elif hasattr(mat, "blend_method"):
+            mat.blend_method = "BLEND"
         bsdf.inputs["Alpha"].default_value = spec["opacity"]
     return mat
 
