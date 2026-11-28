@@ -43,7 +43,6 @@ const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_player_movement_controller.gd")
 const MULTISTORY_LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
-const LOCATION_REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 const TUNNEL_NETWORK = preload("res://scripts/world/campaign2_tunnel_network.gd")
 const TUNNEL_INTERACTION_CONTENT = preload("res://scripts/simulation/campaign2_tunnel_interaction_content.gd")
 const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_interaction_service.gd")
@@ -2062,6 +2061,19 @@ func _move_shakedown_soldiers_outside() -> void:
 
 
 func _move_shakedown_soldiers_inside() -> void:
+	# The source opening has the soldiers open the locked front door, enter on
+	# foot, then close it behind them. Unlocking is permanent so the player can
+	# open it from inside and leave after the encounter.
+	var tavern_door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
+	if tavern_door == null:
+		push_error("Hollowmere shakedown cannot open the missing Tankard front door.")
+		return
+	if tavern_door.locked and not simulation.building_registry.unlock_door(TAVERN_FRONT_DOOR_ID):
+		push_error("Hollowmere shakedown could not unlock the Tankard front door.")
+		return
+	if not tavern_door.is_passable() and not simulation.building_registry.set_door_open(TAVERN_FRONT_DOOR_ID, true):
+		push_error("Hollowmere shakedown could not open the Tankard front door.")
+		return
 	for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
 		var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
 		var best_path: Array[Vector2i] = []
@@ -2079,6 +2091,10 @@ func _move_shakedown_soldiers_inside() -> void:
 			await get_tree().create_timer(0.24).timeout
 			if not is_instance_valid(self):
 				return
+	# Re-close the door once the soldiers have passed through. It stays
+	# unlocked, matching the source behaviour that lets the player leave later.
+	if tavern_door != null and tavern_door.is_passable() and not simulation.is_hex_occupied(tavern_door.hex):
+		simulation.building_registry.set_door_open(TAVERN_FRONT_DOOR_ID, false)
 
 
 func _show_speech_bubble(character_id: String, text: String) -> Dictionary:
@@ -2824,7 +2840,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_F:
-			if not _interact_with_multistory_tunnels() and not _interact_with_multistory_location_entries() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door() and not _interact_with_chapel_locket():
+			if not _interact_with_multistory_tunnels() and not _interact_with_tavern_stairs() and not _interact_with_nearest_door() and not _interact_with_chapel_locket():
 				_interact_with_nearest_npc()
 			get_viewport().set_input_as_handled()
 			return
@@ -3006,8 +3022,8 @@ func register_multistory_location_runtime(runtime: Campaign2MultiStoryLocationRu
 	if actor != null:
 		runtime.register_character_actor(active_character_id, actor)
 
-## Load or reactivate an authored multi-story location in this campaign.
-## Location doors can call this when their normal entry interaction is completed.
+## Load or reactivate an authored multi-story location for a special tunnel-network destination.
+## Ordinary building doors must never call this or transfer the player between locations.
 func enter_multistory_location(location_id: String) -> Dictionary:
 	if simulation == null or location_id.strip_edges().is_empty():
 		return {"ok": false, "reason": "runtime_not_ready"}
@@ -3165,44 +3181,6 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 		String(destination.get("label", "the passage"))
 	)
 	_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
-
-## Generic single-floor entrance/return handling. Site coordinates and door IDs
-## come from the shared source-authored location registry, not this controller.
-func _interact_with_multistory_location_entries() -> bool:
-	var player_state := simulation.get_character(active_character_id)
-	if player_state == null:
-		return false
-	if is_instance_valid(active_multistory_runtime):
-		var exit_result: Dictionary = active_multistory_runtime.exit_to_exterior(active_character_id)
-		if bool(exit_result.get("ok", false)):
-			active_multistory_runtime = null
-			var actor := actor_by_id.get(active_character_id) as Node3D
-			if camera_rig != null:
-				camera_rig.follow_target = actor
-			if movement_controller != null:
-				movement_controller.clear_path()
-			return true
-	var registry := LOCATION_REGISTRY.new()
-	var nearby: Dictionary = registry.find_exterior_entry_near(player_state.axial, 1)
-	if nearby.is_empty():
-		return false
-	var location_id := String(nearby.get("location_id", ""))
-	var entered: Dictionary = enter_multistory_location(location_id)
-	if not bool(entered.get("ok", false)) or not is_instance_valid(active_multistory_runtime):
-		_show_dialogue("Entrance", "You cannot enter that place just now.", [{"id": "continue", "label": "Continue", "text": ""}])
-		return true
-	var result: Dictionary = active_multistory_runtime.enter_from_exterior(active_character_id)
-	if not bool(result.get("ok", false)):
-		active_multistory_runtime.set_location_active(false)
-		active_multistory_runtime = null
-		_show_dialogue("Entrance", "You cannot enter that place: %s." % String(result.get("reason", "entry_failed")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
-		return true
-	var player_actor := actor_by_id.get(active_character_id) as Node3D
-	if camera_rig != null:
-		camera_rig.follow_target = player_actor
-	if movement_controller != null:
-		movement_controller.clear_path()
-	return true
 
 func _interact_with_tavern_stairs() -> bool:
 	var state := simulation.get_character(active_character_id)

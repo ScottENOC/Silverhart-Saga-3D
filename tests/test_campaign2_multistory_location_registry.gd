@@ -28,6 +28,9 @@ func _initialize() -> void:
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
 	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_bunkhouse", "emberlode_foremans_hall", "emberlode_mine", "hollowmere_chapel", "hollowmere_general_store", "hollowmere_guild_den", "hollowmere_house", "hollowmere_store", "hollowmere_tavern", "kragmoor", "lich_chapterhouse", "millbrook_house", "mira_house", "northwatch_keep", "old_mac_farmhouse", "oskar_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "ridgehold_keep", "silthandriel", "silverhart_aldenreach_embassy", "silverhart_builder_house", "silverhart_city_tunnel", "silverhart_clothier", "silverhart_commons_inn", "silverhart_corstane_manor", "silverhart_corvane_embassy", "silverhart_dwarven_embassy", "silverhart_east_house_four", "silverhart_east_house_one", "silverhart_east_house_three", "silverhart_east_house_two", "silverhart_elven_embassy", "silverhart_general_goods", "silverhart_grand_cathedral", "silverhart_ironbond_office", "silverhart_magic_shop", "silverhart_middle_ring_house_east", "silverhart_middle_ring_house_north", "silverhart_middle_ring_house_northeast", "silverhart_middle_ring_house_southeast", "silverhart_middle_ring_house_southwest", "silverhart_middle_ring_house_west", "silverhart_noble_neighbor_house", "silverhart_north_cottage_one", "silverhart_north_cottage_three", "silverhart_north_cottage_two", "silverhart_outlying_house_1", "silverhart_outlying_house_2", "silverhart_outlying_house_3", "silverhart_outlying_house_east", "silverhart_outlying_house_far_east", "silverhart_outlying_house_west", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_tunnel", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "silverhart_warrens_shack_centre", "silverhart_warrens_shack_east", "silverhart_warrens_shack_west", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	for location_id in registry.location_ids():
+		var location_definition: Dictionary = registry.get_definition(location_id)
+		_check(not location_definition.has("exterior_entry"), "Location data must not contain a teleport-style exterior entry contract: " + location_id)
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -58,7 +61,7 @@ func _initialize() -> void:
 		"hollowmere_general_store": "hollowmere_general_store_north_door",
 		"hollowmere_house": "hollowmere_house_south_door",
 		"hollowmere_store": "hollowmere_store_west_door",
-		"hollowmere_tavern": "hollowmere_tavern_south_door",
+		"hollowmere_tavern": "hollow_tankard_front_door",
 		"mira_house": "mira_house_west_door",
 		"oskar_house": "oskar_house_east_door"
 	}
@@ -72,7 +75,7 @@ func _initialize() -> void:
 		_check(_has_record(hollowmere_floor.get("tile_objects", []), hollowmere_doors[location_id]), "Hollowmere building must retain its source entrance: " + location_id)
 	var tavern_floor := registry.get_floor_definition("hollowmere_tavern", 0)
 	_check(int(tavern_floor.get("rooms", [])[0].get("half_width", 0)) == 6 and int(tavern_floor.get("rooms", [])[0].get("half_height", 0)) == 4, "Tavern floor dimensions must match its source q/r loops")
-	_check(bool(_find_record(tavern_floor.get("tile_objects", []), "hollowmere_tavern_south_door").get("locked", false)), "Tavern entrance must preserve its initially locked state")
+	_check(bool(_find_record(tavern_floor.get("tile_objects", []), "hollow_tankard_front_door").get("locked", false)), "Tavern entrance must preserve its initially locked state")
 	_check(_has_record(tavern_floor.get("tile_objects", []), "hollowmere_tavern_fireplace"), "Tavern must retain its source fireplace")
 	_check(_has_record(registry.get_floor_definition("hollowmere_general_store", 0).get("tile_objects", []), "hollowmere_general_store_counter"), "General store must retain its source counter")
 

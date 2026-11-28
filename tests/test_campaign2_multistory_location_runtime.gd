@@ -2,7 +2,6 @@ extends SceneTree
 
 const SIMULATION = preload("res://scripts/simulation/world_simulation.gd")
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
-const LOCATION_REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 
 var failures: int = 0
 
@@ -32,88 +31,15 @@ func _run() -> void:
 		_check(bool(tree_exit.get("ok", false)) and tree_runtime.get_current_floor() == 0, "The same stair must return the player from the Lower Canopy to the regional surface")
 		_check(is_equal_approx(tree_actor.global_position.y, 0.1), "Returning outside must restore the player actor to surface height")
 
-	# Every registered Hollowmere entry uses the same runtime round-trip.
-	# Exterior positions are taken from the original setupVillageScene paintPath calls.
-	_assert_exterior_entry_round_trip("hollowmere_chapel", "chapel_entry_player", Vector2i(-10, 0), Vector2i(-11, 0), "hollowmere_chapel_east_door", "Chapel")
-	_assert_exterior_entry_round_trip("hollowmere_general_store", "general_store_entry_player", Vector2i(1, 14), Vector2i(0, 15), "hollowmere_general_store_north_door", "General Store")
-	_assert_exterior_entry_round_trip("hollowmere_house", "house_entry_player", Vector2i(0, -9), Vector2i(0, -10), "hollowmere_house_south_door", "Hollowmere House")
-	_assert_exterior_entry_round_trip("hollowmere_store", "store_entry_player", Vector2i(9, 0), Vector2i(10, 0), "hollowmere_store_west_door", "Hollowmere Store")
-	_assert_exterior_entry_round_trip("mira_house", "mira_house_entry_player", Vector2i(9, 9), Vector2i(10, 9), "mira_house_west_door", "Mira's House")
-	_assert_exterior_entry_round_trip("oskar_house", "oskar_house_entry_player", Vector2i(-3, 9), Vector2i(-4, 9), "oskar_house_east_door", "Oskar's House")
-	# Emberlode's west-road end and its three source-painted approach spurs.
-	_assert_exterior_entry_round_trip("emberlode_foremans_hall", "emberlode_hall_entry_player", Vector2i(-252, 22), Vector2i(-253, 22), "emberlode_foremans_hall_east_door", "Emberlode Foreman's Hall")
-	_assert_exterior_entry_round_trip("emberlode_bunkhouse", "emberlode_bunkhouse_entry_player", Vector2i(-252, 25), Vector2i(-252, 26), "emberlode_bunkhouse_north_door", "Emberlode Bunkhouse")
-	_assert_exterior_entry_round_trip("emberlode_mine", "emberlode_mine_entry_player", Vector2i(-252, 19), Vector2i(-252, 18), "mine_front_door", "Emberlode Mine")
-	# Reddale's road-end approaches are painted explicitly by buildReddale.
-	_assert_exterior_entry_round_trip("reddale_guardhouse", "reddale_guardhouse_entry_player", Vector2i(138, 24), Vector2i(137, 24), "reddale_guardhouse_door", "Reddale Guardhouse")
-	_assert_exterior_entry_round_trip("reddale_reeve_house", "reddale_reeve_entry_player", Vector2i(138, 21), Vector2i(138, 20), "reddale_reeve_house_door", "Reddale Reeve's House")
-	_assert_exterior_entry_round_trip("reddale_inn", "reddale_inn_entry_player", Vector2i(138, 27), Vector2i(138, 28), "reddale_inn_door", "Reddale Inn")
-	# The Wizard Tower apron and courtyard connection are explicitly painted by buildSilverhartPalace.
-	_assert_exterior_entry_round_trip("silverhart_palace_wizard_tower", "wizard_tower_entry_player", Vector2i(-7, -485), Vector2i(-7, -484), "wizard_tower_door", "Silverhart Wizard Tower")
-	# Silverhart's cottages and east-quarter houses each paint a Path hex directly beyond their east door.
-	_assert_exterior_entry_round_trip("silverhart_north_cottage_one", "silverhart_house_entry_1", Vector2i(38, -507), Vector2i(37, -507), "silverhart_north_cottage_one_east_door", "North Cottage 1")
-	_assert_exterior_entry_round_trip("silverhart_north_cottage_two", "silverhart_house_entry_2", Vector2i(38, -513), Vector2i(37, -513), "silverhart_north_cottage_two_east_door", "North Cottage 2")
-	_assert_exterior_entry_round_trip("silverhart_north_cottage_three", "silverhart_house_entry_3", Vector2i(38, -519), Vector2i(37, -519), "silverhart_north_cottage_three_east_door", "North Cottage 3")
-	_assert_exterior_entry_round_trip("silverhart_east_house_one", "silverhart_house_entry_4", Vector2i(29, -479), Vector2i(28, -479), "silverhart_east_house_one_east_door", "East Quarter House 1")
-	_assert_exterior_entry_round_trip("silverhart_east_house_two", "silverhart_house_entry_5", Vector2i(35, -480), Vector2i(34, -480), "silverhart_east_house_two_east_door", "East Quarter House 2")
-	_assert_exterior_entry_round_trip("silverhart_east_house_three", "silverhart_house_entry_6", Vector2i(25, -470), Vector2i(24, -470), "silverhart_east_house_three_east_door", "East Quarter House 3")
-	_assert_exterior_entry_round_trip("silverhart_east_house_four", "silverhart_house_entry_7", Vector2i(28, -471), Vector2i(27, -471), "silverhart_east_house_four_east_door", "East Quarter House 4")
-	# Hallis's south door has an explicitly painted apron at (38, -485); use it rather than the west door, whose approach is not the source-authored path for this contract.
-	_assert_exterior_entry_round_trip("silverhart_builder_house", "hallis_house_entry_player", Vector2i(38, -485), Vector2i(38, -486), "silverhart_builder_house_south_door", "Master Builder Hallis's House")
-
-	# Bulk source-traced connectors: six middle-ring houses, three Warrens shacks,
-	# the palace/diplomatic district, and three explicit road-spur houses.
-	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_east", "bulk_entry_player_1", Vector2i(52, -496), Vector2i(51, -496), "silverhart_middle_ring_house_east_east_door", "East Middle-Ring House")
-	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_northeast", "bulk_entry_player_2", Vector2i(50, -539), Vector2i(49, -538), "silverhart_middle_ring_house_northeast_east_door", "Northeast Middle-Ring House")
-	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_north", "bulk_entry_player_3", Vector2i(8, -539), Vector2i(8, -538), "silverhart_middle_ring_house_north_north_door", "North Middle-Ring House")
-	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_west", "bulk_entry_player_4", Vector2i(-35, -496), Vector2i(-34, -496), "silverhart_middle_ring_house_west_west_door", "West Middle-Ring House")
-	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_southwest", "bulk_entry_player_5", Vector2i(-35, -454), Vector2i(-34, -455), "silverhart_middle_ring_house_southwest_west_door", "Southwest Middle-Ring House")
-	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_southeast", "bulk_entry_player_6", Vector2i(19, -452), Vector2i(20, -452), "silverhart_middle_ring_house_southeast_west_door", "Southeast Middle-Ring House")
-	_assert_exterior_entry_round_trip("silverhart_warrens_shack_west", "bulk_entry_player_7", Vector2i(2, -430), Vector2i(2, -431), "silverhart_warrens_shack_west_south_door", "Warrens West Shack")
-	_assert_exterior_entry_round_trip("silverhart_warrens_shack_centre", "bulk_entry_player_8", Vector2i(5, -430), Vector2i(5, -429), "silverhart_warrens_shack_centre_north_door", "Warrens Centre Shack")
-	_assert_exterior_entry_round_trip("silverhart_warrens_shack_east", "bulk_entry_player_9", Vector2i(11, -430), Vector2i(11, -431), "silverhart_warrens_shack_east_south_door", "Warrens East Shack")
-	_assert_exterior_entry_round_trip("silverhart_palace_council_chamber", "bulk_entry_player_10", Vector2i(-1, -494), Vector2i(-2, -494), "council_front_door", "Palace Council Chamber")
-	_assert_exterior_entry_round_trip("silverhart_corstane_manor", "bulk_entry_player_11", Vector2i(35, -502), Vector2i(36, -502), "silverhart_corstane_manor_west_door", "Corstane Manor")
-	_assert_exterior_entry_round_trip("silverhart_elven_embassy", "bulk_entry_player_12", Vector2i(4, -466), Vector2i(3, -466), "silverhart_elven_embassy_east_door", "Elven Embassy")
-	_assert_exterior_entry_round_trip("silverhart_dwarven_embassy", "bulk_entry_player_13", Vector2i(12, -470), Vector2i(13, -470), "silverhart_dwarven_embassy_west_door", "Dwarven Embassy")
-	_assert_exterior_entry_round_trip("silverhart_aldenreach_embassy", "bulk_entry_player_14", Vector2i(4, -460), Vector2i(3, -460), "silverhart_aldenreach_embassy_east_door", "Aldenreach Embassy")
-	_assert_exterior_entry_round_trip("silverhart_ironbond_office", "bulk_entry_player_15", Vector2i(5, -454), Vector2i(4, -454), "silverhart_ironbond_office_east_door", "Ironbond Office")
-	_assert_exterior_entry_round_trip("silverhart_grand_cathedral", "bulk_entry_player_16", Vector2i(9, -451), Vector2i(10, -451), "silverhart_grand_cathedral_west_door", "Grand Cathedral")
-	_assert_exterior_entry_round_trip("old_mac_farmhouse", "bulk_entry_player_17", Vector2i(4, 194), Vector2i(3, 194), "old_mac_farmhouse_east_door", "Old Mac Farmhouse")
-	_assert_exterior_entry_round_trip("millbrook_house", "bulk_entry_player_18", Vector2i(5, -366), Vector2i(4, -366), "millbrook_house_east_door", "Millbrook House")
-	_assert_exterior_entry_round_trip("abandoned_house", "bulk_entry_player_19", Vector2i(10, -176), Vector2i(11, -176), "abandoned_house_west_door", "Abandoned House")
-
-	# Remaining unlocked single-floor doors: thresholds are the first exterior hex
-	# immediately beyond each source/manifest-defined door wall. The locked tavern is excluded.
-	_assert_exterior_entry_round_trip("hollowmere_guild_den", "last_batch_entry_player_1", Vector2i(-12, -5), Vector2i(-12, -6), "hollowmere_guild_den_door", "Hollowmere Guild Den")
-	_assert_exterior_entry_round_trip("reddale_guildhouse", "last_batch_entry_player_2", Vector2i(142, 34), Vector2i(143, 34), "reddale_guildhouse_door", "Reddale Guildhouse")
-	_assert_exterior_entry_round_trip("reddale_manor", "last_batch_entry_player_3", Vector2i(142, 14), Vector2i(143, 14), "reddale_manor_door", "Reddale Manor")
-	_assert_exterior_entry_round_trip("reddale_smithy", "last_batch_entry_player_4", Vector2i(138, 32), Vector2i(137, 32), "reddale_smithy_door", "Reddale Smithy")
-	_assert_exterior_entry_round_trip("silverhart_thieves_guild", "last_batch_entry_player_5", Vector2i(14, -429), Vector2i(14, -428), "thieves_guild_front_door", "Silverhart Thieves Guild")
-	_assert_exterior_entry_round_trip("silverhart_stables", "last_batch_entry_player_6", Vector2i(-18, -502), Vector2i(-19, -502), "stables_front_door", "Royal Stables")
-	_assert_exterior_entry_round_trip("silverhart_general_goods", "last_batch_entry_player_7", Vector2i(-18, -490), Vector2i(-19, -490), "general_goods_front_door", "General Goods")
-	_assert_exterior_entry_round_trip("silverhart_clothier", "last_batch_entry_player_8", Vector2i(-33, -502), Vector2i(-32, -502), "clothier_front_door", "Clothier")
-	_assert_exterior_entry_round_trip("silverhart_magic_shop", "last_batch_entry_player_9", Vector2i(-33, -490), Vector2i(-32, -490), "magic_shop_front_door", "Magic Shop")
-	_assert_exterior_entry_round_trip("corvin_ashgrave_barrow", "last_batch_entry_player_10", Vector2i(59, -160), Vector2i(60, -160), "barrow_entrance_door", "Corvin Ashgrave Barrow")
-	_assert_exterior_entry_round_trip("vessel_seekers_crypt", "last_batch_entry_player_11", Vector2i(28, -154), Vector2i(29, -154), "crypt_entrance_door", "Vessel-Seeker's Crypt")
-	_assert_exterior_entry_round_trip("lich_chapterhouse", "last_batch_entry_player_12", Vector2i(-35, -346), Vector2i(-36, -346), "chapterhouse_east_door", "Silver Flame Chapterhouse")
-	_assert_exterior_entry_round_trip("northwatch_keep", "last_batch_entry_player_13", Vector2i(274, -21), Vector2i(273, -21), "northwatch_keep_door", "Northwatch Keep")
-	_assert_exterior_entry_round_trip("ridgehold_keep", "last_batch_entry_player_14", Vector2i(426, 46), Vector2i(426, 45), "ridgehold_keep_door", "Ridgehold Keep")
-	_assert_exterior_entry_round_trip("silverhart_corvane_embassy", "last_batch_entry_player_15", Vector2i(12, -463), Vector2i(13, -463), "silverhart_corvane_embassy_west_door", "Corvane Embassy")
-	_assert_exterior_entry_round_trip("silverhart_commons_inn", "last_batch_entry_player_16", Vector2i(8, -525), Vector2i(8, -526), "silverhart_commons_inn_south_door", "Silverhart Commons Inn")
-	_assert_exterior_entry_round_trip("silverhart_noble_neighbor_house", "last_batch_entry_player_17", Vector2i(49, -502), Vector2i(48, -502), "silverhart_noble_neighbor_house_east_door", "Noble Neighbour House")
-	_assert_exterior_entry_round_trip("silverhart_outlying_house_east", "last_batch_entry_player_18", Vector2i(63, -543), Vector2i(63, -544), "silverhart_outlying_house_east_south_door", "Eastern Outlying House")
-	_assert_exterior_entry_round_trip("silverhart_outlying_house_far_east", "last_batch_entry_player_19", Vector2i(88, -543), Vector2i(88, -544), "silverhart_outlying_house_far_east_south_door", "Far-Eastern Outlying House")
-	_assert_exterior_entry_round_trip("silverhart_outlying_house_west", "last_batch_entry_player_20", Vector2i(23, -476), Vector2i(22, -476), "silverhart_outlying_house_west_east_door", "Western Outlying House")
-	_assert_exterior_entry_round_trip("silverhart_outlying_house_1", "last_batch_entry_player_21", Vector2i(23, -543), Vector2i(23, -544), "silverhart_outlying_house_1_south_door", "Northeast Outlying House 1")
-	_assert_exterior_entry_round_trip("silverhart_outlying_house_2", "last_batch_entry_player_22", Vector2i(48, -543), Vector2i(48, -544), "silverhart_outlying_house_2_south_door", "Northeast Outlying House 2")
-	_assert_exterior_entry_round_trip("silverhart_outlying_house_3", "last_batch_entry_player_23", Vector2i(-29, -476), Vector2i(-30, -476), "silverhart_outlying_house_3_east_door", "West Outlying House")
+	# Exterior building doors are ordinary continuous-world movement; there is
+	# deliberately no entry/return teleport contract or round-trip helper.
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
 	var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
 	_check(bool(loaded.get("ok", false)), "Shared location loader must instantiate Kragmoor from the registry")
 	var runtime = loaded.get("runtime")
+	_check(runtime != null and not runtime.has_method("enter_from_exterior") and not runtime.has_method("exit_to_exterior"), "Multi-story runtime must not expose exterior door teleport APIs")
 	_check(runtime.get_current_floor() == 0, "Kragmoor runtime must begin on the Gate Hall surface")
 	_check(runtime.get_floor_tile_count(0) > 0 and runtime.get_floor_tile_count(-5) > 0, "All six source floors must build presentation tiles")
 	_check(runtime.is_floor_visible(0) and not runtime.is_floor_visible(-1), "Only the active floor may be visible")
@@ -285,39 +211,6 @@ func _run() -> void:
 		return
 	print("Kragmoor floor presentation, quest-gated traversal and campaign persistence validated.")
 	quit(0)
-
-func _assert_exterior_entry_round_trip(
-	location_id: String,
-	character_id: String,
-	exterior_hex: Vector2i,
-	door_hex: Vector2i,
-	expected_door_id: String,
-	label: String
-) -> void:
-	var simulation = SIMULATION.new()
-	root.add_child(simulation)
-	simulation.map_data.add_cell(exterior_hex, 0.0, true, "grass")
-	var player := CharacterState.new(character_id, "%s Test Player" % label, exterior_hex)
-	simulation.register_character(player)
-	var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, location_id, simulation)
-	_check(bool(loaded.get("ok", false)), "%s must load through the shared location loader" % label)
-	var runtime = loaded.get("runtime")
-	if runtime == null:
-		return
-	var contract: Dictionary = runtime.get_exterior_entry_contract()
-	_check(String(contract.get("door_id", "")) == expected_door_id, "%s must expose its source-authored door contract" % label)
-	var registry = LOCATION_REGISTRY.new()
-	var nearby: Dictionary = registry.find_exterior_entry_near(exterior_hex, 1)
-	_check(String(nearby.get("location_id", "")) == location_id, "%s exterior threshold must resolve to the correct location" % label)
-	var entry: Dictionary = runtime.enter_from_exterior(character_id)
-	_check(bool(entry.get("ok", false)), "%s threshold must allow entry" % label)
-	_check(player.axial == door_hex, "%s entry must place the player on its authored door hex" % label)
-	_check(runtime.is_floor_visible(0), "%s interior floor must be active after entry" % label)
-	var exit_result: Dictionary = runtime.exit_to_exterior(character_id)
-	_check(bool(exit_result.get("ok", false)), "%s must allow return through the same door" % label)
-	_check(player.axial == exterior_hex, "%s exit must restore its authored exterior return hex" % label)
-	_check(simulation.map_data.is_walkable(exterior_hex), "%s exit must restore the regional map" % label)
-
 
 func _check(condition: bool, message: String) -> void:
 	if condition:
