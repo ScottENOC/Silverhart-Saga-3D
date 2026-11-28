@@ -2,6 +2,7 @@ class_name MovementRules
 extends RefCounted
 
 const BASE_STEP_COST: float = 5.0
+const DOOR_OPEN_TIME_POINT_COST: float = 2.0
 
 static func base_cost_for(state: CharacterState) -> float:
     var cost := BASE_STEP_COST
