@@ -18,7 +18,9 @@ on:
     branches: [dev]
     paths:
       - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_character_details.py"
+      - "tools/review/aldric_native_preview.gd"
       - ".github/workflows/build-aldric-native-ara.yml"
   workflow_dispatch:
 
@@ -105,6 +107,7 @@ jobs:
             --profile character-preview/aldric-ara.json
           test -s build/aldric-native/Aldric-details.glb
           mv build/aldric-native/Aldric-details.glb build/aldric-native/Aldric.glb
+          cp build/aldric-native/Aldric.glb build/aldric-native/Aldric_with_anal_test.glb
 
       - name: Assemble isolated Godot preview project
         run: |
@@ -141,7 +144,7 @@ jobs:
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/aldric_native_preview.gd
-          for view in front side threequarter face pelvis abdomen; do
+          for view in front side threequarter face pelvis rear_pelvis abdomen; do
             test -s "build/aldric-native-preview-project/build/aldric-native/preview/$view.png"
           done
           test -s build/aldric-native-preview-project/build/aldric-native/preview/render-report.json
@@ -174,6 +177,7 @@ jobs:
           name: aldric-native-ara-${{ github.run_number }}
           path: |
             build/aldric-native/Aldric.glb
+            build/aldric-native/Aldric_with_anal_test.glb
             build/aldric-native/Aldric_native_Ara_bundle.zip
             build/aldric-native/preview/
           if-no-files-found: error
