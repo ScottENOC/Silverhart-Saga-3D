@@ -2493,22 +2493,7 @@ func _start_farm_wolf_encounter() -> void:
 			farm_wolves_retry_armed = true
 			return
 		farm_wolves_spawned = true
-		for wolf_id_value in ensured.get("enemy_ids", []):
-			var wolf_id := String(wolf_id_value)
-			if actor_by_id.has(wolf_id):
-				continue
-			var wolf := simulation.get_character(wolf_id)
-			if wolf == null or not wolf.can_act():
-				continue
-			var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
-			actor.name = wolf_id
-			actor.creature_kind = "wolf"
-			actor.behaviour = "predator"
-			actor.model_scale = 0.76
-			actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
-			actor.position = _hex_world_position(wolf.axial)
-			add_child(actor)
-			actor_by_id[wolf_id] = actor
+		_restore_farm_wolf_actor_presentations()
 	farm_wolves_retry_armed = false
 
 	var enemy_ids: Array[String] = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
