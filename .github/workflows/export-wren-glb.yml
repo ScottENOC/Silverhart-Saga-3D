@@ -1,14 +1,10 @@
 name: Export Wren GLB
 
+# Legacy exporter retained for manual recovery only.
+# Automatic companion builds now use build-wren-native-ara.yml, which applies
+# the accepted Ara profile, integrated adult anatomy, Wren colours/details,
+# and a Godot review pass. The old wren.json path is not an authoritative Wren.
 on:
-  push:
-    branches: [dev]
-    paths:
-      - "character-preview/wren.json"
-      - "character-preview/wren-ara.json"
-      - "art/characters/ara_runtime/ara_person_body_anatomy.glb"
-      - "tools/review/export_character_glb.py"
-      - ".github/workflows/export-wren-glb.yml"
   workflow_dispatch:
 
 permissions:

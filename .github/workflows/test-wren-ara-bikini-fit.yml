@@ -1,0 +1,231 @@
+name: Generate Ara bikini locally on accepted Wren body
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/test-wren-ara-bikini-fit.yml"
+      - "tools/ara_native/**"
+      - "tools/blender/attach_wren_ara_bikini.py"
+      - "tools/blender/inspect_wren_ara_surface.py"
+      - "tools/blender/export_wren_ara_body_surface.py"
+      - "tools/review/wren_native_preview.gd"
+      - "character-preview/wren-ara.json"
+      - "art/characters/companions/wren.glb"
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ara-native-wren-bikini-${{ github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  native-bikini:
+    name: Native Ara garment generation + accepted Wren preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || 'dev' }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Install the vendored Ara source runtime
+        working-directory: tools/ara_native
+        run: npm install --no-audit --no-fund
+
+      - name: Install Blender and Godot preview dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
+
+      - name: Export accepted Wren skin and piercing surfaces for Ara
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native
+          python -m py_compile tools/blender/export_wren_ara_body_surface.py
+          blender --background --python-exit-code 1 --python tools/blender/export_wren_ara_body_surface.py -- --input-glb art/characters/companions/wren.glb --output build/wren-native/wren-ara-body-surface.json.gz --report build/wren-native/body-surface-report.json
+          test -s build/wren-native/wren-ara-body-surface.json.gz
+          test -s build/wren-native/body-surface-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("build/wren-native/body-surface-report.json").read_text())
+          assert r["skinObjects"], r
+          assert r["piercingObjects"], r
+          assert r["piercingFaceIndices"], r
+          assert len(r["piercingFaceIndices"]) > 100, r
+          assert r["skinVertexCount"] > 10000, r
+          assert r["totalSurfaceVertexCount"] > r["skinVertexCount"], r
+          assert r["unknownSkinRegionVertexCount"] < r["skinVertexCount"] * 0.08, r
+          print("WREN_ARA_BODY_SURFACE_REPORT_OK", json.dumps({
+              "skin_objects": r["skinObjects"],
+              "piercing_objects": r["piercingObjects"],
+              "skin_vertices": r["skinVertexCount"],
+              "surface_vertices": r["totalSurfaceVertexCount"],
+              "faces": r["faceCount"],
+              "unknown_regions": r["unknownSkinRegionVertexCount"],
+              "landmarks": r["piercingLandmarks"],
+          }, indent=2))
+          PY
+
+      - name: Run Ara's original bikini generator against accepted Wren surface
+        run: |
+          set -euo pipefail
+          cd tools/ara_native
+          npx tsx generate-wren-bikini.ts \
+            --profile ../../character-preview/wren-ara.json \
+            --body-surface ../../build/wren-native/wren-ara-body-surface.json.gz \
+            --out ../../build/wren-garments \
+            --material jersey --color "#09090B" --accent "#17171C"
+          test -s ../../build/wren-garments/Wren_Ara_Bikini.obj
+          test -s ../../build/wren-garments/Wren_Ara_Bikini.mtl
+          test -s ../../build/wren-garments/generation-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("../../build/wren-garments/generation-report.json").read_text())
+          assert r["sourceCommit"] == "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395", r
+          assert r["garmentPartCount"] >= 3, r
+          assert r["bodySource"] == "accepted Wren GLB geometry", r
+          assert r["bodySkinPreserved"] is True, r
+          assert r["piercingGeometryUsedDuringGeneration"] is True, r
+          assert r["includedPiercingObjects"], r
+          assert r["selectedMaterial"] == "jersey", r
+          assert r["selectedColour"] == "#09090B", r
+          assert r["diagnostics"]["piercingClearance"]["adjustedCupVertices"] > 0, r
+          assert r["diagnostics"]["gussetProjection"]["missRate"] <= 0.05, r
+          assert r["araHidesMasksApplied"] is False, r
+          assert {x["garment"] for x in r["garments"]} >= {"bikini_top", "bikini_bottom"}, r
+          assert sum(x["faces"] for x in r["garments"]) > 100, r
+          print("ARA_NATIVE_GARMENT_REPORT_OK", json.dumps(r, indent=2))
+          PY
+
+      - name: Inspect accepted Wren surface, rig and accessory geometry (read-only)
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native
+          python -m py_compile tools/blender/inspect_wren_ara_surface.py
+          blender --background --python-exit-code 1 \
+            --python tools/blender/inspect_wren_ara_surface.py -- \
+            --input-glb art/characters/companions/wren.glb \
+            --report build/wren-native/source-surface-inspection.json
+          test -s build/wren-native/source-surface-inspection.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("build/wren-native/source-surface-inspection.json").read_text())
+          assert r["mesh_count"] > 0, r
+          assert r["armature_count"] > 0, r
+          print("WREN_SOURCE_SURFACE_INSPECTION_OK", json.dumps({
+              "mesh_count": r["mesh_count"],
+              "armature_count": r["armature_count"],
+              "meshes": [{
+                  "name": o["name"],
+                  "vertices": o["vertices"],
+                  "polygons": o["polygons"],
+                  "materials": o["materials"],
+                  "vertex_groups": o["vertex_groups"],
+                  "armature_modifiers": o["armature_modifiers"],
+              } for o in r["objects"] if o["type"] == "MESH"],
+              "piercing_candidates": [o["name"] for o in r["likely_piercing_candidates"]],
+              "bones": [{
+                  "name": o["name"],
+                  "bone_names": [b["name"] for b in o["bones"]],
+              } for o in r["objects"] if o["type"] == "ARMATURE"],
+          }, indent=2))
+          PY
+
+      - name: Attach the garment to the immutable accepted Wren GLB
+        env:
+          PYTHONPATH: /usr/lib/python3/dist-packages
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native
+          python -m py_compile tools/blender/attach_wren_ara_bikini.py
+          blender --background --python-exit-code 1 \
+            --python tools/blender/attach_wren_ara_bikini.py -- \
+            --input-glb art/characters/companions/wren.glb \
+            --garment-obj build/wren-garments/Wren_Ara_Bikini.obj \
+            --generation-report build/wren-garments/generation-report.json \
+            --output-glb build/wren-native/Wren.glb \
+            --report build/wren-native/attachment-report.json
+          test -s build/wren-native/Wren.glb
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("build/wren-native/attachment-report.json").read_text())
+          assert r["body_meshes_modified"] is False, r
+          assert r["body_meshes_hidden_or_deleted"] is False, r
+          assert r["original_armature_preserved"] is True, r
+          assert r["garment_generated_against_accepted_body"] is True, r
+          assert r["piercing_geometry_used_during_generation"] is True, r
+          assert r["post_generation_vertex_corrections"] == 0, r
+          assert r["preserved_piercing_objects"], r
+          assert r["garment_vertex_count"] > 100, r
+          assert r["garment_face_count"] > 100, r
+          print("WREN_ACCEPTED_BODY_ATTACHMENT_OK", json.dumps(r, indent=2))
+          PY
+
+      - name: Assemble isolated Godot review project
+        run: |
+          set -euo pipefail
+          preview=build/wren-native-preview-project
+          mkdir -p "$preview/build/wren-native" "$preview/tools/review"
+          cp build/wren-native/Wren.glb "$preview/build/wren-native/Wren.glb"
+          cp tools/review/wren_native_preview.gd "$preview/tools/review/wren_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Accepted Wren Ara Bikini Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and render the accepted Wren GLB with Ara garments
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/wren-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/wren-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/wren_native_preview.gd
+          for view in front side threequarter face pelvis pelvis_back chest chest_threequarter; do
+            test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
+          done
+          test -s build/wren-native-preview-project/build/wren-native/preview/render-report.json
+          cp -R build/wren-native-preview-project/build/wren-native/preview build/wren-native/preview
+
+      - name: Upload the exact accepted-body fit and visual evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-native-ara-bikini-${{ github.run_number }}
+          path: |
+            build/wren-native/Wren.glb
+            build/wren-native/attachment-report.json
+            build/wren-native/preview/
+            build/wren-garments/Wren_Ara_Bikini.obj
+            build/wren-garments/Wren_Ara_Bikini.mtl
+            build/wren-garments/generation-report.json
+            build/wren-native/body-surface-report.json
+            build/wren-native/wren-ara-body-surface.json.gz
+          if-no-files-found: error
+          retention-days: 30

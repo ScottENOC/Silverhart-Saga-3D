@@ -1,0 +1,19 @@
+{
+  "name": "silverhart-ara-native-garments",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsx build-fitting-data.ts",
+    "generate": "tsx generate-wren-bikini.ts"
+  },
+  "dependencies": {
+    "fflate": "0.8.3"
+  },
+  "devDependencies": {
+    "tsx": "4.23.0",
+    "typescript": "5.9.3"
+  }
+}

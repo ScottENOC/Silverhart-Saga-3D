@@ -9,6 +9,10 @@ on:
       - "tools/blender/add_female_anatomy_surface.py"
       - "tools/blender/plan_female_anatomy_subdivision.py"
       - "tools/review/wren_native_preview.gd"
+      - "tools/blender/prepare_wren_cloth_colliders.py"
+      - "tools/blender/extract_wren_garment_surfaces.py"
+      - "tools/blender/simulate_wren_garment_contact.py"
+      - "tools/blender/generate_ara_method_bikini_bottom.py"
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/review/add_aldric_body_hair.py"
@@ -19,13 +23,22 @@ on:
       - "character-preview/wren-ara.json"
       - "tools/review/add_aldric_body_hair.py"
       - ".github/workflows/build-wren-native-ara.yml"
+      - ".github/workflows/test-wren-ara-bikini-fit.yml"
+      - "tools/ara/assemble_modular_glb.py"
+      - "art/characters/companions/wren.glb"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
+      - "tools/review/wren_native_preview.gd"
+      - "tools/blender/prepare_wren_cloth_colliders.py"
+      - "tools/blender/extract_wren_garment_surfaces.py"
+      - "tools/blender/simulate_wren_garment_contact.py"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: build-wren-native-ara
+  group: build-wren-native-ara-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -210,3 +223,7 @@ jobs:
             build/wren-native/character-details-build.log
           if-no-files-found: error
           retention-days: 30
+
+  bikini-fit:
+    name: Test Ara bikini fit on the accepted Wren body
+    uses: ./.github/workflows/test-wren-ara-bikini-fit.yml
