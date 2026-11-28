@@ -50,7 +50,6 @@ const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_intera
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
-const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const COMBAT_ENCOUNTER_CONTROLLER_SCRIPT = preload("res://scripts/presentation/combat_encounter_controller.gd")
 const CAMP_NIGHT_AMBUSH_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/camp_night_ambush_encounter.gd")
@@ -67,6 +66,7 @@ const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/
 const HOUSEHOLD_WORLD_SERVICE_SCRIPT = preload("res://scripts/world/campaign_household_world_service.gd")
 const ROWAN_WORLD_SERVICE_SCRIPT = preload("res://scripts/world/rowan_fletcher_world_service.gd")
 const CAMP_LIFECYCLE_CONTROLLER_SCRIPT = preload("res://scripts/world/camp_lifecycle_controller.gd")
+const WILDERNESS_CREATURE_SPAWN_SERVICE = preload("res://scripts/world/wilderness_creature_spawn_service.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -161,8 +161,7 @@ var nearby_interaction_refresh: float = 0.0
 var farm_wolves_spawned: bool = false
 var farm_wolves_retry_armed: bool = false
 var reyna_clue_visual: Node3D
-var wilderness_steps_since_spawn: int = 0
-var wilderness_creature_nodes: Array[Node3D] = []
+var wilderness_creature_spawner: WildernessCreatureSpawnService
 var camp_presentation: CampWorldPresentation
 var camp_activity_director: CampPartyActivityDirector
 var camp_selection_mode: bool = false
@@ -205,6 +204,7 @@ func _ready() -> void:
 		simulation.camp_night_encounter_resolved.connect(_on_camp_night_encounter_resolved)
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
+	_create_wilderness_creature_spawn_service()
 	var restored_from_save := not pending_save_data.is_empty()
 
 	if restored_from_save:
@@ -2959,8 +2959,8 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 			tween.tween_property(actor, "global_position", destination, 0.36)
 	if character_id == active_character_id:
 		_refresh_tavern_floor_presentation()
-	if character_id == "player":
-		_maybe_spawn_wilderness_creature(to_hex)
+	if character_id == "player" and wilderness_creature_spawner != null:
+		wilderness_creature_spawner.player_moved(to_hex)
 
 func _movement_direction_index(from_hex: Vector2i, to_hex: Vector2i) -> int:
 	var step := to_hex - from_hex
@@ -3256,55 +3256,22 @@ func _refresh_tavern_door_presentation() -> void:
 	tavern_door_pivot.rotation.y = deg_to_rad(82.0) if door.is_passable() else 0.0
 
 
-func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
-	# Keep the authored settlement/farm quiet. Wildlife starts beyond the
-	# original 35-hex Hollowmere safety radius and is rolled by travel, not
-	# every frame, so it cannot spam into existence.
-	if simulation.is_hex_within_range(Vector2i.ZERO, player_hex, 35) or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(player_hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
-		return
-	wilderness_steps_since_spawn += 1
-	if wilderness_steps_since_spawn < 12:
-		return
-	wilderness_steps_since_spawn = 0
-	var player_world := _hex_world_position(player_hex)
-	for index in range(wilderness_creature_nodes.size() - 1, -1, -1):
-		var existing := wilderness_creature_nodes[index]
-		if not is_instance_valid(existing) or existing.global_position.distance_to(player_world) > 60.0:
-			if is_instance_valid(existing):
-				existing.queue_free()
-			wilderness_creature_nodes.remove_at(index)
-	if wilderness_creature_nodes.size() >= 5 or ambient_rng.randf() > 0.42:
-		return
+func _create_wilderness_creature_spawn_service() -> void:
+	wilderness_creature_spawner = WILDERNESS_CREATURE_SPAWN_SERVICE.new() as WildernessCreatureSpawnService
+	wilderness_creature_spawner.configure(
+		simulation,
+		self,
+		Callable(self, "_hex_world_position"),
+		Callable(self, "_is_wilderness_spawn_excluded"),
+		ambient_rng
+	)
 
-	var kinds: Array[String] = ["wolf", "fox", "deer", "stag"]
-	var weights := PackedFloat32Array([0.25, 0.25, 0.30, 0.20])
-	var roll := ambient_rng.randf()
-	var kind := "deer"
-	var cumulative := 0.0
-	for index in range(kinds.size()):
-		cumulative += weights[index]
-		if roll <= cumulative:
-			kind = kinds[index]
-			break
 
-	for attempt in range(18):
-		var candidate := player_hex + Vector2i(ambient_rng.randi_range(-12, 12), ambient_rng.randi_range(-12, 12))
-		if not simulation.is_hex_within_range(player_hex, candidate, 13) or simulation.is_hex_within_range(player_hex, candidate, 6):
-			continue
-		if simulation.is_hex_within_range(Vector2i.ZERO, candidate, 35) or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(candidate, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
-			continue
-		if not simulation.map_data.is_walkable(candidate) or simulation.is_hex_occupied(candidate):
-			continue
-		var creature := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
-		creature.name = "Wilderness_%s_%d" % [kind, wilderness_creature_nodes.size() + 1]
-		creature.creature_kind = kind
-		creature.behaviour = "predator" if kind == "wolf" else "passive_wildlife"
-		creature.model_scale = 0.72 if kind == "fox" else 0.78
-		creature.model_path = "res://art/creatures/quaternius/%s.gltf" % kind.capitalize()
-		creature.position = _hex_world_position(candidate)
-		add_child(creature)
-		wilderness_creature_nodes.append(creature)
-		return
+func _is_wilderness_spawn_excluded(hex: Vector2i) -> bool:
+	# The original Hollowmere/farm safety region remains authored by this
+	# location; the shared service only owns the travel spawn lifecycle.
+	return simulation.is_hex_within_range(Vector2i.ZERO, hex, 35) or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
+
 
 func _hex_world_position(hex: Vector2i) -> Vector3:
 	if _is_upper_floor_hex(hex):
