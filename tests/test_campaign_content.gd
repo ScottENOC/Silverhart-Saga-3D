@@ -269,6 +269,14 @@ func _test_hollowmere_campaign_content() -> void:
 	_check(String(grateful_garrick.get("text", "")).contains("stood up"), "Garrick should react personally to the fight branch")
 	_check(garrick.get("choices", []).size() >= 2, "Garrick should offer the Ironbond question and local news")
 
+	var journal_derived := CampaignJournal.new()
+	journal_derived.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
+	_check(bool(journal_derived.start_quest(HollowmereCampaignContent.QUEST_ID).get("ok", false)))
+	_check(bool(HollowmereCampaignContent.apply_shakedown_choice(journal_derived, "fight").get("ok", false)))
+	var journal_greeting := HollowmereCampaignContent.npc_greeting_from_journal(journal_derived, "garrick_holt", true)
+	_check(String(journal_greeting.get("text", "")).contains("stood up"), "The content owner should derive the recorded shakedown response and NPC standing from the journal")
+	journal_derived.free()
+
 	var exchanges := HollowmereCampaignContent.ambient_exchanges()
 	_check(exchanges.size() >= 40, "Hollowmere should have a broad set of ambient exchanges")
 	var has_aftermath := false
