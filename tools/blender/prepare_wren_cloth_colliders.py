@@ -152,11 +152,22 @@ def make_skin_only_collider(source, material_prefix):
     mesh = source.data.copy()
     bm = bmesh.new()
     bm.from_mesh(mesh)
-    # Keep the source topology intact for diagnosis. Connected-component size,
-    # manifoldness and watertightness do not identify anatomical external surfaces:
-    # internal canal walls may be connected to the outer shell. Never discard
-    # components, smooth the pelvis, or cap boundary loops until a separate
-    # anatomical classification has been validated against this exact mesh.
+    # Retain only faces assigned to skin materials. The assembled Wren mesh
+    # also contains Ara garment primitives; copying every face here would make
+    # the bikini collide with itself and could create the large false corrections
+    # seen in the first contact attempt. Preserve every skin face, including
+    # unresolved internal surfaces, until external-vs-internal classification
+    # has been independently validated.
+    source_face_count = len(bm.faces)
+    non_skin_faces = [face for face in bm.faces if face.material_index not in skin_indices]
+    excluded_non_skin_face_count = len(non_skin_faces)
+    if non_skin_faces:
+        bmesh.ops.delete(bm, geom=non_skin_faces, context="FACES")
+
+    # Connected-component size, manifoldness and watertightness do not identify
+    # anatomical external surfaces: internal canal walls may remain connected
+    # to the outer shell. Never discard skin components, smooth the pelvis, or
+    # cap boundary loops until a separate anatomical classification is validated.
     remaining = set(bm.faces)
     face_components = []
     while remaining:
@@ -212,6 +223,8 @@ def make_skin_only_collider(source, material_prefix):
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
     )
+    collider["source_face_count"] = source_face_count
+    collider["excluded_non_skin_face_count"] = excluded_non_skin_face_count
     collider["retained_connected_surface_face_count"] = retained_face_count
     collider["connected_component_face_counts"] = component_face_counts
     collider["discarded_disconnected_surface_face_counts"] = []
@@ -291,6 +304,8 @@ def main():
             "bounds_world": world_bounds(body_collider),
             "collision_thickness_m": 0.002,
             "source_materials": list(body_collider["source_materials"]),
+            "source_face_count": body_collider["source_face_count"],
+            "excluded_non_skin_face_count": body_collider["excluded_non_skin_face_count"],
             "retained_connected_surface_face_count": body_collider["retained_connected_surface_face_count"],
             "connected_component_face_counts": list(body_collider["connected_component_face_counts"]),
             "discarded_disconnected_surface_face_counts": list(body_collider["discarded_disconnected_surface_face_counts"]),
@@ -319,7 +334,7 @@ def main():
         "notes": [
             "Piercing meshes remain ordinary visible render geometry.",
             "The body collider is a separate skin-only copy; the rendered accepted Wren mesh is unchanged.",
-            "The diagnostic collider retains all source skin components without smoothing or capping.",
+            "The collider excludes non-skin material faces (including transferred Ara garments) and retains every skin-material face without smoothing or capping.",
             "External-only classification and internal-canal exclusion are explicitly unverified; cloth fitting must not proceed.",
             "The collider is built from accepted Wren, not Ara's temporary anatomy fitting reference.",
             "No garment vertices are displaced in this preparation stage.",
