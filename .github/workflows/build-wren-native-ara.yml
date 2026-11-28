@@ -12,6 +12,7 @@ on:
       - "tools/blender/prepare_wren_cloth_colliders.py"
       - "tools/blender/extract_wren_garment_surfaces.py"
       - "tools/blender/simulate_wren_garment_contact.py"
+      - "tools/blender/generate_ara_method_bikini_bottom.py"
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/review/add_aldric_body_hair.py"
