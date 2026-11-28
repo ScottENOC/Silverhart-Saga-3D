@@ -59,6 +59,8 @@ jobs:
           r = json.loads(Path("build/wren-native/body-surface-report.json").read_text())
           assert r["skinObjects"], r
           assert r["piercingObjects"], r
+          assert r["piercingFaceIndices"], r
+          assert len(r["piercingFaceIndices"]) > 100, r
           assert r["skinVertexCount"] > 10000, r
           assert r["totalSurfaceVertexCount"] > r["skinVertexCount"], r
           assert r["unknownSkinRegionVertexCount"] < r["skinVertexCount"] * 0.08, r
@@ -80,7 +82,8 @@ jobs:
           npx tsx generate-wren-bikini.ts \
             --profile ../../character-preview/wren-ara.json \
             --body-surface ../../build/wren-native/wren-ara-body-surface.json.gz \
-            --out ../../build/wren-garments
+            --out ../../build/wren-garments \
+            --material jersey --color "#09090B" --accent "#17171C"
           test -s ../../build/wren-garments/Wren_Ara_Bikini.obj
           test -s ../../build/wren-garments/Wren_Ara_Bikini.mtl
           test -s ../../build/wren-garments/generation-report.json
@@ -94,6 +97,10 @@ jobs:
           assert r["bodySkinPreserved"] is True, r
           assert r["piercingGeometryUsedDuringGeneration"] is True, r
           assert r["includedPiercingObjects"], r
+          assert r["selectedMaterial"] == "jersey", r
+          assert r["selectedColour"] == "#09090B", r
+          assert r["diagnostics"]["piercingClearance"]["adjustedCupVertices"] > 0, r
+          assert r["diagnostics"]["gussetProjection"]["rayMisses"] == 0, r
           assert r["araHidesMasksApplied"] is False, r
           assert {x["garment"] for x in r["garments"]} >= {"bikini_top", "bikini_bottom"}, r
           assert sum(x["faces"] for x in r["garments"]) > 100, r
