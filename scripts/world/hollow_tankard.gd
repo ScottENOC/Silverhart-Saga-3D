@@ -1841,7 +1841,6 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 	if dialogue_id == "silverhart_queen":
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var content := PERSISTENT_DIALOGUE_CONTENT.new()
-		var journal := simulation.campaign_journal
 		var conversation: Dictionary = content.seraphine_greeting_from_simulation(simulation, relationships)
 		if bool(conversation.get("ok", false)):
 			var supported_choices: Array[Dictionary] = []
