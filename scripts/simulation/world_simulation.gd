@@ -3,7 +3,7 @@ extends Node
 
 var _spell_effect_rules = load("res://scripts/simulation/spell_effect_rules.gd").new()
 
-const DOOR_OPEN_TIME_POINT_COST: float = 2.0
+const DOOR_OPEN_TIME_POINT_COST: float = MovementRules.DOOR_OPEN_TIME_POINT_COST
 
 signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i)
 signal world_tick(tick_index: int, world_seconds: float)
