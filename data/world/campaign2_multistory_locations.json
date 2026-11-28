@@ -500,7 +500,18 @@
       "source_notes": [
         "buildHollowmereGuildDen fixes the room centre at (-12,-8), uses carveBuilding with half-width 2 and half-height 2, and places the south door at (-12,-6).",
         "The guild contact and recruitment/service interactions remain campaign-owned and are intentionally excluded from this map-only floor definition."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "hollowmere_guild_den_door",
+        "exterior_hex": {
+          "q": -12,
+          "r": -5
+        },
+        "return_hex": {
+          "q": -12,
+          "r": -5
+        }
+      }
     },
     {
       "id": "kragmoor",
@@ -1640,7 +1651,18 @@
       "source_notes": [
         "buildReddale places the guildhouse at road-end offset (+8,+10), uses carveBuilding half-width 3/half-height 2, a west door, fireplace, table and guild-ledger evidence.",
         "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "reddale_guildhouse_door",
+        "exterior_hex": {
+          "q": 142,
+          "r": 34
+        },
+        "return_hex": {
+          "q": 142,
+          "r": 34
+        }
+      }
     },
     {
       "id": "reddale_inn",
@@ -1781,7 +1803,18 @@
       "source_notes": [
         "buildReddale places the manor at road-end offset (+8,-10), uses carveBuilding half-width 3/half-height 2, a west door, fireplace, table and tariff-record evidence.",
         "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "reddale_manor_door",
+        "exterior_hex": {
+          "q": 142,
+          "r": 14
+        },
+        "return_hex": {
+          "q": 142,
+          "r": 14
+        }
+      }
     },
     {
       "id": "reddale_reeve_house",
@@ -1905,7 +1938,18 @@
       "source_notes": [
         "buildReddale places the smithy at road-end offset (-4,+8), uses carveBuilding half-width 3/half-height 2, an east door, fireplace and source blacksmith bed.",
         "NPCs, services, patrols and dialogue/espionage consequences remain campaign-owned and are excluded from this map-only definition."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "reddale_smithy_door",
+        "exterior_hex": {
+          "q": 138,
+          "r": 32
+        },
+        "return_hex": {
+          "q": 138,
+          "r": 32
+        }
+      }
     },
     {
       "id": "silthandriel",
@@ -3103,7 +3147,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "thieves_guild_front_door",
+        "exterior_hex": {
+          "q": 14,
+          "r": -429
+        },
+        "return_hex": {
+          "q": 14,
+          "r": -429
+        }
+      }
     },
     {
       "id": "silverhart_stables",
@@ -3153,7 +3208,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "stables_front_door",
+        "exterior_hex": {
+          "q": -18,
+          "r": -502
+        },
+        "return_hex": {
+          "q": -18,
+          "r": -502
+        }
+      }
     },
     {
       "id": "silverhart_general_goods",
@@ -3214,7 +3280,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "general_goods_front_door",
+        "exterior_hex": {
+          "q": -18,
+          "r": -490
+        },
+        "return_hex": {
+          "q": -18,
+          "r": -490
+        }
+      }
     },
     {
       "id": "silverhart_clothier",
@@ -3272,7 +3349,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "clothier_front_door",
+        "exterior_hex": {
+          "q": -33,
+          "r": -502
+        },
+        "return_hex": {
+          "q": -33,
+          "r": -502
+        }
+      }
     },
     {
       "id": "silverhart_magic_shop",
@@ -3330,7 +3418,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "magic_shop_front_door",
+        "exterior_hex": {
+          "q": -33,
+          "r": -490
+        },
+        "return_hex": {
+          "q": -33,
+          "r": -490
+        }
+      }
     },
     {
       "id": "thieves_cove",
@@ -3596,7 +3695,18 @@
           "creatures": []
         }
       ],
-      "transitions": []
+      "transitions": [],
+      "exterior_entry": {
+        "door_id": "barrow_entrance_door",
+        "exterior_hex": {
+          "q": 59,
+          "r": -160
+        },
+        "return_hex": {
+          "q": 59,
+          "r": -160
+        }
+      }
     },
     {
       "id": "vessel_seekers_crypt",
@@ -3739,7 +3849,18 @@
           "creatures": []
         }
       ],
-      "transitions": []
+      "transitions": [],
+      "exterior_entry": {
+        "door_id": "crypt_entrance_door",
+        "exterior_hex": {
+          "q": 28,
+          "r": -154
+        },
+        "return_hex": {
+          "q": 28,
+          "r": -154
+        }
+      }
     },
     {
       "id": "millbrook_house",
@@ -3864,7 +3985,18 @@
         "The source Millbrook waypoint is the north road's 390th step from the crossroads. Applying buildMillbrook's (-6,0) offset gives Millbrook centre (1,-366); buildLichChapterhouse then applies (-40,+20), giving (-39,-346).",
         "The source uses carveFlatRoom with half-width 4 and half-height 3, a Keep Wall ring, an east door at centre + (3,0), and a fireplace at the room centre.",
         "The inquisitor and two witch hunters are campaign actors and are intentionally excluded from this map-only definition."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "chapterhouse_east_door",
+        "exterior_hex": {
+          "q": -35,
+          "r": -346
+        },
+        "return_hex": {
+          "q": -35,
+          "r": -346
+        }
+      }
     },
     {
       "id": "abandoned_house",
@@ -4472,7 +4604,18 @@
         "The 61-cell radius-four source hex disk is preserved, together with all six source corner gaps as walkable floor cells.",
         "The 30-cell source wall ring is preserved minus the six open corner gaps, leaving 24 wall cells.",
         "Garrison actors, ladders and exterior siege props remain owned by the fort/world presentation systems; this definition is the keep interior only."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "northwatch_keep_door",
+        "exterior_hex": {
+          "q": 274,
+          "r": -21
+        },
+        "return_hex": {
+          "q": 274,
+          "r": -21
+        }
+      }
     },
     {
       "id": "ridgehold_keep",
@@ -4654,7 +4797,18 @@
         "The source flat-room footprint uses half-width 3, half-height 2 and the source flat row-shift rule; all 15 walkable cells are stored explicitly.",
         "The 18-cell source wall ring is retained, with the source door object opening its doorway cell.",
         "Fort garrison and exterior props remain owned by the fort/world presentation systems; this definition is the keep interior only."
-      ]
+      ],
+      "exterior_entry": {
+        "door_id": "ridgehold_keep_door",
+        "exterior_hex": {
+          "q": 426,
+          "r": 46
+        },
+        "return_hex": {
+          "q": 426,
+          "r": 46
+        }
+      }
     },
     {
       "id": "silverhart_elven_embassy",
@@ -4887,7 +5041,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "silverhart_corvane_embassy_west_door",
+        "exterior_hex": {
+          "q": 12,
+          "r": -463
+        },
+        "return_hex": {
+          "q": 12,
+          "r": -463
+        }
+      }
     },
     {
       "id": "silverhart_ironbond_office",
@@ -5128,7 +5293,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "silverhart_commons_inn_south_door",
+        "exterior_hex": {
+          "q": 8,
+          "r": -525
+        },
+        "return_hex": {
+          "q": 8,
+          "r": -525
+        }
+      }
     },
     {
       "id": "silverhart_warrens_shack_west",
@@ -6351,7 +6527,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "silverhart_noble_neighbor_house_east_door",
+        "exterior_hex": {
+          "q": 49,
+          "r": -502
+        },
+        "return_hex": {
+          "q": 49,
+          "r": -502
+        }
+      }
     },
     {
       "id": "silverhart_outlying_house_east",
@@ -6393,7 +6580,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "silverhart_outlying_house_east_south_door",
+        "exterior_hex": {
+          "q": 63,
+          "r": -543
+        },
+        "return_hex": {
+          "q": 63,
+          "r": -543
+        }
+      }
     },
     {
       "id": "silverhart_outlying_house_far_east",
@@ -6435,7 +6633,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "silverhart_outlying_house_far_east_south_door",
+        "exterior_hex": {
+          "q": 88,
+          "r": -543
+        },
+        "return_hex": {
+          "q": 88,
+          "r": -543
+        }
+      }
     },
     {
       "id": "silverhart_outlying_house_west",
@@ -6477,7 +6686,18 @@
         }
       ],
       "transitions": [],
-      "quest_gates": []
+      "quest_gates": [],
+      "exterior_entry": {
+        "door_id": "silverhart_outlying_house_west_east_door",
+        "exterior_hex": {
+          "q": 23,
+          "r": -476
+        },
+        "return_hex": {
+          "q": 23,
+          "r": -476
+        }
+      }
     },
     {
       "id": "silverhart_builder_house",
@@ -6848,7 +7068,18 @@
       ],
       "transitions": [],
       "quest_gates": [],
-      "source_notes": []
+      "source_notes": [],
+      "exterior_entry": {
+        "door_id": "silverhart_outlying_house_1_south_door",
+        "exterior_hex": {
+          "q": 23,
+          "r": -543
+        },
+        "return_hex": {
+          "q": 23,
+          "r": -543
+        }
+      }
     },
     {
       "id": "silverhart_outlying_house_2",
@@ -6892,7 +7123,18 @@
       ],
       "transitions": [],
       "quest_gates": [],
-      "source_notes": []
+      "source_notes": [],
+      "exterior_entry": {
+        "door_id": "silverhart_outlying_house_2_south_door",
+        "exterior_hex": {
+          "q": 48,
+          "r": -543
+        },
+        "return_hex": {
+          "q": 48,
+          "r": -543
+        }
+      }
     },
     {
       "id": "silverhart_outlying_house_3",
@@ -6936,7 +7178,18 @@
       ],
       "transitions": [],
       "quest_gates": [],
-      "source_notes": []
+      "source_notes": [],
+      "exterior_entry": {
+        "door_id": "silverhart_outlying_house_3_east_door",
+        "exterior_hex": {
+          "q": -29,
+          "r": -476
+        },
+        "return_hex": {
+          "q": -29,
+          "r": -476
+        }
+      }
     }
   ]
 }
