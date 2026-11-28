@@ -51,6 +51,26 @@ func _run() -> void:
 	_check(presentation.global_position.is_equal_approx(Vector3(3.0, 0.0, 0.0)),
 		"Latest movement target wins after an interrupted transition")
 
+	# A vertical floor change uses the same locomotion path, with a longer
+	# duration so the actor visibly walks the authored staircase.
+	var stair_start := Vector3(5.625, 0.12, 3.2476)
+	var stair_end := Vector3(5.625, 3.5, 1.0825)
+	presentation.global_position = stair_start
+	presentation.present_move_to(stair_end, NAN, 1.2)
+	await create_timer(0.30).timeout
+	var stair_midpoint := presentation.global_position
+	_check(stair_midpoint.y > stair_start.y and stair_midpoint.y < stair_end.y,
+		"Stair traversal moves continuously through intermediate elevations")
+	_check(stair_midpoint.z < stair_start.z and stair_midpoint.z > stair_end.z,
+		"Stair traversal follows the authored ascending direction instead of snapping floors")
+	await create_timer(1.0).timeout
+	_check(presentation.global_position.is_equal_approx(stair_end),
+		"Actor reaches the upper landing after the stair traversal duration")
+	_check(presentation.movement_duration == 0.36,
+		"An authored stair duration override does not alter ordinary movement speed")
+	_check(animation_player.current_animation == "Idle",
+		"Character returns to idle after the stair traversal completes")
+
 	presentation.queue_free()
 	if failures > 0:
 		push_error("%d character presentation assertion(s) failed." % failures)
