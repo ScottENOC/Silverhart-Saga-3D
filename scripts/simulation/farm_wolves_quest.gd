@@ -31,6 +31,98 @@ static func register_definition(journal: CampaignJournal) -> Dictionary:
 	return journal.register_quest_definition(definition())
 
 
+
+## Returns -1 when the pack has not been registered, otherwise the number
+## of living wolves. The scene adapter does not inspect combatant state itself.
+static func remaining_wolves(simulation: WorldSimulation, wolves_spawned: bool) -> int:
+	if not wolves_spawned or simulation == null:
+		return -1
+	var remaining := 0
+	for wolf_id in WOLF_IDS:
+		var wolf := simulation.get_character(wolf_id)
+		if wolf != null and wolf.can_act():
+			remaining += 1
+	return remaining
+
+
+## Owns the quest-state and proximity decision; authored den coordinates are
+## supplied by the location data, not duplicated here.
+static func evaluate_approach(
+	simulation: WorldSimulation,
+	den_hex: Vector2i,
+	wolves_spawned: bool,
+	retry_armed: bool,
+	approach_radius: int = 8
+) -> Dictionary:
+	if simulation == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	if simulation.is_in_combat:
+		return {"ok": true, "should_spawn": false, "retry_armed": retry_armed}
+	var journal := simulation.campaign_journal
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	var quest := journal.quest_state(QUEST_ID)
+	if String(quest.get("status", "")) != "active":
+		return {"ok": true, "should_spawn": false, "retry_armed": retry_armed}
+	var player := simulation.get_character("player")
+	if player == null:
+		return {"ok": false, "reason": "missing_player"}
+	if not simulation.is_hex_within_range(player.axial, den_hex, approach_radius):
+		return {
+			"ok": true,
+			"should_spawn": false,
+			"retry_armed": retry_armed or wolves_spawned,
+			"remaining": remaining_wolves(simulation, wolves_spawned)
+		}
+	var remaining := remaining_wolves(simulation, wolves_spawned)
+	var should_spawn := not wolves_spawned or (retry_armed and remaining > 0)
+	return {
+		"ok": true,
+		"should_spawn": should_spawn,
+		"retry_armed": retry_armed,
+		"remaining": remaining
+	}
+
+
+## Creates the quest's authoritative combatants. The caller supplies valid
+## cells selected using the authored settlement placement and world walkability.
+static func ensure_wolves(simulation: WorldSimulation, spawn_hexes: Array[Vector2i]) -> Dictionary:
+	if simulation == null:
+		return {"ok": false, "reason": "missing_simulation"}
+	if spawn_hexes.size() != WOLF_IDS.size():
+		return {"ok": false, "reason": "invalid_spawn_count"}
+	var unique_hexes: Array[Vector2i] = []
+	for hex in spawn_hexes:
+		if unique_hexes.has(hex):
+			return {"ok": false, "reason": "duplicate_spawn_hex"}
+		unique_hexes.append(hex)
+	var created_ids: Array[String] = []
+	for index in range(WOLF_IDS.size()):
+		var wolf_id := WOLF_IDS[index]
+		if simulation.get_character(wolf_id) != null:
+			continue
+		var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hexes[index])
+		wolf.side = "enemy"
+		wolf.combat_dormant = true
+		wolf.max_health = 75
+		wolf.health = 75
+		wolf.base_damage = 4
+		wolf.to_hit_melee = 4.0
+		wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
+		wolf.tags.append("animal")
+		wolf.tags.append("farm_quest_wolf")
+		wolf.time_points = wolf.max_time_points
+		simulation.register_character(wolf)
+		if simulation.get_character(wolf_id) == null:
+			return {"ok": false, "reason": "wolf_registration_failed", "character_id": wolf_id}
+		created_ids.append(wolf_id)
+	return {
+		"ok": true,
+		"enemy_ids": WOLF_IDS.duplicate(),
+		"created_ids": created_ids
+	}
+
+
 static func greeting(journal: CampaignJournal, wolves_remaining: int) -> Dictionary:
 	var state := journal.quest_state(QUEST_ID)
 	var status := String(state.get("status", ""))
