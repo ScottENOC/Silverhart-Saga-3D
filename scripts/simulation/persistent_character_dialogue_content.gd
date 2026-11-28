@@ -259,6 +259,45 @@ func seraphine_chancellor_tunnel_response() -> Dictionary:
 
 
 
+## Resolve a Queen's choice using authoritative campaign state. Inventory,
+## faction, quest and world-flag facts are gathered here rather than by the
+## location scene adapter.
+func resolve_seraphine_campaign_choice_from_state(
+	simulation: WorldSimulation,
+	choice_id: String,
+	relationships: PersistentCharacterRelationshipState,
+	active_character_id: String
+) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"handled":false,"ok":false,"reason":"missing_campaign"}
+	var journal := simulation.campaign_journal
+	var wizard_quest := journal.quest_state("wizard_vendetta")
+	var player := simulation.get_character(simulation.player_character_id)
+	var context := {
+		"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+		"goblin_standing": journal.faction_standing("goblin_tribe"),
+		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+		"necromancer_standing": journal.faction_standing("necromancer_cult"),
+		"phylactery_returned": bool(simulation.get_meta("phylactery_returned", false)),
+		"manor_granted": simulation.campaign_dwellings != null and bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
+		"has_phylactery_shard": _character_has_item(player, "phylactery_shard"),
+		"wizard_vendetta_active": String(wizard_quest.get("status", "")) == "active",
+		"has_wizard_corruption_evidence": _character_has_item(player, "wizard_corruption_evidence"),
+		"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
+		"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
+	}
+	return resolve_seraphine_campaign_choice(simulation, choice_id, context, relationships, active_character_id)
+
+
+static func _character_has_item(character: CharacterState, item_id: String) -> bool:
+	if character == null:
+		return false
+	for item in character.inventory:
+		if String(item.get("id", "")) == item_id:
+			return true
+	return false
+
+
 ## Resolve the Queen's campaign choices at the simulation boundary. The caller
 ## supplies inventory facts that belong to the active world/character adapter;
 ## all authored outcomes and persistent campaign consequences stay here.

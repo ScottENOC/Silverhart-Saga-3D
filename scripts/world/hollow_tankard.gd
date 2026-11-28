@@ -1596,25 +1596,10 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 	var choice_id := String(choice.get("id", ""))
 	if not choice_id.begins_with("seraphine_"):
 		return false
-	var journal := simulation.campaign_journal
-	var context := {
-		"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
-		"goblin_standing": journal.faction_standing("goblin_tribe"),
-		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
-		"necromancer_standing": journal.faction_standing("necromancer_cult"),
-		"phylactery_returned": bool(simulation.get_meta("phylactery_returned", false)),
-		"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
-		"has_phylactery_shard": _player_has_item("phylactery_shard"),
-		"wizard_vendetta_active": String(journal.quest_state("wizard_vendetta").get("status", "")) == "active",
-		"has_wizard_corruption_evidence": _player_has_item("wizard_corruption_evidence"),
-		"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
-		"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
-	}
 	var content := PERSISTENT_DIALOGUE_CONTENT.new()
-	var result: Dictionary = content.resolve_seraphine_campaign_choice(
+	var result: Dictionary = content.resolve_seraphine_campaign_choice_from_state(
 		simulation,
 		choice_id,
-		context,
 		PERSISTENT_RELATIONSHIP_STORE.state_for(simulation),
 		active_character_id
 	)
