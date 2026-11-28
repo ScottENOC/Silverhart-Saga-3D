@@ -15,7 +15,10 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from cloth.xpbd_solver import (Particle, DistanceConstraint, Contact, solve_frame,\n                               contact_from_garment_outward_direction)
+from cloth.xpbd_solver import (
+    Particle, DistanceConstraint, Contact, solve_frame,
+    contact_from_garment_outward_direction,
+)
 
 
 def args():
