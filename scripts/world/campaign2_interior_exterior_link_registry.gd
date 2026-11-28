@@ -66,7 +66,11 @@ func configure(manifest: Dictionary) -> Dictionary:
 			building_ids = []
 		if status == "linked" and building_ids.is_empty():
 			validation_errors.append("%s: linked status requires at least one exterior building ID." % location_id)
-		if status == "review_required" and (not building_ids.is_empty() or record.get("candidate_building_ids", []).is_empty()):
+		var candidate_ids: Variant = record.get("candidate_building_ids", [])
+		if not candidate_ids is Array:
+			validation_errors.append("%s: candidate_building_ids must be an array." % location_id)
+			candidate_ids = []
+		if status == "review_required" and (not building_ids.is_empty() or candidate_ids.is_empty()):
 			validation_errors.append("%s: review_required must expose candidates without binding them." % location_id)
 		if status == "exterior_missing" and not building_ids.is_empty():
 			validation_errors.append("%s: exterior_missing cannot bind exterior building IDs." % location_id)
