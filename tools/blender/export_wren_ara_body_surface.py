@@ -157,6 +157,7 @@ def main():
     skin_regions = list(regions)
 
     piercing_names = []
+    piercing_face_indices = []
     nipple_left_points = []
     nipple_right_points = []
     for obj in piercing_objects:
@@ -164,8 +165,10 @@ def main():
         is_nipple = "nipple" in name
         forced = REGION["torso"] if is_nipple else None
         start = len(coords) // 3
+        first_face = len(face_sizes)
         add_mesh(obj, coords, normals, regions, face_sizes, face_verts,
                  forced_region=forced, nearest_tree=tree, nearest_regions=skin_regions)
+        piercing_face_indices.extend(range(first_face, len(face_sizes)))
         piercing_names.append(obj.name)
         if is_nipple and ("_l_" in name or "left" in name):
             if "bar" in name:
@@ -230,6 +233,7 @@ def main():
         "jointPositions": joints,
         "skinObjects": skin_names,
         "piercingObjects": piercing_names,
+        "piercingFaceIndices": piercing_face_indices,
         "piercingLandmarks": {"leftNipple": left_nipple, "rightNipple": right_nipple},
         "skinVertexCount": skin_count,
         "totalSurfaceVertexCount": len(coords) // 3,
