@@ -53,12 +53,12 @@ jobs:
           params["jacket"] = "none"
           params["underwear"] = False
           Path("build/wren-native/ara-body-only-profile.json").parent.mkdir(parents=True, exist_ok=True)
-          Path("build/wren-native/ara-body-only-profile.json").write_text(json.dumps(profile, indent=2) + "\\n")
+          Path("build/wren-native/ara-body-only-profile.json").write_text(json.dumps(profile, indent=2) + "\n")
           PY
           mkdir -p build/wren-native/ara-body-export
-          npx --yes ara3d@latest export \\
-            --params build/wren-native/ara-body-only-profile.json \\
-            --detail high --no-animations --formats glb \\
+          npx --yes ara3d@latest export \
+            --params build/wren-native/ara-body-only-profile.json \
+            --detail high --no-animations --formats glb \
             --out build/wren-native/ara-body-export
           body_glb="$(find build/wren-native/ara-body-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$body_glb"
@@ -69,10 +69,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m py_compile tools/blender/generate_ara_method_bikini_bottom.py
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/generate_ara_method_bikini_bottom.py -- \\
-            --input build/wren-native/Ara_Body_Only_Reference.glb \\
-            --output-glb build/wren-native/Ara_Method_Bikini_Bottom.glb \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/generate_ara_method_bikini_bottom.py -- \
+            --input build/wren-native/Ara_Body_Only_Reference.glb \
+            --output-glb build/wren-native/Ara_Method_Bikini_Bottom.glb \
             --report build/wren-native/ara-method-bikini-report.json
           test -s build/wren-native/Ara_Method_Bikini_Bottom.glb
           python - <<'PY'
