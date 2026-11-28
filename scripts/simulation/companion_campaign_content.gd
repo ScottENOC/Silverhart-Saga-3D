@@ -223,3 +223,47 @@ static func consume_item(inventory: Array[Dictionary], item_id: String, amount: 
         if remaining <= 0:
             break
     return true
+
+
+## Apply campaign-owned recruitment requirements before handing the party
+## membership change to WorldSimulation. Presentation/actor updates stay with
+## the location adapter.
+static func recruit_staged_companion(simulation: WorldSimulation, character_id: String) -> Dictionary:
+    if simulation == null:
+        return {"ok": false, "reason": "missing_simulation"}
+    var state := simulation.get_character(character_id)
+    if state == null:
+        return {"ok": false, "reason": "unknown_character"}
+    if simulation.is_party_member(character_id):
+        return {"ok": false, "reason": "already_in_party", "character": state}
+    var player := simulation.get_character(simulation.player_character_id)
+    if player == null:
+        return {"ok": false, "reason": "missing_player"}
+    var canonical_id := String(CANONICAL_IDS.get(character_id, character_id))
+    var is_fenn := canonical_id == "fenn_oakheart"
+    if is_fenn:
+        var quest_state := simulation.campaign_journal.quest_state("fenn_herb_gathering")
+        if String(quest_state.get("status", "")) != "active":
+            return {"ok": false, "reason": "fenn_quest_not_active", "character": state}
+        if count_item(player.inventory, "herbs") < 3:
+            return {"ok": false, "reason": "insufficient_herbs", "character": state}
+    var recruited := simulation.recruit_companion(character_id)
+    if not bool(recruited.get("ok", false)):
+        return {"ok": false, "reason": String(recruited.get("reason", "recruitment_failed")), "character": state}
+    if is_fenn:
+        if not consume_item(player.inventory, "herbs", 3):
+            return {"ok": false, "reason": "herb_delivery_failed", "character": state}
+        var completion := complete_objective(
+            simulation.campaign_journal,
+            "fenn_herb_gathering",
+            "herbs_delivered"
+        )
+        if not bool(completion.get("ok", false)):
+            return {"ok": false, "reason": String(completion.get("reason", "quest_completion_failed")), "character": state}
+    return {
+        "ok": true,
+        "character": state,
+        "character_id": character_id,
+        "name": state.display_name,
+        "special_delivery": is_fenn
+    }
