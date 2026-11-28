@@ -2458,32 +2458,24 @@ func _begin_abandoned_house_encounter() -> void:
 
 
 func _farm_wolves_remaining() -> int:
-	if not farm_wolves_spawned:
-		return -1
-	var remaining := 0
-	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
-		var wolf := simulation.get_character(wolf_id)
-		if wolf != null and wolf.can_act():
-			remaining += 1
-	return remaining
+	return FARM_WOLVES_QUEST_SCRIPT.remaining_wolves(simulation, farm_wolves_spawned)
 
 
 func _check_farm_wolf_proximity() -> void:
 	if simulation == null or encounter_active:
 		return
-	var quest := campaign_quest_service.state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
-	if String(quest.get("status", "")) != "active":
+	# The quest module owns activation/range/retry rules; the den location
+	# remains authored in Hollowmere placement data.
+	var decision := FARM_WOLVES_QUEST_SCRIPT.evaluate_approach(
+		simulation,
+		HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX,
+		farm_wolves_spawned,
+		farm_wolves_retry_armed
+	)
+	if not bool(decision.get("ok", false)):
 		return
-	var player := simulation.get_character("player")
-	if player == null:
-		return
-	# The den is deliberately well beyond the farm and the village sightline.
-	var distance_to_den := simulation.hex_distance(player.axial, HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX)
-	if distance_to_den > 8:
-		if farm_wolves_spawned:
-			farm_wolves_retry_armed = true
-		return
-	if not farm_wolves_spawned or farm_wolves_retry_armed and _farm_wolves_remaining() > 0:
+	farm_wolves_retry_armed = bool(decision.get("retry_armed", farm_wolves_retry_armed))
+	if bool(decision.get("should_spawn", false)):
 		_start_farm_wolf_encounter()
 
 
@@ -2491,31 +2483,30 @@ func _start_farm_wolf_encounter() -> void:
 	if simulation.is_in_combat or farm_wolves_spawned and _farm_wolves_remaining() == 0:
 		return
 	if not farm_wolves_spawned:
-		farm_wolves_spawned = true
+		var spawn_hexes: Array[Vector2i] = []
 		for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
-			var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
 			var preferred: Vector2i = HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX + HOLLOWMERE_PLACEMENTS.FARM_WOLF_SPAWN_OFFSETS[index]
-			var spawn_hex := _find_valid_spawn_hex(preferred)
-			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
-			wolf.side = "enemy"
-			wolf.combat_dormant = true
-			wolf.max_health = 75
-			wolf.health = 75
-			wolf.base_damage = 4
-			wolf.to_hit_melee = 4.0
-			wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
-			wolf.tags.append("animal")
-			wolf.tags.append("farm_quest_wolf")
-			wolf.time_points = wolf.max_time_points
-			simulation.register_character(wolf)
-
+			spawn_hexes.append(_find_valid_spawn_hex(preferred))
+		var ensured: Dictionary = FARM_WOLVES_QUEST_SCRIPT.ensure_wolves(simulation, spawn_hexes)
+		if not bool(ensured.get("ok", false)):
+			push_error("Could not prepare farm wolf combatants: %s" % ensured)
+			farm_wolves_retry_armed = true
+			return
+		farm_wolves_spawned = true
+		for wolf_id_value in ensured.get("enemy_ids", []):
+			var wolf_id := String(wolf_id_value)
+			if actor_by_id.has(wolf_id):
+				continue
+			var wolf := simulation.get_character(wolf_id)
+			if wolf == null or not wolf.can_act():
+				continue
 			var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
 			actor.name = wolf_id
 			actor.creature_kind = "wolf"
 			actor.behaviour = "predator"
 			actor.model_scale = 0.76
 			actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
-			actor.position = _hex_world_position(spawn_hex)
+			actor.position = _hex_world_position(wolf.axial)
 			add_child(actor)
 			actor_by_id[wolf_id] = actor
 	farm_wolves_retry_armed = false
