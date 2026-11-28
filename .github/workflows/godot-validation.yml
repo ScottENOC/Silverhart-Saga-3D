@@ -259,6 +259,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
+      - name: Run wilderness creature spawn service tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_wilderness_creature_spawn_service.gd
       - name: Run farm wolf quest and creature asset tests
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run farm wolf quest lifecycle tests
