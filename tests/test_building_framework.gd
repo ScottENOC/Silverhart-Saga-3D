@@ -185,5 +185,11 @@ func _test_door_aware_pathfinding_and_movement() -> void:
     locked_simulation.register_character(npc)
     assert(locked_simulation.find_path("villager", Vector2i(2, 0)).is_empty(), "Pathfinding must not route through a locked door.")
     assert(not locked_simulation.try_move_character_step("villager", Vector2i(1, 0)), "Movement must not open a locked door.")
+    assert(locked_simulation.building_registry.unlock_door("locked_house_front"))
+    npc.time_points = 30.0
+    var npc_route: Array[Vector2i] = locked_simulation.find_path("villager", Vector2i(2, 0))
+    assert(npc_route.size() == 3, "Humanoid NPCs should use the same door-aware route finder as the player.")
+    assert(locked_simulation.try_move_character_step("villager", Vector2i(1, 0)), "Humanoid NPC movement should open unlocked doors as part of its route.")
+    assert(locked_simulation.building_registry.get_door("locked_house_front").is_passable(), "NPC movement should update the shared authoritative door state.")
     locked_simulation.free()
     simulation.free()
