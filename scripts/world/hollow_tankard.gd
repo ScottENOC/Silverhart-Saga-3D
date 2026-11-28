@@ -3089,8 +3089,8 @@ func register_multistory_location_runtime(runtime: Campaign2MultiStoryLocationRu
 	if actor != null:
 		runtime.register_character_actor(active_character_id, actor)
 
-## Load or reactivate an authored multi-story location in this campaign.
-## Location doors can call this when their normal entry interaction is completed.
+## Load or reactivate an authored multi-story location for a special tunnel-network destination.
+## Ordinary building doors must never call this or transfer the player between locations.
 func enter_multistory_location(location_id: String) -> Dictionary:
 	if simulation == null or location_id.strip_edges().is_empty():
 		return {"ok": false, "reason": "runtime_not_ready"}
