@@ -1117,7 +1117,7 @@
     {
       "location_id": "silverhart_outlying_house_east",
       "integration_kind": "building",
-      "status": "exterior_missing",
+      "status": "linked",
       "building_ids": [
         "silverhart_outlying_house_1"
       ],
@@ -1131,14 +1131,12 @@
         }
       ],
       "transition_policy": "physical_continuous_world",
-      "notes": [
-        "This numbered outlying residence has no matching exterior building centre/ID in the canonical Silverhart catalogue; do not alias it to a differently named house by proximity."
-      ]
+      "notes": []
     },
     {
       "location_id": "silverhart_outlying_house_far_east",
       "integration_kind": "building",
-      "status": "exterior_missing",
+      "status": "linked",
       "building_ids": [
         "silverhart_outlying_house_2"
       ],
@@ -1152,14 +1150,12 @@
         }
       ],
       "transition_policy": "physical_continuous_world",
-      "notes": [
-        "This numbered outlying residence has no matching exterior building centre/ID in the canonical Silverhart catalogue; do not alias it to a differently named house by proximity."
-      ]
+      "notes": []
     },
     {
       "location_id": "silverhart_outlying_house_west",
       "integration_kind": "building",
-      "status": "exterior_missing",
+      "status": "linked",
       "building_ids": [
         "silverhart_outlying_house_3"
       ],
@@ -1173,9 +1169,7 @@
         }
       ],
       "transition_policy": "physical_continuous_world",
-      "notes": [
-        "This numbered outlying residence has no matching exterior building centre/ID in the canonical Silverhart catalogue; do not alias it to a differently named house by proximity."
-      ]
+      "notes": []
     },
     {
       "location_id": "silverhart_builder_house",
