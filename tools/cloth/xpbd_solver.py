@@ -104,6 +104,23 @@ def solve_contact(particles: list[Particle], contact: Contact) -> None:
     particle.position = add(particle.position, mul(normalise(contact.normal), penetration))
 
 
+
+def contact_from_garment_outward_direction(point: Vec3, surface_point: Vec3,
+                                             garment_outward: Vec3,
+                                             particle_index: int,
+                                             target_distance: float) -> Contact:
+    """Build contact using the garment's outward direction, never body normals.
+
+    The signed clearance is the projection from the nearest collider point onto
+    the garment's own outward direction. This permits local expansion and
+    tangential redistribution around concavities without inheriting a possibly
+    inward-facing or discontinuous body normal.
+    """
+    direction = normalise(garment_outward)
+    signed_clearance = dot(sub(point, surface_point), direction)
+    return Contact(particle_index, signed_clearance, direction, target_distance)
+
+
 def solve_coupled_contact(cloth: Particle, body: Particle, normal: Vec3,
                           penetration: float) -> None:
     """Separate both surfaces in proportion to their inverse masses."""
