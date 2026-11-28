@@ -56,7 +56,7 @@ func _run() -> void:
 	var stair_start := Vector3(5.625, 0.12, 3.2476)
 	var stair_end := Vector3(5.625, 3.5, 1.0825)
 	presentation.global_position = stair_start
-	presentation.present_move_to(stair_end, NAN, 1.2)
+	presentation.present_move_to(stair_end, 0.0, 1.2)
 	await create_timer(0.30).timeout
 	var stair_midpoint := presentation.global_position
 	_check(stair_midpoint.y > stair_start.y and stair_midpoint.y < stair_end.y,
@@ -66,6 +66,8 @@ func _run() -> void:
 	await create_timer(1.0).timeout
 	_check(presentation.global_position.is_equal_approx(stair_end),
 		"Actor reaches the upper landing after the stair traversal duration")
+	_check(absf(wrapf(presentation.global_rotation.y, -PI, PI)) < 0.02,
+		"Actor faces up the physical staircase while traversing")
 	_check(presentation.movement_duration == 0.36,
 		"An authored stair duration override does not alter ordinary movement speed")
 	_check(animation_player.current_animation == "Idle",
