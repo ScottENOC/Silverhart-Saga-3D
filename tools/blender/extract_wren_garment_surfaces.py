@@ -55,11 +55,19 @@ def main():
     args = arguments()
     bpy.ops.wm.open_mainfile(filepath=os.path.abspath(args.input_blend))
 
+    # The collider duplicates the accepted skin mesh and deliberately
+    # retains its source material assignments, including bikini materials.
+    # Exclude physics-only objects before selecting the renderable skinned mesh.
     candidates = [
         obj for obj in bpy.context.scene.objects
         if obj.type == "MESH"
+        and obj.get("cloth_collision_role") is None
         and any(name.lower().startswith("skin") for name in used_material_names(obj))
         and any(GARMENT_RE.search(name) for name in used_material_names(obj))
+        and any(
+            modifier.type == "ARMATURE" and modifier.object is not None
+            for modifier in obj.modifiers
+        )
     ]
     if len(candidates) != 1:
         raise RuntimeError(
@@ -88,7 +96,10 @@ def main():
     bpy.ops.object.mode_set(mode="OBJECT")
 
     garment_objects = []
-    for obj in [item for item in bpy.context.scene.objects if item.type == "MESH"]:
+    for obj in [
+        item for item in bpy.context.scene.objects
+        if item.type == "MESH" and item.get("cloth_collision_role") is None
+    ]:
         names = used_material_names(obj)
         selected = [name for name in names if GARMENT_RE.search(name)]
         if not selected:
