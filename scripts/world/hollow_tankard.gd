@@ -604,19 +604,6 @@ func _spawn_farmstead_dire_wolf() -> void:
 	actor_by_id[FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID] = actor
 
 
-func _reyna_objective_done(objective_id: String) -> bool:
-	var quest := campaign_quest_service.state("reyna_dire_wolf_hunt")
-	var objectives: Dictionary = quest.get("objectives", {})
-	if not objectives.has(objective_id):
-		return false
-	var objective: Dictionary = objectives[objective_id]
-	return bool(objective.get("completed", false)) or float(objective.get("progress", 0.0)) >= float(objective.get("target", 1.0))
-
-
-func _set_reyna_objective(objective_id: String) -> void:
-	campaign_quest_service.set_objective_progress("reyna_dire_wolf_hunt", objective_id, 1.0)
-
-
 func _ensure_reyna_clue_visual() -> void:
 	if is_instance_valid(reyna_clue_visual):
 		return
@@ -668,22 +655,27 @@ func _spawn_missing_child() -> void:
 func _check_reyna_story_proximity() -> void:
 	if simulation == null or dialogue_open or encounter_active or simulation.is_in_combat:
 		return
-	var quest := campaign_quest_service.state("reyna_dire_wolf_hunt")
-	if String(quest.get("status", "")) != "active":
-		return
-	if not _reyna_objective_done("trail_found"):
-		_ensure_reyna_clue_visual()
-		var active_state := simulation.get_character(active_character_id)
-		if active_state != null and HexGrid.distance(active_state.axial, HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX) <= 2:
-			_set_reyna_objective("trail_found")
+	var active_state := simulation.get_character(active_character_id)
+	var near_clue := active_state != null and HexGrid.distance(active_state.axial, HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX) <= 2
+	var near_shelter := active_state != null and HexGrid.distance(active_state.axial, HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX) <= 2
+	var action := REYNA_RESCUE_SERVICE.proximity_action(
+		simulation,
+		near_clue,
+		near_shelter,
+		actor_by_id.has("missing_child_tessa")
+	)
+	match String(action.get("action", "")):
+		"show_trail_clue":
+			_ensure_reyna_clue_visual()
+		"record_trail_found":
+			var recorded := REYNA_RESCUE_SERVICE.record_trail_found(simulation)
+			if not bool(recorded.get("ok", false)):
+				return
 			if is_instance_valid(reyna_clue_visual):
 				reyna_clue_visual.queue_free()
 			reyna_clue_visual = null
 			_show_dialogue("Reyna Fletcher", "A strip of Tessa's blue cloak. And look here — small footprints in the mud, beside the drag marks. She was alive when she left the fence. The trail leads to the old shepherd's shelter. Come on!", [{"id":"continue","label":"Follow the tracks","text":""}])
-		return
-	if not _reyna_objective_done("child_rescued") and not actor_by_id.has("missing_child_tessa"):
-		var active_state_at_shelter := simulation.get_character(active_character_id)
-		if active_state_at_shelter != null and HexGrid.distance(active_state_at_shelter.axial, HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX) <= 2:
+		"spawn_missing_child":
 			_spawn_missing_child()
 			_show_speech_bubble("companion_reyna_fletcher", "Tessa? It's Reyna. Stay where you are — we're getting you out.")
 			_show_dialogue("Reyna Fletcher", "The shelter door is hanging open. There's a child inside. I can hear her. The dire wolf is circling outside, waiting. Get close and speak softly; don't frighten her.", [{"id":"continue","label":"I'll get her out","text":""}])
@@ -1730,13 +1722,13 @@ func _interact_with_character(character_id: String) -> void:
 		_begin_toll_taker_encounter()
 		return
 	if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
-		if not _reyna_objective_done("child_rescued"): 
+		if not REYNA_RESCUE_SERVICE.objective_complete(simulation, "child_rescued"): 
 			_show_dialogue("Dire wolf", "The dire wolf circles the shepherd's shelter. You cannot safely engage it while Tessa is still inside.", [{"id":"continue","label":"Understood","text":""}])
 			return
 		_begin_dire_wolf_hunt_combat()
 		return
 	if character_id == "missing_child_tessa":
-		if _reyna_objective_done("child_rescued"):
+		if REYNA_RESCUE_SERVICE.objective_complete(simulation, "child_rescued"):
 			_show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}], "smile")
 		else:
 			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}], "afraid")
