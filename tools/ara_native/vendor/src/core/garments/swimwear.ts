@@ -12,6 +12,13 @@ import { Caster, gridMesh, gridOutline, liftGrid, OUTWARD, RadialCaster } from '
 import { cord, ellipsoid, frameOf, hullRing, merge, v3 } from './ring';
 import { makePattern } from './textures';
 
+/** Starting vertex offset of a polygon in a flattened face-vertex array. */
+function faceStart(sizes: Uint8Array, face: number): number {
+  let offset = 0;
+  for (let i = 0; i < face; i++) offset += sizes[i];
+  return offset;
+}
+
 /** Shiny swim fabric (metallic for foil). */
 function swimMat(g: GCtx, name: string, st: GarmentStyle): Material {
   const tex = g.texture(`${st.pattern}_${st.color}_${st.color2}`, () => makePattern(st.pattern, st.color, st.color2));
@@ -149,8 +156,13 @@ function cups(b: Body): Cup[] {
  * base mesh's weight-based regions label parts of the upper chest as neck or upper arm).
  */
 const chestFaces = (g: GCtx) => (f: number) => {
-  const v = g.body.info[g.faceVerts[f * 4]];
-  return isTrunk(v) || v.region === REGION.neck || (v.region === REGION.upperarm && v.t < 0.12);
+  const b = g.body, start = faceStart(b.faceSizes, f), size = b.faceSizes[f];
+  let accepted = 0;
+  for (let k = 0; k < size; k++) {
+    const v = b.info[g.faceVerts[start + k]];
+    if (isTrunk(v) || v.region === REGION.neck || (v.region === REGION.upperarm && v.t < 0.12)) accepted++;
+  }
+  return accepted >= Math.ceil(size / 2);
 };
 
 /**
@@ -246,11 +258,11 @@ function cupGrid(cast: RadialCaster, c: Cup, centreZ: number, nipZ: number, unde
 
 /** Body faces whose four corners all pass `inside` (skin hidden only where the cloth surely covers it). */
 function fullyCovered(g: GCtx, inside: (v: VInfo, p: Vec3) => boolean): Uint8Array {
-  const b = g.body, fv = g.faceVerts, out = new Uint8Array(fv.length / 4);
-  for (let f = 0; f < out.length; f++) {
+  const b = g.body, fv = g.faceVerts, sizes = b.faceSizes, out = new Uint8Array(sizes.length);
+  for (let f = 0, c = 0; f < out.length; c += sizes[f++]) {
     let ok = true;
-    for (let k = 0; k < 4 && ok; k++) {
-      const v = fv[f * 4 + k];
+    for (let k = 0; k < sizes[f] && ok; k++) {
+      const v = fv[c + k];
       ok = b.regions[v] !== 255 && inside(b.info[v], b.p(v));
     }
     out[f] = ok ? 1 : 0;
@@ -262,11 +274,11 @@ function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {
   const b = g.body;
   const m = swimMat(g, 'Bikini top', st);
   const cs = cups(b);
-  const cast = new Caster(b, g.faceVerts, chestFaces(g), 'front');
+  const cast = new Caster(b, g.faceVerts, chestFaces(g), 'front', b.faceSizes);
   // Fit each cup to the breast under it: march out from the nipple to where the breast's side turns
   // away (the outer edge) and in to the cleavage, then size the triangle around those.
   for (const c of cs) fitCup(cast, c);
-  const radial = new RadialCaster(b, g.faceVerts, chestFaces(g));
+  const radial = new RadialCaster(b, g.faceVerts, chestFaces(g), b.faceSizes);
   const under = new Set<number>();
   const centreZ = b.L.torsoZ - cm(2);
   const nipZ = cs.map((c) => cast.hit(c.side * c.nipple[0], c.nipple[1])?.p[2]);
@@ -282,10 +294,11 @@ function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {
       const x = Math.abs(o[0] + (p[0] - o[0]) * t), y = o[1] + (p[1] - o[1]) * t;
       return inTriangle(c, x, y, cm(1.2));
     });
-  const hides = new Uint8Array(g.faceVerts.length / 4);
+  const hides = new Uint8Array(b.faceSizes.length);
   for (const f of under) {
+    const start = faceStart(b.faceSizes, f);
     let ok = true;
-    for (let k = 0; k < 4 && ok; k++) ok = insideCup(b.p(g.faceVerts[f * 4 + k]));
+    for (let k = 0; k < b.faceSizes[f] && ok; k++) ok = insideCup(b.p(g.faceVerts[start + k]));
     if (ok) hides[f] = 1;
   }
   const parts: GPart[] = [];
@@ -368,12 +381,17 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
   const hwBack = (v: number) => cm(2) + cm(11) * v ** 0.7;
   const topFront = (u: number) => yFront + cm(1.2) * u * u, topBack = (u: number) => yBack + cm(1.8) * u * u;
   const keep = (f: number) => {
-    const v = b.info[g.faceVerts[f * 4]];
-    return isTrunk(v) || (v.region === REGION.upperleg && v.t < 0.15);
+    const start = faceStart(b.faceSizes, f), size = b.faceSizes[f];
+    let accepted = 0;
+    for (let k = 0; k < size; k++) {
+      const v = b.info[g.faceVerts[start + k]];
+      if (isTrunk(v) || (v.region === REGION.upperleg && v.t < 0.15)) accepted++;
+    }
+    return accepted >= Math.ceil(size / 2);
   };
   const ROWS = 16, COLS = 15;
   const panelGrid = (dir: 'front' | 'back'): Vec3[][] | null => {
-    const cast = new Caster(b, g.faceVerts, keep, dir);
+    const cast = new Caster(b, g.faceVerts, keep, dir, b.faceSizes);
     const grid: Vec3[][] = [];
     for (let i = 0; i < ROWS; i++) {
       const v = i / (ROWS - 1);
@@ -394,7 +412,7 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
   const parts: GPart[] = [];
   if (front && back) {
     // Gusset: from the front panel's bottom row under to the back's, laid on from below.
-    const under = new Caster(b, g.faceVerts, keep, 'below');
+    const under = new Caster(b, g.faceVerts, keep, 'below', b.faceSizes);
     const K = 8;
     const gusset: Vec3[][] = [];
     for (let k = 0; k <= K; k++) {
