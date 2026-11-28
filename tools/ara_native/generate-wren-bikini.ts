@@ -1,20 +1,14 @@
 #!/usr/bin/env node
 /**
- * Run Ara's original bikini top + bottom source locally against Wren's exact
- * Ara morph profile. Input data is built by build-fitting-data.ts from CC0
- * MakeHuman source data. No Ara CLI, API, or hosted generator is called.
- *
- * Output is an OBJ + MTL + generated PNG textures in a standalone folder.
- * Ara coordinates are decimetres; OBJ coordinates are converted to metres.
- * Body skin is never hidden: the downstream Blender attachment must ignore
- * Ara's optional hides masks and retain the accepted Wren skin and rig.
+ * Run Ara's original bikini builders directly against the accepted Wren GLB
+ * surface exported by export_wren_ara_body_surface.py. No morph-only proxy
+ * body is constructed: Wren's accepted skin and body-piercing triangles are
+ * the actual surfaces used by Ara's ray casters.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { AssetLibrary } from "./vendor/src/core/assets.ts";
-import { applyTargets, targetWeights } from "./vendor/src/core/morph.ts";
-import { vertexNormals } from "./vendor/src/core/geometry.ts";
 import { makeBody } from "./vendor/src/core/garments/body.ts";
 import { SWIMWEAR } from "./vendor/src/core/garments/swimwear.ts";
 import type { GCtx, GarmentStyle, GPart } from "./vendor/src/core/garments/kit.ts";
@@ -27,44 +21,30 @@ function arg(name: string, fallback?: string): string {
   return args[i + 1];
 }
 const profilePath = resolve(arg("--profile", join(root, "../../character-preview/wren-ara.json")));
-const dataDir = resolve(arg("--data", join(root, "build/fitting-data")));
+const surfacePath = resolve(arg("--body-surface"));
 const outDir = resolve(arg("--out", join(root, "build/wren-garments")));
 mkdirSync(outDir, { recursive: true });
 const profile = JSON.parse(readFileSync(profilePath, "utf8"));
 if (profile.kind !== "ara-character" || profile.params?.name !== "Wren") throw new Error("Expected Wren Ara profile");
-const sourceCommit = "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395";
+const surface = JSON.parse(gunzipSync(readFileSync(surfacePath)).toString("utf8"));
+if (surface.schema !== 1 || surface.coordinate_system !== "Ara XYZ, decimetres") throw new Error("Unsupported Wren Ara body surface schema");
+if (!surface.piercingObjects?.length || !surface.piercingLandmarks?.leftNipple || !surface.piercingLandmarks?.rightNipple)
+  throw new Error("Accepted Wren body surface is missing piercing geometry or nipple landmarks");
 
-const source = {
-  async read(path: string) { return new Uint8Array(readFileSync(join(dataDir, path))); },
-};
-const lib = await new AssetLibrary(source).init();
-const yearsToAge = (y: number) => y < 11 ? ((y - 1) / 10) * 0.1875 : y < 25 ? 0.1875 + ((y - 11) / 14) * 0.3125 : 0.5 + ((y - 25) / 65) * 0.5;
-const sourceParams = profile.params;
-const params = {
-  gender: Number(sourceParams.gender ?? 0),
-  age: yearsToAge(Number(sourceParams.ageYears ?? 25)),
-  muscle: Number(sourceParams.muscle ?? 0.6),
-  weight: Number(sourceParams.weight ?? 0.5),
-  height: Number(sourceParams.height ?? 0.5),
-  proportions: Number(sourceParams.proportions ?? 0.7),
-  african: Number(sourceParams.african ?? 0),
-  asian: Number(sourceParams.asian ?? 0),
-  caucasian: Number(sourceParams.caucasian ?? 1),
-  breastSize: Number(sourceParams.breastSize ?? 0.5),
-  breastFirmness: Number(sourceParams.breastFirmness ?? 0.5),
-  modifiers: sourceParams.modifiers ?? {},
-};
-const sliders = new Map(lib.catalog.sliders.flatMap((g: any) => g.sliders.map((s: any) => [s.id, s] as const)));
-const weights = targetWeights(params, sliders);
-const coords = applyTargets(lib, weights);
-const faceVerts = lib.base.arrays.faceVerts as Uint32Array;
-const faceSizes = new Uint8Array(faceVerts.length / 4).fill(4);
-const normals = vertexNormals({ positions: coords, faceSizes, faceVerts, faceUVs: lib.base.arrays.faceUVs as Uint32Array, uvs: lib.base.arrays.uvs as Float32Array });
-const regions = lib.base.arrays.regions as Uint8Array;
-const body = makeBody(coords, normals, regions, lib.base.meta.joints, faceSizes, faceVerts);
+const coords = Float32Array.from(surface.coords);
+const normals = Float32Array.from(surface.normals);
+const regions = Uint8Array.from(surface.regions);
+const faceSizes = Uint8Array.from(surface.faceSizes);
+const faceVerts = Uint32Array.from(surface.faceVerts);
+if (coords.length / 3 !== regions.length || coords.length !== normals.length)
+  throw new Error("Wren body surface vertex arrays have inconsistent lengths");
+if (faceSizes.length !== surface.faceCount || faceVerts.length !== faceSizes.reduce((a: number, b: number) => a + b, 0))
+  throw new Error("Wren body surface polygon topology is inconsistent");
+const body = makeBody(coords, normals, regions, {}, faceSizes, faceVerts, surface.jointPositions);
+
 const generatedTextures = new Map<string, Uint8Array>();
 const g: GCtx = {
-  body, faceVerts, layered: { top: false, bottom: false }, underwear: false, outfits: {},
+  body, faceVerts: body.faceVerts, layered: { top: false, bottom: false }, underwear: false, outfits: {},
   texture(key, make) {
     const existing = generatedTextures.get(key);
     if (existing) return { map: key + ".png", alpha: false };
@@ -86,9 +66,10 @@ const parts = [
 ];
 if (parts.length < 3) throw new Error("Ara returned too few garment parts; expected top, panels, gusset and strings");
 const materials = new Map<string, any>();
-const obj: string[] = ["# Ara 3D Gen bikini source port", "mtllib Wren_Ara_Bikini.mtl"];
+const obj: string[] = ["# Ara 3D Gen bikini source port fitted to accepted Wren surface", "mtllib Wren_Ara_Bikini.mtl"];
 const mtl: string[] = [];
-const minY = Math.min(...Array.from({ length: coords.length / 3 }, (_, i) => coords[i * 3 + 1]));
+let minY = Infinity;
+for (let i = 1; i < coords.length; i += 3) minY = Math.min(minY, coords[i]);
 let vertexOffset = 0, uvOffset = 0;
 const partReport: any[] = [];
 for (let pi = 0; pi < parts.length; pi++) {
@@ -125,13 +106,23 @@ for (let pi = 0; pi < parts.length; pi++) {
 writeFileSync(join(outDir, "Wren_Ara_Bikini.obj"), obj.join("\n") + "\n");
 writeFileSync(join(outDir, "Wren_Ara_Bikini.mtl"), mtl.join("\n") + "\n");
 const report = {
-  schema: 1, generator: "Ara 3D Gen native swimwear source", sourceCommit,
-  profile: profilePath, ageYears: profile.params.ageYears,
-  morphTargetCount: weights.size, bodyVertexCount: coords.length / 3,
-  bodyFaceCount: faceSizes.length, semanticRegionVertexCount: regions.length,
-  garmentPartCount: parts.length, garments: partReport,
+  schema: 2,
+  generator: "Ara 3D Gen native swimwear source",
+  sourceCommit: "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
+  bodySource: "accepted Wren GLB geometry",
+  bodySurfaceSha256: surface.source_sha256,
+  skinObjects: surface.skinObjects,
+  includedPiercingObjects: surface.piercingObjects,
+  piercingLandmarks: surface.piercingLandmarks,
+  bodyVertexCount: surface.totalSurfaceVertexCount,
+  skinVertexCount: surface.skinVertexCount,
+  bodyFaceCount: surface.faceCount,
+  unknownSkinRegionVertexCount: surface.unknownSkinRegionVertexCount,
+  garmentPartCount: parts.length,
+  garments: partReport,
   textures: [...generatedTextures.keys()],
   bodySkinPreserved: true,
+  piercingGeometryUsedDuringGeneration: true,
   araHidesMasksApplied: false,
 };
 if (!partReport.some(x => x.garment === "bikini_bottom") || !partReport.some(x => x.garment === "bikini_top"))
