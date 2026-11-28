@@ -146,6 +146,7 @@ jobs:
             --python tools/blender/attach_wren_ara_bikini.py -- \
             --input-glb art/characters/companions/wren.glb \
             --garment-obj build/wren-garments/Wren_Ara_Bikini.obj \
+            --generation-report build/wren-garments/generation-report.json \
             --output-glb build/wren-native/Wren.glb \
             --report build/wren-native/attachment-report.json
           test -s build/wren-native/Wren.glb
@@ -156,6 +157,10 @@ jobs:
           assert r["body_meshes_modified"] is False, r
           assert r["body_meshes_hidden_or_deleted"] is False, r
           assert r["original_armature_preserved"] is True, r
+          assert r["garment_generated_against_accepted_body"] is True, r
+          assert r["piercing_geometry_used_during_generation"] is True, r
+          assert r["post_generation_vertex_corrections"] == 0, r
+          assert r["preserved_piercing_objects"], r
           assert r["garment_vertex_count"] > 100, r
           assert r["garment_face_count"] > 100, r
           print("WREN_ACCEPTED_BODY_ATTACHMENT_OK", json.dumps(r, indent=2))
