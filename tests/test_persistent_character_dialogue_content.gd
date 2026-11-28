@@ -147,6 +147,18 @@ func _test_seraphine_campaign_dialogue() -> void:
 	_check(bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false)), "Reporting the tunnel should persist its campaign flag.")
 	_check(is_equal_approx(simulation.campaign_journal.faction_standing("silverhart_kingdom"), 15.0), "Reporting the tunnel should improve royal standing.")
 	_check(is_equal_approx(simulation.campaign_journal.faction_standing("thieves_guild"), -20.0), "Reporting the tunnel should reduce thieves' guild standing.")
+	var state_derived_simulation := WorldSimulation.new()
+	state_derived_simulation.campaign_journal.adjust_faction_standing("goblin_tribe", 35, "test_seraphine_context")
+	var state_derived := content.resolve_seraphine_campaign_choice_from_state(
+		state_derived_simulation,
+		"seraphine_topic_greenskins",
+		PersistentCharacterRelationshipState.new(),
+		"player"
+	)
+	_check(bool(state_derived.get("handled", false)) and bool(state_derived.get("ok", false)), "Seraphine choices derive their context from campaign state.")
+	_check(String(state_derived.get("dialogue", {}).get("text", "")).contains("Peace with the goblin tribe"), "The derived faction standing selects the authored response.")
+	state_derived_simulation.free()
+
 	var leave := content.resolve_seraphine_campaign_choice(
 		simulation, "seraphine_leave", {}, PersistentCharacterRelationshipState.new(), "player"
 	)
