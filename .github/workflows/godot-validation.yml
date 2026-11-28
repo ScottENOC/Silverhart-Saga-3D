@@ -259,6 +259,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
       - name: Run farm wolf quest and creature asset tests
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
+      - name: Run Reyna rescue quest boundary tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reyna_rescue_service.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Run Campaign 2 tunnel interaction content tests
