@@ -1842,14 +1842,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
 		var content := PERSISTENT_DIALOGUE_CONTENT.new()
 		var journal := simulation.campaign_journal
-		var context := {
-			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
-			"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
-			"goblin_standing": journal.faction_standing("goblin_tribe"),
-			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
-			"necromancer_standing": journal.faction_standing("necromancer_cult")
-		}
-		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
+		var conversation: Dictionary = content.seraphine_greeting_from_simulation(simulation, relationships)
 		if bool(conversation.get("ok", false)):
 			var supported_choices: Array[Dictionary] = []
 			for choice_value in conversation.get("choices", []):
