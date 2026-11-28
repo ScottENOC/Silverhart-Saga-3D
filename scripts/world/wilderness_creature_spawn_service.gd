@@ -12,7 +12,7 @@ const SPAWN_MIN_DISTANCE := 6
 const SPAWN_MAX_DISTANCE := 13
 const SPAWN_ROLL_CHANCE := 0.42
 const SPECIES: Array[String] = ["wolf", "fox", "deer", "stag"]
-const SPECIES_WEIGHTS := PackedFloat32Array([0.25, 0.25, 0.30, 0.20])
+const SPECIES_WEIGHTS := [0.25, 0.25, 0.30, 0.20]
 
 var simulation: WorldSimulation
 var world_parent: Node3D
