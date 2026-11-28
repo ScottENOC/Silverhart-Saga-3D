@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from matplotlib.lines import Line2D
 import numpy as np
 import trimesh
 
@@ -28,12 +29,29 @@ def load_body(path: Path):
     raise RuntimeError("Could not find the accepted Wren body mesh in GLB")
 
 
-def intersect_x_plane(mesh, x_value, epsilon=1e-9):
-    """Return independent 2D (Z,Y) line segments intersecting x=x_value."""
+def face_component_labels(mesh):
+    """Label source faces by edge-connected component without changing topology."""
+    groups = trimesh.graph.connected_components(
+        edges=mesh.face_adjacency,
+        nodes=np.arange(len(mesh.faces)),
+        min_len=1,
+    )
+    groups = sorted(groups, key=len, reverse=True)
+    labels = np.full(len(mesh.faces), -1, dtype=np.int32)
+    for index, faces in enumerate(groups):
+        labels[np.asarray(list(faces), dtype=np.int64)] = index
+    if np.any(labels < 0):
+        raise RuntimeError("Some source faces were not assigned a component label")
+    return labels, groups
+
+
+def intersect_x_plane(mesh, x_value, face_labels, epsilon=1e-9):
+    """Return section segments and source connected-component labels."""
     triangles = mesh.vertices[mesh.faces]
     distances = triangles[:, :, 0] - x_value
     segments = []
-    for tri, dist in zip(triangles, distances):
+    segment_labels = []
+    for face_index, (tri, dist) in enumerate(zip(triangles, distances)):
         # Ignore coplanar triangles: their area is not a section contour.
         if np.all(np.abs(dist) <= epsilon):
             continue
@@ -54,7 +72,11 @@ def intersect_x_plane(mesh, x_value, epsilon=1e-9):
                 points.append(q)
         if len(points) == 2 and np.linalg.norm(points[0] - points[1]) > epsilon:
             segments.append([points[0], points[1]])
-    return np.asarray(segments, dtype=float).reshape((-1, 2, 2))
+            segment_labels.append(int(face_labels[face_index]))
+    return (
+        np.asarray(segments, dtype=float).reshape((-1, 2, 2)),
+        np.asarray(segment_labels, dtype=np.int32),
+    )
 
 
 def main():
@@ -66,6 +88,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     mesh = load_body(Path(args.input))
 
+    face_labels, face_groups = face_component_labels(mesh)
     components = sorted(mesh.split(only_watertight=False),
                         key=lambda part: len(part.faces), reverse=True)
     rows = []
@@ -78,16 +101,34 @@ def main():
             "area_m2": float(part.area),
             "watertight": bool(part.is_watertight),
             "euler_number": int(part.euler_number),
+            "diagnostic_label": f"C{index:02d}",
+            "classification": "unresolved_external_vs_internal",
         })
 
     offsets = [0.0, -0.01, 0.01, -0.02, 0.02]
     fig, axes = plt.subplots(1, len(offsets), figsize=(17, 7), sharey=True)
     section_counts = []
+    palette = plt.get_cmap("tab20", max(1, len(face_groups)))
     for ax, x in zip(axes, offsets):
-        segments = intersect_x_plane(mesh, x)
-        section_counts.append({"x_m": x, "segment_count": int(len(segments))})
+        segments, labels = intersect_x_plane(mesh, x, face_labels)
+        by_component = {
+            f"C{index:02d}": int(np.count_nonzero(labels == index))
+            for index in range(len(face_groups))
+        }
+        section_counts.append({
+            "x_m": x,
+            "segment_count": int(len(segments)),
+            "segments_by_component": by_component,
+        })
         if len(segments):
-            ax.add_collection(LineCollection(segments, linewidths=0.65))
+            for component_index in sorted(set(labels.tolist())):
+                selected = segments[labels == component_index]
+                ax.add_collection(LineCollection(
+                    selected,
+                    colors=[palette(component_index)],
+                    linewidths=1.0 if component_index == 0 else 0.75,
+                    alpha=0.95,
+                ))
         ax.set_title(f"X = {x * 1000:.0f} mm ({len(segments)} segments)")
         ax.set_xlim(-0.14, 0.22)
         ax.set_ylim(0.68, 1.12)
@@ -101,8 +142,15 @@ def main():
             f"Mesh bounds: {mesh.bounds.tolist()}"
         )
     axes[0].set_ylabel("Height (Y), metres")
-    fig.suptitle("Accepted Wren body: geometry-only pelvic cross-sections")
-    fig.tight_layout()
+    legend_handles = [
+        Line2D([0], [0], color=palette(index), lw=2,
+               label=f"C{index:02d}: {len(face_groups[index]):,} faces (unresolved)")
+        for index in range(len(face_groups))
+    ]
+    fig.legend(handles=legend_handles, loc="lower center", ncol=4,
+               fontsize=8, title="Edge-connected source components — labels only, not anatomy")
+    fig.suptitle("Accepted Wren body: pelvic cross-sections by connected component")
+    fig.tight_layout(rect=(0, 0.12, 1, 0.95))
     image_path = out / "wren-pelvic-cross-sections.png"
     fig.savefig(image_path, dpi=180)
     plt.close(fig)
@@ -124,6 +172,10 @@ def main():
         "mesh_bounds": mesh.bounds.tolist(),
         "connected_component_count": len(components),
         "components": rows,
+        "component_label_policy": (
+            "C00.. labels identify edge-connected face components only. "
+            "They do not mean external skin, internal canal, or accessory."
+        ),
         "cross_sections": section_counts,
         "pelvic_region_definition": {
             "abs_x_less_than_m": 0.09,
@@ -149,7 +201,7 @@ def main():
     (out / "wren-external-surface-diagnostic.json").write_text(
         json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print("WREN_EXTERNAL_SURFACE_DIAGNOSTIC_READY",
-          json.dumps({"components": len(components), "faces": len(mesh.faces),
+          json.dumps({"components": len(face_groups), "faces": len(mesh.faces),
                       "sections": section_counts, "image": str(image_path)}))
 
 
