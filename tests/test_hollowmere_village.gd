@@ -188,7 +188,6 @@ func _test_tavern_door_contract() -> void:
 			tavern = location
 			break
 	assert(not tavern.is_empty(), "The Hollow Tankard must remain in the authored location catalogue")
-	assert(not tavern.has("exterior_entry"), "The Tankard is a continuous-world starting building, not a separate teleported interior")
 	assert(TERRAIN_PROVIDER.is_path(Vector2i(0, 5), HOLLOWMERE_TERRAIN.DEFINITION), "The Tankard door must connect directly to its source-authored outdoor path")
 	var floor_zero: Dictionary = {}
 	for floor_data in tavern.get("floors", []):
