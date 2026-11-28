@@ -15,7 +15,7 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from cloth.xpbd_solver import Particle, DistanceConstraint, Contact, solve_frame
+from cloth.xpbd_solver import (Particle, DistanceConstraint, Contact, solve_frame,\n                               contact_from_garment_outward_direction)
 
 
 def args():
@@ -76,34 +76,25 @@ def point_is_inside(tree, point):
     return inside_votes >= 2
 
 
-def closest_contact(tree, point, particle_index, thickness, two_sided=False):
-    """Local signed contact; does not require a watertight body shell.
+def closest_contact(tree, point, particle_index, thickness, garment_outward):
+    """Project nearest collider contact along the garment's outward direction.
 
-    Body skin uses its oriented surface normal, so a point on the inner side
-    receives an outward correction. Thin piercing meshes are two-sided and
-    use the nearest-point direction instead of volume/parity classification.
+    Body normals are deliberately ignored: concave anatomy and open meshes can
+    have normals that point the wrong way for cloth accommodation. Piercings
+    use the same garment-directed rule, so the fabric moves around the fixed
+    accessory rather than moving the accessory through the fabric.
     """
     hit = tree.find_nearest(Vector(point))
     if hit is None:
         return None, None
-    location, face_normal, _face, distance = hit
+    location, _collider_normal, _face, distance = hit
     if location is None or distance is None:
         return None, None
-    point = Vector(point)
-    location = Vector(location)
-    face_normal = Vector(face_normal)
-    distance = float(distance)
-    if face_normal.length_squared < 1.0e-12:
-        return None, None
-    face_normal.normalize()
-    offset = point - location
-    if two_sided:
-        normal = offset.normalized() if distance > 1.0e-9 else face_normal
-        signed = distance
-    else:
-        signed = offset.dot(face_normal)
-        normal = face_normal
-    return Contact(particle_index, signed, tuple(normal), thickness), signed
+    contact = contact_from_garment_outward_direction(
+        tuple(Vector(point)), tuple(Vector(location)), tuple(Vector(garment_outward)),
+        particle_index, thickness
+    )
+    return contact, contact.distance
 
 
 def apply_world_positions(obj, particles, original_world):
@@ -168,13 +159,13 @@ def main():
     for garment in garments:
         original_world = [garment.matrix_world @ vertex.co for vertex in garment.data.vertices]
         normal_matrix = garment.matrix_world.to_3x3().inverted_safe().transposed()
-        normal_anchors = []
+        garment_outward = []
         for vertex in garment.data.vertices:
             normal = normal_matrix @ vertex.normal
             if normal.length_squared < 1.0e-12:
                 normal = Vector((0.0, 0.0, 1.0))
             normal.normalize()
-            normal_anchors.append((tuple(original_world[vertex.index]), tuple(normal)))
+            garment_outward.append(normal)
         particles = [Particle.at(tuple(point), 1.0) for point in original_world]
         edge_constraints = []
         boundary_vertices = set()
@@ -248,7 +239,7 @@ def main():
                 for _name, tree, two_sided in collider_trees:
                     contact_thickness = 0.00075 if two_sided else options.thickness
                     contact, signed = closest_contact(
-                        tree, point, index, contact_thickness, two_sided=two_sided
+                        tree, point, index, contact_thickness, garment_outward[index]
                     )
                     if contact is not None:
                         if signed < contact_thickness:
@@ -257,17 +248,32 @@ def main():
                             initial_penetrations.append(signed)
             return contacts
 
-        # Contact is resolved against local oriented skin normals. Every
-        # garment vertex is constrained to its original normal line, allowing
-        # substantial outward anatomical accommodation without tangential
-        # vertex wandering. There is deliberately no absolute displacement cap.
+        # Stage 2: accommodate initially undersized Ara-fitted garments.
+        # Softer structural constraints permit local expansion and tangential
+        # redistribution; contact pushes only along the garment's own outward
+        # direction, never along body-surface normals.
+        clearance_constraints = [
+            DistanceConstraint(c.a, c.b, c.rest_length,
+                               compliance=max(c.compliance, 2.0e-7),
+                               stiffness=min(c.stiffness, 0.78))
+            for c in edge_constraints
+        ]
         if collision_available:
+            for _ in range(max(1, options.substeps)):
+                solve_frame(
+                    particles, clearance_constraints, contact_provider,
+                    dt=1.0 / 60.0, gravity=(0.0, 0.0, 0.0),
+                    iterations=max(1, options.iterations), damping=0.0
+                )
+            # Stage 3: elastic settling. Restore stronger garment-specific
+            # edge/diagonal/boundary constraints while retaining hard contact.
+            # This lets fabric bridge concavities and tighten openings without
+            # pulling it back through the body or fixed accessory geometry.
             for _ in range(max(1, options.substeps)):
                 solve_frame(
                     particles, edge_constraints, contact_provider,
                     dt=1.0 / 60.0, gravity=(0.0, 0.0, 0.0),
-                    iterations=max(1, options.iterations), damping=0.0,
-                    normal_anchors=normal_anchors
+                    iterations=max(1, options.iterations), damping=0.0
                 )
 
         before = [point.copy() for point in original_world]
@@ -360,7 +366,7 @@ def main():
                 for collider_name, tree, two_sided in collider_trees:
                     contact_thickness = 0.00075 if two_sided else options.thickness
                     _contact, signed = closest_contact(
-                        tree, particle.position, index, contact_thickness, two_sided=two_sided
+                        tree, particle.position, index, contact_thickness, garment_outward[index]
                     )
                     if signed is not None and signed < contact_thickness - 0.00025:
                         candidate_penetrations.append({
@@ -410,7 +416,7 @@ def main():
             for collider_name, tree, two_sided in collider_trees:
                 contact_thickness = 0.00075 if two_sided else options.thickness
                 _contact, signed = closest_contact(
-                    tree, particle.position, index, contact_thickness, two_sided=two_sided
+                    tree, particle.position, index, contact_thickness, garment_outward[index]
                 )
                 if signed is not None and signed < contact_thickness - 0.00025:
                     final_penetrations.append({
@@ -509,7 +515,8 @@ def main():
             "maximum_panel_triangle_area_strain": 0.30,
             "minimum_face_normal_alignment": 0.15,
             "self_intersections_allowed": 0,
-            "vertex_motion_constraint": "original garment vertex-normal line; no absolute displacement cap",
+            "vertex_motion_constraint": "local garment-outward contact projection with tangential redistribution; no body-normal dependency or absolute displacement cap",
+            "fitting_stages": ["Ara initial fit (slightly undersized)", "clearance accommodation with compliant structural constraints", "elastic settling with restored structural and boundary tension constraints"],
             "gravity": [0.0, 0.0, 0.0],
             "boundary_elasticity": "reinforced boundary-edge distance constraints plus per-panel diagonal constraints",
             "body_response": "static rigid contact; compliant body deformation deferred"
@@ -531,7 +538,8 @@ def main():
             "This is a static-pose garment relaxation, not animated runtime cloth.",
             "Body and piercing are triangle-BVH colliders; body soft-tissue deformation is not yet applied.",
             "Garment topology and vertex-neighbour relationships are immutable during fitting.",
-            "Vertices move only along their original garment-normal lines; displacement magnitude is not capped.",
+            "Clearance is projected along each garment vertex's outward direction; vertices may redistribute tangentially under structural constraints.",
+            "Stage 2 accepts initial garment/body and garment/accessory intersections as expected undersizing; stage 3 restores stronger elastic shape and boundary constraints while contact remains active.",
             "Panel diagonals and edge constraints resist shear and shape loss; candidates are rejected for excessive edge strain, panel-area change, or residual penetration.",
             "Open body shells use local oriented surface-normal contact rather than closed-volume ray parity; visually inspect external-envelope normals."
         ]
