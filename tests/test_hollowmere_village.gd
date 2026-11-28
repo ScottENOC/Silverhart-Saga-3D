@@ -200,7 +200,8 @@ func _test_tavern_door_contract() -> void:
 			manifest_door = tile_object
 			break
 	assert(not manifest_door.is_empty(), "The shared manifest must use the same Tankard door ID as the live building")
-	assert(manifest_door.get("position", {}) == {"q": 0, "r": 4}, "The manifest door coordinate must match the continuous-world layout")
+	var manifest_door_position: Dictionary = manifest_door.get("position", {})
+	assert(int(manifest_door_position.get("q", -999)) == 0 and int(manifest_door_position.get("r", -999)) == 4, "The manifest door coordinate must match the continuous-world layout")
 	assert(String(manifest_door.get("type", "")) == "door_closed" and bool(manifest_door.get("locked", false)), "The manifest must preserve the opening door's initial locked state")
 
 
