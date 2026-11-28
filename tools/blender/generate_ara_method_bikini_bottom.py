@@ -426,6 +426,8 @@ def main():
         "gusset_grid": [9, 15],
         "surface_lift_mm": args.clearance_mm,
         "selected_pelvic_faces": len(selected),
+        "region_mask": "geometric approximation of Ara trunk plus proximal upper-leg REGION filter; semantic region labels are not present in the GLB",
+        "hip_ring": "lateral cross-section extreme approximation of Ara convex hull ring",
         "hip_height_m": hip_z,
         "crotch_height_m": crotch_z,
         "garment_objects": sorted(o.name for o in bpy.context.scene.objects
