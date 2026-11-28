@@ -27,7 +27,7 @@ func _test_approach_does_not_start_from_far_away() -> void:
 	assert(bool(result.get("ok", false)))
 	assert(not bool(result.get("should_present", true)))
 	assert(String(simulation.campaign_journal.quest_state(QUEST.QUEST_ID).get("status", "")) == "")
-	assert(QUEST.guardian_count_remaining(simulation) == QUEST.GUARDIAN_IDS.size())
+	assert(QUEST.guardian_count_remaining(simulation) == 0, "Far-away approach must not register guardians")
 	simulation.free()
 
 
@@ -54,7 +54,7 @@ func _test_completed_quest_does_not_restore_guardians() -> void:
 	assert(bool(result.get("ok", false)))
 	assert(not bool(result.get("should_present", true)))
 	assert(String(result.get("reason", "")) == "quest_completed")
-	assert(QUEST.guardian_count_remaining(simulation) == QUEST.GUARDIAN_IDS.size())
+	assert(QUEST.guardian_count_remaining(simulation) == 0, "Completed quest must not register guardians")
 	simulation.free()
 
 
