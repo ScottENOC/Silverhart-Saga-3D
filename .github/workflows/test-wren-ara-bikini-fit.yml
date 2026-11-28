@@ -218,6 +218,7 @@ jobs:
             build/wren-garments/Wren_Ara_Bikini.obj
             build/wren-garments/Wren_Ara_Bikini.mtl
             build/wren-garments/generation-report.json
-            build/ara-fitting-data/build-report.json
+            build/wren-native/body-surface-report.json
+            build/wren-native/wren-ara-body-surface.json.gz
           if-no-files-found: error
           retention-days: 30
