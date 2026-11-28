@@ -61,7 +61,7 @@ func _run() -> void:
 		"side": {"target": Vector3(0.0, 0.84, 0.0), "offset": Vector3(4.2, 0.0, 0.0), "size": 1.95},
 		"threequarter": {"target": Vector3(0.0, 0.84, 0.0), "offset": Vector3(3.2, 0.0, 3.2), "size": 1.95},
 		"face": {"target": Vector3(0.0, 1.54, 0.0), "offset": Vector3(0.0, 0.0, 2.1), "size": 0.62},
-		"pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, 1.45), "size": 0.54}
+		"pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, 1.45), "size": 0.54},\n\t\t"pelvis_back": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, -1.45), "size": 0.54}
 	}
 
 	for view_name in views:
@@ -90,12 +90,12 @@ func _run() -> void:
 		push_error("Could not write Wren render report")
 		quit(1)
 		return
-	report["views"] = ["front", "side", "threequarter", "face", "pelvis"]
+	report["views"] = ["front", "side", "threequarter", "face", "pelvis", "pelvis_back"]\n\treport["ara_bikini_meshes"] = bikini_meshes.map(func(item: MeshInstance3D) -> String: return str(item.name))
 	report_file.store_string(JSON.stringify(report, "\t") + "\n")
 	report_file.close()
 
-	print("WREN_GODOT_PREVIEW_OK meshes=%d blend_shapes=%d renders=4" % [
-		mesh_instances.size(), int(report.get("max_blend_shape_count", 0))
+	print("WREN_GODOT_PREVIEW_OK meshes=%d blend_shapes=%d renders=6 bikini_meshes=%d" % [
+		mesh_instances.size(), int(report.get("max_blend_shape_count", 0)), bikini_meshes.size()
 	])
 	quit(0)
 
