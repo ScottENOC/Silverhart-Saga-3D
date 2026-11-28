@@ -85,6 +85,10 @@ export interface FittedOutfit {
 export interface GCtx {
   body: Body;
   faceVerts: Uint32Array;
+  /** Original body-face indices belonging to piercing meshes; garments must clear these surfaces. */
+  piercingFaces?: ReadonlySet<number>;
+  /** Optional per-garment fitting diagnostics, written by source garment builders. */
+  diagnostics?: Record<string, unknown>;
   /** Registers a generated texture, returns its file name. */
   texture(key: string, make: () => TexOut): { map: string; normalMap?: string; alpha: boolean };
   /** True when a top / bottom garment is worn (accessories sit a bit further out). */
