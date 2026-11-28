@@ -11,6 +11,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeBody } from "./vendor/src/core/garments/body.ts";
 import { SWIMWEAR } from "./vendor/src/core/garments/swimwear.ts";
+import { PATTERNS, type Pattern } from "./vendor/src/core/garments/textures.ts";
 import type { GCtx, GarmentStyle, GPart } from "./vendor/src/core/garments/kit.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,10 @@ function arg(name: string, fallback?: string): string {
 const profilePath = resolve(arg("--profile", join(root, "../../character-preview/wren-ara.json")));
 const surfacePath = resolve(arg("--body-surface"));
 const outDir = resolve(arg("--out", join(root, "build/wren-garments")));
+const selectedPattern = arg("--material", "jersey") as Pattern;
+const selectedColour = arg("--color", "#09090B");
+const selectedAccent = arg("--accent", "#17171C");
+if (!PATTERNS.includes(selectedPattern)) throw new Error("Unsupported fabric material: " + selectedPattern);
 mkdirSync(outDir, { recursive: true });
 const profile = JSON.parse(readFileSync(profilePath, "utf8"));
 if (profile.kind !== "ara-character" || profile.params?.name !== "Wren") throw new Error("Expected Wren Ara profile");
@@ -43,8 +48,10 @@ if (faceSizes.length !== surface.faceCount || faceVerts.length !== faceSizes.red
 const body = makeBody(coords, normals, regions, {}, faceSizes, faceVerts, surface.jointPositions);
 
 const generatedTextures = new Map<string, Uint8Array>();
+const diagnostics: Record<string, unknown> = {};
 const g: GCtx = {
-  body, faceVerts: body.faceVerts, layered: { top: false, bottom: false }, underwear: false, outfits: {},
+  body, faceVerts: body.faceVerts, piercingFaces: new Set<number>(surface.piercingFaceIndices ?? []),
+  diagnostics, layered: { top: false, bottom: false }, underwear: false, outfits: {},
   texture(key, make) {
     const existing = generatedTextures.get(key);
     if (existing) return { map: key + ".png", alpha: false };
@@ -55,8 +62,8 @@ const g: GCtx = {
     return { map: key + ".png", normalMap: tex.normal ? key + "_n.png" : undefined, alpha: tex.alpha };
   },
 };
-const topStyle: GarmentStyle = { pattern: "foil", color: "#c9963a", color2: "#fff1c4" };
-const bottomStyle: GarmentStyle = { pattern: "foil", color: "#09090B", color2: "#09090B" };
+const topStyle: GarmentStyle = { pattern: selectedPattern, color: selectedColour, color2: selectedAccent };
+const bottomStyle: GarmentStyle = { pattern: selectedPattern, color: selectedColour, color2: selectedAccent };
 const bottomDef = SWIMWEAR.find(x => x.id === "bikini_bottom");
 const topDef = SWIMWEAR.find(x => x.id === "bikini_top");
 if (!bottomDef || !topDef) throw new Error("Pinned Ara source is missing bikini_top or bikini_bottom");
@@ -97,6 +104,7 @@ for (let pi = 0; pi < parts.length; pi++) {
     const rgb = [0,2,4].map(i => parseInt(colour.slice(i,i+2),16)/255);
     mtl.push("newmtl " + materialName, "Kd " + rgb.join(" "), "Pr " + Number(mat.roughness ?? 0.4), "Pm " + Number(mat.metalness ?? 0.5), "d " + (mat.opacity ?? 1));
     if (mat.map) mtl.push("map_Kd " + mat.map);
+    if (mat.normalMap) mtl.push("map_Bump " + mat.normalMap);
     mtl.push("");
   }
   partReport.push({ garment: part.sourceGarment, part: pi, vertices: mesh.positions.length / 3, faces: mesh.faceSizes.length, hasSkinHideMask: !!part.hides });
@@ -119,6 +127,10 @@ const report = {
   garmentPartCount: parts.length,
   garments: partReport,
   textures: [...generatedTextures.keys()],
+  selectedMaterial: selectedPattern,
+  selectedColour,
+  selectedAccent,
+  diagnostics,
   bodySkinPreserved: true,
   piercingGeometryUsedDuringGeneration: true,
   araHidesMasksApplied: false,
