@@ -28,6 +28,11 @@ func _test_approach_rules() -> void:
 	assert(bool(first.get("ok", false)))
 	assert(bool(first.get("should_spawn", false)), "Active quest should trigger at the inclusive approach radius")
 
+	# Match the world adapter: the initial approach creates the authoritative
+	# pack before the player leaves and later returns to the den.
+	var spawn_hexes: Array[Vector2i] = [den + Vector2i(1, 0), den + Vector2i(0, 1), den + Vector2i(-1, 1)]
+	assert(bool(FARM_QUEST.ensure_wolves(simulation, spawn_hexes).get("ok", false)))
+
 	var far_player := simulation.get_character("player")
 	far_player.axial = den + Vector2i(9, 0)
 	var departed := FARM_QUEST.evaluate_approach(simulation, den, true, false)
