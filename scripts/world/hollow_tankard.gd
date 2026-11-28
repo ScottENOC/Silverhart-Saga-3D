@@ -2930,7 +2930,8 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 				# The logical floor address changes immediately, but the actor
 				# walks the real stair flight in world space instead of snapping.
 				var presentation := actor as HexActorPresentation
-				presentation.present_move_to(destination, NAN, TAVERN_STAIR_TRAVERSAL_DURATION)
+				var stair_facing := 0.0 if _is_upper_floor_hex(to_hex) else PI
+				presentation.present_move_to(destination, stair_facing, TAVERN_STAIR_TRAVERSAL_DURATION)
 				if presentation.movement_tween != null:
 					presentation.movement_tween.finished.connect(
 						_on_tavern_stair_traversal_finished,
