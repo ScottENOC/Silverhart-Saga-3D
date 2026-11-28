@@ -166,6 +166,18 @@ func seraphine_greeting(context: Dictionary, relationships: PersistentCharacterR
 	return {"ok":true,"speaker":"Queen Seraphine Corrin","text":greeting,"choices":options,"relationship":relationships.snapshot("seraphine_corrin")}
 
 
+## Build the streamed Queen audience from authoritative simulation state. The
+## world adapter supplies the relationship state but does not assemble campaign
+## facts or know which flags the authored greeting requires.
+func seraphine_greeting_from_simulation(
+	simulation: WorldSimulation,
+	relationships: PersistentCharacterRelationshipState
+) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok":false,"reason":"missing_campaign"}
+	return seraphine_greeting(_seraphine_context_from_simulation(simulation), relationships)
+
+
 func seraphine_topic_response(topic: String, context: Dictionary, relationships: PersistentCharacterRelationshipState) -> Dictionary:
 	if relationships == null:
 		return {"ok":false,"reason":"missing_relationship_state"}
@@ -270,10 +282,20 @@ func resolve_seraphine_campaign_choice_from_state(
 ) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
 		return {"handled":false,"ok":false,"reason":"missing_campaign"}
+	return resolve_seraphine_campaign_choice(
+		simulation,
+		choice_id,
+		_seraphine_context_from_simulation(simulation),
+		relationships,
+		active_character_id
+	)
+
+
+func _seraphine_context_from_simulation(simulation: WorldSimulation) -> Dictionary:
 	var journal := simulation.campaign_journal
 	var wizard_quest := journal.quest_state("wizard_vendetta")
 	var player := simulation.get_character(simulation.player_character_id)
-	var context := {
+	return {
 		"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
 		"goblin_standing": journal.faction_standing("goblin_tribe"),
 		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
@@ -286,7 +308,6 @@ func resolve_seraphine_campaign_choice_from_state(
 		"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
 		"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
 	}
-	return resolve_seraphine_campaign_choice(simulation, choice_id, context, relationships, active_character_id)
 
 
 static func _character_has_item(character: CharacterState, item_id: String) -> bool:
