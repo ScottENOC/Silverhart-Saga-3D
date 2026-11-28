@@ -145,6 +145,16 @@ static func shakedown_victory_text() -> String:
     return "It's over... thank you. I didn't think anyone would stand with us against the Company."
 
 
+static func npc_greeting_from_journal(journal: CampaignJournal, npc_id: String, shakedown_resolved: bool) -> Dictionary:
+    if journal == null:
+        return npc_greeting(npc_id, shakedown_resolved)
+    var quest_state := journal.quest_state(QUEST_ID)
+    var decisions: Dictionary = quest_state.get("decisions", {})
+    var response_choice := String(decisions.get("response", ""))
+    var standing := journal.npc_standing(npc_id)
+    return npc_greeting(npc_id, shakedown_resolved, standing, response_choice)
+
+
 static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing: float = 0.0, shakedown_choice: String = "") -> Dictionary:
     match npc_id:
         "garrick_holt":
