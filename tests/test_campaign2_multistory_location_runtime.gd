@@ -39,6 +39,7 @@ func _run() -> void:
 	var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
 	_check(bool(loaded.get("ok", false)), "Shared location loader must instantiate Kragmoor from the registry")
 	var runtime = loaded.get("runtime")
+	_check(runtime != null and not runtime.has_method("enter_from_exterior") and not runtime.has_method("exit_to_exterior"), "Multi-story runtime must not expose exterior door teleport APIs")
 	_check(runtime.get_current_floor() == 0, "Kragmoor runtime must begin on the Gate Hall surface")
 	_check(runtime.get_floor_tile_count(0) > 0 and runtime.get_floor_tile_count(-5) > 0, "All six source floors must build presentation tiles")
 	_check(runtime.is_floor_visible(0) and not runtime.is_floor_visible(-1), "Only the active floor may be visible")
