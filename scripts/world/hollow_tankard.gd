@@ -74,6 +74,7 @@ const UPPER_FLOOR_ORIGIN: Vector2i = HOLLOW_TANKARD_LAYOUT.UPPER_FLOOR_ORIGIN
 const UPPER_FLOOR_Y: float = HOLLOW_TANKARD_LAYOUT.UPPER_FLOOR_Y
 const TAVERN_STAIR_GROUND_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.STAIR_GROUND_HEX
 const TAVERN_STAIR_UPPER_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.STAIR_UPPER_HEX
+const TAVERN_STAIR_TRAVERSAL_DURATION := 1.4
 const UPPER_BED_HEXES: Array[Vector2i] = HOLLOW_TANKARD_LAYOUT.UPPER_BED_HEXES
 
 var location_label: Label
@@ -120,6 +121,8 @@ var rotate_right_button: Button
 var tile_mesh: ArrayMesh
 var path_material: StandardMaterial3D
 var movement_controller: Variant
+var stair_traversal_running: bool = false
+var stair_traversal_character_id: String = ""
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var grass_material: StandardMaterial3D
@@ -2770,6 +2773,9 @@ func _refresh_resource_visuals() -> void:
 			visual.refresh(simulation.ensure_resource_at(hex), month_index)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if stair_traversal_running:
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
@@ -2920,11 +2926,22 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 	if actor != null:
 		var destination := _hex_world_position(to_hex)
 		if _is_upper_floor_hex(from_hex) != _is_upper_floor_hex(to_hex):
-			# Stair transitions change elevation/floor ownership, so they remain
-			# an authored snap rather than interpolating through the tavern shell.
-			actor.global_position = destination
-			if actor is HexActorPresentation:
-				(actor as HexActorPresentation).stop_moving()
+			if character_id == stair_traversal_character_id and actor is HexActorPresentation:
+				# The logical floor address changes immediately, but the actor
+				# walks the real stair flight in world space instead of snapping.
+				var presentation := actor as HexActorPresentation
+				presentation.present_move_to(destination, NAN, TAVERN_STAIR_TRAVERSAL_DURATION)
+				if presentation.movement_tween != null:
+					presentation.movement_tween.finished.connect(
+						_on_tavern_stair_traversal_finished,
+						CONNECT_ONE_SHOT
+					)
+				else:
+					_on_tavern_stair_traversal_finished()
+			else:
+				actor.global_position = destination
+				if actor is HexActorPresentation:
+					(actor as HexActorPresentation).stop_moving()
 		elif actor is CreatureActor:
 			var creature := actor as CreatureActor
 			creature.play_move()
@@ -2942,10 +2959,17 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 			tween.set_trans(Tween.TRANS_SINE)
 			tween.set_ease(Tween.EASE_IN_OUT)
 			tween.tween_property(actor, "global_position", destination, 0.36)
-	if character_id == active_character_id:
+	elif character_id == stair_traversal_character_id:
+		_on_tavern_stair_traversal_finished()
+	if character_id == active_character_id and not stair_traversal_running:
 		_refresh_tavern_floor_presentation()
 	if character_id == "player" and wilderness_creature_spawner != null:
 		wilderness_creature_spawner.player_moved(to_hex)
+
+func _on_tavern_stair_traversal_finished() -> void:
+	stair_traversal_running = false
+	stair_traversal_character_id = ""
+	_refresh_tavern_floor_presentation()
 
 func _movement_direction_index(from_hex: Vector2i, to_hex: Vector2i) -> int:
 	var step := to_hex - from_hex
@@ -3152,6 +3176,8 @@ func _handle_tunnel_choice(choice_id: String) -> void:
 	_show_dialogue(String(prompt.title), String(prompt.body), prompt.choices)
 
 func _interact_with_tavern_stairs() -> bool:
+	if stair_traversal_running:
+		return true
 	var state := simulation.get_character(active_character_id)
 	if state == null:
 		return false
@@ -3161,7 +3187,16 @@ func _interact_with_tavern_stairs() -> bool:
 		return false
 	var destination := TAVERN_STAIR_GROUND_HEX if upstairs else TAVERN_STAIR_UPPER_HEX
 	_clear_path_markers()
+	stair_traversal_running = true
+	stair_traversal_character_id = active_character_id
+	# Keep the upper deck present while the actor physically climbs the
+	# authored staircase; floor cutaway changes only when traversal finishes.
+	if is_instance_valid(upper_floor_group):
+		upper_floor_group.visible = true
 	if not simulation.relocate_character(active_character_id, destination):
+		stair_traversal_running = false
+		stair_traversal_character_id = ""
+		_refresh_tavern_floor_presentation()
 		print("The staircase is blocked.")
 	return true
 
