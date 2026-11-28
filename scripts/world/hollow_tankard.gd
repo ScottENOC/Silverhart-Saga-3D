@@ -57,6 +57,7 @@ const CAMP_NIGHT_AMBUSH_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/cam
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const CAMPAIGN_SIMULATION_SNAPSHOT_RESTORER = preload("res://scripts/campaign/campaign_simulation_snapshot_restorer.gd")
+const CAMPAIGN_CHARACTER_SAVE_DIFFS = preload("res://scripts/campaign/campaign_character_save_diffs.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const ILSA_WATCH_CAPTAIN_CONTENT_SCRIPT = preload("res://scripts/simulation/ilsa_watch_captain_content.gd")
@@ -1197,43 +1198,15 @@ func _show_save_notice(message: String) -> void:
 	notice.popup_centered()
 
 func _capture_initial_character_baselines() -> void:
-	initial_character_baselines.clear()
-	for state in simulation.character_states():
-		initial_character_baselines[state.id] = state.to_dict()
+	initial_character_baselines = CAMPAIGN_CHARACTER_SAVE_DIFFS.capture_character_baselines(simulation)
+
 
 func _build_character_diffs() -> Dictionary:
-	var diffs: Dictionary = {}
-	for state in simulation.character_states():
-		var character_id := state.id
-		var current := state.to_dict()
-		if not initial_character_baselines.has(character_id):
-			diffs[character_id] = {"__full_record": current}
-			continue
-		var baseline: Dictionary = initial_character_baselines[character_id]
-		var changed: Dictionary = {}
-		for field in current.keys():
-			if not baseline.has(field) or current[field] != baseline[field]:
-				changed[field] = current[field]
-		if not changed.is_empty():
-			diffs[character_id] = changed
-	return diffs
+	return CAMPAIGN_CHARACTER_SAVE_DIFFS.build_character_diffs(simulation, initial_character_baselines)
+
 
 func _build_appearance_diffs() -> Dictionary:
-	var diffs: Dictionary = {}
-	for actor_id_variant in actor_by_id.keys():
-		var actor_id := String(actor_id_variant)
-		var actor := actor_by_id[actor_id] as Node3D
-		if actor == null or actor_id == "player":
-			continue
-		var base: Dictionary = actor.get_meta("base_appearance_profile", {})
-		var current: Dictionary = actor.get_meta("appearance_profile", base)
-		var changed: Dictionary = {}
-		for field in current.keys():
-			if not base.has(field) or current[field] != base[field]:
-				changed[field] = current[field]
-		if not changed.is_empty():
-			diffs[actor_id] = changed
-	return diffs
+	return CAMPAIGN_CHARACTER_SAVE_DIFFS.build_appearance_diffs(actor_by_id)
 
 func _build_save_snapshot() -> Dictionary:
 	return {
