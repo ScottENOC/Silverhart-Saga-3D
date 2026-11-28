@@ -41,8 +41,9 @@ func _test_approach_rules() -> void:
 	assert(bool(returned.get("should_spawn", false)), "Returning should retry while wolves remain")
 
 	assert(bool(simulation.campaign_journal.set_objective_progress(FARM_QUEST.QUEST_ID, FARM_QUEST.OBJECTIVE_ID, 3.0).get("ok", false)))
+	assert(bool(simulation.campaign_journal.complete_quest(FARM_QUEST.QUEST_ID).get("ok", false)))
 	var completed := FARM_QUEST.evaluate_approach(simulation, den, true, true)
-	assert(not bool(completed.get("should_spawn", true)), "Completed pack should not respawn")
+	assert(not bool(completed.get("should_spawn", true)), "Completed quest should not respawn the pack")
 	simulation.free()
 
 	var inactive := _simulation_at(den)
