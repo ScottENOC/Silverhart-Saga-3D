@@ -9,6 +9,7 @@ const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter
 const HOLLOWMERE_OPENING_SEQUENCE_SCRIPT = preload("res://scripts/simulation/hollowmere_opening_sequence_controller.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
+const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const HOLLOWMERE_OPENING_CONTEXT = preload("res://scripts/simulation/hollowmere_opening_context.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
