@@ -23,6 +23,13 @@ func _initialize() -> void:
 		for settlement in settlement_data.get("settlements", []):
 			for building in settlement.get("buildings", []):
 				settlement_building_ids[String(building.get("id", ""))] = building
+	var hollowmere_building_centres := {
+		"chapel": Vector2i(-14, 0),
+		"general_store": Vector2i(0, 18),
+		"elder_house": Vector2i(0, -12),
+		"mira_house": Vector2i(12, 9),
+		"oskar_house": Vector2i(-6, 9)
+	}
 	var hollowmere_source := FileAccess.get_file_as_string(HOLLOWMERE_BUILDINGS_PATH)
 
 	var all_building_ids: Dictionary = {}
@@ -40,11 +47,20 @@ func _initialize() -> void:
 			var room_link: Dictionary = room_link_variant
 			var floor_definition := locations.get_floor_definition(location_id, int(room_link.get("floor", 999999)))
 			var room_found := false
+			var room_centre := Vector2i.ZERO
 			for room in floor_definition.get("rooms", []):
 				if String(room.get("id", "")) == String(room_link.get("room_id", "")):
 					room_found = true
+					var centre: Dictionary = room.get("center", {})
+					room_centre = Vector2i(int(centre.get("q", 0)), int(centre.get("r", 0)))
 					break
 			_check(room_found, "Room link must resolve to a source-authored room: %s/%s" % [location_id, room_link.get("room_id", "")])
+			var building_id := String(room_link.get("building_id", ""))
+			if settlement_building_ids.has(building_id):
+				var exterior_centre: Dictionary = settlement_building_ids[building_id].get("center", {})
+				_check(room_centre == Vector2i(int(exterior_centre.get("q", 0)), int(exterior_centre.get("r", 0))), "Stable-ID room join must retain its authored centre alignment: %s/%s" % [location_id, building_id])
+			elif hollowmere_building_centres.has(building_id):
+				_check(room_centre == hollowmere_building_centres[building_id], "Hollowmere stable-ID room join must retain its authored centre alignment: %s/%s" % [location_id, building_id])
 
 	var palace := registry.get_link("silverhart_palace")
 	_check(palace.get("building_ids", []).has("silverhart_grand_hall"), "Palace grand hall must link by stable ID")
