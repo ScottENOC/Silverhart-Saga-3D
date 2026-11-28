@@ -54,8 +54,8 @@ def region_for_bone(name):
     if n.startswith(("spine", "chest", "breast", "clavicle")): return REGION["torso"]
     if n.startswith("neck"): return REGION["neck"]
     if n.startswith(("head", "jaw", "eye")): return REGION["head"]
-    if "shoulder" in n or n.endswith("arm"): return REGION["upperarm"]
     if "forearm" in n: return REGION["lowerarm"]
+    if "shoulder" in n or n.endswith("arm"): return REGION["upperarm"]
     if "hand" in n or any(x in n for x in ("thumb", "index", "middle", "ring", "pinky")): return REGION["hand"]
     if "upleg" in n or "thigh" in n: return REGION["upperleg"]
     if n.endswith("leg"): return REGION["lowerleg"]
@@ -134,17 +134,26 @@ def main():
 
     coords, normals, regions, face_sizes, face_verts = [], [], [], [], []
     skin_names = []
-    for obj in skin_objects:
+    for obj in anatomy_objects:
         add_mesh(obj, coords, normals, regions, face_sizes, face_verts)
         skin_names.append(obj.name)
+    anatomy_count = len(coords) // 3
+    if anatomy_count == 0:
+        raise RuntimeError("Accepted Wren anatomical skin mesh is empty")
 
-    # Use the anatomical skin as the nearest-region reference for detail meshes
-    # and accessories which do not carry skinning weights.
-    skin_count = len(coords) // 3
-    tree = KDTree(skin_count)
-    for i in range(skin_count):
+    # Use the weighted anatomical skin as the nearest-region reference for
+    # detail meshes and accessories which do not carry reliable skin weights.
+    tree = KDTree(anatomy_count)
+    for i in range(anatomy_count):
         tree.insert(Vector((coords[i * 3], coords[i * 3 + 1], coords[i * 3 + 2])), i)
     tree.balance()
+    anatomy_regions = list(regions)
+    detail_objects = [o for o in skin_objects if o not in anatomy_objects]
+    for obj in detail_objects:
+        add_mesh(obj, coords, normals, regions, face_sizes, face_verts,
+                 nearest_tree=tree, nearest_regions=anatomy_regions)
+        skin_names.append(obj.name)
+    skin_count = len(coords) // 3
     skin_regions = list(regions)
 
     piercing_names = []
