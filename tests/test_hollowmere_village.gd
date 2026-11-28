@@ -5,6 +5,7 @@ const WORLD_SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement
 const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
 const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
 const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
 const HOLLOWMERE_BUILDINGS = preload("res://data/settlements/hollowmere/buildings.gd")
@@ -42,6 +43,7 @@ func _initialize() -> void:
 	_test_main_campaign_world_map()
 	_test_road_network_connectivity()
 	_test_building_thresholds()
+	_test_tavern_door_contract()
 	_test_building_definitions_use_shared_factory()
 	_test_hollowmere_character_manifest()
 	_test_animal_actor_registration()
@@ -153,6 +155,55 @@ func _test_building_definitions_use_shared_factory() -> void:
 	assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") != null, "The store sign should remain a separate add-on feature")
 	assert(village.get_node_or_null("Chapel/ChapelBellTowerPresentation/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
 	village.free()
+func _test_tavern_door_contract() -> void:
+	var door_definition: Dictionary = HOLLOW_TANKARD_LAYOUT.LOGICAL_DEFINITION.get("door", {})
+	assert(HOLLOW_TANKARD_LAYOUT.DOOR_HEX == Vector2i(0, 4), "The Tankard door must use the source-authored (0,4) hex")
+	assert(door_definition.get("hex", Vector2i.ZERO) == Vector2i(0, 4), "The registered door must use the same source-authored hex")
+	assert(String(door_definition.get("id", "")) == HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID, "The logical door ID must match the presentation layout")
+	assert(not bool(door_definition.get("starts_open", true)), "The Tankard door must start closed for the opening scene")
+	assert(bool(door_definition.get("starts_locked", false)), "The Tankard door must start locked until the soldiers enter")
+
+	var door_state := BuildingDoorState.new()
+	door_state.configure(
+		String(door_definition.get("id", "")),
+		String(door_definition.get("building_id", "")),
+		Vector2i(door_definition.get("hex", Vector2i.ZERO)),
+		bool(door_definition.get("starts_open", true)),
+		bool(door_definition.get("starts_locked", false)),
+		int(door_definition.get("durability", 20))
+	)
+	assert(not door_state.is_passable() and door_state.locked, "The opening door must initially block movement")
+	assert(door_state.unlock() and door_state.open(), "The soldiers must be able to unlock and open the door")
+	assert(door_state.is_passable(), "The opening door must become traversable for the soldiers")
+	assert(door_state.close() and not door_state.is_passable(), "The soldiers should be able to close the door behind them")
+	assert(not door_state.locked and door_state.open(), "The closed door must remain unlocked so the player can leave")
+
+	var file := FileAccess.open("res://data/world/campaign2_multistory_locations.json", FileAccess.READ)
+	assert(file != null, "The shared location manifest must exist")
+	var manifest: Variant = JSON.parse_string(file.get_as_text())
+	assert(manifest is Dictionary, "The shared location manifest must be valid JSON")
+	var tavern: Dictionary = {}
+	for location in manifest.get("locations", []):
+		if location is Dictionary and String(location.get("id", "")) == "hollowmere_tavern":
+			tavern = location
+			break
+	assert(not tavern.is_empty(), "The Hollow Tankard must remain in the authored location catalogue")
+	assert(not tavern.has("exterior_entry"), "The Tankard is a continuous-world starting building, not a separate teleported interior")
+	var floor_zero: Dictionary = {}
+	for floor_data in tavern.get("floors", []):
+		if floor_data is Dictionary and int(floor_data.get("floor", 999999)) == 0:
+			floor_zero = floor_data
+			break
+	var manifest_door: Dictionary = {}
+	for tile_object in floor_zero.get("tile_objects", []):
+		if tile_object is Dictionary and String(tile_object.get("id", "")) == HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID:
+			manifest_door = tile_object
+			break
+	assert(not manifest_door.is_empty(), "The shared manifest must use the same Tankard door ID as the live building")
+	assert(manifest_door.get("position", {}) == {"q": 0, "r": 4}, "The manifest door coordinate must match the continuous-world layout")
+	assert(String(manifest_door.get("type", "")) == "door_closed" and bool(manifest_door.get("locked", false)), "The manifest must preserve the opening door's initial locked state")
+
+
 func _test_building_thresholds() -> void:
 	assert(_is_blocked(Vector2i(0, 18)), "General-store footprint should block movement")
 	assert(_is_blocked(Vector2i(-14, 0)), "Chapel footprint should block movement")
