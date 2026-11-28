@@ -41,6 +41,16 @@ func _run() -> void:
 		push_error("Wren GLB contains no MeshInstance3D nodes")
 		quit(1)
 		return
+	var bikini_meshes := mesh_instances.filter(func(item: MeshInstance3D) -> bool: return item.name.to_lower().contains("bikini"))
+	if bikini_meshes.is_empty():
+		push_error("Accepted Wren GLB is missing the locally generated Ara bikini mesh")
+		quit(1)
+		return
+	for bikini in bikini_meshes:
+		if bikini.mesh.get_surface_count() == 0:
+			push_error("Ara bikini mesh has no rendered surfaces")
+			quit(1)
+			return
 
 	var report := _build_mesh_report()
 	print("WREN_GODOT_MESH_REPORT " + JSON.stringify(report))
@@ -61,7 +71,8 @@ func _run() -> void:
 		"side": {"target": Vector3(0.0, 0.84, 0.0), "offset": Vector3(4.2, 0.0, 0.0), "size": 1.95},
 		"threequarter": {"target": Vector3(0.0, 0.84, 0.0), "offset": Vector3(3.2, 0.0, 3.2), "size": 1.95},
 		"face": {"target": Vector3(0.0, 1.54, 0.0), "offset": Vector3(0.0, 0.0, 2.1), "size": 0.62},
-		"pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, 1.45), "size": 0.54},\n\t\t"pelvis_back": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, -1.45), "size": 0.54}
+		"pelvis": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, 1.45), "size": 0.54},
+		"pelvis_back": {"target": Vector3(0.0, 0.80, 0.0), "offset": Vector3(0.0, 0.0, -1.45), "size": 0.54}
 	}
 
 	for view_name in views:
@@ -90,7 +101,8 @@ func _run() -> void:
 		push_error("Could not write Wren render report")
 		quit(1)
 		return
-	report["views"] = ["front", "side", "threequarter", "face", "pelvis", "pelvis_back"]\n\treport["ara_bikini_meshes"] = bikini_meshes.map(func(item: MeshInstance3D) -> String: return str(item.name))
+	report["views"] = ["front", "side", "threequarter", "face", "pelvis", "pelvis_back"]
+	report["ara_bikini_meshes"] = bikini_meshes.map(func(item: MeshInstance3D) -> String: return str(item.name))
 	report_file.store_string(JSON.stringify(report, "\t") + "\n")
 	report_file.close()
 
