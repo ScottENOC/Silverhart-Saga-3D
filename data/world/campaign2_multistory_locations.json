@@ -5117,6 +5117,11 @@
         "r": -507
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_north_cottage_one_east_door",
+        "exterior_hex": { "q": 38, "r": -507 },
+        "return_hex": { "q": 38, "r": -507 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -5167,6 +5172,11 @@
         "r": -513
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_north_cottage_two_east_door",
+        "exterior_hex": { "q": 38, "r": -513 },
+        "return_hex": { "q": 38, "r": -513 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -5217,6 +5227,11 @@
         "r": -519
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_north_cottage_three_east_door",
+        "exterior_hex": { "q": 38, "r": -519 },
+        "return_hex": { "q": 38, "r": -519 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -5267,6 +5282,11 @@
         "r": -479
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_east_house_one_east_door",
+        "exterior_hex": { "q": 29, "r": -479 },
+        "return_hex": { "q": 29, "r": -479 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -5318,6 +5338,11 @@
         "r": -480
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_east_house_two_east_door",
+        "exterior_hex": { "q": 35, "r": -480 },
+        "return_hex": { "q": 35, "r": -480 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -5369,6 +5394,11 @@
         "r": -470
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_east_house_three_east_door",
+        "exterior_hex": { "q": 25, "r": -470 },
+        "return_hex": { "q": 25, "r": -470 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -5420,6 +5450,11 @@
         "r": -471
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Silverhart residence interior",
+      "exterior_entry": {
+        "door_id": "silverhart_east_house_four_east_door",
+        "exterior_hex": { "q": 28, "r": -471 },
+        "return_hex": { "q": 28, "r": -471 }
+      },
       "floors": [
         {
           "floor": 0,
@@ -6153,6 +6188,11 @@
         "r": -492
       },
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace builderHouseCorners, builderHouseDoor and builderHouseSouthDoor; flood-filled polygon room",
+      "exterior_entry": {
+        "door_id": "silverhart_builder_house_south_door",
+        "exterior_hex": { "q": 38, "r": -485 },
+        "return_hex": { "q": 38, "r": -485 }
+      },
       "floors": [
         {
           "floor": 0,
