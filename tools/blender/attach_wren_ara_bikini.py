@@ -159,7 +159,35 @@ def main():
     for poly in mesh.polygons:
         poly.use_smooth = True
 
+    # Wren's accepted anatomy extends farther down than Ara's morph-only base.
+    # Preserve Ara's original cast/topology, then lengthen only the front panel
+    # along its own vertical axis before projecting it against the accepted skin.
+    panel_material = material_index.get("Bikini_bottom_3")
+    if panel_material is None:
+        raise RuntimeError("Ara bikini bottom panel material is missing")
+    front_panel_vertices = set()
+    for poly in mesh.polygons:
+        if poly.material_index == panel_material:
+            for index in poly.vertices:
+                if mesh.vertices[index].co.y < -0.015:
+                    front_panel_vertices.add(index)
+    if not front_panel_vertices:
+        raise RuntimeError("Could not isolate the Ara front bikini panel in Wren coordinates")
+    front_z = [mesh.vertices[index].co.z for index in front_panel_vertices]
+    front_z_min, front_z_max = min(front_z), max(front_z)
+    front_panel_extension_m = 0.035
+    front_panel_width_scale = 1.12
+    for index in front_panel_vertices:
+        vertex = mesh.vertices[index]
+        t = (front_z_max - vertex.co.z) / max(front_z_max - front_z_min, 1e-6)
+        vertex.co.z -= front_panel_extension_m * t
+        vertex.co.x *= 1.0 + (front_panel_width_scale - 1.0) * t
+    mesh.update()
+
     # Ara's default 3 mm lift fits the morph-generated base body. Wren's
+    # accepted GLB also contains the repository's later anatomy sculpt, so
+    # project only garment vertices that still sit inside that actual skin.
+ Wren's
     # accepted GLB also contains the repository's later anatomy sculpt, so
     # project only garment vertices that still sit inside that actual skin.
     # This is a garment-only surface correction; the accepted body is read-only.
@@ -251,6 +279,8 @@ def main():
         "garment_vertices_corrected_to_accepted_skin": corrected_vertices,
         "garment_surface_correction_mean_mm": (total_correction / corrected_vertices * 1000.0) if corrected_vertices else 0.0,
         "garment_surface_correction_max_mm": max_correction * 1000.0,
+        "wren_front_panel_extension_mm": front_panel_extension_m * 1000.0,
+        "wren_front_panel_width_scale": front_panel_width_scale,
         "garment_vertices_corrected_over_30mm": corrections_over_30mm,
         "accepted_skin_clearance_mm": clearance * 1000.0,
         "body_meshes_modified": False,
