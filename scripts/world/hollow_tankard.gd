@@ -2505,6 +2505,34 @@ func _check_farm_wolf_proximity() -> void:
 		_start_farm_wolf_encounter()
 
 
+func _restore_farm_wolf_actor_presentations() -> void:
+	## Farm wolves are runtime-created combatants, not part of the static NPC
+	## roster. Rebuild their visible actors after loading saved character states.
+	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
+		var wolf_state := simulation.get_character(wolf_id)
+		var existing_actor := actor_by_id.get(wolf_id) as Node3D
+		if wolf_state == null or not wolf_state.can_act():
+			if is_instance_valid(existing_actor):
+				existing_actor.queue_free()
+			actor_by_id.erase(wolf_id)
+			continue
+		if is_instance_valid(existing_actor):
+			existing_actor.position = _hex_world_position(wolf_state.axial)
+			continue
+		var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+		actor.name = wolf_id
+		actor.creature_kind = "wolf"
+		actor.behaviour = "predator"
+		actor.model_scale = 0.76
+		actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+		actor.position = _hex_world_position(wolf_state.axial)
+		actor.set_meta("character_id", wolf_id)
+		actor.set_meta("ambient_enabled", false)
+		actor.set_meta("farm_quest_wolf", true)
+		add_child(actor)
+		actor_by_id[wolf_id] = actor
+
+
 func _start_farm_wolf_encounter() -> void:
 	if simulation.is_in_combat or farm_wolves_spawned and _farm_wolves_remaining() == 0:
 		return
