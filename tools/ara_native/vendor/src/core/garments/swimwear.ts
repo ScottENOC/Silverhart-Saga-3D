@@ -23,10 +23,11 @@ function faceOffsets(sizes: Uint8Array): Uint32Array {
 function swimMat(g: GCtx, name: string, st: GarmentStyle): Material {
   const tex = g.texture(`${st.pattern}_${st.color}_${st.color2}`, () => makePattern(st.pattern, st.color, st.color2));
   const foil = st.pattern === 'foil';
-  return mat(name, tex, { roughness: foil ? 0.32 : 0.45, metalness: foil ? 0.7 : 0 });
+  const roughness = foil ? 0.32 : st.pattern === 'satin' ? 0.48 : 0.82;
+  return mat(name, tex, { roughness, metalness: foil ? 0.7 : 0 });
 }
 
-const stringMat = (st: GarmentStyle): Material => mat('Bikini strings', null, { color: st.color, roughness: 0.35, metalness: st.pattern === 'foil' ? 0.6 : 0 });
+const stringMat = (st: GarmentStyle): Material => mat('Bikini strings', null, { color: st.color, roughness: st.pattern === 'foil' ? 0.38 : 0.78, metalness: st.pattern === 'foil' ? 0.6 : 0 });
 
 /** Trunk and neck vertices with their normals: the skin strings are laid on. */
 interface Skin {
@@ -235,7 +236,7 @@ function inTriangle(c: Cup, x: number, y: number, margin: number): boolean {
   return true;
 }
 
-function cupGrid(cast: RadialCaster, c: Cup, centreZ: number, nipZ: number, under: Set<number>, rows = 24, cols = 22): Vec3[][] | null {
+function cupGrid(cast: RadialCaster, c: Cup, centreZ: number, nipZ: number, under: Set<number>, piercingCast: RadialCaster | null, diagnostics: { piercingSamples: number }, rows = 24, cols = 22): Vec3[][] | null {
   const o = cupOrigin(c, centreZ);
   const grid: Vec3[][] = [];
   for (let i = 0; i < rows; i++) {
@@ -248,11 +249,18 @@ function cupGrid(cast: RadialCaster, c: Cup, centreZ: number, nipZ: number, unde
       // Slightly convex sides (a cup, not a flat triangle).
       const bulge = cm(0.8) * Math.sin(Math.PI * v) * (u - 0.5) * 2;
       const x = c.side * (bx + (c.apex[0] - bx) * v + bulge), y = by + (c.apex[1] - by) * v;
-      const h = cast.hit(o, v3.norm([x - o[0], y - o[1], nipZ - o[2]]));
+      const direction = v3.norm([x - o[0], y - o[1], nipZ - o[2]]);
+      const h = cast.hit(o, direction);
       if (!h) return null;
+      // Explicitly resolve the piercing mesh separately. The main body caster can sample between
+      // thin bar/bead triangles; this second pass guarantees a fabric point clears the full bar
+      // wherever a cup ray intersects it.
+      const piercing = piercingCast?.hit(o, direction) ?? null;
+      const surface = piercing ?? h;
+      if (piercing) diagnostics.piercingSamples++;
       // Faces well inside the cup (two rows / columns in from its edges) may hide their skin.
-      if (i >= 2 && i < rows - 2 && j >= 2 && j < cols - 2) under.add(h.face);
-      row.push(h.p);
+      if (i >= 2 && i < rows - 2 && j >= 2 && j < cols - 2) under.add(surface.face);
+      row.push(piercing ? v3.madd(piercing.p, piercing.n, cm(0.8)) : h.p);
     }
     grid.push(row);
   }
@@ -282,10 +290,15 @@ function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {
   // away (the outer edge) and in to the cleavage, then size the triangle around those.
   for (const c of cs) fitCup(cast, c);
   const radial = new RadialCaster(b, g.faceVerts, chestFaces(g), b.faceSizes);
+  const piercingRadial = g.piercingFaces?.size
+    ? new RadialCaster(b, g.faceVerts, (f) => g.piercingFaces!.has(f), b.faceSizes)
+    : null;
+  const piercingDiagnostics = { piercingSamples: 0 };
   const under = new Set<number>();
   const centreZ = b.L.torsoZ - cm(2);
   const nipZ = cs.map((c) => cast.hit(c.side * c.nipple[0], c.nipple[1])?.p[2]);
-  const grids = cs.map((c, k) => (nipZ[k] !== undefined ? cupGrid(radial, c, centreZ, nipZ[k]!, under) : null));
+  const grids = cs.map((c, k) => (nipZ[k] !== undefined ? cupGrid(radial, c, centreZ, nipZ[k]!, under, piercingRadial, piercingDiagnostics) : null));
+  if (g.diagnostics) g.diagnostics.piercingClearance = { samples: piercingDiagnostics.piercingSamples, clearanceCm: 0.8 };
   // Skin is hidden only where the cup surely covers it: faces under its interior whose corners all
   // project (radially, as the cup was cast) to 1.2 cm or more inside its triangle.
   const insideCup = (p: Vec3) =>
@@ -390,7 +403,7 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
     let accepted = 0;
     for (let k = 0; k < size; k++) {
       const v = b.info[g.faceVerts[start + k]];
-      if (isTrunk(v) || (v.region === REGION.upperleg && v.t < 0.15)) accepted++;
+      if (isTrunk(v) || (v.region === REGION.upperleg && v.t < 0.28)) accepted++;
     }
     return accepted >= Math.ceil(size / 2);
   };
@@ -420,6 +433,7 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
     const under = new Caster(b, g.faceVerts, keep, 'below', b.faceSizes);
     const K = 8;
     const gusset: Vec3[][] = [];
+    let gussetRaySamples = 0, gussetRayMisses = 0;
     for (let k = 0; k <= K; k++) {
       const t = k / K;
       gusset.push(front[0].map((fp, j) => {
@@ -427,7 +441,9 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
         if (k === 0) return fp;
         if (k === K) return bp;
         const x = fp[0] + (bp[0] - fp[0]) * t, z = fp[2] + (bp[2] - fp[2]) * t;
+        gussetRaySamples++;
         const h = under.hit(x, z);
+        if (!h) gussetRayMisses++;
         return h ? h.p : [x, fp[1] + (bp[1] - fp[1]) * t, z];
       }));
     }
@@ -440,6 +456,10 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
       const top = isBack ? yBack : yFront;
       const vv = clamp((p[1] - yLow) / (top - yLow), 0, 1);
       return p[1] < top - cm(1) && Math.abs(p[0]) < (isBack ? hwBack(vv) : hwFront(vv)) - cm(1);
+    };
+    if (g.diagnostics) g.diagnostics.gussetProjection = {
+      raySamples: gussetRaySamples, rayMisses: gussetRayMisses,
+      missRate: gussetRaySamples ? gussetRayMisses / gussetRaySamples : 0,
     };
     parts.push({ mesh: merge(meshes)!, material: m, hides: fullyCovered(g, inside) });
     // Piping round the leg openings and the top edges.
