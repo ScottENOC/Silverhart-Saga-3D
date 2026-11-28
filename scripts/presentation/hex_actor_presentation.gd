@@ -6,15 +6,20 @@ extends Node3D
 var movement_tween: Tween
 
 
-func present_move_to(world_position: Vector3, facing_rotation: float = NAN) -> void:
+func present_move_to(
+	world_position: Vector3,
+	facing_rotation: float = NAN,
+	duration_override: float = -1.0
+) -> void:
 	if movement_tween != null and movement_tween.is_running():
 		movement_tween.kill()
 
+	var duration := movement_duration if duration_override <= 0.0 else maxf(0.01, duration_override)
 	_set_locomotion(true)
 	movement_tween = create_tween()
 	movement_tween.set_trans(Tween.TRANS_SINE)
 	movement_tween.set_ease(Tween.EASE_IN_OUT)
-	movement_tween.tween_property(self, "global_position", world_position, movement_duration)
+	movement_tween.tween_property(self, "global_position", world_position, duration)
 
 	if not is_nan(facing_rotation):
 		var shortest_turn := wrapf(facing_rotation - global_rotation.y, -PI, PI)
@@ -22,7 +27,7 @@ func present_move_to(world_position: Vector3, facing_rotation: float = NAN) -> v
 			self,
 			"global_rotation:y",
 			global_rotation.y + shortest_turn,
-			minf(0.16, movement_duration * 0.6)
+			minf(0.16, duration * 0.6)
 		)
 
 	movement_tween.tween_callback(_finish_locomotion)
