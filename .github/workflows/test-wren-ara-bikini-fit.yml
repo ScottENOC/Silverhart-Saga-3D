@@ -92,5 +92,6 @@ jobs:
             build/wren-native/Ara_Body_Only_Reference.glb
             build/wren-native/Ara_Method_Bikini_Bottom.glb
             build/wren-native/ara-method-bikini-report.json
+            build/wren-native/preview/
           if-no-files-found: error
           retention-days: 30
