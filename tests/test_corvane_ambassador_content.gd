@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CORVANE_CONTENT = preload("res://scripts/simulation/corvane_ambassador_content.gd")
+const GOBLIN_THREAT_CONTENT = preload("res://scripts/simulation/goblin_threat_campaign_content.gd")
 
 var _failures: int = 0
 
@@ -41,7 +42,7 @@ func _test_border_report_gates_and_rewards() -> void:
 	_check(player.gold == 5)
 	_check(player.experience == 25)
 
-	var goblin_content := GoblinThreatCampaignContent.new()
+	var goblin_content = GOBLIN_THREAT_CONTENT.new()
 	var goblin_started := goblin_content.begin_favour_negotiation(journal)
 	_check(bool(goblin_started.get("ok", false)))
 	var resolved := goblin_content.resolve_threat(journal, "assault")
