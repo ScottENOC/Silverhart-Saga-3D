@@ -223,6 +223,60 @@ export class RadialCaster {
     }
   }
 
+  /** Closest point on this surface to a garment sample, used for local accessory clearance. */
+  nearest(point: Vec3): { p: Vec3; n: Vec3; distance: number; face: number } | null {
+    const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    let best: { p: Vec3; n: Vec3; distance: number; face: number } | null = null;
+    for (const [a, b, c, face] of this.tris) {
+      const ab = sub(b, a), ac = sub(c, a), ap = sub(point, a);
+      const d1 = dot(ab, ap), d2 = dot(ac, ap);
+      let q: Vec3;
+      if (d1 <= 0 && d2 <= 0) q = a;
+      else {
+        const bp = sub(point, b), d3 = dot(ab, bp), d4 = dot(ac, bp);
+        if (d3 >= 0 && d4 <= d3) q = b;
+        else {
+          const vc = d1 * d4 - d3 * d2;
+          if (vc <= 0 && d1 >= 0 && d3 <= 0) {
+            const v = d1 / (d1 - d3);
+            q = [a[0] + ab[0] * v, a[1] + ab[1] * v, a[2] + ab[2] * v];
+          } else {
+            const cp = sub(point, c), d5 = dot(ab, cp), d6 = dot(ac, cp);
+            if (d6 >= 0 && d5 <= d6) q = c;
+            else {
+              const vb = d5 * d2 - d1 * d6;
+              if (vb <= 0 && d2 >= 0 && d6 <= 0) {
+                const w = d2 / (d2 - d6);
+                q = [a[0] + ac[0] * w, a[1] + ac[1] * w, a[2] + ac[2] * w];
+              } else {
+                const va = d3 * d6 - d5 * d4;
+                if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
+                  const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                  q = [b[0] + (c[0] - b[0]) * w, b[1] + (c[1] - b[1]) * w, b[2] + (c[2] - b[2]) * w];
+                } else {
+                  const denom = 1 / (va + vb + vc);
+                  const v = vb * denom, w = vc * denom;
+                  q = [a[0] + ab[0] * v + ac[0] * w, a[1] + ab[1] * v + ac[1] * w, a[2] + ab[2] * v + ac[2] * w];
+                }
+              }
+            }
+          }
+        }
+      }
+      const delta = sub(point, q), distance = Math.hypot(...delta);
+      if (best && distance >= best.distance) continue;
+      const e1 = sub(b, a), e2 = sub(c, a);
+      let n: Vec3 = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+      const len = Math.hypot(...n) || 1;
+      n = [n[0] / len, n[1] / len, n[2] / len];
+      // Wren faces +Z in Ara coordinates; orient the clearance normal to the garment side.
+      if (n[2] < 0) n = [-n[0], -n[1], -n[2]];
+      best = { p: q, n, distance, face };
+    }
+    return best;
+  }
+
   /** The farthest surface along the ray from `o` in direction `d` (the outer skin): point, normal and body face. */
   hit(o: Vec3, d: Vec3): { p: Vec3; n: Vec3; face: number } | null {
     let best: { p: Vec3; n: Vec3; face: number } | null = null, bestT = 0;
