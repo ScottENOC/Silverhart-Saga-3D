@@ -1658,17 +1658,15 @@ func _interact_with_character(character_id: String) -> void:
 	if character_id == TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID:
 		_begin_toll_taker_encounter()
 		return
-	if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
-		if not REYNA_RESCUE_SERVICE.objective_complete(simulation, "child_rescued"): 
-			_show_dialogue("Dire wolf", "The dire wolf circles the shepherd's shelter. You cannot safely engage it while Tessa is still inside.", [{"id":"continue","label":"Understood","text":""}])
-			return
-		_begin_dire_wolf_hunt_combat()
-		return
-	if character_id == "missing_child_tessa":
-		if REYNA_RESCUE_SERVICE.objective_complete(simulation, "child_rescued"):
-			_show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}], "smile")
-		else:
-			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}], "afraid")
+	if character_id in [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID, REYNA_RESCUE_SERVICE.CHILD_ID]:
+		var interaction: Dictionary = REYNA_RESCUE_SERVICE.interaction_for_character(simulation, character_id)
+		match String(interaction.get("action", "")):
+			"block_hunt":
+				_show_dialogue(String(interaction.get("speaker", "Dire wolf")), String(interaction.get("text", "")), interaction.get("choices", []))
+			"start_hunt":
+				_begin_dire_wolf_hunt_combat()
+			"speak":
+				_show_dialogue(String(interaction.get("speaker", target_state.display_name)), String(interaction.get("text", "")), interaction.get("choices", []), String(interaction.get("expression", "")))
 		return
 	if character_id in ["companion_wren_talbot", "wren_talbot"]:
 		_show_wren_dialogue()
