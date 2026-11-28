@@ -166,7 +166,7 @@ func _test_building_definitions_use_shared_factory() -> void:
 		if building_id == "old_mac_barn":
 			assert(node.find_child("DoorLeaf_Left", true, false) != null and node.find_child("DoorLeaf_Right", true, false) != null, "The barn should use the shared double-door feature")
 		constructed += 1
-	assert(constructed == 7, "All village and farm buildings should use the shared factory")
+	assert(constructed == 8, "All village and farm buildings should use the shared factory")
 	assert(parent.get_child_count() == constructed, "Each authored definition should create exactly one building root")
 	parent.free()
 
