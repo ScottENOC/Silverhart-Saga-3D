@@ -50,6 +50,16 @@ func _run() -> void:
 	_assert_exterior_entry_round_trip("reddale_inn", "reddale_inn_entry_player", Vector2i(138, 27), Vector2i(138, 28), "reddale_inn_door", "Reddale Inn")
 	# The Wizard Tower apron and courtyard connection are explicitly painted by buildSilverhartPalace.
 	_assert_exterior_entry_round_trip("silverhart_palace_wizard_tower", "wizard_tower_entry_player", Vector2i(-7, -485), Vector2i(-7, -484), "wizard_tower_door", "Silverhart Wizard Tower")
+	# Silverhart's cottages and east-quarter houses each paint a Path hex directly beyond their east door.
+	_assert_exterior_entry_round_trip("silverhart_north_cottage_one", "silverhart_house_entry_1", Vector2i(38, -507), Vector2i(37, -507), "silverhart_north_cottage_one_east_door", "North Cottage 1")
+	_assert_exterior_entry_round_trip("silverhart_north_cottage_two", "silverhart_house_entry_2", Vector2i(38, -513), Vector2i(37, -513), "silverhart_north_cottage_two_east_door", "North Cottage 2")
+	_assert_exterior_entry_round_trip("silverhart_north_cottage_three", "silverhart_house_entry_3", Vector2i(38, -519), Vector2i(37, -519), "silverhart_north_cottage_three_east_door", "North Cottage 3")
+	_assert_exterior_entry_round_trip("silverhart_east_house_one", "silverhart_house_entry_4", Vector2i(29, -479), Vector2i(28, -479), "silverhart_east_house_one_east_door", "East Quarter House 1")
+	_assert_exterior_entry_round_trip("silverhart_east_house_two", "silverhart_house_entry_5", Vector2i(35, -480), Vector2i(34, -480), "silverhart_east_house_two_east_door", "East Quarter House 2")
+	_assert_exterior_entry_round_trip("silverhart_east_house_three", "silverhart_house_entry_6", Vector2i(25, -470), Vector2i(24, -470), "silverhart_east_house_three_east_door", "East Quarter House 3")
+	_assert_exterior_entry_round_trip("silverhart_east_house_four", "silverhart_house_entry_7", Vector2i(28, -471), Vector2i(27, -471), "silverhart_east_house_four_east_door", "East Quarter House 4")
+	# Hallis's south door has an explicitly painted apron at (38, -485); use it rather than the west door, whose approach is not the source-authored path for this contract.
+	_assert_exterior_entry_round_trip("silverhart_builder_house", "hallis_house_entry_player", Vector2i(38, -485), Vector2i(38, -486), "silverhart_builder_house_south_door", "Master Builder Hallis's House")
 
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
