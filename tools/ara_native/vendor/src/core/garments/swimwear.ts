@@ -13,10 +13,10 @@ import { cord, ellipsoid, frameOf, hullRing, merge, v3 } from './ring';
 import { makePattern } from './textures';
 
 /** Starting vertex offset of a polygon in a flattened face-vertex array. */
-function faceStart(sizes: Uint8Array, face: number): number {
-  let offset = 0;
-  for (let i = 0; i < face; i++) offset += sizes[i];
-  return offset;
+function faceOffsets(sizes: Uint8Array): Uint32Array {
+  const offsets = new Uint32Array(sizes.length);
+  for (let i = 1; i < sizes.length; i++) offsets[i] = offsets[i - 1] + sizes[i - 1];
+  return offsets;
 }
 
 /** Shiny swim fabric (metallic for foil). */
@@ -155,14 +155,17 @@ function cups(b: Body): Cup[] {
  * Upper-body faces for casting the cups onto: the trunk plus the neck and shoulder regions (the
  * base mesh's weight-based regions label parts of the upper chest as neck or upper arm).
  */
-const chestFaces = (g: GCtx) => (f: number) => {
-  const b = g.body, start = faceStart(b.faceSizes, f), size = b.faceSizes[f];
+const chestFaces = (g: GCtx) => {
+  const b = g.body, offsets = faceOffsets(b.faceSizes);
+  return (f: number) => {
+  const start = offsets[f], size = b.faceSizes[f];
   let accepted = 0;
   for (let k = 0; k < size; k++) {
     const v = b.info[g.faceVerts[start + k]];
     if (isTrunk(v) || v.region === REGION.neck || (v.region === REGION.upperarm && v.t < 0.12)) accepted++;
   }
   return accepted >= Math.ceil(size / 2);
+  };
 };
 
 /**
@@ -295,8 +298,9 @@ function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {
       return inTriangle(c, x, y, cm(1.2));
     });
   const hides = new Uint8Array(b.faceSizes.length);
+  const offsets = faceOffsets(b.faceSizes);
   for (const f of under) {
-    const start = faceStart(b.faceSizes, f);
+    const start = offsets[f];
     let ok = true;
     for (let k = 0; k < b.faceSizes[f] && ok; k++) ok = insideCup(b.p(g.faceVerts[start + k]));
     if (ok) hides[f] = 1;
@@ -380,8 +384,9 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
   const hwFront = (v: number) => cm(1.8) + cm(9.5) * v ** 1.25;
   const hwBack = (v: number) => cm(2) + cm(11) * v ** 0.7;
   const topFront = (u: number) => yFront + cm(1.2) * u * u, topBack = (u: number) => yBack + cm(1.8) * u * u;
+  const offsets = faceOffsets(b.faceSizes);
   const keep = (f: number) => {
-    const start = faceStart(b.faceSizes, f), size = b.faceSizes[f];
+    const start = offsets[f], size = b.faceSizes[f];
     let accepted = 0;
     for (let k = 0; k < size; k++) {
       const v = b.info[g.faceVerts[start + k]];
