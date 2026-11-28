@@ -11,6 +11,7 @@ func _initialize() -> void:
 	_test_wizard_vendetta_consequences()
 	_test_ilsa_watch_captain_reflections()
 	_test_seraphine_campaign_dialogue()
+	_test_seraphine_greeting_uses_simulation_state()
 	if _failures > 0:
 		push_error("%d persistent NPC dialogue assertion(s) failed." % _failures)
 		quit(1)
@@ -167,6 +168,22 @@ func _test_seraphine_campaign_dialogue() -> void:
 		simulation, "not_seraphine", {}, PersistentCharacterRelationshipState.new(), "player"
 	)
 	_check(not bool(unrelated.get("handled", true)), "Unrelated dialogue choices should be left to their own handler.")
+	simulation.free()
+
+
+func _test_seraphine_greeting_uses_simulation_state() -> void:
+	var simulation := WorldSimulation.new()
+	simulation.campaign_journal.adjust_faction_standing("silverhart_kingdom", 65, "test_queen_greeting")
+	simulation.campaign_journal.adjust_faction_standing("goblin_tribe", 35, "test_queen_greeting")
+	simulation.campaign_journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", 70, "test_queen_greeting")
+	var relationships := PersistentCharacterRelationshipState.new()
+	var content := PersistentCharacterDialogueContent.new()
+	var greeting := content.seraphine_greeting_from_simulation(simulation, relationships)
+	_check(bool(greeting.get("ok", false)), "The streamed Queen greeting should resolve from simulation state.")
+	_check(String(greeting.get("text", "")).contains("crown remembers"), "Royal standing should select the authored high-standing greeting.")
+	var choices: Array = greeting.get("choices", [])
+	_check(choices.any(func(choice: Dictionary) -> bool: return String(choice.get("id", "")) == "seraphine_topic_greenskins"))
+	_check(choices.any(func(choice: Dictionary) -> bool: return String(choice.get("id", "")) == "seraphine_topic_ironbond"))
 	simulation.free()
 
 
