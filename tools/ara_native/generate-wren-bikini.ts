@@ -51,7 +51,7 @@ const weights = targetWeights(params, sliders);
 const coords = applyTargets(lib, weights);
 const faceVerts = lib.base.arrays.faceVerts as Uint32Array;
 const faceSizes = new Uint8Array(faceVerts.length / 4).fill(4);
-const normals = vertexNormals({ positions: coords, faceSizes, faceVerts, faceUVs: new Uint32Array(faceVerts.length), uvs: new Float32Array() });
+const normals = vertexNormals({ positions: coords, faceSizes, faceVerts, faceUVs: lib.base.arrays.faceUVs as Uint32Array, uvs: lib.base.arrays.uvs as Float32Array });
 const regions = lib.base.arrays.regions as Uint8Array;
 const body = makeBody(coords, normals, regions, lib.base.meta.joints);
 const generatedTextures = new Map<string, Uint8Array>();
@@ -79,7 +79,7 @@ if (parts.length < 3) throw new Error("Ara returned too few garment parts; expec
 const materials = new Map<string, any>();
 const obj: string[] = ["# Ara 3D Gen bikini source port", "mtllib Wren_Ara_Bikini.mtl"];
 const mtl: string[] = [];
-let vertexOffset = 0, uvOffset = 0;
+const minY = Math.min(...Array.from({ length: coords.length / 3 }, (_, i) => coords[i * 3 + 1]));\nlet vertexOffset = 0, uvOffset = 0;
 const partReport: any[] = [];
 for (let pi = 0; pi < parts.length; pi++) {
   const part: any = parts[pi], mesh = part.mesh, mat = part.material;
@@ -87,7 +87,7 @@ for (let pi = 0; pi < parts.length; pi++) {
   const materialName = String(mat.name || "AraGarment").replace(/[^A-Za-z0-9_]/g, "_") + "_" + pi;
   obj.push("o " + part.sourceGarment + "_" + pi, "usemtl " + materialName);
   for (let i = 0; i < mesh.positions.length; i += 3)
-    obj.push("v " + (mesh.positions[i] * 0.1) + " " + (mesh.positions[i + 1] * 0.1) + " " + (mesh.positions[i + 2] * 0.1));
+    obj.push("v " + (mesh.positions[i] * 0.1) + " " + ((mesh.positions[i + 1] - minY) * 0.1) + " " + (mesh.positions[i + 2] * 0.1));
   for (let i = 0; i < mesh.uvs.length; i += 2) obj.push("vt " + mesh.uvs[i] + " " + (1 - mesh.uvs[i + 1]));
   let corner = 0;
   for (const size of mesh.faceSizes) {
