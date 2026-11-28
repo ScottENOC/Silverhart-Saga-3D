@@ -2104,6 +2104,15 @@ func _move_shakedown_soldiers_outside() -> void:
 
 
 func _move_shakedown_soldiers_inside() -> void:
+	# The source opening has the soldiers open the locked front door, enter on
+	# foot, then close it behind them. Unlocking is permanent so the player can
+	# open it from inside and leave after the encounter.
+	var tavern_door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
+	if tavern_door != null:
+		if tavern_door.locked:
+			simulation.building_registry.unlock_door(TAVERN_FRONT_DOOR_ID)
+		if not tavern_door.is_passable():
+			simulation.building_registry.set_door_open(TAVERN_FRONT_DOOR_ID, true)
 	for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
 		var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
 		var best_path: Array[Vector2i] = []
@@ -2121,6 +2130,10 @@ func _move_shakedown_soldiers_inside() -> void:
 			await get_tree().create_timer(0.24).timeout
 			if not is_instance_valid(self):
 				return
+	# Re-close the door once the soldiers have passed through. It stays
+	# unlocked, matching the source behaviour that lets the player leave later.
+	if tavern_door != null and tavern_door.is_passable() and not simulation.is_hex_occupied(tavern_door.hex):
+		simulation.building_registry.set_door_open(TAVERN_FRONT_DOOR_ID, false)
 
 
 func _show_speech_bubble(character_id: String, text: String) -> Dictionary:
