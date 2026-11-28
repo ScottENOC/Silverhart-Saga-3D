@@ -1,13 +1,15 @@
-name: Reconstruct Ara-method bikini briefs independently
+name: Generate Ara bikini locally on accepted Wren body
 
 on:
-  # Also run automatically for the reconstruction PR; no iOS/manual dispatch needed.
   pull_request:
     branches: [dev]
     paths:
       - ".github/workflows/test-wren-ara-bikini-fit.yml"
-      - "tools/blender/generate_ara_method_bikini_bottom.py"
+      - "tools/ara_native/**"
+      - "tools/blender/attach_wren_ara_bikini.py"
+      - "tools/review/wren_native_preview.gd"
       - "character-preview/wren-ara.json"
+      - "art/characters/companions/wren.glb"
   workflow_call:
   workflow_dispatch:
 
@@ -15,14 +17,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: ara-method-bikini-reconstruction-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: ara-native-wren-bikini-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  reconstruct:
-    name: Single-pass procedural reconstruction
+  native-bikini:
+    name: Native Ara garment generation + accepted Wren preview
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
         with:
@@ -32,73 +34,141 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Blender and its GLB import dependency
+      - name: Fetch the pinned CC0 MakeHuman fitting data
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout https://github.com/makehumancommunity/makehuman.git build/makehuman
+          git -C build/makehuman sparse-checkout init --cone
+          git -C build/makehuman sparse-checkout set makehuman/data
+          git -C build/makehuman fetch --depth 1 origin a8bc2d54ff0ac92e78ff71431b1023eda42bf482
+          git -C build/makehuman checkout --detach a8bc2d54ff0ac92e78ff71431b1023eda42bf482
+          test -s build/makehuman/makehuman/data/3dobjs/base.obj
+          test -s build/makehuman/makehuman/data/rigs/default.mhskel
+          test -s build/makehuman/makehuman/data/rigs/default_weights.mhw
+
+      - name: Install the vendored Ara source runtime
+        working-directory: tools/ara_native
+        run: npm install --no-audit --no-fund
+
+      - name: Build Ara semantic regions, joints and morph target packs locally
+        run: |
+          set -euo pipefail
+          cd tools/ara_native
+          npx tsx build-fitting-data.ts \
+            --mh-dir ../../build/makehuman/makehuman/data \
+            --out ../../build/ara-fitting-data
+          test -s ../../build/ara-fitting-data/base.pack
+          test -s ../../build/ara-fitting-data/targets.pack
+          test -s ../../build/ara-fitting-data/catalog.json
+          test -s ../../build/ara-fitting-data/build-report.json
+
+      - name: Run Ara's original bikini generator against Wren's exact morph profile
+        run: |
+          set -euo pipefail
+          cd tools/ara_native
+          npx tsx generate-wren-bikini.ts \
+            --profile ../../character-preview/wren-ara.json \
+            --data ../../build/ara-fitting-data \
+            --out ../../build/wren-garments
+          test -s ../../build/wren-garments/Wren_Ara_Bikini.obj
+          test -s ../../build/wren-garments/Wren_Ara_Bikini.mtl
+          test -s ../../build/wren-garments/generation-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("build/wren-garments/generation-report.json").read_text())
+          assert r["sourceCommit"] == "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395", r
+          assert r["garmentPartCount"] >= 3, r
+          assert r["bodySkinPreserved"] is True, r
+          assert r["araHidesMasksApplied"] is False, r
+          assert {x["garment"] for x in r["garments"]} >= {"bikini_top", "bikini_bottom"}, r
+          assert sum(x["faces"] for x in r["garments"]) > 100, r
+          print("ARA_NATIVE_GARMENT_REPORT_OK", json.dumps(r, indent=2))
+          PY
+
+      - name: Install Blender and Godot preview dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
 
-      - name: Build a body-only reference with Wren's accepted Ara proportions
+      - name: Attach the garment to the immutable accepted Wren GLB
+        env:
+          PYTHONPATH: /usr/lib/python3/dist-packages
         run: |
           set -euo pipefail
-          python -m json.tool character-preview/wren-ara.json >/dev/null
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          profile = json.loads(Path("character-preview/wren-ara.json").read_text())
-          profile.pop("character_details", None)
-          params = profile["params"]
-          params["outfit"] = "none"
-          params["top"] = "none"
-          params["bottom"] = "none"
-          params["jacket"] = "none"
-          params["underwear"] = False
-          Path("build/wren-native/ara-body-only-profile.json").parent.mkdir(parents=True, exist_ok=True)
-          Path("build/wren-native/ara-body-only-profile.json").write_text(json.dumps(profile, indent=2) + "\n")
-          PY
-          mkdir -p build/wren-native/ara-body-export
-          npx --yes ara3d@latest export \
-            --params build/wren-native/ara-body-only-profile.json \
-            --detail high --no-animations --formats glb \
-            --out build/wren-native/ara-body-export
-          body_glb="$(find build/wren-native/ara-body-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
-          test -n "$body_glb"
-          test -s "$body_glb"
-          cp "$body_glb" build/wren-native/Ara_Body_Only_Reference.glb
-
-      - name: Generate briefs in one procedural pass (no Ara garment code or cloth solver)
-        run: |
-          set -euo pipefail
-          python -m py_compile tools/blender/generate_ara_method_bikini_bottom.py
+          mkdir -p build/wren-native
+          python -m py_compile tools/blender/attach_wren_ara_bikini.py
           blender --background --python-exit-code 1 \
-            --python tools/blender/generate_ara_method_bikini_bottom.py -- \
-            --input build/wren-native/Ara_Body_Only_Reference.glb \
-            --output-glb build/wren-native/Ara_Method_Bikini_Bottom.glb \
-            --report build/wren-native/ara-method-bikini-report.json
-          test -s build/wren-native/Ara_Method_Bikini_Bottom.glb
+            --python tools/blender/attach_wren_ara_bikini.py -- \
+            --input-glb art/characters/companions/wren.glb \
+            --garment-obj build/wren-garments/Wren_Ara_Bikini.obj \
+            --output-glb build/wren-native/Wren.glb \
+            --report build/wren-native/attachment-report.json
+          test -s build/wren-native/Wren.glb
           python - <<'PY'
           import json
           from pathlib import Path
-          report = json.loads(Path("build/wren-native/ara-method-bikini-report.json").read_text())
-          assert report["solver_or_simulation_used"] is False, report
-          assert report["body_geometry_modified"] is False, report
-          assert report["body_hidden_or_deleted"] is False, report
-          assert report["front_panel_grid"] == [16, 15], report
-          assert report["back_panel_grid"] == [16, 15], report
-          assert report["gusset_grid"] == [9, 15], report
-          assert report["surface_lift_mm"] == 3.0, report
-          assert report["selected_pelvic_faces"] >= 100, report
-          assert len(report["garment_objects"]) >= 7, report
-          print("ARA_METHOD_SINGLE_PASS_OK", json.dumps(report, indent=2))
+          r = json.loads(Path("build/wren-native/attachment-report.json").read_text())
+          assert r["body_meshes_modified"] is False, r
+          assert r["body_meshes_hidden_or_deleted"] is False, r
+          assert r["original_armature_preserved"] is True, r
+          assert r["garment_vertex_count"] > 100, r
+          assert r["garment_face_count"] > 100, r
+          print("WREN_ACCEPTED_BODY_ATTACHMENT_OK", json.dumps(r, indent=2))
           PY
 
-      - name: Upload independent reconstruction for visual comparison
+      - name: Assemble isolated Godot review project
+        run: |
+          set -euo pipefail
+          preview=build/wren-native-preview-project
+          mkdir -p "$preview/build/wren-native" "$preview/tools/review"
+          cp build/wren-native/Wren.glb "$preview/build/wren-native/Wren.glb"
+          cp tools/review/wren_native_preview.gd "$preview/tools/review/wren_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Accepted Wren Ara Bikini Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and render the accepted Wren GLB with Ara garments
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/wren-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/wren-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/wren_native_preview.gd
+          for view in front side threequarter face pelvis pelvis_back; do
+            test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
+          done
+          test -s build/wren-native-preview-project/build/wren-native/preview/render-report.json
+          cp -R build/wren-native-preview-project/build/wren-native/preview build/wren-native/preview
+
+      - name: Upload the exact accepted-body fit and visual evidence
         uses: actions/upload-artifact@v7
         with:
-          name: ara-method-bikini-reconstruction-${{ github.run_number }}
+          name: wren-native-ara-bikini-${{ github.run_number }}
           path: |
-            build/wren-native/Ara_Body_Only_Reference.glb
-            build/wren-native/Ara_Method_Bikini_Bottom.glb
-            build/wren-native/ara-method-bikini-report.json
+            build/wren-native/Wren.glb
+            build/wren-native/attachment-report.json
             build/wren-native/preview/
+            build/wren-garments/Wren_Ara_Bikini.obj
+            build/wren-garments/Wren_Ara_Bikini.mtl
+            build/wren-garments/generation-report.json
+            build/ara-fitting-data/build-report.json
           if-no-files-found: error
           retention-days: 30
