@@ -1,10 +1,11 @@
 class_name HexPathfinder
 extends RefCounted
 
-## Weighted A* over the logical hex map. Execution uses the same step-cost resolver.
-static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: Vector2i, target: Vector2i, state: CharacterState, characters: Dictionary = {}, combat_active: bool = false) -> Array[Vector2i]:
+## Weighted A* over the logical hex map. Closed, unlocked doors are valid
+## route steps with an opening action cost; locked doors remain impassable.
+static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: Vector2i, target: Vector2i, state: CharacterState, characters: Dictionary = {}, combat_active: bool = false, doors: Dictionary = {}) -> Array[Vector2i]:
     var empty: Array[Vector2i] = []
-    if state == null or not map_data.is_walkable(start) or not map_data.is_walkable(target):
+    if state == null or not _is_traversable(map_data, start, doors) or not _is_traversable(map_data, target, doors):
         return empty
     if start == target:
         return [start]
@@ -31,13 +32,17 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
                 path.push_front(current)
             return path
         for neighbour in HexGrid.neighbors(current):
-            if not map_data.is_walkable(neighbour):
+            if not _is_traversable(map_data, neighbour, doors):
                 continue
             if occupied_hexes.has(neighbour) and neighbour != start:
                 var occupant := characters.get(String(occupied_hexes[neighbour])) as CharacterState
                 if not _can_pass_through(state, occupant, combat_active):
                     continue
-            var tentative := float(g_score[current]) + MovementRules.step_cost(map_data, current, neighbour, state)
+            var step_cost := MovementRules.step_cost(map_data, current, neighbour, state)
+            var door := _door_at(doors, neighbour)
+            if door != null and not door.is_passable():
+                step_cost += WorldSimulation.DOOR_OPEN_TIME_POINT_COST
+            var tentative := float(g_score[current]) + step_cost
             if tentative >= float(g_score.get(neighbour, INF)):
                 continue
             came_from[neighbour] = current
@@ -55,3 +60,20 @@ static func _can_pass_through(mover: CharacterState, occupant: CharacterState, _
     if (mover.side == "enemy") != (occupant.side == "enemy") and (mover.side == "enemy" or occupant.side == "enemy"):
         return false
     return true
+
+static func _is_traversable(map_data: HexMapData, hex: Vector2i, doors: Dictionary) -> bool:
+    if map_data.is_walkable(hex):
+        return true
+    var door := _door_at(doors, hex)
+    if door == null or door.is_passable() or door.locked:
+        return false
+    if not map_data.has_cell(hex):
+        return false
+    return bool(map_data.cells[hex].get("door_base_walkable", false))
+
+static func _door_at(doors: Dictionary, hex: Vector2i) -> BuildingDoorState:
+    for value in doors.values():
+        var door := value as BuildingDoorState
+        if door != null and door.hex == hex:
+            return door
+    return null
