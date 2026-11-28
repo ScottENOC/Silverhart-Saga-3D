@@ -76,12 +76,22 @@
     {
       "location_id": "hollowmere_tavern",
       "integration_kind": "building",
-      "status": "exterior_missing",
-      "building_ids": [],
-      "room_links": [],
+      "status": "linked",
+      "building_ids": [
+        "hollow_tankard"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_tavern_room",
+          "building_id": "hollow_tankard",
+          "source_catalogue": "hollow_tankard_layout",
+          "basis": "explicit_bespoke_building_id_and_source_location_anchor"
+        }
+      ],
       "transition_policy": "physical_continuous_world",
       "notes": [
-        "The bespoke Hollow Tankard interior is authored separately; its exterior identity is not yet represented by a shared building catalogue ID."
+        "The bespoke Hollow Tankard presentation layout declares BUILDING_ID = hollow_tankard, its own physical shell, front door, and upper floor. This is the canonical exterior identity for the source-authored tavern room at (0,0); it remains a continuous-world building, not a teleport destination."
       ]
     },
     {
