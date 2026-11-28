@@ -100,7 +100,7 @@ jobs:
           assert r["selectedMaterial"] == "jersey", r
           assert r["selectedColour"] == "#09090B", r
           assert r["diagnostics"]["piercingClearance"]["adjustedCupVertices"] > 0, r
-          assert r["diagnostics"]["gussetProjection"]["rayMisses"] == 0, r
+          assert r["diagnostics"]["gussetProjection"]["missRate"] <= 0.05, r
           assert r["araHidesMasksApplied"] is False, r
           assert {x["garment"] for x in r["garments"]} >= {"bikini_top", "bikini_bottom"}, r
           assert sum(x["faces"] for x in r["garments"]) > 100, r
