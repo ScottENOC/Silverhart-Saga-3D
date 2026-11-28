@@ -15,7 +15,7 @@ func _initialize() -> void:
 	assert(SETTLEMENT.COORDINATE_SYSTEM == "campaign2_local_axial_qr")
 	assert(SETTLEMENT.WORLD_REFERENCE_HEX == Vector2i(8, 24), "Hollowmere reference point must remain in campaign axial world coordinates")
 
-	assert(BUILDINGS.BUILDINGS.size() == 7, "All seven authored Hollowmere buildings must remain in the building data module")
+	assert(BUILDINGS.BUILDINGS.size() == 8, "All eight authored Hollowmere buildings must remain in the building data module")
 	var building_ids: Dictionary = {}
 	for building in BUILDINGS.BUILDINGS:
 		var id := String(building.get("id", ""))
