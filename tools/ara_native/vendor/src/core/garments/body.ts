@@ -35,9 +35,11 @@ export interface VInfo {
 }
 
 export interface Body {
-  coords: Float32Array; // morphed base-mesh coordinates (all vertices)
-  normals: Float32Array; // body vertex normals
+  coords: Float32Array; // body-surface coordinates (decimetres, Ara axes)
+  normals: Float32Array; // body and accessory surface normals
   regions: Uint8Array;
+  faceSizes: Uint8Array;
+  faceVerts: Uint32Array;
   info: VInfo[];
   joint(name: string): Vec3;
   /** Key landmarks (decimetres). */
@@ -81,17 +83,24 @@ export function makeBody(
   normals: Float32Array,
   regions: Uint8Array,
   joints: Record<string, number[]>,
+  faceSizes: Uint8Array,
+  faceVerts: Uint32Array,
+  jointPositions: Record<string, Vec3> = {},
 ): Body {
   const p = (v: number): Vec3 => [coords[v * 3], coords[v * 3 + 1], coords[v * 3 + 2]];
   const jcache = new Map<string, Vec3>();
   const joint = (name: string): Vec3 => {
     let j = jcache.get(name);
     if (!j) {
-      const idx = joints[name] ?? joints[`${name}____head`];
-      if (!idx) throw new Error(`unknown joint ${name}`);
-      const s: Vec3 = [0, 0, 0];
-      for (const v of idx) for (let d = 0; d < 3; d++) s[d] += coords[v * 3 + d];
-      j = [s[0] / idx.length, s[1] / idx.length, s[2] / idx.length];
+      const explicit = jointPositions[name] ?? jointPositions[`${name}____head`];
+      if (explicit) j = [...explicit] as Vec3;
+      else {
+        const idx = joints[name] ?? joints[`${name}____head`];
+        if (!idx?.length) throw new Error(`unknown joint ${name}`);
+        const s: Vec3 = [0, 0, 0];
+        for (const v of idx) for (let d = 0; d < 3; d++) s[d] += coords[v * 3 + d];
+        j = [s[0] / idx.length, s[1] / idx.length, s[2] / idx.length];
+      }
       jcache.set(name, j);
     }
     return j;
@@ -169,7 +178,7 @@ export function makeBody(
   }
 
   return {
-    coords, normals, regions, info, joint, L, axis, p,
+    coords, normals, regions, faceSizes, faceVerts, info, joint, L, axis, p,
     verts: (region, side) => (byRegion.get(region) ?? []).filter((v) => side === undefined || info[v].side === side),
   };
 }
