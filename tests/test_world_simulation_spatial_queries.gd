@@ -11,12 +11,13 @@ func _initialize() -> void:
 	var distant := CharacterState.new("distant", "Distant", Vector2i(4, 0))
 	simulation.register_character(distant)
 
-	assert(simulation.hex_distance(Vector2i.ZERO, Vector2i(1, -1)) == 2)
-	assert(simulation.is_hex_within_range(Vector2i.ZERO, Vector2i(1, -1), 2))
-	assert(not simulation.is_hex_within_range(Vector2i.ZERO, Vector2i(1, -1), 1))
+	assert(simulation.hex_distance(Vector2i.ZERO, Vector2i(1, -1)) == 1)
+	assert(simulation.is_hex_within_range(Vector2i.ZERO, Vector2i(1, -1), 1))
+	assert(not simulation.is_hex_within_range(Vector2i.ZERO, Vector2i(1, -1), 0))
 	assert(simulation.is_character_within_hex_range("player", Vector2i(0, 2), 2))
 	assert(not simulation.is_character_within_hex_range("unknown", Vector2i.ZERO, 2))
-	assert(simulation.are_characters_within_hex_range("player", "companion", 2))
+	assert(simulation.are_characters_within_hex_range("player", "companion", 1))
+	assert(not simulation.are_characters_within_hex_range("player", "companion", 0))
 	assert(not simulation.are_characters_within_hex_range("player", "distant", 2))
 	assert(not simulation.are_characters_within_hex_range("player", "unknown", 2))
 
