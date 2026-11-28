@@ -8,6 +8,7 @@ const VALID_STATUSES := [
 	"linked",
 	"geometry_incomplete",
 	"review_required",
+	"legacy_unreferenced",
 	"exterior_missing",
 	"site_transition"
 ]
@@ -74,6 +75,8 @@ func configure(manifest: Dictionary) -> Dictionary:
 			validation_errors.append("%s: review_required must expose candidates without binding them." % location_id)
 		if status == "exterior_missing" and not building_ids.is_empty():
 			validation_errors.append("%s: exterior_missing cannot bind exterior building IDs." % location_id)
+		if status == "legacy_unreferenced" and (not building_ids.is_empty() or not candidate_ids.is_empty()):
+			validation_errors.append("%s: legacy_unreferenced cannot bind or propose exterior building IDs." % location_id)
 		var local_ids: Dictionary = {}
 		for building_variant in building_ids:
 			var building_id := String(building_variant).strip_edges()
@@ -85,6 +88,8 @@ func configure(manifest: Dictionary) -> Dictionary:
 				validation_errors.append("%s: exterior building ID %s is already assigned to %s." % [location_id, building_id, seen_buildings[building_id]])
 			else:
 				seen_buildings[building_id] = location_id
+		if record.has("anchor_offset") and not _is_axial_offset(record.get("anchor_offset")):
+			validation_errors.append("%s: anchor_offset must contain numeric q and r values." % location_id)
 		var room_links: Variant = record.get("room_links", [])
 		if not room_links is Array:
 			validation_errors.append("%s: room_links must be an array." % location_id)
@@ -106,6 +111,8 @@ func configure(manifest: Dictionary) -> Dictionary:
 				validation_errors.append("%s: room %s references unbound building ID %s." % [location_id, room_id, building_id])
 			if String(room_link.get("source_catalogue", "")).is_empty() or String(room_link.get("basis", "")).is_empty():
 				validation_errors.append("%s: room %s requires source catalogue and link basis." % [location_id, room_id])
+			if room_link.has("origin_offset") and not _is_axial_offset(room_link.get("origin_offset")):
+				validation_errors.append("%s: room %s origin_offset must contain numeric q and r values." % [location_id, room_id])
 		if not String(record.get("transition_policy", "")).is_empty() and not VALID_STATUSES.has(status):
 			validation_errors.append("%s: transition policy cannot compensate for an invalid status." % location_id)
 		_links[location_id] = record.duplicate(true)
@@ -113,6 +120,11 @@ func configure(manifest: Dictionary) -> Dictionary:
 		_links.clear()
 		return {"ok": false, "errors": validation_errors.duplicate()}
 	return {"ok": true, "errors": []}
+
+func _is_axial_offset(value: Variant) -> bool:
+	if not value is Dictionary:
+		return false
+	return (value.get("q") is int or value.get("q") is float) and (value.get("r") is int or value.get("r") is float)
 
 func get_link(location_id: String) -> Dictionary:
 	var record: Variant = _links.get(location_id, {})

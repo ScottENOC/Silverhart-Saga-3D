@@ -5,6 +5,8 @@ const LOCATION_REGISTRY = preload("res://scripts/world/campaign2_multistory_loca
 const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const HOLLOWMERE_BUILDINGS_PATH := "res://data/settlements/hollowmere/buildings.gd"
 const LINK_MANIFEST_PATH := "res://data/world/campaign2_interior_exterior_links.json"
+const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
+const HOLLOWMERE_BUILDINGS = preload("res://data/settlements/hollowmere/buildings.gd")
 
 var failures: int = 0
 
@@ -28,7 +30,8 @@ func _initialize() -> void:
 		"general_store": Vector2i(0, 18),
 		"elder_house": Vector2i(0, -12),
 		"mira_house": Vector2i(12, 9),
-		"oskar_house": Vector2i(-6, 9)
+		"oskar_house": Vector2i(-6, 9),
+		"hollowmere_guild_den": Vector2i(-12, -8)
 	}
 	var hollowmere_source := FileAccess.get_file_as_string(HOLLOWMERE_BUILDINGS_PATH)
 
@@ -41,6 +44,8 @@ func _initialize() -> void:
 			all_building_ids[building_id] = location_id
 			if settlement_building_ids.has(building_id):
 				_check(true, "Settlement catalogue ID resolves: " + building_id)
+			elif building_id == HOLLOW_TANKARD_LAYOUT.BUILDING_ID:
+				_check(true, "Bespoke Hollow Tankard building ID resolves to its authored shell layout")
 			else:
 				_check(hollowmere_source.contains('"id": "' + building_id + '"'), "Hollowmere building ID must resolve to its authored building definition: " + building_id)
 		for room_link_variant in link.get("room_links", []):
@@ -58,9 +63,13 @@ func _initialize() -> void:
 			var building_id := String(room_link.get("building_id", ""))
 			if settlement_building_ids.has(building_id):
 				var exterior_centre: Dictionary = settlement_building_ids[building_id].get("center", {})
-				_check(room_centre == Vector2i(int(exterior_centre.get("q", 0)), int(exterior_centre.get("r", 0))), "Stable-ID room join must retain its authored centre alignment: %s/%s" % [location_id, building_id])
+				var expected_offset: Dictionary = room_link.get("origin_offset", {"q": 0, "r": 0})
+				_check(room_centre - Vector2i(int(exterior_centre.get("q", 0)), int(exterior_centre.get("r", 0))) == Vector2i(int(expected_offset.get("q", 0)), int(expected_offset.get("r", 0))), "Stable-ID room join must retain its explicit authored origin offset: %s/%s" % [location_id, building_id])
 			elif hollowmere_building_centres.has(building_id):
 				_check(room_centre == hollowmere_building_centres[building_id], "Hollowmere stable-ID room join must retain its authored centre alignment: %s/%s" % [location_id, building_id])
+			elif building_id == HOLLOW_TANKARD_LAYOUT.BUILDING_ID:
+				_check(room_centre == Vector2i.ZERO, "Hollow Tankard interior room must retain its source origin")
+				_check(HOLLOW_TANKARD_LAYOUT.DOOR_HEX == Vector2i(0, 4), "Hollow Tankard exterior identity must retain its source front-door threshold")
 
 	var palace := registry.get_link("silverhart_palace")
 	_check(palace.get("building_ids", []).has("silverhart_grand_hall"), "Palace grand hall must link by stable ID")
@@ -71,10 +80,36 @@ func _initialize() -> void:
 	_check(guild.get("room_links", []).size() == 2, "Guild and vault rooms must each have an explicit building join")
 	_check(registry.get_link("emberlode_mine").get("building_ids", []).has("emberlode_mine_entrance"), "Mine floors must remain linked to the physical surface entrance building")
 	_check(registry.get_link("silverhart_corstane_manor").get("status", "") == "geometry_incomplete", "Corstane identity may be linked while its missing room geometry remains explicit")
-	_check(registry.get_link("silverhart_corvane_embassy").get("status", "") == "review_required", "Corvane's one-hex offset must remain unresolved")
-	_check(registry.get_link("silverhart_builder_house").get("status", "") == "review_required", "Builder's House offset and empty room must remain unresolved")
-	for location_id in ["hollowmere_store", "hollowmere_tavern", "hollowmere_guild_den"]:
-		_check(registry.get_link(location_id).get("status", "") == "exterior_missing", "Unpaired Hollowmere building must remain visible for reconciliation: " + location_id)
+	var corvane_link := registry.get_link("silverhart_corvane_embassy")
+	_check(corvane_link.get("status", "") == "linked", "Corvane must resolve by its explicit source building ID despite the authored one-hex room offset")
+	var corvane_offset: Dictionary = corvane_link.get("room_links", [])[0].get("origin_offset", {})
+	_check(int(corvane_offset.get("q", 999)) == 0 and int(corvane_offset.get("r", 999)) == -1, "Corvane must retain its explicit source-authored room offset")
+	var builder_link := registry.get_link("silverhart_builder_house")
+	_check(builder_link.get("status", "") == "geometry_incomplete", "Builder's House identity must resolve while its polygon geometry remains incomplete")
+	_check(builder_link.get("building_ids", []).has("silverhart_builder_house"), "Builder's House must bind to its explicit stable exterior ID")
+	var builder_offset: Dictionary = builder_link.get("anchor_offset", {})
+	_check(int(builder_offset.get("q", 999)) == 0 and int(builder_offset.get("r", 999)) == -1, "Builder's House must retain its authored location anchor offset")
+	var guild_den_link := registry.get_link("hollowmere_guild_den")
+	_check(guild_den_link.get("status", "") == "linked" and guild_den_link.get("building_ids", []).has("hollowmere_guild_den"), "Hollowmere Guild Den must have a source-matched physical exterior identity")
+	var guild_exterior: Dictionary = {}
+	for building in HOLLOWMERE_BUILDINGS.BUILDINGS:
+		if String(building.get("id", "")) == "hollowmere_guild_den":
+			guild_exterior = building
+			break
+	_check(guild_exterior.get("center", Vector2i.ZERO) == Vector2i(-12, -8), "Guild Den exterior must preserve the original room centre")
+	_check(guild_exterior.get("door", Vector2i.ZERO) == Vector2i(-12, -6), "Guild Den exterior threshold must match its source-authored south door")
+	var guild_floor := locations.get_floor_definition("hollowmere_guild_den", 0)
+	var guild_door_found := false
+	for tile_object in guild_floor.get("tile_objects", []):
+		if String(tile_object.get("id", "")) == "hollowmere_guild_den_door":
+			guild_door_found = Vector2i(int(tile_object.get("position", {}).get("q", 0)), int(tile_object.get("position", {}).get("r", 0))) == guild_exterior.get("door", Vector2i.ZERO)
+			break
+	_check(guild_door_found, "Guild Den exterior door must coincide with the source-authored interior threshold")
+	var tankard_link := registry.get_link("hollowmere_tavern")
+	_check(tankard_link.get("status", "") == "linked" and tankard_link.get("building_ids", []).has(HOLLOW_TANKARD_LAYOUT.BUILDING_ID), "Hollow Tankard must resolve through its bespoke authored exterior identity")
+	_check(tankard_link.get("room_links", []).size() == 1, "Hollow Tankard ground-floor room must have one explicit stable-ID join")
+	_check(registry.get_link("hollowmere_store").get("status", "") == "legacy_unreferenced", "Obsolete Hollowmere store carve must not be mistaken for an active building interior")
+	_check(registry.get_link("hollowmere_tavern").get("status", "") == "linked", "Hollow Tankard must not remain classified as missing exterior")
 	_check(registry.get_link("silverhart_palace_tunnel").get("transition_policy", "") == "named_secret_tunnel_network_exception", "Secret tunnel network must remain an explicit special-case exception")
 	for location_id in ["kragmoor", "emberlode_mine", "thieves_cove"]:
 		_check(registry.get_link(location_id).get("transition_policy", "") == "physical_surface_entrance_streamed_deep_floors", "Deep cave sites may retain streamed lower floors: " + location_id)

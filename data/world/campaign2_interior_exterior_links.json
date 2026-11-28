@@ -65,23 +65,33 @@
     {
       "location_id": "hollowmere_store",
       "integration_kind": "building",
-      "status": "exterior_missing",
+      "status": "legacy_unreferenced",
       "building_ids": [],
       "room_links": [],
       "transition_policy": "physical_continuous_world",
       "notes": [
-        "Interior exists at (14,0), but there is no corresponding exterior building entry in the Hollowmere BUILDINGS catalogue."
+        "The original Hex-crpg build calls carveBuilding(14,0,...) for this obsolete placeholder but never registers that region in interiorRegions. The active General Store is separately authored at (0,18) and is linked to the general_store exterior record. Do not create a second exterior building for this stale carve."
       ]
     },
     {
       "location_id": "hollowmere_tavern",
       "integration_kind": "building",
-      "status": "exterior_missing",
-      "building_ids": [],
-      "room_links": [],
+      "status": "linked",
+      "building_ids": [
+        "hollow_tankard"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_tavern_room",
+          "building_id": "hollow_tankard",
+          "source_catalogue": "hollow_tankard_layout",
+          "basis": "explicit_bespoke_building_id_and_source_location_anchor"
+        }
+      ],
       "transition_policy": "physical_continuous_world",
       "notes": [
-        "The bespoke Hollow Tankard interior is authored separately; its exterior identity is not yet represented by a shared building catalogue ID."
+        "The bespoke Hollow Tankard presentation layout declares BUILDING_ID = hollow_tankard, its own physical shell, front door, and upper floor. This is the canonical exterior identity for the source-authored tavern room at (0,0); it remains a continuous-world building, not a teleport destination."
       ]
     },
     {
@@ -123,12 +133,22 @@
     {
       "location_id": "hollowmere_guild_den",
       "integration_kind": "building",
-      "status": "exterior_missing",
-      "building_ids": [],
-      "room_links": [],
+      "status": "linked",
+      "building_ids": [
+        "hollowmere_guild_den"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_guild_den_room",
+          "building_id": "hollowmere_guild_den",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "source_authored_guild_den_centre_footprint_and_south_door"
+        }
+      ],
       "transition_policy": "physical_continuous_world",
       "notes": [
-        "The Guild Den interior exists at (-12,-8), but no corresponding exterior building record exists in the Hollowmere BUILDINGS catalogue."
+        "The original Hex-crpg defines a single unassuming den at (-12,-8), half-width/half-height 2, with its south door at (-12,-6). A discreet, windowless exterior now uses that exact centre, footprint class and threshold; no teleport or separate interior zone is introduced."
       ]
     },
     {
@@ -730,15 +750,26 @@
     {
       "location_id": "silverhart_corvane_embassy",
       "integration_kind": "building",
-      "status": "review_required",
-      "building_ids": [],
-      "room_links": [],
-      "transition_policy": "physical_continuous_world",
-      "candidate_building_ids": [
+      "status": "linked",
+      "building_ids": [
         "silverhart_corvane_embassy"
       ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_corvane_embassy_room",
+          "building_id": "silverhart_corvane_embassy",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "explicit_source_building_id_and_source_corvane_center_formula",
+          "origin_offset": {
+            "q": 0,
+            "r": -1
+          }
+        }
+      ],
+      "transition_policy": "physical_continuous_world",
       "notes": [
-        "The interior anchor/room centre is (16,-463), while the exterior centre is (16,-462). Do not bind until the one-hex discrepancy is resolved."
+        "Stable building ID is explicit in the canonical Silverhart settlement catalogue and in the source interior's named Corvane embassy. The source-authored room centre is one axial hex south of the exterior centre; preserve that authored origin offset (q:0, r:-1) rather than moving either source."
       ]
     },
     {
@@ -1174,16 +1205,19 @@
     {
       "location_id": "silverhart_builder_house",
       "integration_kind": "building",
-      "status": "review_required",
-      "building_ids": [],
-      "room_links": [],
-      "transition_policy": "physical_continuous_world",
-      "candidate_building_ids": [
+      "status": "geometry_incomplete",
+      "building_ids": [
         "silverhart_builder_house"
       ],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
       "notes": [
-        "The location has no room geometry and its anchor is (38,-492), while the exterior centre is (38,-491). Resolve both before binding."
-      ]
+        "The exterior building ID is explicit in the canonical Silverhart settlement catalogue and the source polygon is explicitly Master Builder Hallis's House. The interior location has a one-hex-south anchor offset (q:0, r:-1) relative to the exterior centre; retain it. The floor is authored as polygon floor/wall hexes rather than room records, so room geometry remains incomplete for the current room-link contract."
+      ],
+      "anchor_offset": {
+        "q": 0,
+        "r": -1
+      }
     },
     {
       "location_id": "silverhart_outlying_house_1",

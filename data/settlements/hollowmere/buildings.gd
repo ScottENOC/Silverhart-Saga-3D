@@ -51,6 +51,14 @@ const BUILDINGS := [
 		"rotation_degrees": 0.0, "features": ["fireplace"]
 	},
 	{
+		"id": "hollowmere_guild_den", "node_name": "GuildDenExterior", "kind": "house",
+		"center": Vector2i(-12, -8), "half_q": 2, "half_r": 2, "door": Vector2i(-12, -6),
+		"dimensions": {"width": 5.5, "depth": 5.0, "wall_height": 2.5, "roof_rise": 1.35},
+		"door_side": "south", "door_width": 0.95, "windows_per_side": 0,
+		"rotation_degrees": 0.0
+	},
+
+	{
 		"id": "old_mac_farmhouse", "node_name": "OldMacFarmhouse", "kind": "house",
 		"center": FARMHOUSE, "half_q": 3, "half_r": 2, "door": FARMHOUSE_DOOR,
 		"dimensions": {"width": 8.0, "depth": 6.4, "wall_height": 2.9, "roof_rise": 1.8},
