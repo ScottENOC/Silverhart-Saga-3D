@@ -33,7 +33,7 @@ export class Caster {
    * Casts at body faces (`keep` picks them) or, given a mesh, at all its polygons (a garment
    * already built, to lay things on top of it).
    */
-  constructor(src: Body | PolyMesh, faceVerts: Uint32Array | null, keep: (face: number) => boolean, readonly dir: CastDir) {
+  constructor(src: Body | PolyMesh, faceVerts: Uint32Array | null, keep: (face: number) => boolean, readonly dir: CastDir, faceSizes: Uint8Array | null = null) {
     [this.u, this.w, this.d] = dir === 'below' || dir === 'above' ? [0, 2, 1] : [0, 1, 2];
     // Rays come from the far side: front rays start at +Z, back at -Z, below at -Y, above at +Y.
     this.sign = dir === 'front' || dir === 'above' ? 1 : -1;
@@ -42,8 +42,12 @@ export class Caster {
       const P = src.positions, at = (v: number): Vec3 => [P[v * 3], P[v * 3 + 1], P[v * 3 + 2]];
       for (let f = 0, c = 0; f < src.faceSizes.length; c += src.faceSizes[f++])
         if (keep(f)) polys.push({ q: Array.from(src.faceVerts.subarray(c, c + src.faceSizes[f]), at), f });
-    } else
-      for (let f = 0; f < faceVerts!.length / 4; f++) if (keep(f)) polys.push({ q: [0, 1, 2, 3].map((k) => src.p(faceVerts![f * 4 + k])), f });
+    } else {
+      const sizes = faceSizes;
+      if (!sizes || sizes.length === 0) throw new Error('Body surface requires explicit polygon sizes');
+      for (let f = 0, c = 0; f < sizes.length; c += sizes[f++])
+        if (keep(f)) polys.push({ q: Array.from(faceVerts!.subarray(c, c + sizes[f]), (v) => src.p(v)), f });
+    }
     for (const { q, f } of polys) {
       for (let k = 1; k < q.length - 1; k++) {
         const t: Tri = { a: q[0], b: q[k], c: q[k + 1], face: f };
@@ -211,11 +215,11 @@ export function gridOutline(grid: Vec3[][]): Vec3[] {
 export class RadialCaster {
   private tris: [Vec3, Vec3, Vec3, number][] = [];
 
-  constructor(body: Body, faceVerts: Uint32Array, keep: (face: number) => boolean) {
-    for (let f = 0; f < faceVerts.length / 4; f++) {
+  constructor(body: Body, faceVerts: Uint32Array, keep: (face: number) => boolean, faceSizes: Uint8Array) {
+    for (let f = 0, c = 0; f < faceSizes.length; c += faceSizes[f++]) {
       if (!keep(f)) continue;
-      const q = [0, 1, 2, 3].map((k) => body.p(faceVerts[f * 4 + k]));
-      this.tris.push([q[0], q[1], q[2], f], [q[0], q[2], q[3], f]);
+      const q = Array.from(faceVerts.subarray(c, c + faceSizes[f]), (v) => body.p(v));
+      for (let k = 1; k < q.length - 1; k++) this.tris.push([q[0], q[k], q[k + 1], f]);
     }
   }
 
