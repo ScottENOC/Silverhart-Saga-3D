@@ -475,7 +475,7 @@ func _interact_with_chapel_locket() -> bool:
 	if elder_locket_collected:
 		return false
 	var active_state := simulation.get_character(active_character_id)
-	if active_state == null or HexGrid.distance(active_state.axial, Vector2i(-14, 0)) > 1:
+	if active_state == null or not simulation.is_hex_within_range(active_state.axial, Vector2i(-14, 0), 1):
 		return false
 	var player := simulation.get_character(simulation.player_character_id)
 	var result: Dictionary = ELDER_LOCKET_PICKUP_SCRIPT.collect(player)
@@ -656,8 +656,8 @@ func _check_reyna_story_proximity() -> void:
 	if simulation == null or dialogue_open or encounter_active or simulation.is_in_combat:
 		return
 	var active_state := simulation.get_character(active_character_id)
-	var near_clue := active_state != null and HexGrid.distance(active_state.axial, HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX) <= 2
-	var near_shelter := active_state != null and HexGrid.distance(active_state.axial, HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX) <= 2
+	var near_clue := simulation.is_character_within_hex_range(active_character_id, HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX, 2)
+	var near_shelter := simulation.is_character_within_hex_range(active_character_id, HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX, 2)
 	var action := REYNA_RESCUE_SERVICE.proximity_action(
 		simulation,
 		near_clue,
@@ -1695,7 +1695,7 @@ func _interact_with_nearest_npc() -> void:
 			continue
 		if state.side == "enemy" and actor_id not in [FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID, TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID]:
 			continue
-		var distance := HexGrid.distance(player_state.axial, state.axial)
+		var distance := simulation.hex_distance(player_state.axial, state.axial)
 		if distance <= 2 and distance < nearest_distance:
 			nearest_distance = distance
 			nearest_id = actor_id
@@ -1710,7 +1710,7 @@ func _interact_with_character(character_id: String) -> void:
 		return
 	var player_state := simulation.get_character(active_character_id)
 	var target_state := simulation.get_character(character_id)
-	if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
+	if player_state == null or target_state == null or not simulation.are_characters_within_hex_range(active_character_id, character_id, 2):
 		return
 	if character_id == "steward_halvard_greer":
 		_show_halvard_household_dialogue()
@@ -1808,7 +1808,7 @@ func _refresh_nearby_interactions() -> void:
 		if not COMPANION_CAMPAIGN_SCRIPT.is_companion_id(party_id) and party_id != "companion_wren_talbot":
 			continue
 		var party_state := simulation.get_character(party_id)
-		if party_state == null or HexGrid.distance(active_state.axial, party_state.axial) > 2:
+		if party_state == null or not simulation.are_characters_within_hex_range(active_character_id, party_id, 2):
 			continue
 		var already_listed := false
 		for entry_value in nearby:
@@ -2164,7 +2164,7 @@ func _update_ambient_chatter(delta: float) -> void:
 		for j in range(i + 1, candidates.size()):
 			var first_state := simulation.get_character(candidates[i])
 			var second_state := simulation.get_character(candidates[j])
-			if first_state != null and second_state != null and HexGrid.distance(first_state.axial, second_state.axial) <= 2:
+			if first_state != null and second_state != null and simulation.are_characters_within_hex_range(candidates[i], candidates[j], 2):
 				pairs.append([candidates[i], candidates[j]])
 	if pairs.is_empty():
 		return
@@ -2366,7 +2366,7 @@ func _begin_toll_taker_encounter() -> void:
 	_close_dialogue()
 	var active_state := simulation.get_character(active_character_id)
 	var ogre := simulation.get_character(TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID)
-	if active_state == null or ogre == null or HexGrid.distance(active_state.axial, ogre.axial) > 2:
+	if active_state == null or ogre == null or not simulation.are_characters_within_hex_range(active_character_id, TOLL_TAKER_ENCOUNTER_SCRIPT.OGRE_ID, 2):
 		_show_dialogue("North Road", "The ogre's camp is still some distance up the road.", [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 	var party_ids: Array[String] = []
@@ -2418,7 +2418,7 @@ func _check_abandoned_house_proximity() -> void:
 	if simulation == null or simulation.is_in_combat or encounter_active or dialogue_open:
 		return
 	var active_state := simulation.get_character(active_character_id)
-	if active_state == null or HexGrid.distance(active_state.axial, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE) > 8:
+	if active_state == null or not simulation.is_character_within_hex_range(active_character_id, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE, 8):
 		return
 	var start_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
 	if not bool(start_result.get("ok", false)) or bool(start_result.get("already_completed", false)):
@@ -2435,7 +2435,7 @@ func _check_abandoned_house_proximity() -> void:
 func _begin_abandoned_house_encounter() -> void:
 	_close_dialogue()
 	var active_state := simulation.get_character(active_character_id)
-	if active_state == null or HexGrid.distance(active_state.axial, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE) > 2:
+	if active_state == null or not simulation.is_character_within_hex_range(active_character_id, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE, 2):
 		_show_dialogue("Abandoned House", "You need to be at the house before you can enter it.", [{"id": "continue", "label": "Understood.", "text": ""}])
 		return
 	var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
@@ -2488,7 +2488,7 @@ func _check_farm_wolf_proximity() -> void:
 	if player == null:
 		return
 	# The den is deliberately well beyond the farm and the village sightline.
-	var distance_to_den := HexGrid.distance(player.axial, HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX)
+	var distance_to_den := simulation.hex_distance(player.axial, HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX)
 	if distance_to_den > 8:
 		if farm_wolves_spawned:
 			farm_wolves_retry_armed = true
@@ -2996,8 +2996,8 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
 			continue
 		candidates.append(cell)
 	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		var da := HexGrid.distance(preferred, a)
-		var db := HexGrid.distance(preferred, b)
+		var da := simulation.hex_distance(preferred, a)
+		var db := simulation.hex_distance(preferred, b)
 		if da == db:
 			return a.x < b.x if a.x != b.x else a.y < b.y
 		return da < db
@@ -3287,7 +3287,7 @@ func _interact_with_tavern_stairs() -> bool:
 		return false
 	var upstairs := _is_upper_floor_hex(state.axial)
 	var stair_hex := TAVERN_STAIR_UPPER_HEX if upstairs else TAVERN_STAIR_GROUND_HEX
-	if HexGrid.distance(state.axial, stair_hex) > 1:
+	if not simulation.is_hex_within_range(state.axial, stair_hex, 1):
 		return false
 	var destination := TAVERN_STAIR_GROUND_HEX if upstairs else TAVERN_STAIR_UPPER_HEX
 	_clear_path_markers()
@@ -3300,7 +3300,7 @@ func _interact_with_nearest_door() -> bool:
 	if state == null:
 		return false
 	var door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
-	if door == null or HexGrid.distance(state.axial, door.hex) > 1:
+	if door == null or not simulation.is_hex_within_range(state.axial, door.hex, 1):
 		return false
 	var should_open := not door.is_passable()
 	if not should_open and simulation.is_hex_occupied(door.hex):
@@ -3337,7 +3337,7 @@ func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
 	# Keep the authored settlement/farm quiet. Wildlife starts beyond the
 	# original 35-hex Hollowmere safety radius and is rolled by travel, not
 	# every frame, so it cannot spam into existence.
-	if HexGrid.distance(Vector2i.ZERO, player_hex) <= 35 or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(player_hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
+	if simulation.is_hex_within_range(Vector2i.ZERO, player_hex, 35) or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(player_hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 		return
 	wilderness_steps_since_spawn += 1
 	if wilderness_steps_since_spawn < 12:
@@ -3366,9 +3366,9 @@ func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
 
 	for attempt in range(18):
 		var candidate := player_hex + Vector2i(ambient_rng.randi_range(-12, 12), ambient_rng.randi_range(-12, 12))
-		if HexGrid.distance(player_hex, candidate) < 7 or HexGrid.distance(player_hex, candidate) > 13:
+		if not simulation.is_hex_within_range(player_hex, candidate, 13) or simulation.is_hex_within_range(player_hex, candidate, 6):
 			continue
-		if HexGrid.distance(Vector2i.ZERO, candidate) <= 35 or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(candidate, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
+		if simulation.is_hex_within_range(Vector2i.ZERO, candidate, 35) or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(candidate, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 			continue
 		if not simulation.map_data.is_walkable(candidate) or simulation.is_hex_occupied(candidate):
 			continue
