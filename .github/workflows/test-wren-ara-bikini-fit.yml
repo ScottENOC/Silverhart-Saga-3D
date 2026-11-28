@@ -8,6 +8,7 @@ on:
       - "tools/ara_native/**"
       - "tools/blender/attach_wren_ara_bikini.py"
       - "tools/blender/inspect_wren_ara_surface.py"
+      - "tools/blender/export_wren_ara_body_surface.py"
       - "tools/review/wren_native_preview.gd"
       - "character-preview/wren-ara.json"
       - "art/characters/companions/wren.glb"
@@ -35,41 +36,50 @@ jobs:
         with:
           node-version: 20
 
-      - name: Fetch the pinned CC0 MakeHuman fitting data
-        run: |
-          set -euo pipefail
-          git clone --filter=blob:none --no-checkout https://github.com/makehumancommunity/makehuman.git build/makehuman
-          git -C build/makehuman sparse-checkout init --cone
-          git -C build/makehuman sparse-checkout set makehuman/data
-          git -C build/makehuman fetch --depth 1 origin a8bc2d54ff0ac92e78ff71431b1023eda42bf482
-          git -C build/makehuman checkout --detach a8bc2d54ff0ac92e78ff71431b1023eda42bf482
-          test -s build/makehuman/makehuman/data/3dobjs/base.obj
-          test -s build/makehuman/makehuman/data/rigs/default.mhskel
-          test -s build/makehuman/makehuman/data/rigs/default_weights.mhw
-
       - name: Install the vendored Ara source runtime
         working-directory: tools/ara_native
         run: npm install --no-audit --no-fund
 
-      - name: Build Ara semantic regions, joints and morph target packs locally
+      - name: Install Blender and Godot preview dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
+
+      - name: Export accepted Wren skin and piercing surfaces for Ara
         run: |
           set -euo pipefail
-          cd tools/ara_native
-          npx tsx build-fitting-data.ts \
-            --mh-dir ../../build/makehuman/makehuman/data \
-            --out ../../build/ara-fitting-data
-          test -s ../../build/ara-fitting-data/base.pack
-          test -s ../../build/ara-fitting-data/targets.pack
-          test -s ../../build/ara-fitting-data/catalog.json
-          test -s ../../build/ara-fitting-data/build-report.json
+          mkdir -p build/wren-native
+          python -m py_compile tools/blender/export_wren_ara_body_surface.py
+          blender --background --python-exit-code 1 --python tools/blender/export_wren_ara_body_surface.py -- --input-glb art/characters/companions/wren.glb --output build/wren-native/wren-ara-body-surface.json.gz --report build/wren-native/body-surface-report.json
+          test -s build/wren-native/wren-ara-body-surface.json.gz
+          test -s build/wren-native/body-surface-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("build/wren-native/body-surface-report.json").read_text())
+          assert r["skinObjects"], r
+          assert r["piercingObjects"], r
+          assert r["skinVertexCount"] > 10000, r
+          assert r["totalSurfaceVertexCount"] > r["skinVertexCount"], r
+          assert r["unknownSkinRegionVertexCount"] < r["skinVertexCount"] * 0.08, r
+          print("WREN_ARA_BODY_SURFACE_REPORT_OK", json.dumps({
+              "skin_objects": r["skinObjects"],
+              "piercing_objects": r["piercingObjects"],
+              "skin_vertices": r["skinVertexCount"],
+              "surface_vertices": r["totalSurfaceVertexCount"],
+              "faces": r["faceCount"],
+              "unknown_regions": r["unknownSkinRegionVertexCount"],
+              "landmarks": r["piercingLandmarks"],
+          }, indent=2))
+          PY
 
-      - name: Run Ara's original bikini generator against Wren's exact morph profile
+      - name: Run Ara's original bikini generator against accepted Wren surface
         run: |
           set -euo pipefail
           cd tools/ara_native
           npx tsx generate-wren-bikini.ts \
             --profile ../../character-preview/wren-ara.json \
-            --data ../../build/ara-fitting-data \
+            --body-surface ../../build/wren-native/wren-ara-body-surface.json.gz \
             --out ../../build/wren-garments
           test -s ../../build/wren-garments/Wren_Ara_Bikini.obj
           test -s ../../build/wren-garments/Wren_Ara_Bikini.mtl
@@ -80,17 +90,15 @@ jobs:
           r = json.loads(Path("../../build/wren-garments/generation-report.json").read_text())
           assert r["sourceCommit"] == "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395", r
           assert r["garmentPartCount"] >= 3, r
+          assert r["bodySource"] == "accepted Wren GLB geometry", r
           assert r["bodySkinPreserved"] is True, r
+          assert r["piercingGeometryUsedDuringGeneration"] is True, r
+          assert r["includedPiercingObjects"], r
           assert r["araHidesMasksApplied"] is False, r
           assert {x["garment"] for x in r["garments"]} >= {"bikini_top", "bikini_bottom"}, r
           assert sum(x["faces"] for x in r["garments"]) > 100, r
           print("ARA_NATIVE_GARMENT_REPORT_OK", json.dumps(r, indent=2))
           PY
-
-      - name: Install Blender and Godot preview dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
 
       - name: Inspect accepted Wren surface, rig and accessory geometry (read-only)
         run: |
