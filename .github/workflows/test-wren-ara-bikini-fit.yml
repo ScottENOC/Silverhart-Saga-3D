@@ -201,7 +201,7 @@ jobs:
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/wren_native_preview.gd
-          for view in front side threequarter face pelvis pelvis_back; do
+          for view in front side threequarter face pelvis pelvis_back chest chest_threequarter; do
             test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
           done
           test -s build/wren-native-preview-project/build/wren-native/preview/render-report.json
