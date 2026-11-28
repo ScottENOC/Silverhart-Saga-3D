@@ -2938,6 +2938,12 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 					)
 				else:
 					_on_tavern_stair_traversal_finished()
+			elif character_id == stair_traversal_character_id:
+				var stair_tween := create_tween()
+				stair_tween.set_trans(Tween.TRANS_SINE)
+				stair_tween.set_ease(Tween.EASE_IN_OUT)
+				stair_tween.tween_property(actor, "global_position", destination, TAVERN_STAIR_TRAVERSAL_DURATION)
+				stair_tween.finished.connect(_on_tavern_stair_traversal_finished, CONNECT_ONE_SHOT)
 			else:
 				actor.global_position = destination
 				if actor is HexActorPresentation:
