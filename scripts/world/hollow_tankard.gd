@@ -883,7 +883,7 @@ func _select_camp_site(hex: Vector2i) -> void:
 	var water_nearby := false
 	for candidate in simulation.map_data.cells:
 		var candidate_hex: Vector2i = candidate
-		if HexGrid.distance(hex, candidate_hex) > 4:
+		if not simulation.is_hex_within_range(hex, candidate_hex, 4):
 			continue
 		var terrain := simulation.map_data.terrain_id_at(candidate_hex)
 		if terrain == "forest":
