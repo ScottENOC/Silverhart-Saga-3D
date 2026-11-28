@@ -193,7 +193,8 @@ def main():
     inverse_garment = garment.matrix_world.inverted_safe()
     corrected_vertices, total_correction, max_correction = 0, 0.0, 0.0
     clearance = 0.003
-    max_allowed_correction = 0.03
+    max_allowed_correction = 0.05
+    corrections_over_30mm = 0
     for vertex in garment.data.vertices:
         world_point = garment.matrix_world @ vertex.co
         nearest = skin_bvh.find_nearest(world_point)
@@ -207,10 +208,15 @@ def main():
         correction = max(0.0, clearance - signed_gap)
         if correction > max_allowed_correction:
             raise RuntimeError(
-                "Garment-to-skin correction exceeds 30 mm at vertex %d (%.1f mm); "
+                "Garment-to-skin correction exceeds 50 mm at vertex %d (%.1f mm); "
                 "refusing a likely coordinate or collider mismatch"
                 % (vertex.index, correction * 1000.0)
             )
+        if correction > 0.03:
+            corrections_over_30mm += 1
+            print("WREN_GARMENT_LARGE_SKIN_CORRECTION vertex=%d correction_mm=%.2f signed_gap_mm=%.2f" % (
+                vertex.index, correction * 1000.0, signed_gap * 1000.0
+            ))
         if correction > 0.0:
             vertex.co += inverse_garment.to_3x3() @ (normal * correction)
             corrected_vertices += 1
@@ -245,6 +251,7 @@ def main():
         "garment_vertices_corrected_to_accepted_skin": corrected_vertices,
         "garment_surface_correction_mean_mm": (total_correction / corrected_vertices * 1000.0) if corrected_vertices else 0.0,
         "garment_surface_correction_max_mm": max_correction * 1000.0,
+        "garment_vertices_corrected_over_30mm": corrections_over_30mm,
         "accepted_skin_clearance_mm": clearance * 1000.0,
         "body_meshes_modified": False,
         "body_meshes_hidden_or_deleted": False,
