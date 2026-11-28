@@ -14,7 +14,6 @@ from pathlib import Path
 
 import bpy
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
 
 def arguments():
@@ -22,6 +21,7 @@ def arguments():
     p = argparse.ArgumentParser()
     p.add_argument("--input-glb", required=True)
     p.add_argument("--garment-obj", required=True)
+    p.add_argument("--generation-report", required=True)
     p.add_argument("--output-glb", required=True)
     p.add_argument("--report", required=True)
     return p.parse_args(raw)
@@ -159,96 +159,22 @@ def main():
     for poly in mesh.polygons:
         poly.use_smooth = True
 
-    # Wren's accepted anatomy extends farther down than Ara's morph-only base.
-    # Preserve Ara's original cast/topology, then lengthen only the front panel
-    # along its own vertical axis before projecting it against the accepted skin.
-    panel_material = material_index.get("Bikini_bottom_3")
-    if panel_material is None:
-        raise RuntimeError("Ara bikini bottom panel material is missing")
-    front_panel_vertices = set()
-    for poly in mesh.polygons:
-        if poly.material_index == panel_material:
-            for index in poly.vertices:
-                if mesh.vertices[index].co.y < -0.015:
-                    front_panel_vertices.add(index)
-    if not front_panel_vertices:
-        raise RuntimeError("Could not isolate the Ara front bikini panel in Wren coordinates")
-    front_z = [mesh.vertices[index].co.z for index in front_panel_vertices]
-    front_z_min, front_z_max = min(front_z), max(front_z)
-    front_panel_extension_m = 0.035
-    front_panel_width_scale = 1.12
-    for index in front_panel_vertices:
-        vertex = mesh.vertices[index]
-        t = (front_z_max - vertex.co.z) / max(front_z_max - front_z_min, 1e-6)
-        vertex.co.z -= front_panel_extension_m * t
-        vertex.co.x *= 1.0 + (front_panel_width_scale - 1.0) * t
-    mesh.update()
-
-    # Ara's default 3 mm lift fits the morph-generated base body. Wren's
-    # accepted GLB also contains the repository's later anatomy sculpt, so
-    # project only garment vertices that still sit inside that actual skin.
-    # This is a garment-only surface correction; the accepted body is read-only.
-    skin_meshes = [
-        obj for obj in body_meshes
-        if any(slot.material and slot.material.name.lower().startswith("skin") for slot in obj.material_slots)
-    ]
-    if not skin_meshes:
-        material_names = sorted({
-            slot.material.name for obj in body_meshes for slot in obj.material_slots if slot.material
-        })
-        raise RuntimeError("Could not identify accepted Wren skin meshes; materials=" + repr(material_names))
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    collider_vertices, collider_polygons = [], []
-    for skin_obj in skin_meshes:
-        evaluated = skin_obj.evaluated_get(depsgraph)
-        evaluated_mesh = evaluated.to_mesh()
-        offset = len(collider_vertices)
-        collider_vertices.extend(evaluated.matrix_world @ vertex.co for vertex in evaluated_mesh.vertices)
-        collider_polygons.extend(
-            [offset + index for index in polygon.vertices]
-            for polygon in evaluated_mesh.polygons
-        )
-        evaluated.to_mesh_clear()
-    if not collider_vertices or not collider_polygons:
-        raise RuntimeError("Accepted Wren skin collider has no surface geometry")
-    skin_bvh = BVHTree.FromPolygons(collider_vertices, collider_polygons, all_triangles=False)
-    if skin_bvh is None:
-        raise RuntimeError("Could not build accepted Wren skin BVH")
-    skin_centre = sum(collider_vertices, Vector()) / len(collider_vertices)
-    inverse_garment = garment.matrix_world.inverted_safe()
-    corrected_vertices, total_correction, max_correction = 0, 0.0, 0.0
-    clearance = 0.003
-    max_allowed_correction = 0.05
-    corrections_over_30mm = 0
-    for vertex in garment.data.vertices:
-        world_point = garment.matrix_world @ vertex.co
-        nearest = skin_bvh.find_nearest(world_point)
-        if nearest is None or nearest[0] is None or nearest[1] is None:
-            continue
-        location, normal, _face_index, _distance = nearest
-        normal = Vector(normal).normalized()
-        if normal.dot(Vector(location) - skin_centre) < 0.0:
-            normal.negate()
-        signed_gap = (world_point - Vector(location)).dot(normal)
-        correction = max(0.0, clearance - signed_gap)
-        if correction > max_allowed_correction:
-            raise RuntimeError(
-                "Garment-to-skin correction exceeds 50 mm at vertex %d (%.1f mm); "
-                "refusing a likely coordinate or collider mismatch"
-                % (vertex.index, correction * 1000.0)
-            )
-        if correction > 0.03:
-            corrections_over_30mm += 1
-            print("WREN_GARMENT_LARGE_SKIN_CORRECTION vertex=%d correction_mm=%.2f signed_gap_mm=%.2f" % (
-                vertex.index, correction * 1000.0, signed_gap * 1000.0
-            ))
-        if correction > 0.0:
-            vertex.co += inverse_garment.to_3x3() @ (normal * correction)
-            corrected_vertices += 1
-            total_correction += correction
-            max_correction = max(max_correction, correction)
-    garment.data.update()
-
+    # Ara has already generated this garment against the accepted Wren skin and piercing surface.
+    # Do not extend, project or deform it here: that would reintroduce post-generation repair.
+    with open(opt.generation_report, "r", encoding="utf-8") as f:
+        generation = json.load(f)
+    if generation.get("bodySource") != "accepted Wren GLB geometry":
+        raise RuntimeError("Garment was not generated against the accepted Wren body")
+    if generation.get("piercingGeometryUsedDuringGeneration") is not True:
+        raise RuntimeError("Garment generation did not include piercing collision geometry")
+    if generation.get("bodySurfaceSha256") != sha256(body_path):
+        raise RuntimeError("Garment fitting surface does not match the accepted Wren GLB")
+    piercing_objects = sorted(
+        o.name for o in body_objects
+        if o.type == "MESH" and o.name.lower().startswith("piercing")
+    )
+    if not piercing_objects:
+        raise RuntimeError("Accepted Wren GLB contains no preserved piercing objects")
     bpy.ops.object.select_all(action="DESELECT")
     for obj in body_objects + [garment]:
         obj.select_set(True)
@@ -266,20 +192,17 @@ def main():
         "output_glb": out_path,
         "garment_obj": obj_path,
         "garment_sha256": sha256(obj_path),
+        "generation_report": os.path.abspath(opt.generation_report),
         "original_body_mesh_count": len(body_meshes),
         "original_body_vertex_count": original_mesh_vertices,
         "original_armatures": original_armature_names,
+        "preserved_piercing_objects": piercing_objects,
         "garment_vertex_count": len(vertices),
         "garment_face_count": len(faces),
         "garment_materials": sorted(mats),
-        "skin_collider_meshes": [obj.name for obj in skin_meshes],
-        "garment_vertices_corrected_to_accepted_skin": corrected_vertices,
-        "garment_surface_correction_mean_mm": (total_correction / corrected_vertices * 1000.0) if corrected_vertices else 0.0,
-        "garment_surface_correction_max_mm": max_correction * 1000.0,
-        "wren_front_panel_extension_mm": front_panel_extension_m * 1000.0,
-        "wren_front_panel_width_scale": front_panel_width_scale,
-        "garment_vertices_corrected_over_30mm": corrections_over_30mm,
-        "accepted_skin_clearance_mm": clearance * 1000.0,
+        "garment_generated_against_accepted_body": True,
+        "piercing_geometry_used_during_generation": True,
+        "post_generation_vertex_corrections": 0,
         "body_meshes_modified": False,
         "body_meshes_hidden_or_deleted": False,
         "original_armature_preserved": True,
