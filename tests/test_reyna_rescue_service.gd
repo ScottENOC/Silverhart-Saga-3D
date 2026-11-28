@@ -64,7 +64,7 @@ func _test_objective_completion_query() -> void:
 
 func _test_direct_interaction_prompts() -> void:
 	var simulation := _simulation_with_quest()
-	var blocked := RESCUE.interaction_for_character(simulation, "farmstead_dire_wolf")
+	var blocked := RESCUE.interaction_for_character(simulation, RESCUE.DIRE_WOLF_ID)
 	assert(String(blocked.get("action", "")) == "block_hunt")
 	assert(String(blocked.get("speaker", "")) == "Dire wolf")
 	var child_before := RESCUE.interaction_for_character(simulation, RESCUE.CHILD_ID)
@@ -74,7 +74,7 @@ func _test_direct_interaction_prompts() -> void:
 	assert(bool(simulation.campaign_journal.set_objective_progress(RESCUE.QUEST_ID, "child_rescued", 1.0).get("ok", false)))
 	var child_after := RESCUE.interaction_for_character(simulation, RESCUE.CHILD_ID)
 	assert(String(child_after.get("expression", "")) == "smile")
-	var ready_wolf := RESCUE.interaction_for_character(simulation, "farmstead_dire_wolf")
+	var ready_wolf := RESCUE.interaction_for_character(simulation, RESCUE.DIRE_WOLF_ID)
 	assert(String(ready_wolf.get("action", "")) == "start_hunt")
 	assert(String(RESCUE.interaction_for_character(simulation, "unrelated_npc").get("action", "")) == "none")
 	simulation.free()
