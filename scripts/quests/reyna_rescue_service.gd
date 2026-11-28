@@ -4,6 +4,7 @@ extends RefCounted
 
 const QUEST_ID := "reyna_dire_wolf_hunt"
 const CHILD_ID := "missing_child_tessa"
+const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
 
 static func prepare_rescue(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
@@ -84,7 +85,7 @@ static func record_trail_found(simulation: WorldSimulation) -> Dictionary:
 static func interaction_for_character(simulation: WorldSimulation, character_id: String) -> Dictionary:
 	if simulation == null:
 		return {"action": "none", "reason": "missing_simulation"}
-	if character_id == "farmstead_dire_wolf":
+	if character_id == DIRE_WOLF_ID:
 		if not objective_complete(simulation, "child_rescued"):
 			return {
 				"action": "block_hunt",
