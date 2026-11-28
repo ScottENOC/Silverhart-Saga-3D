@@ -1,0 +1,1222 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "campaign2_local_axial_qr",
+  "description": "Explicit identity join between Campaign 2 multi-story interior locations and authored exterior building/site definitions. Runtime identity comes only from these stable IDs; coordinates are validation evidence, never lookup keys.",
+  "source_manifests": [
+    "data/world/campaign2_multistory_locations.json",
+    "data/world/campaign2_settlement_layouts.json",
+    "data/settlements/hollowmere/buildings.gd"
+  ],
+  "links": [
+    {
+      "location_id": "hollowmere_chapel",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "chapel"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_chapel_room",
+          "building_id": "chapel",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "explicit_hollowmere_building_definition"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "hollowmere_general_store",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "general_store"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_general_store_room",
+          "building_id": "general_store",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "explicit_hollowmere_building_definition"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "hollowmere_house",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "elder_house"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_house_room",
+          "building_id": "elder_house",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "explicit_hollowmere_building_definition"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "hollowmere_store",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "Interior exists at (14,0), but there is no corresponding exterior building entry in the Hollowmere BUILDINGS catalogue."
+      ]
+    },
+    {
+      "location_id": "hollowmere_tavern",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "The bespoke Hollow Tankard interior is authored separately; its exterior identity is not yet represented by a shared building catalogue ID."
+      ]
+    },
+    {
+      "location_id": "mira_house",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "mira_house"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "mira_house_room",
+          "building_id": "mira_house",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "explicit_hollowmere_building_definition"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "oskar_house",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "oskar_house"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "oskar_house_room",
+          "building_id": "oskar_house",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "explicit_hollowmere_building_definition"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "hollowmere_guild_den",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "The Guild Den interior exists at (-12,-8), but no corresponding exterior building record exists in the Hollowmere BUILDINGS catalogue."
+      ]
+    },
+    {
+      "location_id": "kragmoor",
+      "integration_kind": "cave_site",
+      "status": "site_transition",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_surface_entrance_streamed_deep_floors",
+      "notes": [
+        "A physical surface entrance is required; deep floors may remain explicitly streamed where a continuous rendered cave is impractical."
+      ]
+    },
+    {
+      "location_id": "emberlode_bunkhouse",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "emberlode_bunkhouse"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "emberlode_bunkhouse_room",
+          "building_id": "emberlode_bunkhouse",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "emberlode_foremans_hall",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "emberlode_foremans_hall"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "emberlode_foremans_hall_room",
+          "building_id": "emberlode_foremans_hall",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "emberlode_mine",
+      "integration_kind": "cave_site",
+      "status": "site_transition",
+      "building_ids": [
+        "emberlode_mine_entrance"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "mine_entrance",
+          "building_id": "emberlode_mine_entrance",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": -1,
+          "room_id": "working_vein",
+          "building_id": "emberlode_mine_entrance",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": -2,
+          "room_id": "old_seam",
+          "building_id": "emberlode_mine_entrance",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_surface_entrance_streamed_deep_floors",
+      "notes": [
+        "A physical surface entrance is required; deep floors may remain explicitly streamed where a continuous rendered cave is impractical."
+      ]
+    },
+    {
+      "location_id": "old_mac_farmhouse",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "old_mac_farmhouse"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "old_mac_farmhouse_room",
+          "building_id": "old_mac_farmhouse",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "reddale_guardhouse",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "reddale_guardhouse"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "reddale_guardhouse_room",
+          "building_id": "reddale_guardhouse",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "reddale_guildhouse",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "reddale_ironbond_guildhouse"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "reddale_guildhouse_room",
+          "building_id": "reddale_ironbond_guildhouse",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "reddale_inn",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "reddale_inn"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "reddale_inn_room",
+          "building_id": "reddale_inn",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "reddale_manor",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "reddale_baron_manor"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "reddale_manor_room",
+          "building_id": "reddale_baron_manor",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "reddale_reeve_house",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "reddale_reeve_house"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "reddale_reeve_house_room",
+          "building_id": "reddale_reeve_house",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "reddale_smithy",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "reddale_smithy"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "reddale_smithy_room",
+          "building_id": "reddale_smithy",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silthandriel",
+      "integration_kind": "settlement_site",
+      "status": "site_transition",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "Settlement-scale canopy site; not a single exterior building record."
+      ]
+    },
+    {
+      "location_id": "silverhart_palace",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_grand_hall",
+        "silverhart_queens_bedroom"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "grand_hall",
+          "building_id": "silverhart_grand_hall",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": 0,
+          "room_id": "queen_private_chambers",
+          "building_id": "silverhart_queens_bedroom",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": 1,
+          "room_id": "grand_hall_gallery",
+          "building_id": "silverhart_grand_hall",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_palace_barracks",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_barracks"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "barracks",
+          "building_id": "silverhart_barracks",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": 1,
+          "room_id": "barracks_loft",
+          "building_id": "silverhart_barracks",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_palace_wizard_tower",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_royal_wizard_tower"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "wizard_tower",
+          "building_id": "silverhart_royal_wizard_tower",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": 1,
+          "room_id": "wizard_study",
+          "building_id": "silverhart_royal_wizard_tower",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": 2,
+          "room_id": "wizard_observatory",
+          "building_id": "silverhart_royal_wizard_tower",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_palace_council_chamber",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_council_chamber"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "council_chamber",
+          "building_id": "silverhart_council_chamber",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_thieves_guild",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_thieves_guild",
+        "silverhart_thieves_guild_vault"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "thieves_guild",
+          "building_id": "silverhart_thieves_guild",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        },
+        {
+          "floor": 0,
+          "room_id": "hidden_vault",
+          "building_id": "silverhart_thieves_guild_vault",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_stables",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_stables"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "stables",
+          "building_id": "silverhart_stables",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_general_goods",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_general_goods"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "general_goods",
+          "building_id": "silverhart_general_goods",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_clothier",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_clothier"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "clothier",
+          "building_id": "silverhart_clothier",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_magic_shop",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_magic_shop"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "magic_shop",
+          "building_id": "silverhart_magic_shop",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "thieves_cove",
+      "integration_kind": "cave_site",
+      "status": "site_transition",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_surface_entrance_streamed_deep_floors",
+      "notes": [
+        "A physical surface entrance is required; deep floors may remain explicitly streamed where a continuous rendered cave is impractical."
+      ]
+    },
+    {
+      "location_id": "corvin_ashgrave_barrow",
+      "integration_kind": "dungeon_site",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_entrance_continuous_single_floor",
+      "notes": [
+        "Single-floor barrow/crypt geometry should remain continuous; its exterior/site identity is not in the settlement building catalogue."
+      ]
+    },
+    {
+      "location_id": "vessel_seekers_crypt",
+      "integration_kind": "dungeon_site",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_entrance_continuous_single_floor",
+      "notes": [
+        "Single-floor barrow/crypt geometry should remain continuous; its exterior/site identity is not in the settlement building catalogue."
+      ]
+    },
+    {
+      "location_id": "millbrook_house",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "millbrook_house"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "millbrook_house_room",
+          "building_id": "millbrook_house",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "lich_chapterhouse",
+      "integration_kind": "dungeon_site",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_entrance_continuous_single_floor",
+      "notes": [
+        "Single-floor chapterhouse; exterior/site identity is not in the settlement building catalogue."
+      ]
+    },
+    {
+      "location_id": "abandoned_house",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "Ordinary house interior exists, but no matching exterior building ID is present in the canonical settlement catalogue."
+      ]
+    },
+    {
+      "location_id": "silverhart_palace_tunnel",
+      "integration_kind": "special_network",
+      "status": "site_transition",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "named_secret_tunnel_network_exception",
+      "notes": [
+        "Part of the deliberate three-node secret tunnel network; retain the explicit fast-travel shortcut until a continuous authored corridor exists."
+      ]
+    },
+    {
+      "location_id": "silverhart_city_tunnel",
+      "integration_kind": "special_network",
+      "status": "site_transition",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "named_secret_tunnel_network_exception",
+      "notes": [
+        "Part of the deliberate three-node secret tunnel network; retain the explicit fast-travel shortcut until a continuous authored corridor exists."
+      ]
+    },
+    {
+      "location_id": "northwatch_keep",
+      "integration_kind": "fort_site",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "Fort interior definition has no paired building record in the canonical settlement building catalogue; reconcile against fort presentation data."
+      ]
+    },
+    {
+      "location_id": "ridgehold_keep",
+      "integration_kind": "fort_site",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "Fort interior definition has no paired building record in the canonical settlement building catalogue; reconcile against fort presentation data."
+      ]
+    },
+    {
+      "location_id": "silverhart_elven_embassy",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_elven_embassy"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_elven_embassy_room",
+          "building_id": "silverhart_elven_embassy",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_dwarven_embassy",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_dwarven_embassy"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_dwarven_embassy_room",
+          "building_id": "silverhart_dwarven_embassy",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_aldenreach_embassy",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_aldenreach_embassy"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_aldenreach_embassy_room",
+          "building_id": "silverhart_aldenreach_embassy",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_corvane_embassy",
+      "integration_kind": "building",
+      "status": "review_required",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "candidate_building_ids": [
+        "silverhart_corvane_embassy"
+      ],
+      "notes": [
+        "The interior anchor/room centre is (16,-463), while the exterior centre is (16,-462). Do not bind until the one-hex discrepancy is resolved."
+      ]
+    },
+    {
+      "location_id": "silverhart_ironbond_office",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_ironbond_office"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_ironbond_office_room",
+          "building_id": "silverhart_ironbond_office",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_grand_cathedral",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_grand_cathedral"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_grand_cathedral_room",
+          "building_id": "silverhart_grand_cathedral",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_commons_inn",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_commons_inn"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_commons_inn_room",
+          "building_id": "silverhart_commons_inn",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_warrens_shack_west",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_warrens_shack_1"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_warrens_shack_west_room",
+          "building_id": "silverhart_warrens_shack_1",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_warrens_shack_centre",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_warrens_shack_2"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_warrens_shack_centre_room",
+          "building_id": "silverhart_warrens_shack_2",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_warrens_shack_east",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_warrens_shack_3"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_warrens_shack_east_room",
+          "building_id": "silverhart_warrens_shack_3",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_north_cottage_one",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_north_cottage_1"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_north_cottage_one_room",
+          "building_id": "silverhart_north_cottage_1",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_north_cottage_two",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_north_cottage_2"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_north_cottage_two_room",
+          "building_id": "silverhart_north_cottage_2",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_north_cottage_three",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_north_cottage_3"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_north_cottage_three_room",
+          "building_id": "silverhart_north_cottage_3",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_east_house_one",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_east_house_1"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_east_house_one_room",
+          "building_id": "silverhart_east_house_1",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_east_house_two",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_east_house_2"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_east_house_two_room",
+          "building_id": "silverhart_east_house_2",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_east_house_three",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_east_house_3"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_east_house_three_room",
+          "building_id": "silverhart_east_house_3",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_east_house_four",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_east_house_4"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_east_house_four_room",
+          "building_id": "silverhart_east_house_4",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_middle_ring_house_east",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_middle_ring_house_1"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_middle_ring_house_east_room",
+          "building_id": "silverhart_middle_ring_house_1",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_middle_ring_house_northeast",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_middle_ring_house_2"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_middle_ring_house_northeast_room",
+          "building_id": "silverhart_middle_ring_house_2",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_middle_ring_house_north",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_middle_ring_house_3"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_middle_ring_house_north_room",
+          "building_id": "silverhart_middle_ring_house_3",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_middle_ring_house_west",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_middle_ring_house_4"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_middle_ring_house_west_room",
+          "building_id": "silverhart_middle_ring_house_4",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_middle_ring_house_southwest",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_middle_ring_house_5"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_middle_ring_house_southwest_room",
+          "building_id": "silverhart_middle_ring_house_5",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_middle_ring_house_southeast",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_middle_ring_house_6"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_middle_ring_house_southeast_room",
+          "building_id": "silverhart_middle_ring_house_6",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_corstane_manor",
+      "integration_kind": "building",
+      "status": "geometry_incomplete",
+      "building_ids": [
+        "silverhart_corstane_manor"
+      ],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "Stable building identity is exact and the exterior footprint is present, but the interior floor currently has no room geometry."
+      ]
+    },
+    {
+      "location_id": "silverhart_noble_neighbor_house",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_neighbor_house"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_noble_neighbor_house_room",
+          "building_id": "silverhart_neighbor_house",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world"
+    },
+    {
+      "location_id": "silverhart_outlying_house_east",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_outlying_house_1"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_outlying_house_east_room",
+          "building_id": "silverhart_outlying_house_1",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world",
+      "notes": []
+    },
+    {
+      "location_id": "silverhart_outlying_house_far_east",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_outlying_house_2"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_outlying_house_far_east_room",
+          "building_id": "silverhart_outlying_house_2",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world",
+      "notes": []
+    },
+    {
+      "location_id": "silverhart_outlying_house_west",
+      "integration_kind": "building",
+      "status": "linked",
+      "building_ids": [
+        "silverhart_outlying_house_3"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "silverhart_outlying_house_west_room",
+          "building_id": "silverhart_outlying_house_3",
+          "source_catalogue": "campaign2_settlement_layouts",
+          "basis": "authored_room_and_exterior_centres_match"
+        }
+      ],
+      "transition_policy": "physical_continuous_world",
+      "notes": []
+    },
+    {
+      "location_id": "silverhart_builder_house",
+      "integration_kind": "building",
+      "status": "review_required",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "candidate_building_ids": [
+        "silverhart_builder_house"
+      ],
+      "notes": [
+        "The location has no room geometry and its anchor is (38,-492), while the exterior centre is (38,-491). Resolve both before binding."
+      ]
+    },
+    {
+      "location_id": "silverhart_outlying_house_1",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "This numbered outlying residence has no matching exterior building centre/ID in the canonical Silverhart catalogue; do not alias it to a differently named house by proximity."
+      ]
+    },
+    {
+      "location_id": "silverhart_outlying_house_2",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "This numbered outlying residence has no matching exterior building centre/ID in the canonical Silverhart catalogue; do not alias it to a differently named house by proximity."
+      ]
+    },
+    {
+      "location_id": "silverhart_outlying_house_3",
+      "integration_kind": "building",
+      "status": "exterior_missing",
+      "building_ids": [],
+      "room_links": [],
+      "transition_policy": "physical_continuous_world",
+      "notes": [
+        "This numbered outlying residence has no matching exterior building centre/ID in the canonical Silverhart catalogue; do not alias it to a differently named house by proximity."
+      ]
+    }
+  ]
+}

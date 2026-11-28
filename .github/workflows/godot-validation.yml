@@ -283,6 +283,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_cell_loader.gd
       - name: Run source-authored multi-story location tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
+      - name: Run interior/exterior identity contract tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_interior_exterior_links.gd
       - name: Run Thieves' Cove source map-object tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_multistory_location_registry.gd
       - name: Run source-authored multi-story floor map tests
