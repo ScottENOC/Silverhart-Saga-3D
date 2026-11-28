@@ -2,6 +2,7 @@ extends SceneTree
 
 const ELDER_CONTENT = preload("res://scripts/simulation/elder_marta_content.gd")
 const LOCKET_PICKUP_CONTENT = preload("res://scripts/simulation/elder_locket_pickup_content.gd")
+const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 
 var _failures: int = 0
 
@@ -89,7 +90,8 @@ func _test_chapel_pickup_is_idempotent_and_persistent() -> void:
 	_check(player.inventory.size() == 1, "Revisiting the pickup must not duplicate the locket.")
 
 	var runtime_source := FileAccess.get_file_as_string("res://scripts/world/hollow_tankard.gd")
-	_check(runtime_source.contains("Vector2i(-14, 0)"), "The chapel pickup must use the source-authored hex.")
+	_check(HOLLOWMERE_PLACEMENTS.ELDER_LOCKET_PICKUP_HEX == Vector2i(-14, 0), "The authored chapel pickup must preserve the source hex.")
+	_check(runtime_source.contains("HOLLOWMERE_PLACEMENTS.ELDER_LOCKET_PICKUP_HEX"), "The world adapter must use the authored chapel pickup location.")
 	_check(runtime_source.contains('"elder_locket_collected": elder_locket_collected'), "The pickup state must be saved.")
 	_check(runtime_source.contains('elder_locket_collected = bool(flags.get("elder_locket_collected", false))'), "The pickup state must be restored.")
 	_check(runtime_source.contains("not _interact_with_chapel_locket()"), "The F-key interaction must collect the pickup.")
