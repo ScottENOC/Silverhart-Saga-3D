@@ -44,6 +44,7 @@ func _initialize() -> void:
 	_test_road_network_connectivity()
 	_test_building_thresholds()
 	_test_tavern_door_contract()
+	_test_tavern_stair_geometry()
 	_test_building_definitions_use_shared_factory()
 	_test_hollowmere_character_manifest()
 	_test_animal_actor_registration()
@@ -125,6 +126,28 @@ func _test_road_network_connectivity() -> void:
 		HOLLOWMERE_SETTLEMENT.FARM_BARN_DOOR
 	]:
 		assert(visited.has(destination), "Village road does not connect to %s" % destination)
+
+func _test_tavern_stair_geometry() -> void:
+	var stair_steps: Array[Dictionary] = []
+	for feature_variant in HOLLOW_TANKARD_LAYOUT.STRUCTURE.BUILDING_SHELL.get("features", []):
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		if String(feature.get("name", "")).begins_with("StairStep_"):
+			stair_steps.append(feature)
+	assert(stair_steps.size() == 10, "Hollow Tankard must retain its ten authored physical stair treads")
+	stair_steps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var position_a: Vector3 = a.get("position", Vector3.ZERO)
+		var position_b: Vector3 = b.get("position", Vector3.ZERO)
+		return position_a.y < position_b.y
+	)
+	for index in range(1, stair_steps.size()):
+		var previous: Vector3 = stair_steps[index - 1].get("position", Vector3.ZERO)
+		var current: Vector3 = stair_steps[index].get("position", Vector3.ZERO)
+		assert(current.y > previous.y, "Stair treads must rise monotonically")
+		assert(current.z < previous.z, "Stair treads must progress continuously toward the upper landing")
+	assert(HOLLOW_TANKARD_LAYOUT.STAIR_GROUND_HEX == Vector2i(3, 0), "Ground stair address must remain source-authored")
+	assert(HOLLOW_TANKARD_LAYOUT.STAIR_UPPER_HEX - HOLLOW_TANKARD_LAYOUT.UPPER_FLOOR_ORIGIN == Vector2i(3, -1), "Upper stair address must map to the physical top landing")
 
 func _test_building_definitions_use_shared_factory() -> void:
 	var ids: Dictionary = {}
