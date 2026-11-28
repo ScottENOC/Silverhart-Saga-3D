@@ -1239,7 +1239,7 @@ func _build_save_snapshot() -> Dictionary:
 			"elder_locket_collected": elder_locket_collected,
 			"farm_wolves_spawned": farm_wolves_spawned,
 			"farm_wolves_retry_armed": farm_wolves_retry_armed,
-			"wilderness_steps_since_spawn": wilderness_steps_since_spawn,
+			"wilderness_steps_since_spawn": wilderness_creature_spawner.steps_since_spawn if wilderness_creature_spawner != null else 0,
 			"rowan_roaming_hex": rowan_world_service.roaming_hex if rowan_world_service != null else INVALID_HEX
 		},
 		"camera": {
@@ -1281,7 +1281,8 @@ func _apply_save_data(data: Dictionary) -> void:
 		elder_locket_visual.visible = not elder_locket_collected
 	farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
 	farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
-	wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
+	if wilderness_creature_spawner != null:
+		wilderness_creature_spawner.steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
 	var saved_rowan_hex: Variant = flags.get("rowan_roaming_hex", INVALID_HEX)
 	if rowan_world_service != null:
 		rowan_world_service.roaming_hex = saved_rowan_hex if saved_rowan_hex is Vector2i else INVALID_HEX
