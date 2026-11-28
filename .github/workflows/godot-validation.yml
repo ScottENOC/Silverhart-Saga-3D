@@ -214,6 +214,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_cave_entrance_presentation.gd
       - name: Run abandoned-house approach presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_abandoned_house_approach_presentation.gd
+      - name: Run abandoned-house quest lifecycle tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_abandoned_house_quest_lifecycle.gd
       - name: Run Vampire Grave presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_vampire_grave_presentation.gd
       - name: Run Silthandriel canopy settlement presentation tests
@@ -259,6 +261,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
       - name: Run farm wolf quest and creature asset tests
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
+      - name: Run Reyna rescue quest boundary tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_reyna_rescue_service.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Run Campaign 2 tunnel interaction content tests
@@ -303,6 +307,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Run Campaign 2 character definition registry tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_character_definition_registry.gd
+      - name: Run world simulation spatial query tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_simulation_spatial_queries.gd
       - name: Run shared campaign NPC interaction service tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_npc_interaction_service.gd
       - name: Run Campaign 2 canonical settlement builder tests

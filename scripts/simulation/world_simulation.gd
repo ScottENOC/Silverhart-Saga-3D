@@ -542,6 +542,27 @@ func reset_transient_combat_state() -> void:
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
 
+
+## Shared spatial queries over the authoritative axial world model. Scene
+## adapters and campaign rules consume these instead of calculating ranges.
+func hex_distance(first: Vector2i, second: Vector2i) -> int:
+    return HexGrid.distance(first, second)
+
+
+func is_hex_within_range(first: Vector2i, second: Vector2i, radius: int) -> bool:
+    return radius >= 0 and hex_distance(first, second) <= radius
+
+
+func is_character_within_hex_range(character_id: String, target_hex: Vector2i, radius: int) -> bool:
+    var state := get_character(character_id)
+    return state != null and is_hex_within_range(state.axial, target_hex, radius)
+
+
+func are_characters_within_hex_range(first_character_id: String, second_character_id: String, radius: int) -> bool:
+    var first := get_character(first_character_id)
+    var second := get_character(second_character_id)
+    return first != null and second != null and is_hex_within_range(first.axial, second.axial, radius)
+
 ## Move a character between connected building floors without spending movement TP.
 func relocate_character(character_id: String, destination: Vector2i) -> bool:
     var state := get_character(character_id)

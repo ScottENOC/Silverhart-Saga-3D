@@ -258,3 +258,47 @@ static func resolve_combat(
 		"message": "The guardians are defeated, but the clearing could not be recorded: %s." % String(clearing.get("reason", "unknown error")),
 		"choice_label": "Continue."
 	}
+
+
+
+## Decide whether the player has entered the abandoned-house approach radius.
+## Quest activation and guardian registration are quest lifecycle rules; the
+## caller only restores the visible actor presentation returned here.
+static func prepare_approach(simulation: WorldSimulation, character_id: String) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_simulation_or_journal"}
+	if not simulation.is_character_within_hex_range(character_id, HOUSE_CENTRE, 8):
+		return {"ok": true, "should_present": false, "reason": "outside_approach_radius"}
+	var started := ensure_started(simulation.campaign_journal)
+	if not bool(started.get("ok", false)):
+		return {"ok": false, "reason": String(started.get("reason", "quest_start_failed"))}
+	if bool(started.get("already_completed", false)):
+		return {"ok": true, "should_present": false, "reason": "quest_completed"}
+	var guardians := ensure_guardians(simulation)
+	if not bool(guardians.get("ok", false)):
+		return {"ok": false, "reason": String(guardians.get("reason", "guardian_registration_failed"))}
+	var visible_guardians: Array[String] = []
+	for guardian_id in GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian != null and guardian.alive:
+			visible_guardians.append(guardian_id)
+	return {"ok": true, "should_present": true, "guardian_ids": visible_guardians}
+
+
+## Entry point for a world interaction. It validates the authored house radius
+## and ensures the quest is active before the encounter service is invoked.
+static func start_encounter_from_character(
+	simulation: WorldSimulation,
+	character_id: String,
+	party_ids: Array[String]
+) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok": false, "reason": "missing_simulation_or_journal"}
+	if not simulation.is_character_within_hex_range(character_id, HOUSE_CENTRE, 2):
+		return {"ok": false, "reason": "too_far_from_house"}
+	var started := ensure_started(simulation.campaign_journal)
+	if not bool(started.get("ok", false)):
+		return started
+	if bool(started.get("already_completed", false)):
+		return {"ok": false, "reason": "quest_already_completed"}
+	return start_encounter(simulation, party_ids)
