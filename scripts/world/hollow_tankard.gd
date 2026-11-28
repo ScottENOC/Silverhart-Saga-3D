@@ -2416,37 +2416,28 @@ func _spawn_abandoned_house_guardian_actor(guardian_id: String, hex: Vector2i) -
 func _check_abandoned_house_proximity() -> void:
 	if simulation == null or simulation.is_in_combat or encounter_active or dialogue_open:
 		return
-	var active_state := simulation.get_character(active_character_id)
-	if active_state == null or not simulation.is_character_within_hex_range(active_character_id, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE, 8):
+	var approach := ABANDONED_HOUSE_QUEST_SCRIPT.prepare_approach(simulation, active_character_id)
+	if not bool(approach.get("ok", false)) or not bool(approach.get("should_present", false)):
 		return
-	var start_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
-	if not bool(start_result.get("ok", false)) or bool(start_result.get("already_completed", false)):
-		return
-	var spawn_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
-	if not bool(spawn_result.get("ok", false)):
-		return
-	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
+	for guardian_id_value in approach.get("guardian_ids", []):
+		var guardian_id := String(guardian_id_value)
 		var guardian := simulation.get_character(guardian_id)
-		if guardian != null and guardian.alive:
+		if guardian != null:
 			_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
 
 
 func _begin_abandoned_house_encounter() -> void:
 	_close_dialogue()
-	var active_state := simulation.get_character(active_character_id)
-	if active_state == null or not simulation.is_character_within_hex_range(active_character_id, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE, 2):
-		_show_dialogue("Abandoned House", "You need to be at the house before you can enter it.", [{"id": "continue", "label": "Understood.", "text": ""}])
-		return
-	var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
-	if not bool(started.get("ok", false)):
-		_show_dialogue("Abandoned House", "The encounter cannot begin: %s." % String(started.get("reason", "unknown error")), [{"id": "continue", "label": "Continue", "text": ""}])
-		return
 	var party_ids: Array[String] = []
 	for party_id_value in simulation.get_party_member_ids():
 		party_ids.append(String(party_id_value))
-	var result := ABANDONED_HOUSE_QUEST_SCRIPT.start_encounter(simulation, party_ids)
+	var result := ABANDONED_HOUSE_QUEST_SCRIPT.start_encounter_from_character(simulation, active_character_id, party_ids)
 	if not bool(result.get("ok", false)):
-		_show_dialogue("Abandoned House", "You cannot face the guardians just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		var reason := String(result.get("reason", "unknown error"))
+		var message := "You cannot face the guardians just now: %s." % reason.replace("_", " ")
+		if reason == "too_far_from_house":
+			message = "You need to be at the house before you can enter it."
+		_show_dialogue("Abandoned House", message, [{"id": "continue", "label": "Understood.", "text": ""}])
 		return
 	active_combat_session = {"previous_states": result.get("previous_states", {})}
 	active_encounter_resolver = Callable(ABANDONED_HOUSE_QUEST_SCRIPT, "resolve_combat")
