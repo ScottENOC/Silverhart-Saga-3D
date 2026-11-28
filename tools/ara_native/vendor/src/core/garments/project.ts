@@ -38,7 +38,7 @@ export class Caster {
     // Rays come from the far side: front rays start at +Z, back at -Z, below at -Y, above at +Y.
     this.sign = dir === 'front' || dir === 'above' ? 1 : -1;
     const polys: { q: Vec3[]; f: number }[] = [];
-    if ('faceSizes' in src) {
+    if ('positions' in src) {
       const P = src.positions, at = (v: number): Vec3 => [P[v * 3], P[v * 3 + 1], P[v * 3 + 2]];
       for (let f = 0, c = 0; f < src.faceSizes.length; c += src.faceSizes[f++])
         if (keep(f)) polys.push({ q: Array.from(src.faceVerts.subarray(c, c + src.faceSizes[f]), at), f });
@@ -215,7 +215,7 @@ export function gridOutline(grid: Vec3[][]): Vec3[] {
 export class RadialCaster {
   private tris: [Vec3, Vec3, Vec3, number][] = [];
 
-  constructor(body: Body, faceVerts: Uint32Array, keep: (face: number) => boolean, faceSizes: Uint8Array) {
+  constructor(body: Body, faceVerts: Uint32Array, keep: (face: number) => boolean, faceSizes: Uint8Array = body.faceSizes) {
     for (let f = 0, c = 0; f < faceSizes.length; c += faceSizes[f++]) {
       if (!keep(f)) continue;
       const q = Array.from(faceVerts.subarray(c, c + faceSizes[f]), (v) => body.p(v));
