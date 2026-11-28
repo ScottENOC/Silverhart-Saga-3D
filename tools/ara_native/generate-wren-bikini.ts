@@ -68,8 +68,6 @@ if (parts.length < 3) throw new Error("Ara returned too few garment parts; expec
 const materials = new Map<string, any>();
 const obj: string[] = ["# Ara 3D Gen bikini source port fitted to accepted Wren surface", "mtllib Wren_Ara_Bikini.mtl"];
 const mtl: string[] = [];
-let minY = Infinity;
-for (let i = 1; i < coords.length; i += 3) minY = Math.min(minY, coords[i]);
 let vertexOffset = 0, uvOffset = 0;
 const partReport: any[] = [];
 for (let pi = 0; pi < parts.length; pi++) {
@@ -78,7 +76,7 @@ for (let pi = 0; pi < parts.length; pi++) {
   const materialName = String(mat.name || "AraGarment").replace(/[^A-Za-z0-9_]/g, "_") + "_" + pi;
   obj.push("o " + part.sourceGarment + "_" + pi, "usemtl " + materialName);
   for (let i = 0; i < mesh.positions.length; i += 3)
-    obj.push("v " + (mesh.positions[i] * 0.1) + " " + ((mesh.positions[i + 1] - minY) * 0.1) + " " + (mesh.positions[i + 2] * 0.1));
+    obj.push("v " + (mesh.positions[i] * 0.1) + " " + (mesh.positions[i + 1] * 0.1) + " " + (mesh.positions[i + 2] * 0.1));
   for (let i = 0; i < mesh.uvs.length; i += 2) obj.push("vt " + mesh.uvs[i] + " " + (1 - mesh.uvs[i + 1]));
   let corner = 0;
   for (const size of mesh.faceSizes) {
