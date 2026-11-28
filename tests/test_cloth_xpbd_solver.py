@@ -2,7 +2,7 @@ import unittest
 
 from tools.cloth.xpbd_solver import (
     Contact, DistanceConstraint, Particle, nonlinear_body_compliance,
-    solve_coupled_contact, solve_distance, solve_frame, project_to_normal_lines,
+    contact_from_garment_outward_direction, solve_coupled_contact, solve_distance, solve_frame, project_to_normal_lines,
 )
 
 
@@ -45,6 +45,20 @@ class XPBDSolverTests(unittest.TestCase):
         self.assertAlmostEqual(particles[0].position[0], 0.0)
         self.assertAlmostEqual(particles[0].position[1], 0.0)
         self.assertAlmostEqual(particles[0].position[2], 0.08)
+
+    def test_contact_uses_garment_outward_direction_not_surface_normal(self):
+        # A concave body surface may have a misleading local normal. The garment
+        # direction remains the authoritative direction for clearance.
+        contact = contact_from_garment_outward_direction(
+            (0.0, 0.0, -0.004), (0.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0), 0, 0.002
+        )
+        self.assertAlmostEqual(contact.distance, -0.004)
+        self.assertEqual(contact.normal, (0.0, 0.0, 1.0))
+        particles = [Particle.at((0.0, 0.0, -0.004))]
+        from tools.cloth.xpbd_solver import solve_contact
+        solve_contact(particles, contact)
+        self.assertAlmostEqual(particles[0].position[2], 0.002)
 
     def test_pinned_particle_is_not_moved_by_contact(self):
         particles = [Particle.at((0, 0, -0.2), inverse_mass=0.0)]
