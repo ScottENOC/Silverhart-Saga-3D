@@ -361,7 +361,7 @@ function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {
   // The lowest point of the trunk between the legs.
   let crotch = Infinity;
   for (let v = 0; v < b.info.length; v++) if (isTrunk(b.info[v]) && Math.abs(b.coords[v * 3]) < cm(1.5)) crotch = Math.min(crotch, b.coords[v * 3 + 1]);
-  const yLow = crotch + cm(3); // where the front and back panels turn under into the gusset
+  const yLow = crotch; // Wren's accepted anatomy extends below Ara's default 3 cm panel turn; bring the front panel to the actual crotch landmark
   const ySide = hip + cm(13), yFront = hip + cm(7.5), yBack = hip + cm(9.5);
   // Half-widths up each panel (v: 0 at the gusset, 1 at the top): a front triangle and a cheeky back.
   const hwFront = (v: number) => cm(1.8) + cm(9.5) * v ** 1.25;
