@@ -655,7 +655,6 @@ func _spawn_missing_child() -> void:
 func _check_reyna_story_proximity() -> void:
 	if simulation == null or dialogue_open or encounter_active or simulation.is_in_combat:
 		return
-	var active_state := simulation.get_character(active_character_id)
 	var near_clue := simulation.is_character_within_hex_range(active_character_id, HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX, 2)
 	var near_shelter := simulation.is_character_within_hex_range(active_character_id, HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX, 2)
 	var action := REYNA_RESCUE_SERVICE.proximity_action(
