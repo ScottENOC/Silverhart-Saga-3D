@@ -1,6 +1,13 @@
 name: Reconstruct Ara-method bikini briefs independently
 
 on:
+  # Also run automatically for the reconstruction PR; no iOS/manual dispatch needed.
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/test-wren-ara-bikini-fit.yml"
+      - "tools/blender/generate_ara_method_bikini_bottom.py"
+      - "character-preview/wren-ara.json"
   workflow_call:
   workflow_dispatch:
 
