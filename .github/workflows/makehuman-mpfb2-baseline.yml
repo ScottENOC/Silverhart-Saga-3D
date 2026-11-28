@@ -1,0 +1,120 @@
+name: MakeHuman MPFB2 character and garment fitting validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - ".github/workflows/makehuman-mpfb2-baseline.yml"
+      - "tools/makehuman/**"
+  push:
+    branches:
+      - integration/makehuman-mpfb2-baseline-20261125
+    paths:
+      - ".github/workflows/makehuman-mpfb2-baseline.yml"
+      - "tools/makehuman/**"
+
+permissions:
+  contents: read
+
+jobs:
+  mpfb2-character-garment-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Blender 4.2
+        uses: bradyajohnston/setup-blender@v5
+        with:
+          version: "4.2"
+
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1 libgl1 libxrender1 libxi6 libxfixes3
+
+      - name: Verify Blender installation
+        run: blender --version
+
+      - name: Download upstream MPFB2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/makehumancommunity/mpfb2.git "$RUNNER_TEMP/mpfb2"
+          # Pin the upstream revision already proven to install and run under Blender 4.2.
+          git -C "$RUNNER_TEMP/mpfb2" checkout 650c5c53bd6989a8ac264f31fa1d11d4a0c7bd8a
+          git -C "$RUNNER_TEMP/mpfb2" rev-parse HEAD | tee mpfb2-source-commit.txt
+          # MPFB2 is a Blender 4.2 extension. Install it in an extension
+          # repository so __package__ is bl_ext.user_default.mpfb and
+          # bpy.utils.extension_path_user() receives a valid extension ID.
+          mkdir -p "$HOME/.config/blender/4.2/extensions/user_default"
+          cp -R "$RUNNER_TEMP/mpfb2/src/mpfb" "$HOME/.config/blender/4.2/extensions/user_default/mpfb"
+          test -f "$HOME/.config/blender/4.2/extensions/user_default/mpfb/blender_manifest.toml"
+
+      - name: Download original MakeHuman system assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data"
+          asset_url="https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip"
+          asset_archive="$RUNNER_TEMP/makehuman_system_assets_cc0.zip"
+          # The upstream 268 MB archive is served slowly and has reset mid-transfer
+          # on GitHub-hosted runners. Resume partial downloads and retry transient
+          # network failures instead of restarting from zero.
+          curl --fail --location --show-error \
+            --connect-timeout 30 --max-time 0 \
+            --retry 10 --retry-all-errors --retry-delay 10 \
+            --continue-at - --output "$asset_archive" "$asset_url"
+          python3 - "$asset_archive" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as zf:
+              bad = zf.testzip()
+              if bad:
+                  raise SystemExit(f"Corrupt member in MakeHuman asset archive: {bad}")
+          PY
+          python3 - "$RUNNER_TEMP/makehuman_system_assets_cc0.zip" "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data" <<'PY'
+          import sys, zipfile
+          archive, destination = sys.argv[1:]
+          with zipfile.ZipFile(archive) as zf:
+              zf.extractall(destination)
+          PY
+          find "$HOME/.config/blender/4.2/extensions/user_default/mpfb/data" -name '*.mhclo' -print -o -name '*.mhmat' -print | sed -n '1,30p'
+
+      - name: Build and render the upstream base human
+        run: |
+          set -euo pipefail
+          blender -b --factory-startup --python-exit-code 1 --python tools/makehuman/mpfb2_garment_smoke.py
+          test -s makehuman-baseline/baseline-report.json
+          test -s makehuman-baseline/makehuman-base-human.glb
+          test -s makehuman-baseline/base-human-front.png
+          test -s makehuman-baseline/base-human-side.png
+          test -s makehuman-baseline/base-human-glb-roundtrip-front.png
+          test -s makehuman-baseline/base-human-glb-roundtrip-side.png
+
+      - name: Run controlled body-morph garment fit matrix
+        run: |
+          set -euo pipefail
+          blender -b --factory-startup --python-exit-code 1 --python tools/makehuman/mpfb2_morph_fit_matrix.py
+          test -s makehuman-morph-fit/morph-fit-report.json
+          test -s makehuman-morph-fit/neutral.glb
+          test -s makehuman-morph-fit/lean_muscular.glb
+          test -s makehuman-morph-fit/heavier_less_muscular.glb
+          test -s makehuman-morph-fit/neutral.png
+          test -s makehuman-morph-fit/lean_muscular.png
+          test -s makehuman-morph-fit/heavier_less_muscular.png
+          test -s makehuman-morph-fit/neutral_glb_roundtrip.png
+          test -s makehuman-morph-fit/lean_muscular_glb_roundtrip.png
+          test -s makehuman-morph-fit/heavier_less_muscular_glb_roundtrip.png
+
+      - name: Upload baseline diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: makehuman-mpfb2-baseline
+          path: |
+            makehuman-baseline/
+            makehuman-morph-fit/
+            mpfb2-source-commit.txt
+          if-no-files-found: warn
