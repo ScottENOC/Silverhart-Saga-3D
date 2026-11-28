@@ -376,6 +376,37 @@ def main():
         make_cord("AraMethod_BikiniBottom_HipTie_" + str(sign), path, cm(0.14), cord_mat)
         make_bow("AraMethod_BikiniBottom_Bow_" + str(sign), side, (sign, 0, 0.15), cm(1.5), cord_mat)
 
+    # Render the pelvis and garment from front, back and side for visual comparison.
+    preview_dir = os.path.join(os.path.dirname(os.path.abspath(args.output_glb)), "preview")
+    os.makedirs(preview_dir, exist_ok=True)
+    scene = bpy.context.scene
+    scene.render.engine = "BLENDER_WORKBENCH"
+    scene.display.shading.light = "STUDIO"
+    scene.display.shading.color_type = "MATERIAL"
+    scene.display.shading.show_shadows = True
+    scene.render.resolution_x = 768
+    scene.render.resolution_y = 768
+    scene.render.resolution_percentage = 100
+    scene.render.image_settings.file_format = "PNG"
+    target = Vector((0.0, 0.0, hip_z + 0.035))
+    for view, location in (
+        ("front", (0.0, -2.5, hip_z + 0.035)),
+        ("back", (0.0, 2.5, hip_z + 0.035)),
+        ("side", (2.5, 0.0, hip_z + 0.035)),
+    ):
+        camera_data = bpy.data.cameras.new("AraMethodReview_" + view)
+        camera = bpy.data.objects.new("AraMethodReview_" + view, camera_data)
+        scene.collection.objects.link(camera)
+        camera.location = location
+        camera.data.type = "ORTHO"
+        camera.data.ortho_scale = 0.78
+        camera.rotation_euler = (target - camera.location).to_track_quat("-Z", "Y").to_euler()
+        scene.camera = camera
+        scene.render.filepath = os.path.join(preview_dir, view + ".png")
+        bpy.ops.render.render(write_still=True)
+        bpy.data.objects.remove(camera, do_unlink=True)
+        bpy.data.cameras.remove(camera_data)
+
     # Keep the source body intact. Garment pieces are independent objects.
     os.makedirs(os.path.dirname(os.path.abspath(args.output_glb)), exist_ok=True)
     bpy.ops.object.select_all(action="SELECT")
@@ -399,6 +430,7 @@ def main():
         "crotch_height_m": crotch_z,
         "garment_objects": sorted(o.name for o in bpy.context.scene.objects
                                   if o.name.startswith("AraMethod_BikiniBottom_")),
+        "preview_images": ["preview/front.png", "preview/back.png", "preview/side.png"],
         "output_glb": os.path.abspath(args.output_glb),
     }
     with open(args.report, "w", encoding="utf-8") as f:
