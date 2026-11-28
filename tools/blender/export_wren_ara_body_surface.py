@@ -49,7 +49,7 @@ def ara_normal(n):
     return [float(q.x), float(q.y), float(q.z)]
 
 def region_for_bone(name):
-    n = name.lower().replace("_", "")
+    n = name.lower().split(":")[-1].replace("_", "")
     if n in ("hips", "pelvis", "root"): return REGION["hips"]
     if n.startswith(("spine", "chest", "breast", "clavicle")): return REGION["torso"]
     if n.startswith("neck"): return REGION["neck"]
