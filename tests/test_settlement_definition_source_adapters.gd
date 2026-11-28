@@ -22,7 +22,7 @@ func _test_hollowmere_adapter() -> void:
 	_check(bool(validation.get("ok", false)), "Hollowmere canonical envelope should validate: %s" % str(validation.get("errors", [])))
 	_check(canonical.get("id", "") == "hollowmere", "Hollowmere ID must remain stable")
 	_check(canonical.get("origin", {}) == {"q": 0, "r": 0}, "Hollowmere legacy coordinates must retain their existing zero transform")
-	_check(canonical.get("layout", {}).get("buildings", []).size() == 7, "All seven Hollowmere buildings must adapt")
+	_check(canonical.get("layout", {}).get("buildings", []).size() == 8, "All eight Hollowmere buildings must adapt")
 	_check(canonical.get("layout", {}).get("paths", []).size() == 13, "All thirteen Hollowmere presentation routes, including the cottage-plot access spur, must adapt")
 	_check(canonical.get("layout", {}).get("fields", []).size() == 22, "Fields, crop rows and fences must be represented once in the canonical layout")
 	_check(canonical.get("layout", {}).get("props", []).size() == 6, "All six authored prop groups, including the cottage-plot marker, must be represented once")
