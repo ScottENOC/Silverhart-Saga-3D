@@ -61,6 +61,28 @@ func _run() -> void:
 	# Hallis's south door has an explicitly painted apron at (38, -485); use it rather than the west door, whose approach is not the source-authored path for this contract.
 	_assert_exterior_entry_round_trip("silverhart_builder_house", "hallis_house_entry_player", Vector2i(38, -485), Vector2i(38, -486), "silverhart_builder_house_south_door", "Master Builder Hallis's House")
 
+	# Bulk source-traced connectors: six middle-ring houses, three Warrens shacks,
+	# the palace/diplomatic district, and three explicit road-spur houses.
+	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_east", "bulk_entry_player_1", Vector2i(52, -496), Vector2i(51, -496), "silverhart_middle_ring_house_east_east_door", "East Middle-Ring House")
+	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_northeast", "bulk_entry_player_2", Vector2i(50, -539), Vector2i(49, -538), "silverhart_middle_ring_house_northeast_east_door", "Northeast Middle-Ring House")
+	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_north", "bulk_entry_player_3", Vector2i(8, -539), Vector2i(8, -538), "silverhart_middle_ring_house_north_north_door", "North Middle-Ring House")
+	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_west", "bulk_entry_player_4", Vector2i(-35, -496), Vector2i(-34, -496), "silverhart_middle_ring_house_west_west_door", "West Middle-Ring House")
+	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_southwest", "bulk_entry_player_5", Vector2i(-35, -454), Vector2i(-34, -455), "silverhart_middle_ring_house_southwest_west_door", "Southwest Middle-Ring House")
+	_assert_exterior_entry_round_trip("silverhart_middle_ring_house_southeast", "bulk_entry_player_6", Vector2i(19, -452), Vector2i(20, -452), "silverhart_middle_ring_house_southeast_west_door", "Southeast Middle-Ring House")
+	_assert_exterior_entry_round_trip("silverhart_warrens_shack_west", "bulk_entry_player_7", Vector2i(2, -430), Vector2i(2, -431), "silverhart_warrens_shack_west_south_door", "Warrens West Shack")
+	_assert_exterior_entry_round_trip("silverhart_warrens_shack_centre", "bulk_entry_player_8", Vector2i(5, -430), Vector2i(5, -429), "silverhart_warrens_shack_centre_north_door", "Warrens Centre Shack")
+	_assert_exterior_entry_round_trip("silverhart_warrens_shack_east", "bulk_entry_player_9", Vector2i(11, -430), Vector2i(11, -431), "silverhart_warrens_shack_east_south_door", "Warrens East Shack")
+	_assert_exterior_entry_round_trip("silverhart_palace_council_chamber", "bulk_entry_player_10", Vector2i(-1, -494), Vector2i(-2, -494), "council_front_door", "Palace Council Chamber")
+	_assert_exterior_entry_round_trip("silverhart_corstane_manor", "bulk_entry_player_11", Vector2i(35, -502), Vector2i(36, -502), "silverhart_corstane_manor_west_door", "Corstane Manor")
+	_assert_exterior_entry_round_trip("silverhart_elven_embassy", "bulk_entry_player_12", Vector2i(4, -466), Vector2i(3, -466), "silverhart_elven_embassy_east_door", "Elven Embassy")
+	_assert_exterior_entry_round_trip("silverhart_dwarven_embassy", "bulk_entry_player_13", Vector2i(12, -470), Vector2i(13, -470), "silverhart_dwarven_embassy_west_door", "Dwarven Embassy")
+	_assert_exterior_entry_round_trip("silverhart_aldenreach_embassy", "bulk_entry_player_14", Vector2i(4, -460), Vector2i(3, -460), "silverhart_aldenreach_embassy_east_door", "Aldenreach Embassy")
+	_assert_exterior_entry_round_trip("silverhart_ironbond_office", "bulk_entry_player_15", Vector2i(5, -454), Vector2i(4, -454), "silverhart_ironbond_office_east_door", "Ironbond Office")
+	_assert_exterior_entry_round_trip("silverhart_grand_cathedral", "bulk_entry_player_16", Vector2i(9, -451), Vector2i(10, -451), "silverhart_grand_cathedral_west_door", "Grand Cathedral")
+	_assert_exterior_entry_round_trip("old_mac_farmhouse", "bulk_entry_player_17", Vector2i(4, 194), Vector2i(3, 194), "old_mac_farmhouse_east_door", "Old Mac Farmhouse")
+	_assert_exterior_entry_round_trip("millbrook_house", "bulk_entry_player_18", Vector2i(5, -366), Vector2i(4, -366), "millbrook_house_east_door", "Millbrook House")
+	_assert_exterior_entry_round_trip("abandoned_house", "bulk_entry_player_19", Vector2i(10, -176), Vector2i(11, -176), "abandoned_house_west_door", "Abandoned House")
+
 	var simulation = SIMULATION.new()
 	root.add_child(simulation)
 	var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
