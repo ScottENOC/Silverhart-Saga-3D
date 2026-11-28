@@ -35,6 +35,8 @@ const DEFERRED_COMPANIONS := {
 }
 const OLD_MAC_START_HEX := Vector2i(12, 58)
 const MISSING_CHILD_START_HEX := Vector2i(27, 62)
+## Original Hex-crpg world data places Elder Marta’s locket inside the chapel.
+const ELDER_LOCKET_PICKUP_HEX := Vector2i(-14, 0)
 const REYNA_SHELTER_HEX := Vector2i(27, 62)
 const REYNA_CLUE_HEX := Vector2i(22, 61)
 const FARMSTEAD_DIRE_WOLF_HEX := Vector2i(30, 58)
