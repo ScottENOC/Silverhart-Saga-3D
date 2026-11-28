@@ -61,6 +61,9 @@ def read_mtl(path):
             current["opacity"] = max(0.0, min(1.0, float(values[0])))
         elif current is not None and key == "map_Kd" and values:
             current["texture"] = " ".join(values)
+        elif current is not None and key == "map_Bump" and values:
+            # Ara exports a tangent-space normal map in this slot for the Blender bridge.
+            current["normal_texture"] = " ".join(values)
     return materials
 
 
@@ -80,6 +83,18 @@ def blender_material(spec, folder):
         tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
         tex.image = image
         mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if spec.get("normal_texture"):
+        normal_path = os.path.join(folder, spec["normal_texture"])
+        if not os.path.isfile(normal_path):
+            raise FileNotFoundError(normal_path)
+        normal_image = bpy.data.images.load(normal_path, check_existing=True)
+        normal_image.colorspace_settings.name = "Non-Color"
+        normal_tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+        normal_tex.image = normal_image
+        normal_node = mat.node_tree.nodes.new("ShaderNodeNormalMap")
+        normal_node.inputs["Strength"].default_value = 0.35
+        mat.node_tree.links.new(normal_tex.outputs["Color"], normal_node.inputs["Color"])
+        mat.node_tree.links.new(normal_node.outputs["Normal"], bsdf.inputs["Normal"])
     if spec["opacity"] < 1:
         if hasattr(mat, "surface_render_method"):
             mat.surface_render_method = "DITHERED"
