@@ -4,6 +4,7 @@ extends RefCounted
 
 const QUEST_ID := "reyna_dire_wolf_hunt"
 const CHILD_ID := "missing_child_tessa"
+const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
 
 static func prepare_rescue(simulation: WorldSimulation) -> Dictionary:
 	if simulation == null or simulation.campaign_journal == null:
@@ -77,3 +78,36 @@ static func record_trail_found(simulation: WorldSimulation) -> Dictionary:
 	if String(quest.get("status", "")) != "active":
 		return {"ok": false, "reason": "rescue_quest_not_active"}
 	return simulation.campaign_journal.set_objective_progress(QUEST_ID, "trail_found", 1.0)
+
+
+## Resolve the direct interaction prompts for Tessa and the dire wolf.
+## Combat startup and character movement remain world-adapter responsibilities.
+static func interaction_for_character(simulation: WorldSimulation, character_id: String) -> Dictionary:
+	if simulation == null:
+		return {"action": "none", "reason": "missing_simulation"}
+	if character_id == DIRE_WOLF_ID:
+		if not objective_complete(simulation, "child_rescued"):
+			return {
+				"action": "block_hunt",
+				"speaker": "Dire wolf",
+				"text": "The dire wolf circles the shepherd's shelter. You cannot safely engage it while Tessa is still inside.",
+				"choices": [{"id": "continue", "label": "Understood", "text": ""}]
+			}
+		return {"action": "start_hunt"}
+	if character_id == CHILD_ID:
+		if objective_complete(simulation, "child_rescued"):
+			return {
+				"action": "speak",
+				"speaker": "Tessa",
+				"text": "Reyna said you were the one who got me out. I don't think I'll ever forget that.",
+				"choices": [{"id": "continue", "label": "You're safe now", "text": ""}],
+				"expression": "smile"
+			}
+		return {
+			"action": "speak",
+			"speaker": "Tessa",
+			"text": "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.",
+			"choices": [{"id": "reyna_rescue_child", "label": "Come with me. We'll get you home.", "text": ""}],
+			"expression": "afraid"
+		}
+	return {"action": "none"}
