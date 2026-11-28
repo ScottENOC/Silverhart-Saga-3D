@@ -41,7 +41,7 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
             var step_cost := MovementRules.step_cost(map_data, current, neighbour, state)
             var door := _door_at(doors, neighbour)
             if door != null and not door.is_passable():
-                step_cost += WorldSimulation.DOOR_OPEN_TIME_POINT_COST
+                step_cost += MovementRules.DOOR_OPEN_TIME_POINT_COST
             var tentative := float(g_score[current]) + step_cost
             if tentative >= float(g_score.get(neighbour, INF)):
                 continue
