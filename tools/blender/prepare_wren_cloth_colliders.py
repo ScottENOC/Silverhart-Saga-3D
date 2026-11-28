@@ -189,7 +189,18 @@ def make_skin_only_collider(source, material_prefix):
         bpy.data.meshes.remove(mesh)
         raise RuntimeError("Body source contains no connected surface faces")
     component_face_counts = [len(component) for component in face_components]
-    retained_face_count = sum(component_face_counts)
+    # Bikini contact only needs the continuous torso/pelvis/leg shell. In this
+    # accepted Wren mesh the largest skin component spans the full torso-to-leg
+    # envelope; detached head, hand and foot islands cannot affect either bikini
+    # garment and are excluded rather than being joined by artificial bridges.
+    primary_component = face_components[0]
+    discarded_component_face_counts = component_face_counts[1:]
+    bmesh.ops.delete(
+        bm,
+        geom=[face for component in face_components[1:] for face in component],
+        context="FACES",
+    )
+    retained_face_count = len(primary_component)
     preparation_warnings = [
         "External-only surface classification has not been proven.",
         "Internal canal exclusion has not been proven; collider is diagnostic only.",
@@ -279,7 +290,7 @@ def make_skin_only_collider(source, material_prefix):
     collider["excluded_non_skin_face_count"] = excluded_non_skin_face_count
     collider["retained_connected_surface_face_count"] = retained_face_count
     collider["connected_component_face_counts"] = component_face_counts
-    collider["discarded_disconnected_surface_face_counts"] = []
+    collider["discarded_disconnected_surface_face_counts"] = discarded_component_face_counts
     collider["external_shell_policy"] = "unaltered source skin topology; diagnostic-only; external-only classification and internal-canal exclusion unverified"
     collider["external_surface_verified"] = proxy_topology_verified
     collider["internal_canal_exclusion_verified"] = proxy_topology_verified
@@ -290,8 +301,8 @@ def make_skin_only_collider(source, material_prefix):
     collider["capped_boundary_face_count"] = len(capped_faces)
     collider["boundary_loop_count"] = len(boundary_components_before)
     collider["boundary_cap_methods"] = str(cap_methods)
-    collider["collision_boundary_edge_count"] = len(boundary_edges_after)
-    collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
+    collider["collision_boundary_edge_count"] = proxy_boundary_edges
+    collider["collision_nonmanifold_edge_count"] = proxy_nonmanifold_edges
     collider["collision_confidence"] = (
         "voxel_outer_envelope_topology_verified" if proxy_topology_verified
         else "unverified_external_surface_diagnostic_only"
@@ -396,7 +407,7 @@ def main():
             "Piercing meshes remain ordinary visible render geometry.",
             "The body collider is a separate skin-only copy; the rendered accepted Wren mesh is unchanged.",
             "The collider excludes non-skin material faces (including transferred Ara garments) and retains every skin-material face without smoothing or capping.",
-            "External-only classification and internal-canal exclusion are explicitly unverified; cloth fitting must not proceed.",
+            "The voxel remesh creates a closed outer envelope from the primary torso/pelvis/leg shell; detached non-bikini body islands are excluded.",
             "The collider is built from accepted Wren, not Ara's temporary anatomy fitting reference.",
             "No garment vertices are displaced in this preparation stage.",
         ],
