@@ -7,6 +7,7 @@ on:
       - ".github/workflows/test-wren-ara-bikini-fit.yml"
       - "tools/ara_native/**"
       - "tools/blender/attach_wren_ara_bikini.py"
+      - "tools/blender/inspect_wren_ara_surface.py"
       - "tools/review/wren_native_preview.gd"
       - "character-preview/wren-ara.json"
       - "art/characters/companions/wren.glb"
@@ -90,6 +91,41 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri xvfb
+
+      - name: Inspect accepted Wren surface, rig and accessory geometry (read-only)
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native
+          python -m py_compile tools/blender/inspect_wren_ara_surface.py
+          blender --background --python-exit-code 1 \\
+            --python tools/blender/inspect_wren_ara_surface.py -- \\
+            --input-glb art/characters/companions/wren.glb \\
+            --report build/wren-native/source-surface-inspection.json
+          test -s build/wren-native/source-surface-inspection.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("build/wren-native/source-surface-inspection.json").read_text())
+          assert r["mesh_count"] > 0, r
+          assert r["armature_count"] > 0, r
+          print("WREN_SOURCE_SURFACE_INSPECTION_OK", json.dumps({
+              "mesh_count": r["mesh_count"],
+              "armature_count": r["armature_count"],
+              "meshes": [{
+                  "name": o["name"],
+                  "vertices": o["vertices"],
+                  "polygons": o["polygons"],
+                  "materials": o["materials"],
+                  "vertex_groups": o["vertex_groups"],
+                  "armature_modifiers": o["armature_modifiers"],
+              } for o in r["objects"] if o["type"] == "MESH"],
+              "piercing_candidates": [o["name"] for o in r["likely_piercing_candidates"]],
+              "bones": [{
+                  "name": o["name"],
+                  "bone_names": [b["name"] for b in o["bones"]],
+              } for o in r["objects"] if o["type"] == "ARMATURE"],
+          }, indent=2))
+          PY
 
       - name: Attach the garment to the immutable accepted Wren GLB
         env:
