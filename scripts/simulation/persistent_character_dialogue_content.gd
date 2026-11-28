@@ -166,6 +166,34 @@ func seraphine_greeting(context: Dictionary, relationships: PersistentCharacterR
 	return {"ok":true,"speaker":"Queen Seraphine Corrin","text":greeting,"choices":options,"relationship":relationships.snapshot("seraphine_corrin")}
 
 
+## Build the streamed Queen audience from authoritative simulation state. The
+## world adapter supplies the relationship state but does not assemble campaign
+## facts or know which flags the authored greeting requires.
+func seraphine_greeting_from_simulation(
+	simulation: WorldSimulation,
+	relationships: PersistentCharacterRelationshipState
+) -> Dictionary:
+	if simulation == null or simulation.campaign_journal == null:
+		return {"ok":false,"reason":"missing_campaign"}
+	var journal := simulation.campaign_journal
+	var wizard_quest := journal.quest_state("wizard_vendetta")
+	var player := simulation.get_character(simulation.player_character_id)
+	var context := {
+		"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+		"manor_granted": simulation.campaign_dwellings != null and bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
+		"goblin_standing": journal.faction_standing("goblin_tribe"),
+		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+		"necromancer_standing": journal.faction_standing("necromancer_cult"),
+		"phylactery_returned": bool(simulation.get_meta("phylactery_returned", false)),
+		"has_phylactery_shard": _character_has_item(player, "phylactery_shard"),
+		"wizard_vendetta_active": String(wizard_quest.get("status", "")) == "active",
+		"has_wizard_corruption_evidence": _character_has_item(player, "wizard_corruption_evidence"),
+		"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
+		"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
+	}
+	return seraphine_greeting(context, relationships)
+
+
 func seraphine_topic_response(topic: String, context: Dictionary, relationships: PersistentCharacterRelationshipState) -> Dictionary:
 	if relationships == null:
 		return {"ok":false,"reason":"missing_relationship_state"}
