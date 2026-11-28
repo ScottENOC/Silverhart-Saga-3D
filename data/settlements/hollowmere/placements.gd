@@ -6,7 +6,7 @@ extends RefCounted
 const PLAYER_START_HEX := Vector2i(-1, 2)
 const CHARACTER_STARTS := {
 	"wren_talbot": Vector2i(-2, 1),
-	"garrick_holt": Vector2i(-3, -2),
+	"garrick_holt": Vector2i(1, -2),
 	"mira_ashbrook": Vector2i(2, -2),
 	"oskar_vinn": Vector2i(3, -2),
 	"wick_hallow": Vector2i(0, 15),

@@ -66,6 +66,7 @@ const CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT = preload("res://scripts/presentation/
 const HOUSEHOLD_WORLD_SERVICE_SCRIPT = preload("res://scripts/world/campaign_household_world_service.gd")
 const ROWAN_WORLD_SERVICE_SCRIPT = preload("res://scripts/world/rowan_fletcher_world_service.gd")
 const CAMP_LIFECYCLE_CONTROLLER_SCRIPT = preload("res://scripts/world/camp_lifecycle_controller.gd")
+const INNKEEPER_ACTIVITY_CONTROLLER_SCRIPT = preload("res://scripts/presentation/garrick_bar_wipe_controller.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -170,6 +171,7 @@ var camp_sleep_button: Button
 var camp_status_label: Label
 var rowan_world_service: RowanFletcherWorldService
 var camp_lifecycle_controller: CampLifecycleController
+var innkeeper_activity_controller: GarrickBarWipeController
 
 func _save_manager_service() -> Node:
 	return get_node_or_null("/root/SaveManager")
@@ -193,6 +195,7 @@ func _ready() -> void:
 	movement_controller.configure(simulation, self, tile_mesh, path_material, Callable(self, "_hex_world_position"), active_character_id)
 	_create_wilderness_gatherable_grove()
 	_create_characters()
+	_create_innkeeper_activity_controller()
 	_create_household_world_service()
 	_create_reyna_shelter()
 	_capture_initial_character_baselines()
@@ -822,6 +825,44 @@ func _create_household_world_service() -> void:
 		simulation, self, actor_by_id, player_profile, starting_loadouts,
 		Callable(self, "_hex_world_position"), Callable(self, "_find_valid_spawn_hex")
 	)
+
+func _create_innkeeper_activity_controller() -> void:
+	var innkeeper := actor_by_id.get("garrick_holt") as Node3D
+	if innkeeper == null:
+		return
+	innkeeper_activity_controller = INNKEEPER_ACTIVITY_CONTROLLER_SCRIPT.new() as GarrickBarWipeController
+	innkeeper_activity_controller.name = "HollowTankardInnkeeperActivityController"
+	add_child(innkeeper_activity_controller)
+	innkeeper_activity_controller.configure(
+		innkeeper,
+		Callable(self, "_is_garrick_bar_wipe_interrupted"),
+		Callable(self, "_return_garrick_to_bar_hex")
+	)
+
+
+func _return_garrick_to_bar_hex() -> bool:
+	if simulation == null:
+		return false
+	var garrick := simulation.get_character("garrick_holt")
+	if garrick == null or not garrick.can_act():
+		return false
+	var bar_hex := Vector2i(1, -2)
+	if garrick.axial == bar_hex:
+		return true
+	var path := simulation.find_path("garrick_holt", bar_hex)
+	if path.is_empty():
+		return false
+	for step in path:
+		if step == garrick.axial:
+			continue
+		if not simulation.try_move_character("garrick_holt", step):
+			return false
+	return garrick.axial == bar_hex
+
+
+func _is_garrick_bar_wipe_interrupted() -> bool:
+	return encounter_active or (shakedown_started and not shakedown_resolved)
+
 
 func _create_camp_lifecycle_controller() -> void:
 	camp_lifecycle_controller = CAMP_LIFECYCLE_CONTROLLER_SCRIPT.new() as CampLifecycleController
