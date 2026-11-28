@@ -5,8 +5,11 @@ on:
     branches: [dev]
     paths:
       - "scripts/simulation/camp_simulation.gd"
+      - "scripts/simulation/camp_site_evaluator.gd"
+      - "scripts/world/hollow_tankard.gd"
       - "scripts/simulation/world_simulation.gd"
       - "tests/test_camp_simulation.gd"
+      - "tests/test_camp_site_evaluator.gd"
       - ".github/workflows/camp-simulation-validation.yml"
       - "project.godot"
   workflow_dispatch:
@@ -46,3 +49,5 @@ jobs:
           godot --headless --editor --path . --quit
       - name: Run camp simulation regression tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_simulation.gd
+      - name: Run camp site evaluator regression tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_camp_site_evaluator.gd

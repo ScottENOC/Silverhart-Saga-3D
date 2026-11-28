@@ -872,43 +872,22 @@ func _select_camp_site(hex: Vector2i) -> void:
 	camp_selection_mode = false
 	if camp_button != null:
 		camp_button.text = "Camp [B]"
-	if _is_upper_floor_hex(hex) or not simulation.map_data.has_cell(hex) or not simulation.map_data.is_walkable(hex):
-		camp_status_label.text = "That ground is unsuitable for a campsite."
+	var assessment := CampSiteEvaluator.evaluate(
+		simulation, hex, _is_upper_floor_hex(hex), _hex_world_position(hex)
+	)
+	if not bool(assessment.get("ok", false)):
+		var reason := String(assessment.get("reason", "unsuitable_ground"))
+		camp_status_label.text = "Choose an unoccupied patch of ground." if reason == "site_occupied" else "That ground is unsuitable for a campsite."
 		return
-	if simulation.is_hex_occupied(hex):
-		camp_status_label.text = "Choose an unoccupied patch of ground."
-		return
-	var nearby_trees := false
-	var water_nearby := false
-	for candidate in simulation.map_data.cells:
-		var candidate_hex: Vector2i = candidate
-		if not simulation.is_hex_within_range(hex, candidate_hex, 4):
-			continue
-		var terrain := simulation.map_data.terrain_id_at(candidate_hex)
-		if terrain == "forest":
-			nearby_trees = true
-		elif terrain == "water":
-			water_nearby = true
-		if nearby_trees and water_nearby:
-			break
-	var site := {
-		"hex": hex,
-		"position": _hex_world_position(hex),
-		"walkable": true,
-		"occupied": false,
-		"terrain_id": simulation.map_data.terrain_id_at(hex)
-	}
+	var site: Dictionary = assessment.get("site", {})
+	var environment: Dictionary = assessment.get("environment", {})
 	for dwelling_site in DWELLING_WORLD_SERVICE.nearby_sites(hex, 3):
 		var dwelling_id := String(dwelling_site.get("dwelling_id", ""))
 		var dwelling_profile := simulation.campaign_dwellings.camp_profile_for(dwelling_id)
 		if not dwelling_profile.is_empty() and bool(dwelling_profile.get("is_sheltered", false)):
 			site["dwelling_id"] = dwelling_id
 			break
-	var environment := {
-		"trees_nearby": nearby_trees,
-		"water_nearby": water_nearby,
-		"danger": clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
-	}
+	environment["danger"] = clampf(1.0 - float(ambient_security) / 100.0, 0.05, 0.8)
 	var result := simulation.begin_camp(site, environment, {}, active_character_id)
 	if not bool(result.get("ok", false)):
 		camp_status_label.text = "Could not establish camp: %s" % String(result.get("reason", "unknown"))
