@@ -7,189 +7,189 @@ const WORLD_SIM_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 
 func _initialize() -> void:
-    _test_door_lifecycle()
-    _test_registry_and_save_round_trip()
-    _test_door_map_blocking()
-    _test_world_simulation_save_round_trip()
-    _test_character_floor_relocation()
-    _test_building_layout_registration()
-    _test_door_aware_pathfinding_and_movement()
-    print("Building framework tests passed.")
-    quit()
+	_test_door_lifecycle()
+	_test_registry_and_save_round_trip()
+	_test_door_map_blocking()
+	_test_world_simulation_save_round_trip()
+	_test_character_floor_relocation()
+	_test_building_layout_registration()
+	_test_door_aware_pathfinding_and_movement()
+	print("Building framework tests passed.")
+	quit()
 
 func _test_door_lifecycle() -> void:
-    var door = DOOR_SCRIPT.new()
-    door.configure("front", "test_house", Vector2i(2, 3), false, true, 20)
-    assert(not door.is_passable(), "A closed door must block movement.")
-    assert(not door.open(), "A locked door must not open.")
-    assert(door.lock(), "Locking a closed door should succeed.")
-    assert(door.unlock(), "A closed door can be unlocked.")
-    assert(door.open() and door.is_passable(), "An unlocked door can open.")
-    assert(not door.lock(), "An open door cannot be locked.")
-    assert(door.close() and not door.is_passable(), "An open door can close.")
-    assert(door.lock(), "A closed door can be locked.")
-    assert(door.damage(20), "Lethal damage should break the door.")
-    assert(door.is_broken() and door.is_passable() and not door.locked, "A broken door remains open and cannot stay locked.")
+	var door = DOOR_SCRIPT.new()
+	door.configure("front", "test_house", Vector2i(2, 3), false, true, 20)
+	assert(not door.is_passable(), "A closed door must block movement.")
+	assert(not door.open(), "A locked door must not open.")
+	assert(door.lock(), "Locking a closed door should succeed.")
+	assert(door.unlock(), "A closed door can be unlocked.")
+	assert(door.open() and door.is_passable(), "An unlocked door can open.")
+	assert(not door.lock(), "An open door cannot be locked.")
+	assert(door.close() and not door.is_passable(), "An open door can close.")
+	assert(door.lock(), "A closed door can be locked.")
+	assert(door.damage(20), "Lethal damage should break the door.")
+	assert(door.is_broken() and door.is_passable() and not door.locked, "A broken door remains open and cannot stay locked.")
 
 func _test_registry_and_save_round_trip() -> void:
-    var registry = REGISTRY_SCRIPT.new()
-    assert(registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i(0, 0)}))
-    assert(not registry.register_building({"id": "test_house", "entrance_hex": Vector2i.ZERO}), "Building IDs must be unique.")
-    assert(registry.register_door("front", "test_house", Vector2i(0, 1), false, false, 20))
-    assert(not registry.register_door("orphan", "missing", Vector2i.ZERO), "Doors must belong to a registered building.")
-    var door = registry.get_door("front")
-    assert(door != null and registry.get_door_at(Vector2i(0, 1)) == door)
-    assert(registry.set_door_open("front", true))
-    var saved: Dictionary = registry.to_dict()
-    var restored = REGISTRY_SCRIPT.new()
-    assert(restored.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO}))
-    assert(restored.register_door("front", "test_house", Vector2i(0, 1), false))
-    restored.load_dict(saved)
-    assert(restored.get_door("front").is_passable(), "Door state must survive save/load.")
+	var registry = REGISTRY_SCRIPT.new()
+	assert(registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i(0, 0)}))
+	assert(not registry.register_building({"id": "test_house", "entrance_hex": Vector2i.ZERO}), "Building IDs must be unique.")
+	assert(registry.register_door("front", "test_house", Vector2i(0, 1), false, false, 20))
+	assert(not registry.register_door("orphan", "missing", Vector2i.ZERO), "Doors must belong to a registered building.")
+	var door = registry.get_door("front")
+	assert(door != null and registry.get_door_at(Vector2i(0, 1)) == door)
+	assert(registry.set_door_open("front", true))
+	var saved: Dictionary = registry.to_dict()
+	var restored = REGISTRY_SCRIPT.new()
+	assert(restored.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO}))
+	assert(restored.register_door("front", "test_house", Vector2i(0, 1), false))
+	restored.load_dict(saved)
+	assert(restored.get_door("front").is_passable(), "Door state must survive save/load.")
 
 func _test_door_map_blocking() -> void:
-    var map_data = MAP_SCRIPT.new()
-    map_data.add_cell(Vector2i(0, 0), 0.0, true, "timber_floor")
-    assert(map_data.is_walkable(Vector2i.ZERO))
-    map_data.set_walkable(Vector2i.ZERO, false)
-    assert(not map_data.is_walkable(Vector2i.ZERO), "Closed doors must block hex movement.")
-    map_data.set_walkable(Vector2i.ZERO, true)
-    assert(map_data.is_walkable(Vector2i.ZERO), "Open doors must restore hex movement.")
+	var map_data = MAP_SCRIPT.new()
+	map_data.add_cell(Vector2i(0, 0), 0.0, true, "timber_floor")
+	assert(map_data.is_walkable(Vector2i.ZERO))
+	map_data.set_walkable(Vector2i.ZERO, false)
+	assert(not map_data.is_walkable(Vector2i.ZERO), "Closed doors must block hex movement.")
+	map_data.set_walkable(Vector2i.ZERO, true)
+	assert(map_data.is_walkable(Vector2i.ZERO), "Open doors must restore hex movement.")
 
 func _test_world_simulation_save_round_trip() -> void:
-    var source = WORLD_SIM_SCRIPT.new()
-    source.building_registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO})
-    source.building_registry.register_door("front", "test_house", Vector2i(0, 1), false)
-    assert(source.building_registry.set_door_open("front", true))
-    var saved: Dictionary = source.to_dict()
+	var source = WORLD_SIM_SCRIPT.new()
+	source.building_registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO})
+	source.building_registry.register_door("front", "test_house", Vector2i(0, 1), false)
+	assert(source.building_registry.set_door_open("front", true))
+	var saved: Dictionary = source.to_dict()
 
-    var restored = WORLD_SIM_SCRIPT.new()
-    restored.building_registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO})
-    restored.building_registry.register_door("front", "test_house", Vector2i(0, 1), false)
-    restored.map_data.add_cell(Vector2i(0, 1), 0.0, true, "timber_floor")
-    var restored_door_cell: Dictionary = restored.map_data.cells[Vector2i(0, 1)]
-    restored_door_cell["door_base_walkable"] = true
-    restored_door_cell["walkable"] = false
-    restored.map_data.cells[Vector2i(0, 1)] = restored_door_cell
-    restored.load_dict(saved)
-    assert(restored.building_registry.get_door("front").is_passable(), "World saves must retain door state.")
-    assert(restored.map_data.is_walkable(Vector2i(0, 1)), "Loaded door state must restore map walkability.")
-    source.free()
-    restored.free()
+	var restored = WORLD_SIM_SCRIPT.new()
+	restored.building_registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO})
+	restored.building_registry.register_door("front", "test_house", Vector2i(0, 1), false)
+	restored.map_data.add_cell(Vector2i(0, 1), 0.0, true, "timber_floor")
+	var restored_door_cell: Dictionary = restored.map_data.cells[Vector2i(0, 1)]
+	restored_door_cell["door_base_walkable"] = true
+	restored_door_cell["walkable"] = false
+	restored.map_data.cells[Vector2i(0, 1)] = restored_door_cell
+	restored.load_dict(saved)
+	assert(restored.building_registry.get_door("front").is_passable(), "World saves must retain door state.")
+	assert(restored.map_data.is_walkable(Vector2i(0, 1)), "Loaded door state must restore map walkability.")
+	source.free()
+	restored.free()
 
 func _test_character_floor_relocation() -> void:
-    var simulation = WORLD_SIM_SCRIPT.new()
-    simulation.map_data.add_cell(Vector2i(0, 0), 0.0, true, "timber_floor")
-    simulation.map_data.add_cell(Vector2i(100, 100), 3.38, true, "timber_floor")
-    simulation.map_data.add_cell(Vector2i(101, 100), 3.38, true, "timber_floor")
-    simulation.building_registry.register_building({"id": "test_inn", "name": "Test Inn", "entrance_hex": Vector2i.ZERO, "virtual_floor_bounds": [95, 105, 97, 103]})
-    var character = CharacterState.new("player", "Test Player", Vector2i.ZERO)
-    simulation.register_character(character)
-    assert(simulation.relocate_character("player", Vector2i(100, 100)), "A character should be able to use a connected stair.")
-    assert(character.axial == Vector2i(100, 100), "The character should occupy the upper-floor coordinate.")
-    assert(simulation.occupied_hexes.get(Vector2i(100, 100), "") == "player", "Upper-floor occupancy must be registered.")
-    var upstairs_path: Array[Vector2i] = simulation.find_path("player", Vector2i(101, 100))
-    assert(upstairs_path.size() == 2, "Upper-floor navigation should use the normal hex pathfinder.")
-    assert(not simulation.relocate_character("player", Vector2i(200, 200)), "A transition to a missing floor cell must fail.")
-    var saved_character: Dictionary = character.to_dict()
-    var restored_character = CharacterState.from_dict(saved_character)
-    assert(restored_character.axial == Vector2i(100, 100), "An upstairs location must persist in character saves.")
-    assert(simulation.relocate_character("player", Vector2i.ZERO), "The character should be able to descend.")
-    assert(character.axial == Vector2i.ZERO and simulation.occupied_hexes.get(Vector2i.ZERO, "") == "player")
-    simulation.free()
+	var simulation = WORLD_SIM_SCRIPT.new()
+	simulation.map_data.add_cell(Vector2i(0, 0), 0.0, true, "timber_floor")
+	simulation.map_data.add_cell(Vector2i(100, 100), 3.38, true, "timber_floor")
+	simulation.map_data.add_cell(Vector2i(101, 100), 3.38, true, "timber_floor")
+	simulation.building_registry.register_building({"id": "test_inn", "name": "Test Inn", "entrance_hex": Vector2i.ZERO, "virtual_floor_bounds": [95, 105, 97, 103]})
+	var character = CharacterState.new("player", "Test Player", Vector2i.ZERO)
+	simulation.register_character(character)
+	assert(simulation.relocate_character("player", Vector2i(100, 100)), "A character should be able to use a connected stair.")
+	assert(character.axial == Vector2i(100, 100), "The character should occupy the upper-floor coordinate.")
+	assert(simulation.occupied_hexes.get(Vector2i(100, 100), "") == "player", "Upper-floor occupancy must be registered.")
+	var upstairs_path: Array[Vector2i] = simulation.find_path("player", Vector2i(101, 100))
+	assert(upstairs_path.size() == 2, "Upper-floor navigation should use the normal hex pathfinder.")
+	assert(not simulation.relocate_character("player", Vector2i(200, 200)), "A transition to a missing floor cell must fail.")
+	var saved_character: Dictionary = character.to_dict()
+	var restored_character = CharacterState.from_dict(saved_character)
+	assert(restored_character.axial == Vector2i(100, 100), "An upstairs location must persist in character saves.")
+	assert(simulation.relocate_character("player", Vector2i.ZERO), "The character should be able to descend.")
+	assert(character.axial == Vector2i.ZERO and simulation.occupied_hexes.get(Vector2i.ZERO, "") == "player")
+	simulation.free()
 func _test_building_layout_registration() -> void:
-    var simulation = WORLD_SIM_SCRIPT.new()
-    simulation.map_data.add_cell(Vector2i.ZERO, 0.0, true, "grass")
-    simulation.map_data.add_cell(Vector2i(0, 1), 0.0, true, "path")
-    simulation.map_data.add_cell(Vector2i(0, 2), 0.0, true, "grass")
-    var building_definition := {
-        "id": "test_inn",
-        "name": "Test Inn",
-        "entrance_hex": Vector2i(0, 1),
-        "floor_count": 2,
-    }
-    var door_definition := {
-        "id": "test_inn_front",
-        "building_id": "test_inn",
-        "hex": Vector2i(0, 1),
-        "starts_open": false,
-        "starts_locked": true,
-        "durability": 30,
-    }
-    var floors: Array[Dictionary] = [
-        {"hex": Vector2i(100, 100), "elevation": 3.38, "walkable": true, "terrain_id": "timber_floor"},
-        {"hex": Vector2i(101, 100), "elevation": 3.38, "walkable": false, "terrain_id": "timber_floor"},
-    ]
-    assert(BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors))
-    assert(simulation.building_registry.get_building("test_inn").get("floor_count", 0) == 2)
-    assert(not simulation.building_registry.get_door("test_inn_front").is_passable())
-    assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "A closed starting door must block its map cell.")
-    assert(bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", false)), "A closed door must block line of sight through its hex.")
-    assert(not VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "A closed door must obstruct a ray through its hex.")
-    var door_id := "test_inn_front"
-    assert(not simulation.building_registry.set_door_open(door_id, true), "A locked door cannot be opened.")
-    assert(simulation.building_registry.unlock_door(door_id))
-    assert(simulation.building_registry.set_door_open(door_id, true))
-    assert(simulation.map_data.is_walkable(Vector2i(0, 1)), "Opening a door must immediately restore movement.")
-    assert(not bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", true)), "Opening a door must immediately restore line of sight.")
-    assert(VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "An open door must allow a ray through its hex.")
-    assert(simulation.building_registry.set_door_open(door_id, false))
-    assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "Closing a door must immediately block movement again.")
-    assert(simulation.building_registry.damage_door(door_id, 30))
-    assert(simulation.map_data.is_walkable(Vector2i(0, 1)), "Breaking a door must leave its hex passable.")
-    assert(not bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", true)), "A broken doorway must not block line of sight.")
-    assert(VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "A broken doorway must allow a ray through its hex.")
-    assert(simulation.map_data.is_walkable(Vector2i(100, 100)))
-    assert(not simulation.map_data.is_walkable(Vector2i(101, 100)))
-    assert(is_equal_approx(simulation.map_data.elevation_at(Vector2i(100, 100)), 3.38))
-    assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors), "Duplicate building layouts must be rejected.")
-    var missing_door_cell_simulation = WORLD_SIM_SCRIPT.new()
-    assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(missing_door_cell_simulation, building_definition, door_definition, floors), "A door without a registered map cell must be rejected.")
-    assert(not missing_door_cell_simulation.building_registry.definitions.has("test_inn"), "Invalid layouts must not partially register buildings.")
-    missing_door_cell_simulation.free()
-    simulation.free()
+	var simulation = WORLD_SIM_SCRIPT.new()
+	simulation.map_data.add_cell(Vector2i.ZERO, 0.0, true, "grass")
+	simulation.map_data.add_cell(Vector2i(0, 1), 0.0, true, "path")
+	simulation.map_data.add_cell(Vector2i(0, 2), 0.0, true, "grass")
+	var building_definition := {
+		"id": "test_inn",
+		"name": "Test Inn",
+		"entrance_hex": Vector2i(0, 1),
+		"floor_count": 2,
+	}
+	var door_definition := {
+		"id": "test_inn_front",
+		"building_id": "test_inn",
+		"hex": Vector2i(0, 1),
+		"starts_open": false,
+		"starts_locked": true,
+		"durability": 30,
+	}
+	var floors: Array[Dictionary] = [
+		{"hex": Vector2i(100, 100), "elevation": 3.38, "walkable": true, "terrain_id": "timber_floor"},
+		{"hex": Vector2i(101, 100), "elevation": 3.38, "walkable": false, "terrain_id": "timber_floor"},
+	]
+	assert(BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors))
+	assert(simulation.building_registry.get_building("test_inn").get("floor_count", 0) == 2)
+	assert(not simulation.building_registry.get_door("test_inn_front").is_passable())
+	assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "A closed starting door must block its map cell.")
+	assert(bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", false)), "A closed door must block line of sight through its hex.")
+	assert(not VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "A closed door must obstruct a ray through its hex.")
+	var door_id := "test_inn_front"
+	assert(not simulation.building_registry.set_door_open(door_id, true), "A locked door cannot be opened.")
+	assert(simulation.building_registry.unlock_door(door_id))
+	assert(simulation.building_registry.set_door_open(door_id, true))
+	assert(simulation.map_data.is_walkable(Vector2i(0, 1)), "Opening a door must immediately restore movement.")
+	assert(not bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", true)), "Opening a door must immediately restore line of sight.")
+	assert(VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "An open door must allow a ray through its hex.")
+	assert(simulation.building_registry.set_door_open(door_id, false))
+	assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "Closing a door must immediately block movement again.")
+	assert(simulation.building_registry.damage_door(door_id, 30))
+	assert(simulation.map_data.is_walkable(Vector2i(0, 1)), "Breaking a door must leave its hex passable.")
+	assert(not bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", true)), "A broken doorway must not block line of sight.")
+	assert(VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "A broken doorway must allow a ray through its hex.")
+	assert(simulation.map_data.is_walkable(Vector2i(100, 100)))
+	assert(not simulation.map_data.is_walkable(Vector2i(101, 100)))
+	assert(is_equal_approx(simulation.map_data.elevation_at(Vector2i(100, 100)), 3.38))
+	assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors), "Duplicate building layouts must be rejected.")
+	var missing_door_cell_simulation = WORLD_SIM_SCRIPT.new()
+	assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(missing_door_cell_simulation, building_definition, door_definition, floors), "A door without a registered map cell must be rejected.")
+	assert(not missing_door_cell_simulation.building_registry.definitions.has("test_inn"), "Invalid layouts must not partially register buildings.")
+	missing_door_cell_simulation.free()
+	simulation.free()
 
 func _test_door_aware_pathfinding_and_movement() -> void:
-    var simulation = WORLD_SIM_SCRIPT.new()
-    for q in range(3):
-        simulation.map_data.add_cell(Vector2i(q, 0), 0.0, true, "timber_floor")
-    assert(simulation.building_registry.register_building({"id": "route_house", "entrance_hex": Vector2i(1, 0)}))
-    assert(simulation.building_registry.register_door("route_house_front", "route_house", Vector2i(1, 0), false, false))
-    var door_cell: Dictionary = simulation.map_data.cells[Vector2i(1, 0)]
-    door_cell["door_base_walkable"] = true
-    simulation.map_data.cells[Vector2i(1, 0)] = door_cell
-    simulation.sync_door_map_state("route_house_front")
-    var player = CharacterState.new("player", "Player", Vector2i.ZERO)
-    player.time_points = 30.0
-    simulation.register_character(player)
+	var simulation = WORLD_SIM_SCRIPT.new()
+	for q in range(3):
+		simulation.map_data.add_cell(Vector2i(q, 0), 0.0, true, "timber_floor")
+	assert(simulation.building_registry.register_building({"id": "route_house", "entrance_hex": Vector2i(1, 0)}))
+	assert(simulation.building_registry.register_door("route_house_front", "route_house", Vector2i(1, 0), false, false))
+	var door_cell: Dictionary = simulation.map_data.cells[Vector2i(1, 0)]
+	door_cell["door_base_walkable"] = true
+	simulation.map_data.cells[Vector2i(1, 0)] = door_cell
+	simulation.sync_door_map_state("route_house_front")
+	var player = CharacterState.new("player", "Player", Vector2i.ZERO)
+	player.time_points = 30.0
+	simulation.register_character(player)
 
-    var route: Array[Vector2i] = simulation.find_path("player", Vector2i(2, 0))
-    assert(route.size() == 3 and route[1] == Vector2i(1, 0), "Pathfinding should include a closed, unlocked door in a route.")
-    assert(is_equal_approx(simulation.movement_cost("player", Vector2i(1, 0)), 7.0), "Movement cost should include the door-opening action.")
-    assert(simulation.try_move_character_step("player", Vector2i(1, 0)), "Movement should open and pass through an unlocked door as one movement sequence.")
-    assert(simulation.building_registry.get_door("route_house_front").is_passable(), "Executing the route should open the authoritative door state.")
-    assert(player.axial == Vector2i(1, 0), "The mover should occupy the doorway after opening it.")
-    assert(simulation.try_move_character_step("player", Vector2i(2, 0)), "Movement should continue through the opened doorway.")
-    assert(player.axial == Vector2i(2, 0), "The mover should reach the destination beyond the door.")
+	var route: Array[Vector2i] = simulation.find_path("player", Vector2i(2, 0))
+	assert(route.size() == 3 and route[1] == Vector2i(1, 0), "Pathfinding should include a closed, unlocked door in a route.")
+	assert(is_equal_approx(simulation.movement_cost("player", Vector2i(1, 0)), 7.0), "Movement cost should include the door-opening action.")
+	assert(simulation.try_move_character_step("player", Vector2i(1, 0)), "Movement should open and pass through an unlocked door as one movement sequence.")
+	assert(simulation.building_registry.get_door("route_house_front").is_passable(), "Executing the route should open the authoritative door state.")
+	assert(player.axial == Vector2i(1, 0), "The mover should occupy the doorway after opening it.")
+	assert(simulation.try_move_character_step("player", Vector2i(2, 0)), "Movement should continue through the opened doorway.")
+	assert(player.axial == Vector2i(2, 0), "The mover should reach the destination beyond the door.")
 
-    var locked_simulation = WORLD_SIM_SCRIPT.new()
-    for q in range(3):
-        locked_simulation.map_data.add_cell(Vector2i(q, 0), 0.0, true, "timber_floor")
-    assert(locked_simulation.building_registry.register_building({"id": "locked_house", "entrance_hex": Vector2i(1, 0)}))
-    assert(locked_simulation.building_registry.register_door("locked_house_front", "locked_house", Vector2i(1, 0), false, true))
-    var locked_cell: Dictionary = locked_simulation.map_data.cells[Vector2i(1, 0)]
-    locked_cell["door_base_walkable"] = true
-    locked_simulation.map_data.cells[Vector2i(1, 0)] = locked_cell
-    locked_simulation.sync_door_map_state("locked_house_front")
-    var npc = CharacterState.new("villager", "Villager", Vector2i.ZERO)
-    locked_simulation.register_character(npc)
-    assert(locked_simulation.find_path("villager", Vector2i(2, 0)).is_empty(), "Pathfinding must not route through a locked door.")
-    assert(not locked_simulation.try_move_character_step("villager", Vector2i(1, 0)), "Movement must not open a locked door.")
-    assert(locked_simulation.building_registry.unlock_door("locked_house_front"))
-    npc.time_points = 30.0
-    var npc_route: Array[Vector2i] = locked_simulation.find_path("villager", Vector2i(2, 0))
-    assert(npc_route.size() == 3, "Humanoid NPCs should use the same door-aware route finder as the player.")
-    assert(locked_simulation.try_move_character_step("villager", Vector2i(1, 0)), "Humanoid NPC movement should open unlocked doors as part of its route.")
-    assert(locked_simulation.building_registry.get_door("locked_house_front").is_passable(), "NPC movement should update the shared authoritative door state.")
-    locked_simulation.free()
-    simulation.free()
+	var locked_simulation = WORLD_SIM_SCRIPT.new()
+	for q in range(3):
+		locked_simulation.map_data.add_cell(Vector2i(q, 0), 0.0, true, "timber_floor")
+	assert(locked_simulation.building_registry.register_building({"id": "locked_house", "entrance_hex": Vector2i(1, 0)}))
+	assert(locked_simulation.building_registry.register_door("locked_house_front", "locked_house", Vector2i(1, 0), false, true))
+	var locked_cell: Dictionary = locked_simulation.map_data.cells[Vector2i(1, 0)]
+	locked_cell["door_base_walkable"] = true
+	locked_simulation.map_data.cells[Vector2i(1, 0)] = locked_cell
+	locked_simulation.sync_door_map_state("locked_house_front")
+	var npc = CharacterState.new("villager", "Villager", Vector2i.ZERO)
+	locked_simulation.register_character(npc)
+	assert(locked_simulation.find_path("villager", Vector2i(2, 0)).is_empty(), "Pathfinding must not route through a locked door.")
+	assert(not locked_simulation.try_move_character_step("villager", Vector2i(1, 0)), "Movement must not open a locked door.")
+	assert(locked_simulation.building_registry.unlock_door("locked_house_front"))
+	npc.time_points = 30.0
+	var npc_route: Array[Vector2i] = locked_simulation.find_path("villager", Vector2i(2, 0))
+	assert(npc_route.size() == 3, "Humanoid NPCs should use the same door-aware route finder as the player.")
+	assert(locked_simulation.try_move_character_step("villager", Vector2i(1, 0)), "Humanoid NPC movement should open unlocked doors as part of its route.")
+	assert(locked_simulation.building_registry.get_door("locked_house_front").is_passable(), "NPC movement should update the shared authoritative door state.")
+	locked_simulation.free()
+	simulation.free()
