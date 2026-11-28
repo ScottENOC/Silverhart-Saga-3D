@@ -429,7 +429,7 @@ func _create_wilderness_gatherable_grove() -> void:
 	_create_elder_locket_pickup()
 
 func _create_elder_locket_pickup() -> void:
-	var pickup_hex := Vector2i(-14, 0)
+	var pickup_hex: Vector2i = HOLLOWMERE_PLACEMENTS.ELDER_LOCKET_PICKUP_HEX
 	elder_locket_visual = Node3D.new()
 	elder_locket_visual.name = "ElderMartaLocketPickup"
 	elder_locket_visual.position = _hex_world_position(pickup_hex) + Vector3(0.0, 0.16, 0.0)
@@ -475,7 +475,7 @@ func _interact_with_chapel_locket() -> bool:
 	if elder_locket_collected:
 		return false
 	var active_state := simulation.get_character(active_character_id)
-	if active_state == null or not simulation.is_hex_within_range(active_state.axial, Vector2i(-14, 0), 1):
+	if active_state == null or not simulation.is_hex_within_range(active_state.axial, HOLLOWMERE_PLACEMENTS.ELDER_LOCKET_PICKUP_HEX, 1):
 		return false
 	var player := simulation.get_character(simulation.player_character_id)
 	var result: Dictionary = ELDER_LOCKET_PICKUP_SCRIPT.collect(player)
