@@ -97,9 +97,9 @@ jobs:
           set -euo pipefail
           mkdir -p build/wren-native
           python -m py_compile tools/blender/inspect_wren_ara_surface.py
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/inspect_wren_ara_surface.py -- \\
-            --input-glb art/characters/companions/wren.glb \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/inspect_wren_ara_surface.py -- \
+            --input-glb art/characters/companions/wren.glb \
             --report build/wren-native/source-surface-inspection.json
           test -s build/wren-native/source-surface-inspection.json
           python - <<'PY'
