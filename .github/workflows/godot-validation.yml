@@ -305,6 +305,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Run Campaign 2 character definition registry tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_character_definition_registry.gd
+      - name: Run world simulation spatial query tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_simulation_spatial_queries.gd
       - name: Run shared campaign NPC interaction service tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_npc_interaction_service.gd
       - name: Run Campaign 2 canonical settlement builder tests
