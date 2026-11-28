@@ -16,7 +16,7 @@ const UPPER_FLOOR_Y := 3.38
 
 const BUILDING_ID := "hollow_tankard"
 const FRONT_DOOR_ID := "hollow_tankard_front_door"
-const DOOR_HEX := Vector2i(0, 3)
+const DOOR_HEX := Vector2i(0, 4)
 const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
 const STAIR_GROUND_HEX := Vector2i(3, 0)
 const STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
@@ -83,8 +83,8 @@ const LOGICAL_DEFINITION := {
 		"id": FRONT_DOOR_ID,
 		"building_id": BUILDING_ID,
 		"hex": DOOR_HEX,
-		"starts_open": true,
-		"starts_locked": false,
+		"starts_open": false,
+		"starts_locked": true,
 		"durability": 20
 	}
 }
