@@ -76,7 +76,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          r = json.loads(Path("build/wren-garments/generation-report.json").read_text())
+          r = json.loads(Path("../../build/wren-garments/generation-report.json").read_text())
           assert r["sourceCommit"] == "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395", r
           assert r["garmentPartCount"] >= 3, r
           assert r["bodySkinPreserved"] is True, r
