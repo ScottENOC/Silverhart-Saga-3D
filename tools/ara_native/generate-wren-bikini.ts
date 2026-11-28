@@ -61,7 +61,7 @@ const faceVerts = lib.base.arrays.faceVerts as Uint32Array;
 const faceSizes = new Uint8Array(faceVerts.length / 4).fill(4);
 const normals = vertexNormals({ positions: coords, faceSizes, faceVerts, faceUVs: lib.base.arrays.faceUVs as Uint32Array, uvs: lib.base.arrays.uvs as Float32Array });
 const regions = lib.base.arrays.regions as Uint8Array;
-const body = makeBody(coords, normals, regions, lib.base.meta.joints);
+const body = makeBody(coords, normals, regions, lib.base.meta.joints, faceSizes, faceVerts);
 const generatedTextures = new Map<string, Uint8Array>();
 const g: GCtx = {
   body, faceVerts, layered: { top: false, bottom: false }, underwear: false, outfits: {},
