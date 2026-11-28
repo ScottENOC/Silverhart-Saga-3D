@@ -1701,11 +1701,11 @@ func _interact_with_character(character_id: String) -> void:
 		if bool(marta_conversation.get("ok", false)):
 			_show_dialogue(String(marta_conversation.get("speaker", "Elder Marta Wynfield")), String(marta_conversation.get("text", "")), marta_conversation.get("choices", []))
 		return
-	var quest_state := campaign_quest_service.state(HollowmereCampaignContent.QUEST_ID)
-	var decisions: Dictionary = quest_state.get("decisions", {})
-	var response_choice := String(decisions.get("response", ""))
-	var standing := simulation.campaign_journal.npc_standing(character_id)
-	var conversation := HollowmereCampaignContent.npc_greeting(character_id, shakedown_resolved, standing, response_choice)
+	var conversation := HollowmereCampaignContent.npc_greeting_from_journal(
+		simulation.campaign_journal,
+		character_id,
+		shakedown_resolved
+	)
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		var choice: Dictionary = choice_value
