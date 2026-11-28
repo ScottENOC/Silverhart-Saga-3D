@@ -48,7 +48,7 @@ The manifest contains **nine location records with multiple floors**: the seven 
 
 ## Single-floor entries and interior doorways
 
-There are **62 single-floor location records**. Their interior door coordinates and IDs are listed in the full register below. A door object is evidence of a placed aperture, not proof that the exterior approach, interaction, return-to-world action or collision opening is implemented. PR #465 introduced the generic `exterior_entry` contract in the shared location registry/runtime and wired it to the F-key interaction path. Twelve single-floor sites were registered through PR #486: six Hollowmere entries, three Emberlode entries and three Reddale entries. This pass adds eight source-grounded Silverhart house entries, bringing the single-floor total to **20 registered** and leaving **42**. The Wizard's Tower is additionally registered as the first multi-floor site with a source-grounded exterior entry. Do not infer approach coordinates from door orientation alone. The tavern remains intentionally excluded while its opening-sequence door is locked. The Guild tunnel network remains a specialised cross-location route.
+There are **62 single-floor location records**. Their interior door coordinates and IDs are listed in the full register below. A door object is evidence of a placed aperture, not proof that the exterior approach, interaction, return-to-world action or collision opening is implemented. PR #465 introduced the generic `exterior_entry` contract in the shared location registry/runtime and wired it to the F-key interaction path. Twenty single-floor sites were registered through PRs #466, #472, #483, #486, #487 and #493: six Hollowmere entries, three Emberlode entries, three Reddale entries, the Wizard's Tower (multi-floor), and eight Silverhart house entries. This bulk pass adds 19 more source-grounded single-floor entries, bringing the total to **39 of 62** and leaving **23** without an implemented exterior contract. The Wizard's Tower is additionally registered as the first multi-floor site with a source-grounded exterior entry. Do not infer approach coordinates from door orientation alone. The tavern remains intentionally excluded while its opening-sequence door is locked. The Guild tunnel network remains a specialised cross-location route.
 
 - **Barrow of Corvin Ashgrave** and **Vessel-Seeker's Crypt** are single-floor multi-room layouts. Their several door objects are internal room/ossuary/ritual openings as well as the exterior entry; do not count each internal doorway as a separate world transition.
 - **Northwatch Keep** and **Ridgehold Keep** each have a keep entry door. Their exterior fort gates and approaches are owned by the regional fort/map presentation, not this interior-floor manifest.
@@ -144,7 +144,7 @@ There are **62 single-floor location records**. Their interior door coordinates 
 
 ## Remaining implementation tasks
 
-1. **Register the remaining 42 single-floor exterior contracts.** For each location, identify the source-grounded exterior interaction hex and return hex, reference its correct floor-zero door ID, and add the contract to the location manifest. Do not guess approach coordinates from door orientation when the source map or building footprint does not establish them.
+1. **Resolve the remaining 23 single-floor exterior contracts.** For each location, identify the source-grounded exterior interaction hex and return hex, reference its correct floor-zero door ID, and add the contract to the location manifest. Do not guess approach coordinates from door orientation when the source map or building footprint does not establish them.
 2. **Resolve the Silverhart Palace rear door.** Determine whether the Queen's Chambers door connects to a separately registered room/site, an adjoining room on the same floor, or a deliberate non-traversable set piece. Add a destination only when supported by source spatial data.
 3. **Wire the Guild hidden vault door into the generic single-floor entry/secret-door interaction path.** Its secret-door record and hidden-room dependency exist; the generic interaction must support the single-floor location as well as multi-story stacks.
 
@@ -181,3 +181,13 @@ This register intentionally records current evidence and unresolved spatial cont
 - Registered the three north cottages and four east-quarter houses. Each contract uses the explicitly painted Path hex immediately east of its source-defined east door.
 - Registered Master Builder Hallis's house using the south door at (38, -486) and its explicitly painted exterior apron at (38, -485). The west door is not used because its source connector is not the path being registered here.
 - Added shared-runtime entry/return round-trip coverage for all eight sites. No location-specific runtime or Hollowmere adapter changes were needed.
+
+
+## Runtime update — 28 November 2026 (bulk exterior-entry pass)
+
+- Added six middle-ring houses using the source-painted interpolated door-to-ring paths.
+- Added the three Warrens shacks using the explicit cross-row Path at r = -430.
+- Added the Palace Council Chamber, Corstane Manor, Elven/Dwarven/Aldenreach embassies, Ironbond Office and Grand Cathedral using their source-painted courtyard/street connectors.
+- Added Old Mac's Farmhouse, Millbrook House and the Abandoned House using their explicit source road spurs.
+- Added 19 shared-runtime entry/return round-trip cases. The contracts reuse the existing registry/runtime and do not introduce location-specific services.
+- Sites whose source door has no adjacent painted approach, is locked, is a secret passage, or is an internal/dungeon door remain unregistered rather than receiving invented exterior thresholds.
