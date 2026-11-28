@@ -75,13 +75,14 @@ const g: GCtx = {
     return { map: key + ".png", normalMap: tex.normal ? key + "_n.png" : undefined, alpha: tex.alpha };
   },
 };
-const style: GarmentStyle = { pattern: "foil", color: "#09090B", color2: "#09090B" };
+const topStyle: GarmentStyle = { pattern: "foil", color: "#c9963a", color2: "#fff1c4" };
+const bottomStyle: GarmentStyle = { pattern: "foil", color: "#09090B", color2: "#09090B" };
 const bottomDef = SWIMWEAR.find(x => x.id === "bikini_bottom");
 const topDef = SWIMWEAR.find(x => x.id === "bikini_top");
 if (!bottomDef || !topDef) throw new Error("Pinned Ara source is missing bikini_top or bikini_bottom");
 const parts = [
-  ...topDef.build(g, style).map((p: GPart) => ({ ...p, sourceGarment: "bikini_top" })),
-  ...bottomDef.build(g, style).map((p: GPart) => ({ ...p, sourceGarment: "bikini_bottom" })),
+  ...topDef.build(g, topStyle).map((p: GPart) => ({ ...p, material: { ...p.material, opacity: 0.5, alpha: "blend" as const }, sourceGarment: "bikini_top" })),
+  ...bottomDef.build(g, bottomStyle).map((p: GPart) => ({ ...p, sourceGarment: "bikini_bottom" })),
 ];
 if (parts.length < 3) throw new Error("Ara returned too few garment parts; expected top, panels, gusset and strings");
 const materials = new Map<string, any>();
