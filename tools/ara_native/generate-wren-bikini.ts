@@ -79,7 +79,8 @@ if (parts.length < 3) throw new Error("Ara returned too few garment parts; expec
 const materials = new Map<string, any>();
 const obj: string[] = ["# Ara 3D Gen bikini source port", "mtllib Wren_Ara_Bikini.mtl"];
 const mtl: string[] = [];
-const minY = Math.min(...Array.from({ length: coords.length / 3 }, (_, i) => coords[i * 3 + 1]));\nlet vertexOffset = 0, uvOffset = 0;
+const minY = Math.min(...Array.from({ length: coords.length / 3 }, (_, i) => coords[i * 3 + 1]));
+let vertexOffset = 0, uvOffset = 0;
 const partReport: any[] = [];
 for (let pi = 0; pi < parts.length; pi++) {
   const part: any = parts[pi], mesh = part.mesh, mat = part.material;
