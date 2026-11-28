@@ -31,7 +31,7 @@ static func nearby_entries(
 		var state := simulation.get_character(actor_id)
 		if state == null or not state.can_act():
 			continue
-		var distance := HexGrid.distance(active_state.axial, state.axial)
+		var distance := simulation.hex_distance(active_state.axial, state.axial)
 		if distance > interaction_radius:
 			continue
 		result.append({
