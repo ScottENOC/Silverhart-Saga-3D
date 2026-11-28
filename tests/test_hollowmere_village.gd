@@ -137,7 +137,9 @@ func _test_tavern_stair_geometry() -> void:
 			stair_steps.append(feature)
 	assert(stair_steps.size() == 10, "Hollow Tankard must retain its ten authored physical stair treads")
 	stair_steps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return float((a.get("position", Vector3.ZERO) as Vector3).y) < float((b.get("position", Vector3.ZERO) as Vector3).y)
+		var position_a: Vector3 = a.get("position", Vector3.ZERO)
+		var position_b: Vector3 = b.get("position", Vector3.ZERO)
+		return position_a.y < position_b.y
 	)
 	for index in range(1, stair_steps.size()):
 		var previous: Vector3 = stair_steps[index - 1].get("position", Vector3.ZERO)
