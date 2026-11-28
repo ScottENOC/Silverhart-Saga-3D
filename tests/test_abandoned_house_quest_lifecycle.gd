@@ -48,6 +48,7 @@ func _test_approach_starts_quest_and_registers_guardians() -> void:
 func _test_completed_quest_does_not_restore_guardians() -> void:
 	var simulation := _simulation_at(QUEST.HOUSE_CENTRE)
 	assert(bool(simulation.campaign_journal.start_quest(QUEST.QUEST_ID).get("ok", false)))
+	assert(bool(simulation.campaign_journal.set_objective_progress(QUEST.QUEST_ID, QUEST.OBJECTIVE_ID, 3.0).get("ok", false)))
 	assert(bool(simulation.campaign_journal.complete_quest(QUEST.QUEST_ID).get("ok", false)))
 	var result := QUEST.prepare_approach(simulation, "player")
 	assert(bool(result.get("ok", false)))
