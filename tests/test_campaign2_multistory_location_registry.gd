@@ -75,7 +75,7 @@ func _initialize() -> void:
 		_check(_has_record(hollowmere_floor.get("tile_objects", []), hollowmere_doors[location_id]), "Hollowmere building must retain its source entrance: " + location_id)
 	var tavern_floor := registry.get_floor_definition("hollowmere_tavern", 0)
 	_check(int(tavern_floor.get("rooms", [])[0].get("half_width", 0)) == 6 and int(tavern_floor.get("rooms", [])[0].get("half_height", 0)) == 4, "Tavern floor dimensions must match its source q/r loops")
-	_check(bool(_find_record(tavern_floor.get("tile_objects", []), "hollowmere_tavern_south_door").get("locked", false)), "Tavern entrance must preserve its initially locked state")
+	_check(bool(_find_record(tavern_floor.get("tile_objects", []), "hollow_tankard_front_door").get("locked", false)), "Tavern entrance must preserve its initially locked state")
 	_check(_has_record(tavern_floor.get("tile_objects", []), "hollowmere_tavern_fireplace"), "Tavern must retain its source fireplace")
 	_check(_has_record(registry.get_floor_definition("hollowmere_general_store", 0).get("tile_objects", []), "hollowmere_general_store_counter"), "General store must retain its source counter")
 
