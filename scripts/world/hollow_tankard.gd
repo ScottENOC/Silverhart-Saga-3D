@@ -1945,26 +1945,22 @@ func _show_wren_arc_topic(topic_id: String) -> void:
 
 
 func _recruit_staged_companion(character_id: String) -> void:
+	var recruit_result: Dictionary = COMPANION_CAMPAIGN_SCRIPT.recruit_staged_companion(simulation, character_id)
 	var state := simulation.get_character(character_id)
-	if state == null:
-		_show_dialogue("Recruitment", "That companion is not present in this location.", [{"id":"continue","label":"Continue","text":""}])
-		return
-	if simulation.is_party_member(character_id):
-		_show_dialogue(state.display_name, "I'm already travelling with you.", [{"id":"continue","label":"Continue","text":""}])
-		return
-	var player_state := simulation.get_character("player")
-	if player_state == null:
-		return
-	if character_id == "companion_fenn_oakheart" and COMPANION_CAMPAIGN_SCRIPT.count_item(player_state.inventory, "herbs") < 3:
-		_show_companion_dialogue(character_id)
-		return
-	var recruit_result := simulation.recruit_companion(character_id)
 	if not bool(recruit_result.get("ok", false)):
-		_show_dialogue("Recruitment", "Could not recruit %s: %s." % [state.display_name, String(recruit_result.get("reason", "unknown reason"))], [{"id":"continue","label":"Continue","text":""}])
+		var reason := String(recruit_result.get("reason", "recruitment_failed"))
+		if reason == "insufficient_herbs" or reason == "fenn_quest_not_active":
+			_show_companion_dialogue(character_id)
+			return
+		if reason == "already_in_party" and state != null:
+			_show_dialogue(state.display_name, "I'm already travelling with you.", [{"id":"continue","label":"Continue","text":""}])
+		elif reason == "unknown_character":
+			_show_dialogue("Recruitment", "That companion is not present in this location.", [{"id":"continue","label":"Continue","text":""}])
+		elif state != null:
+			_show_dialogue("Recruitment", "Could not recruit %s: %s." % [state.display_name, reason], [{"id":"continue","label":"Continue","text":""}])
 		return
-	if character_id == "companion_fenn_oakheart":
-		COMPANION_CAMPAIGN_SCRIPT.consume_item(player_state.inventory, "herbs", 3)
-		COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "fenn_herb_gathering", "herbs_delivered")
+	if state == null:
+		return
 	var actor := actor_by_id.get(character_id) as Node3D
 	if actor != null:
 		actor.set_meta("ambient_enabled", false)
