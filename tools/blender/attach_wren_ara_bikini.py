@@ -187,9 +187,6 @@ def main():
     # Ara's default 3 mm lift fits the morph-generated base body. Wren's
     # accepted GLB also contains the repository's later anatomy sculpt, so
     # project only garment vertices that still sit inside that actual skin.
- Wren's
-    # accepted GLB also contains the repository's later anatomy sculpt, so
-    # project only garment vertices that still sit inside that actual skin.
     # This is a garment-only surface correction; the accepted body is read-only.
     skin_meshes = [
         obj for obj in body_meshes
