@@ -133,12 +133,22 @@
     {
       "location_id": "hollowmere_guild_den",
       "integration_kind": "building",
-      "status": "exterior_missing",
-      "building_ids": [],
-      "room_links": [],
+      "status": "linked",
+      "building_ids": [
+        "hollowmere_guild_den"
+      ],
+      "room_links": [
+        {
+          "floor": 0,
+          "room_id": "hollowmere_guild_den_room",
+          "building_id": "hollowmere_guild_den",
+          "source_catalogue": "hollowmere_buildings",
+          "basis": "source_authored_guild_den_centre_footprint_and_south_door"
+        }
+      ],
       "transition_policy": "physical_continuous_world",
       "notes": [
-        "The Guild Den interior exists at (-12,-8), but no corresponding exterior building record exists in the Hollowmere BUILDINGS catalogue."
+        "The original Hex-crpg defines a single unassuming den at (-12,-8), half-width/half-height 2, with its south door at (-12,-6). A discreet, windowless exterior now uses that exact centre, footprint class and threshold; no teleport or separate interior zone is introduced."
       ]
     },
     {
