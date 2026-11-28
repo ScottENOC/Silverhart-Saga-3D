@@ -144,6 +144,23 @@ def main():
             f"got body={len(body)}, piercings={len(piercings)}, garments={len(garments)}"
         )
 
+    # The current accepted-Wren skin copy is explicitly diagnostic-only:
+    # its open/nonmanifold topology has not been classified as external-only,
+    # and internal canal surfaces have not been excluded. Nearest-point contact
+    # against that mesh can pull fabric towards internal surfaces and produce
+    # arbitrarily large false corrections. Do not run XPBD until the collider
+    # preparation stage has positively verified both properties.
+    body_collider = body[0]
+    if (
+        body_collider.get("external_surface_verified") is not True
+        or body_collider.get("internal_canal_exclusion_verified") is not True
+    ):
+        raise RuntimeError(
+            "Refusing garment fitting: Wren body collider is diagnostic-only; "
+            "external-surface classification and internal-canal exclusion "
+            "must both be verified before contact simulation."
+        )
+
     collider_trees = [
         (obj.name, world_bvh(obj, depsgraph), obj in piercings)
         for obj in body + piercings
