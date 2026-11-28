@@ -14,7 +14,6 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AssetLibrary } from "./vendor/src/core/assets.ts";
 import { applyTargets, targetWeights } from "./vendor/src/core/morph.ts";
-import { DEFAULT_PARAMS, yearsToAge } from "./vendor/src/core/params.ts";
 import { vertexNormals } from "./vendor/src/core/geometry.ts";
 import { makeBody } from "./vendor/src/core/garments/body.ts";
 import { SWIMWEAR } from "./vendor/src/core/garments/swimwear.ts";
@@ -39,12 +38,21 @@ const source = {
   async read(path: string) { return new Uint8Array(readFileSync(join(dataDir, path))); },
 };
 const lib = await new AssetLibrary(source).init();
+const yearsToAge = (y: number) => y < 11 ? ((y - 1) / 10) * 0.1875 : y < 25 ? 0.1875 + ((y - 11) / 14) * 0.3125 : 0.5 + ((y - 25) / 65) * 0.5;
+const sourceParams = profile.params;
 const params = {
-  ...DEFAULT_PARAMS,
-  ...profile.params,
-  age: yearsToAge(Number(profile.params.ageYears ?? 25)),
-  modifiers: profile.params.modifiers ?? {},
-  garmentStyles: {},
+  gender: Number(sourceParams.gender ?? 0),
+  age: yearsToAge(Number(sourceParams.ageYears ?? 25)),
+  muscle: Number(sourceParams.muscle ?? 0.6),
+  weight: Number(sourceParams.weight ?? 0.5),
+  height: Number(sourceParams.height ?? 0.5),
+  proportions: Number(sourceParams.proportions ?? 0.7),
+  african: Number(sourceParams.african ?? 0),
+  asian: Number(sourceParams.asian ?? 0),
+  caucasian: Number(sourceParams.caucasian ?? 1),
+  breastSize: Number(sourceParams.breastSize ?? 0.5),
+  breastFirmness: Number(sourceParams.breastFirmness ?? 0.5),
+  modifiers: sourceParams.modifiers ?? {},
 };
 const sliders = new Map(lib.catalog.sliders.flatMap((g: any) => g.sliders.map((s: any) => [s.id, s] as const)));
 const weights = targetWeights(params, sliders);
