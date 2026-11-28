@@ -354,6 +354,8 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
 	_check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("fenn_oakheart", journal, three_herbs, no_party)), "Fenn should offer to join when three herbs are available")
 	var recruitment_simulation := WorldSimulation.new()
 	CompanionCampaignContent.register_quest_definitions(recruitment_simulation.campaign_journal)
+	var recruitment_player := CharacterState.new("player", "Adventurer", Vector2i(0, 0))
+	recruitment_simulation.register_character(recruitment_player)
 	var fenn := CharacterState.new("fenn_oakheart", "Fenn Oakheart", Vector2i(1, 0))
 	recruitment_simulation.register_character(fenn)
 	var player := recruitment_simulation.get_character(recruitment_simulation.player_character_id)
