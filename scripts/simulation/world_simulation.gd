@@ -3,6 +3,8 @@ extends Node
 
 var _spell_effect_rules = load("res://scripts/simulation/spell_effect_rules.gd").new()
 
+const DOOR_OPEN_TIME_POINT_COST: float = MovementRules.DOOR_OPEN_TIME_POINT_COST
+
 signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i)
 signal world_tick(tick_index: int, world_seconds: float)
 signal combat_started
@@ -1481,6 +1483,9 @@ func _resume_pending_move(choice_id: String, reason: String) -> void:
     if not mover.spend_time_points(cost):
         movement_reaction_resolved.emit(turn_actor.id, true)
         return
+    if not _open_door_for_movement(mover, destination):
+        movement_reaction_resolved.emit(turn_actor.id, true)
+        return
     _commit_move(mover, destination)
     var payload := {"from_hex": origin, "to_hex": destination, "time_point_cost": cost, "halted_by_reaction": halt_after_step, "movement_owner_id": mover.id}
     var result_data := SimulationActionResult.new("move", true, "", turn_actor.id, "", payload).to_dict()
@@ -1536,6 +1541,11 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
     var cost := request.time_point_cost
     if terrain_cost:
         cost = MovementRules.step_cost(map_data, movement_state.axial, request.destination, movement_state)
+    var destination_door := building_registry.get_door_at(request.destination)
+    if destination_door != null and not destination_door.is_passable():
+        if destination_door.locked:
+            return {"ok": false, "reason": "door_locked"}
+        cost += DOOR_OPEN_TIME_POINT_COST
     if state.has_spell_effect("entangled"):
         cost += 5.0
     if not is_finite(cost) or cost < 0.0:
@@ -1564,6 +1574,8 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
     var origin := movement_state.axial
     if not movement_state.spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
+    if not _open_door_for_movement(movement_state, request.destination):
+        return {"ok": false, "reason": "door_could_not_open"}
     _commit_move(movement_state, request.destination)
     var payload := {"from_hex": origin, "to_hex": request.destination, "time_point_cost": cost, "movement_owner_id": movement_state.id}
     var typed_result := SimulationActionResult.new("move", true, "", request.actor_id, "", payload)
@@ -1902,7 +1914,7 @@ func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
     if state == null:
         return []
     var movement_state := _movement_state_for(state)
-    return HexPathfinder.find_path(map_data, occupied_hexes, movement_state.axial, destination, movement_state, characters, is_in_combat)
+    return HexPathfinder.find_path(map_data, occupied_hexes, movement_state.axial, destination, movement_state, characters, is_in_combat, building_registry.doors)
 func _is_virtual_building_floor_hex(hex: Vector2i) -> bool:
     for definition_value in building_registry.definitions.values():
         if not definition_value is Dictionary:
@@ -1918,7 +1930,13 @@ func movement_cost(character_id: String, destination: Vector2i) -> float:
     if state == null:
         return INF
     var movement_state := _movement_state_for(state)
-    return MovementRules.step_cost(map_data, movement_state.axial, destination, movement_state)
+    var cost := MovementRules.step_cost(map_data, movement_state.axial, destination, movement_state)
+    var door := building_registry.get_door_at(destination)
+    if door != null and not door.is_passable():
+        if door.locked or not _door_cell_has_walkable_base(door):
+            return INF
+        cost += DOOR_OPEN_TIME_POINT_COST
+    return cost
 func try_move_character_step(character_id: String, destination: Vector2i) -> bool:
     var request := SimulationActionRequest.move(character_id, destination, 0.0)
     request.options["terrain_cost"] = true
@@ -1926,13 +1944,30 @@ func try_move_character_step(character_id: String, destination: Vector2i) -> boo
     var result := submit_action(request)
     return bool(result.get("ok", false))
 
+func _door_cell_has_walkable_base(door: BuildingDoorState) -> bool:
+    if door == null or not map_data.has_cell(door.hex):
+        return false
+    return bool(map_data.cells[door.hex].get("door_base_walkable", false))
+
+## Called only when the movement action is actually committed, never while
+## planning a route. Door state remains authoritative in BuildingRegistry.
+func _open_door_for_movement(state: CharacterState, destination: Vector2i) -> bool:
+    var door := building_registry.get_door_at(destination)
+    if door == null or door.is_passable():
+        return true
+    if state == null or door.locked or not _door_cell_has_walkable_base(door):
+        return false
+    return building_registry.set_door_open(door.id, true)
+
 func _can_move_to(state: CharacterState, destination: Vector2i) -> bool:
     if state == null:
         return false
     if HexGrid.distance(state.axial, destination) != 1:
         return false
     if not map_data.is_walkable(destination):
-        return false
+        var door := building_registry.get_door_at(destination)
+        if door == null or door.is_passable() or door.locked or not _door_cell_has_walkable_base(door):
+            return false
     if occupied_hexes.has(destination):
         var occupant := get_character(String(occupied_hexes[destination]))
         if not _can_pass_through_character(state, occupant):
