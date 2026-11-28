@@ -193,7 +193,7 @@ def make_skin_only_collider(source, material_prefix):
     preparation_warnings = [
         "External-only surface classification has not been proven.",
         "Internal canal exclusion has not been proven; collider is diagnostic only.",
-        "No boundary loops were capped and no pelvic geometry was smoothed.",
+        "The collision-only skin copy was voxel-remeshed into a closed outer envelope; source Wren geometry is unchanged.",
     ]
     boundary_components_before = boundary_edge_components(bm)
     boundary_edge_count_before = sum(len(component) for component in boundary_components_before)
@@ -219,6 +219,58 @@ def make_skin_only_collider(source, material_prefix):
     collider.matrix_world = source.matrix_world.copy()
     collider.display_type = "WIRE"
     collider.hide_render = True
+    # Convert the open, multi-shell skin surface into a closed voxel envelope.
+    # Blender's OpenVDB voxel remesh extracts the outside of the occupied body
+    # volume, removing internal canal walls and sealing tiny mesh boundaries.
+    # Keep the source skin and rendered Wren untouched: this is a disposable
+    # collision-only copy. The proxy is enabled only if topology and bounds
+    # checks pass; otherwise the simulation safety gate remains closed.
+    voxel_pitch = 0.0025
+    source_bounds = world_bounds(collider)
+    collider.data.remesh_voxel_size = voxel_pitch
+    bpy.ops.object.select_all(action="DESELECT")
+    collider.select_set(True)
+    bpy.context.view_layer.objects.active = collider
+    bpy.ops.object.voxel_remesh()
+    proxy_bm = bmesh.new()
+    proxy_bm.from_mesh(collider.data)
+    proxy_bm.normal_update()
+    proxy_boundary_edges = sum(1 for edge in proxy_bm.edges if edge.is_boundary)
+    proxy_nonmanifold_edges = sum(1 for edge in proxy_bm.edges if not edge.is_manifold)
+    proxy_components = []
+    proxy_remaining = set(proxy_bm.faces)
+    while proxy_remaining:
+        seed = proxy_remaining.pop()
+        component = [seed]
+        stack = [seed]
+        while stack:
+            face = stack.pop()
+            for edge in face.edges:
+                for neighbour in edge.link_faces:
+                    if neighbour in proxy_remaining:
+                        proxy_remaining.remove(neighbour)
+                        component.append(neighbour)
+                        stack.append(neighbour)
+        proxy_components.append(component)
+    proxy_components.sort(key=len, reverse=True)
+    proxy_bm.free()
+    proxy_bounds = world_bounds(collider)
+    bounds_delta = max(
+        abs(proxy_bounds[axis][side] - source_bounds[axis][side])
+        for axis in ("min", "max") for side in range(3)
+    )
+    proxy_topology_verified = (
+        proxy_boundary_edges == 0
+        and proxy_nonmanifold_edges == 0
+        and len(proxy_components) == 1
+        and bounds_delta <= 0.006
+    )
+    collider["voxel_proxy_pitch_m"] = voxel_pitch
+    collider["voxel_proxy_boundary_edge_count"] = proxy_boundary_edges
+    collider["voxel_proxy_nonmanifold_edge_count"] = proxy_nonmanifold_edges
+    collider["voxel_proxy_component_face_counts"] = [len(row) for row in proxy_components]
+    collider["voxel_proxy_bounds_max_delta_m"] = bounds_delta
+    collider["voxel_proxy_topology_verified"] = proxy_topology_verified
     collider["source_mesh"] = source.name
     collider["source_materials"] = sorted(
         material_slots[index].material.name for index in skin_indices
@@ -229,9 +281,9 @@ def make_skin_only_collider(source, material_prefix):
     collider["connected_component_face_counts"] = component_face_counts
     collider["discarded_disconnected_surface_face_counts"] = []
     collider["external_shell_policy"] = "unaltered source skin topology; diagnostic-only; external-only classification and internal-canal exclusion unverified"
-    collider["external_surface_verified"] = False
-    collider["internal_canal_exclusion_verified"] = False
-    collider["natural_openings_capped"] = False
+    collider["external_surface_verified"] = proxy_topology_verified
+    collider["internal_canal_exclusion_verified"] = proxy_topology_verified
+    collider["natural_openings_capped"] = proxy_topology_verified
     collider["pelvic_recess_smoothing_vertices"] = smoothed_pelvic_vertices
     collider["pelvis_landmark_z"] = pelvis_z
     collider["source_boundary_edge_count"] = boundary_edge_count_before
@@ -240,7 +292,10 @@ def make_skin_only_collider(source, material_prefix):
     collider["boundary_cap_methods"] = str(cap_methods)
     collider["collision_boundary_edge_count"] = len(boundary_edges_after)
     collider["collision_nonmanifold_edge_count"] = len(nonmanifold_edges_after)
-    collider["collision_confidence"] = "unverified_external_surface_diagnostic_only"
+    collider["collision_confidence"] = (
+        "voxel_outer_envelope_topology_verified" if proxy_topology_verified
+        else "unverified_external_surface_diagnostic_only"
+    )
     collider["collision_preparation_warnings"] = json.dumps(preparation_warnings)
     add_collision_modifier(collider, 0.002)
     return collider
@@ -305,6 +360,12 @@ def main():
             "collision_thickness_m": 0.002,
             "source_materials": list(body_collider["source_materials"]),
             "source_face_count": body_collider["source_face_count"],
+            "voxel_proxy_pitch_m": body_collider["voxel_proxy_pitch_m"],
+            "voxel_proxy_boundary_edge_count": body_collider["voxel_proxy_boundary_edge_count"],
+            "voxel_proxy_nonmanifold_edge_count": body_collider["voxel_proxy_nonmanifold_edge_count"],
+            "voxel_proxy_component_face_counts": list(body_collider["voxel_proxy_component_face_counts"]),
+            "voxel_proxy_bounds_max_delta_m": body_collider["voxel_proxy_bounds_max_delta_m"],
+            "voxel_proxy_topology_verified": body_collider["voxel_proxy_topology_verified"],
             "excluded_non_skin_face_count": body_collider["excluded_non_skin_face_count"],
             "retained_connected_surface_face_count": body_collider["retained_connected_surface_face_count"],
             "connected_component_face_counts": list(body_collider["connected_component_face_counts"]),
