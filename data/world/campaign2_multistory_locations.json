@@ -274,7 +274,7 @@
           "corridors": [],
           "tile_objects": [
             {
-              "id": "hollowmere_tavern_south_door",
+              "id": "hollow_tankard_front_door",
               "type": "door_closed",
               "position": {
                 "q": 0,
@@ -332,7 +332,7 @@
       "transitions": [],
       "quest_gates": [],
       "source_notes": [
-        "The tavern floor is the source row-shifted q=-5..5/r=-3..3 footprint, represented as a 6-by-4 half-size room with the same source_building row shift. Its south door at (0,4) begins closed and locked; the fireplace and four source furniture positions are preserved.",
+        "The tavern floor is the source row-shifted q=-5..5/r=-3..3 footprint, represented as a 6-by-4 half-size room with the same source_building row shift. Its south door at (0,4) uses the shared hollow_tankard_front_door ID and begins closed and locked; the opening encounter unlocks it, opens it for the soldiers, then closes it while leaving it unlocked. The Tankard is part of the continuous Hollowmere world and deliberately has no separate exterior_entry teleport contract; the outdoor path begins at (0,5). The fireplace and four source furniture positions are preserved.",
         "NPCs, schedules, dialogue, services and quest interactions remain campaign-owned and are excluded from this map-only definition."
       ]
     },
